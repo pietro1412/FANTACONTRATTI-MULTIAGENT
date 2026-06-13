@@ -21,9 +21,11 @@ vi.mock('../hooks/useAuth', () => ({
 }))
 
 // Mock Toast
+const mockToastError = vi.fn()
+const mockToastSuccess = vi.fn()
 vi.mock('../components/ui/Toast', () => ({
   useToast: () => ({
-    toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() },
+    toast: { success: mockToastSuccess, error: mockToastError, warning: vi.fn(), info: vi.fn() },
   }),
 }))
 
@@ -225,15 +227,15 @@ describe('StrategieRubata', () => {
   })
 
   // ---- Loading state ----
-  it('renders loading spinner initially', () => {
+  it('renders loading skeleton initially', () => {
     // Make API hang forever
     mockGetById.mockReturnValue(new Promise(() => {}))
 
     render(<StrategieRubata onNavigate={mockOnNavigate} />)
 
     expect(screen.getByTestId('navigation')).toBeInTheDocument()
-    const spinner = document.querySelector('.animate-spin')
-    expect(spinner).toBeTruthy()
+    const skeleton = document.querySelector('.animate-pulse')
+    expect(skeleton).toBeTruthy()
   })
 
   // ---- Navigation rendered with correct page ----
@@ -241,65 +243,59 @@ describe('StrategieRubata', () => {
     render(<StrategieRubata onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Giocatori')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Strategie Rubata' })).toBeInTheDocument()
     })
 
     const nav = screen.getByTestId('navigation')
     expect(nav.getAttribute('data-page')).toBe('strategie-rubata')
   })
 
-  // ---- Main content loads ----
-  it('renders header and player data after loading', async () => {
+  // ---- Main content loads (overview is the default landing view) ----
+  it('renders header and overview after loading', async () => {
     render(<StrategieRubata onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Giocatori')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Strategie Rubata' })).toBeInTheDocument()
     })
 
-    // Default view mode is myRoster
-    expect(screen.getByText(/Visualizza la tua rosa con contratti e valori/)).toBeInTheDocument()
+    // Default view is overview: top-priority section is shown
+    expect(screen.getByText(/Top priorità/)).toBeInTheDocument()
+    // and the add-players CTA
+    expect(screen.getByText(/Aggiungi giocatori/)).toBeInTheDocument()
   })
 
-  // ---- View mode tabs ----
-  it('shows view mode scope buttons', async () => {
+  // ---- Scope tabs ----
+  it('shows scope tabs (Overview, Mia rosa, Altre rose, Svincolati, Tutti)', async () => {
     render(<StrategieRubata onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Giocatori')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Strategie Rubata' })).toBeInTheDocument()
     })
 
-    // Scope buttons - "La Mia Rosa" appears in multiple places (button + sidebar)
-    expect(screen.getAllByText(/La Mia Rosa/).length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText('Overview')).toBeInTheDocument()
+    expect(screen.getByText('Mia rosa')).toBeInTheDocument()
+    expect(screen.getByText('Altre rose')).toBeInTheDocument()
+    expect(screen.getByText('Svincolati')).toBeInTheDocument()
+    expect(screen.getByText('Tutti')).toBeInTheDocument()
   })
 
-  // ---- Data view toggles ----
-  it('shows data view mode toggles (Contratti, Stats, Merge)', async () => {
+  // ---- Overview shows watchlist category cards ----
+  it('shows watchlist category cards in overview', async () => {
     render(<StrategieRubata onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Giocatori')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Strategie Rubata' })).toBeInTheDocument()
     })
 
-    // Data view buttons may appear multiple times due to button text
-    expect(screen.getAllByText(/Contratti/).length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText(/Stats/).length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText(/Contratti e Stats/).length).toBeGreaterThanOrEqual(1)
+    // Category labels from WATCHLIST_CATEGORIES ("Da Rubare" also appears as a
+    // headline stat label in the testata, hence getAllByText).
+    expect(screen.getAllByText('Da Rubare').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText('Osservazione')).toBeInTheDocument()
+    expect(screen.getByText('Pot. Acquisto')).toBeInTheDocument()
   })
 
-  // ---- Player count displayed ----
-  it('displays correct filtered player count', async () => {
-    render(<StrategieRubata onNavigate={mockOnNavigate} />)
-
-    await waitFor(() => {
-      expect(screen.getByText('Giocatori')).toBeInTheDocument()
-    })
-
-    // For myRoster view, only own players are shown
-    expect(screen.getByText('giocatori')).toBeInTheDocument()
-  })
-
-  // ---- Error display ----
-  it('shows error message when API fails', async () => {
+  // ---- Error display via toast ----
+  it('reports an error via toast when API fails', async () => {
     mockGetAllPlayersForStrategies.mockResolvedValueOnce({
       success: false,
       message: 'Errore nel caricamento giocatori',
@@ -308,36 +304,21 @@ describe('StrategieRubata', () => {
     render(<StrategieRubata onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Errore nel caricamento giocatori')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Strategie Rubata' })).toBeInTheDocument()
     })
+
+    expect(mockToastError).toHaveBeenCalledWith('Errore nel caricamento giocatori')
   })
 
   // ---- Catches thrown error ----
-  it('shows generic error message when API throws exception', async () => {
+  it('reports a generic error via toast when API throws', async () => {
     mockGetById.mockRejectedValueOnce(new Error('Network error'))
 
     render(<StrategieRubata onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Errore nel caricamento')).toBeInTheDocument()
+      expect(mockToastError).toHaveBeenCalledWith('Errore nel caricamento')
     })
-  })
-
-  // ---- My Roster shows own players (with myMemberId match) ----
-  it('shows own players in myRoster view mode', async () => {
-    render(<StrategieRubata onNavigate={mockOnNavigate} />)
-
-    await waitFor(() => {
-      expect(screen.getByText('Giocatori')).toBeInTheDocument()
-    })
-
-    // Mario Rossi is our own player (memberId === myMember1)
-    // May appear in both table and sidebar overview
-    expect(screen.getAllByText('Mario Rossi').length).toBeGreaterThanOrEqual(1)
-    // Other players (not owned by us) should NOT be in myRoster table view
-    // but may appear in the sidebar overview section
-    // Check at least that the page loads successfully with player data
-    expect(screen.getByText('Giocatori')).toBeInTheDocument()
   })
 
   // ---- API is called with correct leagueId ----
@@ -345,7 +326,7 @@ describe('StrategieRubata', () => {
     render(<StrategieRubata onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Giocatori')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Strategie Rubata' })).toBeInTheDocument()
     })
 
     expect(mockGetById).toHaveBeenCalledWith('league1')
@@ -363,12 +344,9 @@ describe('StrategieRubata', () => {
     render(<StrategieRubata onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Giocatori')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Strategie Rubata' })).toBeInTheDocument()
     })
 
-    // Admin detection doesn't change visible UI significantly in default view,
-    // but the Navigation component receives isLeagueAdmin prop.
-    // We just verify the page renders without error
     expect(screen.getByTestId('navigation')).toBeInTheDocument()
   })
 
@@ -377,24 +355,13 @@ describe('StrategieRubata', () => {
     render(<StrategieRubata onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Giocatori')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Strategie Rubata' })).toBeInTheDocument()
     })
 
-    // The page loaded data including a player with preference (p3: Paolo Verdi).
-    // Preferences are loaded but visible only when we navigate to owned players.
-    // This verifies the API response was processed successfully.
+    // Player p3 (Paolo Verdi) has a DA_RUBARE preference + priority → appears in
+    // overview (both the Da Rubare category card and the top-priority section).
+    expect(screen.getAllByText('Paolo Verdi').length).toBeGreaterThanOrEqual(1)
     expect(mockGetAllPlayersForStrategies).toHaveBeenCalled()
     expect(mockGetAllSvincolatiForStrategies).toHaveBeenCalled()
-  })
-
-  // ---- Description changes based on view mode ----
-  it('shows correct description for myRoster view mode', async () => {
-    render(<StrategieRubata onNavigate={mockOnNavigate} />)
-
-    await waitFor(() => {
-      expect(screen.getByText('Giocatori')).toBeInTheDocument()
-    })
-
-    expect(screen.getByText('Visualizza la tua rosa con contratti e valori.')).toBeInTheDocument()
   })
 })

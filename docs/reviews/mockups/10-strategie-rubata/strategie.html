@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Mockup — Strategie Rubata 1280</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=Oswald:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Strategie Rubata — NON cockpit (pagina di preparazione asincrona, non live).
+     Flusso pagina normale + PanelTabs per lo scope + filtri sticky. Overview = default
+     (l'output strategico). Stessa lingua visiva della sala Rubata live + tassonomia
+     watchlist condivisa (Da Rubare/Osservazione/Pot.Acquisto/Scambio/Da Vendere). */
+  :root{
+    --bg:#0a0a0b; --card:#1a1c20; --elev:#111214; --hover:#252830;
+    --border:#2d3139; --primary:#3b82f6; --secondary:#22c55e;
+    --gold:#f59e0b; --gold2:#fbbf24; --danger:#ef4444; --passion:#ea580c;
+    --t1:#f9fafb; --t2:#9ca3af; --t3:#8b919d;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--t1);font-family:'Inter',sans-serif;padding:40px 0 80px;}
+  button{font:inherit;}
+  h1.page{font-family:'Outfit',sans-serif;font-size:22px;font-weight:700;text-align:center;margin-bottom:6px;}
+  p.sub{text-align:center;color:var(--t3);font-size:13px;margin-bottom:36px;max-width:1000px;margin-left:auto;margin-right:auto;}
+  .frames{display:flex;flex-direction:column;align-items:center;gap:56px;}
+  .frame-label{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--t3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;}
+
+  .frame{width:1280px;border:1px solid var(--border);border-radius:16px;background:var(--bg);overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.55);}
+  .topbar{height:48px;background:var(--elev);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:10px;}
+  .topbar .logo{width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,#1e40af,#3b82f6);}
+  .topbar .nav{font-size:12px;color:var(--t3);}
+  .topbar .nav b{color:var(--t1);font-weight:600;}
+
+  .wrap{padding:20px 26px 28px;}
+  .micro{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);}
+
+  /* testata */
+  .htitle{display:flex;align-items:center;gap:14px;margin-bottom:16px;}
+  .htitle .ic{width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,#7c2d12,#ea580c);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;border:1px solid rgba(234,88,12,.5);}
+  .htitle h2{font-family:'Outfit',sans-serif;font-size:20px;font-weight:700;}
+  .htitle p{font-size:12px;color:var(--t3);margin-top:2px;}
+  .htitle .hstats{margin-left:auto;display:flex;gap:20px;}
+  .hs{text-align:right;}
+  .hs .l{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);}
+  .hs .v{font-family:'Oswald',sans-serif;font-size:20px;font-weight:600;font-variant-numeric:tabular-nums;}
+  .hs.gold .v{color:var(--gold2);} .hs.dng .v{color:var(--danger);}
+
+  /* PanelTabs scope */
+  .ptabs{display:flex;align-items:center;gap:4px;border-bottom:1px solid var(--border);margin-bottom:14px;}
+  .ptab{padding:9px 16px;font-family:'Outfit',sans-serif;font-size:13.5px;font-weight:600;color:var(--t2);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;display:inline-flex;align-items:center;gap:7px;}
+  .ptab .n{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--t3);}
+  .ptab.on{color:var(--gold2);border-bottom-color:var(--gold);}
+  .ptab.on .n{color:var(--gold2);}
+
+  /* barra filtri sticky */
+  .filters{display:flex;align-items:center;gap:8px;background:var(--elev);border:1px solid var(--border);border-radius:11px;padding:8px 12px;margin-bottom:16px;}
+  .seg{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+  .seg button{padding:5px 13px;font-family:'Inter',sans-serif;font-size:11.5px;font-weight:600;color:var(--t2);background:var(--card);border:none;border-right:1px solid var(--border);cursor:pointer;}
+  .seg button:last-child{border-right:none;}
+  .seg button.on{color:#0a0a0b;background:var(--gold2);}
+  .search{display:flex;align-items:center;gap:7px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:5px 11px;color:var(--t3);font-size:12px;min-width:150px;}
+  .fchip{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;border:1px solid var(--border);border-radius:999px;padding:4px 10px;color:var(--t3);cursor:pointer;}
+  .fchip.on{color:#0a0a0b;background:var(--gold2);border-color:var(--gold2);}
+  .filters .right{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--t3);}
+  .toggle{display:inline-flex;align-items:center;gap:6px;}
+  .tog{width:30px;height:17px;border-radius:999px;background:var(--secondary);position:relative;}
+  .tog::after{content:"";position:absolute;right:2px;top:2px;width:13px;height:13px;border-radius:50%;background:#fff;}
+
+  /* role + mono */
+  .role-badge{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-weight:800;font-size:13px;flex-shrink:0;}
+  .role-P{background:rgba(245,158,11,.14);color:var(--gold2);border:1px solid rgba(245,158,11,.4);}
+  .role-D{background:rgba(59,130,246,.15);color:var(--primary);border:1px solid rgba(59,130,246,.4);}
+  .role-C{background:rgba(34,197,94,.14);color:var(--secondary);border:1px solid rgba(34,197,94,.4);}
+  .role-A{background:rgba(239,68,68,.15);color:var(--danger);border:1px solid rgba(239,68,68,.4);}
+  .mono{width:24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-size:10px;font-weight:700;background:var(--hover);color:var(--t1);border:1px solid var(--border);flex-shrink:0;}
+
+  /* ===== OVERVIEW ===== */
+  .top-prio{background:var(--card);border:1px solid rgba(245,158,11,.3);border-radius:14px;padding:14px 16px;margin-bottom:16px;box-shadow:0 0 0 1px rgba(245,158,11,.08);}
+  .tp-head{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+  .tp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  .tp-card{display:flex;align-items:center;gap:10px;background:var(--elev);border:1px solid var(--border);border-radius:11px;padding:10px 12px;}
+  .tp-rank{font-family:'Oswald',sans-serif;font-size:22px;font-weight:700;color:var(--gold2);width:24px;text-align:center;flex-shrink:0;}
+  .tp-info{flex:1;min-width:0;}
+  .tp-name{font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .tp-sub{font-size:10.5px;color:var(--t3);}
+  .tp-bid{text-align:right;}
+  .tp-bid .l{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--t3);letter-spacing:.08em;}
+  .tp-bid .v{font-family:'Oswald',sans-serif;font-size:18px;font-weight:600;color:var(--gold2);}
+  .stars{color:var(--gold2);font-size:11px;letter-spacing:1px;}
+  .stars .off{color:var(--border);}
+
+  .cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+  .catcard{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;}
+  .catcard-h{display:flex;align-items:center;gap:9px;padding:11px 14px;border-bottom:1px solid var(--border);}
+  .cat-ic{width:24px;height:24px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-weight:800;font-size:12px;flex-shrink:0;}
+  .cat-DA_RUBARE{background:rgba(239,68,68,.2);color:var(--danger);border:1px solid rgba(239,68,68,.3);}
+  .cat-OSS{background:rgba(245,158,11,.2);color:var(--gold2);border:1px solid rgba(245,158,11,.3);}
+  .cat-POT{background:rgba(34,197,94,.2);color:var(--secondary);border:1px solid rgba(34,197,94,.3);}
+  .cat-SCAMBIO{background:rgba(59,130,246,.2);color:var(--primary);border:1px solid rgba(59,130,246,.3);}
+  .cat-VEND{background:rgba(234,88,12,.2);color:var(--passion);border:1px solid rgba(234,88,12,.3);}
+  .catcard-h .ti{font-family:'Outfit',sans-serif;font-size:13.5px;font-weight:700;}
+  .catcard-h .cnt{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--t3);}
+  .crow{display:flex;align-items:center;gap:9px;padding:8px 14px;border-bottom:1px solid var(--border);}
+  .crow:last-child{border-bottom:none;}
+  .crow .nm{flex:1;min-width:0;font-family:'Outfit',sans-serif;font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .crow .nm small{color:var(--t3);font-weight:400;font-size:10.5px;display:block;}
+  .crow .bid{font-family:'Oswald',sans-serif;font-size:14px;font-weight:600;color:var(--gold2);}
+  .catcard-empty{padding:16px 14px;color:var(--t3);font-size:11.5px;font-style:italic;text-align:center;}
+
+  /* ===== TABELLA ===== */
+  .panel{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+  .tbl{width:100%;border-collapse:collapse;}
+  .tbl thead th{font-family:'JetBrains Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--t3);text-align:left;padding:9px 10px;border-bottom:1px solid var(--border);background:var(--elev);}
+  .tbl th.grp{text-align:center;border-left:1px solid var(--border);color:var(--gold2);}
+  .tbl td{padding:9px 10px;border-bottom:1px solid var(--border);font-size:12.5px;vertical-align:middle;}
+  .tbl tr:last-child td{border-bottom:none;}
+  .tbl td.bl{border-left:1px solid var(--border);}
+  .pl{display:flex;align-items:center;gap:9px;}
+  .pl .nm{font-family:'Outfit',sans-serif;font-weight:700;font-size:13px;}
+  .pl .sb{font-size:10px;color:var(--t3);display:flex;align-items:center;gap:5px;margin-top:1px;}
+  .atag{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;border-radius:3px;padding:1px 4px;color:var(--secondary);border:1px solid rgba(34,197,94,.4);}
+  .num{font-family:'Oswald',sans-serif;font-size:15px;font-weight:600;font-variant-numeric:tabular-nums;}
+  .num.t2{color:var(--t2);} .num.gold{color:var(--gold2);}
+  /* amount stepper */
+  .amt{display:inline-flex;align-items:stretch;border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--elev);}
+  .amt button{width:26px;border:none;background:var(--card);color:var(--t1);font-family:'Oswald',sans-serif;font-size:14px;cursor:pointer;}
+  .amt .val{min-width:46px;display:flex;align-items:center;justify-content:center;font-family:'Oswald',sans-serif;font-size:15px;font-weight:700;color:var(--gold2);font-variant-numeric:tabular-nums;}
+  .catsel{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;border-radius:6px;padding:3px 9px;cursor:pointer;}
+  .note-in{font-size:11px;color:var(--t3);background:var(--elev);border:1px solid var(--border);border-radius:7px;padding:4px 9px;min-width:120px;display:inline-block;}
+  .dirty{box-shadow:inset 3px 0 0 var(--gold);}
+</style>
+</head>
+<body>
+
+<h1 class="page">Strategie Rubata — Overview (default) e vista Giocatori</h1>
+<p class="sub">NON cockpit: pagina di preparazione asincrona (no timer/turni) → flusso normale. Scope a <b>PanelTabs</b> oro (Overview default), vista-dati segmented + filtri sticky. Stessa lingua della sala Rubata live: tassonomia watchlist condivisa, Monogram, numeroni Oswald, riuso PlayerCompareModal. Salvataggio = bordo oro mentre dirty + toast.</p>
+
+<div class="frames">
+
+<!-- ============ FRAME 1: OVERVIEW ============ -->
+<div>
+  <div class="frame-label">Strategie Rubata — Overview (vista di default)</div>
+  <div class="frame">
+    <div class="topbar"><span class="logo"></span><span class="nav">Lega Fantacontratti · <b>Strategie Rubata</b></span></div>
+    <div class="wrap">
+
+      <div class="htitle">
+        <div class="ic">🎯</div>
+        <div>
+          <h2>Strategie Rubata</h2>
+          <p>Prepara la tua watchlist, i max bid e le priorità prima che parta la rubata.</p>
+        </div>
+        <div class="hstats">
+          <div class="hs"><div class="l">In watchlist</div><div class="v">14</div></div>
+          <div class="hs gold"><div class="l">Da Rubare</div><div class="v">5</div></div>
+          <div class="hs"><div class="l">Budget rubata</div><div class="v">187M</div></div>
+        </div>
+      </div>
+
+      <!-- PanelTabs scope -->
+      <div class="ptabs">
+        <button class="ptab on">Overview</button>
+        <button class="ptab">Mia rosa <span class="n">25</span></button>
+        <button class="ptab">Altre rose <span class="n">175</span></button>
+        <button class="ptab">Svincolati <span class="n">142</span></button>
+        <button class="ptab">Tutti <span class="n">342</span></button>
+      </div>
+
+      <!-- top priorità -->
+      <div class="top-prio">
+        <div class="tp-head"><span class="micro" style="color:var(--gold2);">★ Top priorità · i tuoi 3 obiettivi</span></div>
+        <div class="tp-grid">
+          <div class="tp-card"><div class="tp-rank">1</div><div class="role-badge role-A">A</div><div class="tp-info"><div class="tp-name">Ademola Lookman</div><div class="tp-sub">Atalanta · <span class="stars">★★★★★</span></div></div><div class="tp-bid"><div class="l">MAX BID</div><div class="v">95M</div></div></div>
+          <div class="tp-card"><div class="tp-rank">2</div><div class="role-badge role-C">C</div><div class="tp-info"><div class="tp-name">Teun Koopmeiners</div><div class="tp-sub">Juventus · <span class="stars">★★★★<span class="off">★</span></span></div></div><div class="tp-bid"><div class="l">MAX BID</div><div class="v">70M</div></div></div>
+          <div class="tp-card"><div class="tp-rank">3</div><div class="role-badge role-D">D</div><div class="tp-info"><div class="tp-name">Giorgio Scalvini</div><div class="tp-sub">Atalanta · <span class="stars">★★★★<span class="off">★</span></span></div></div><div class="tp-bid"><div class="l">MAX BID</div><div class="v">55M</div></div></div>
+        </div>
+      </div>
+
+      <!-- categorie watchlist -->
+      <div class="cat-grid">
+        <div class="catcard">
+          <div class="catcard-h"><span class="cat-ic cat-DA_RUBARE">T</span><span class="ti">Da Rubare</span><span class="cnt">5</span></div>
+          <div class="crow"><div class="role-badge role-A">A</div><div class="nm">Ademola Lookman<small>Atalanta · ★★★★★</small></div><span class="bid">95M</span></div>
+          <div class="crow"><div class="role-badge role-C">C</div><div class="nm">Teun Koopmeiners<small>Juventus · ★★★★</small></div><span class="bid">70M</span></div>
+          <div class="crow"><div class="role-badge role-D">D</div><div class="nm">Giorgio Scalvini<small>Atalanta · ★★★★</small></div><span class="bid">55M</span></div>
+          <div class="crow"><div class="role-badge role-A">A</div><div class="nm">Charles De Ketelaere<small>Atalanta · ★★★</small></div><span class="bid">48M</span></div>
+          <div class="crow"><div class="role-badge role-P">P</div><div class="nm">Marco Carnesecchi<small>Atalanta · ★★★</small></div><span class="bid">30M</span></div>
+        </div>
+        <div class="catcard">
+          <div class="catcard-h"><span class="cat-ic cat-OSS">O</span><span class="ti">Osservazione</span><span class="cnt">4</span></div>
+          <div class="crow"><div class="role-badge role-C">C</div><div class="nm">Marten de Roon<small>Atalanta · ★★</small></div><span class="bid">25M</span></div>
+          <div class="crow"><div class="role-badge role-D">D</div><div class="nm">Sead Kolašinac<small>Atalanta · ★★</small></div><span class="bid">18M</span></div>
+          <div class="crow"><div class="role-badge role-A">A</div><div class="nm">Gianluca Scamacca<small>Atalanta · ★★</small></div><span class="bid">40M</span></div>
+          <div class="crow"><div class="role-badge role-C">C</div><div class="nm">Mario Pasalic<small>Atalanta · ★</small></div><span class="bid">15M</span></div>
+        </div>
+        <div class="catcard">
+          <div class="catcard-h"><span class="cat-ic cat-POT">A</span><span class="ti">Pot. Acquisto</span><span class="cnt">3</span></div>
+          <div class="crow"><div class="role-badge role-D">D</div><div class="nm">Berat Djimsiti<small>Atalanta · ★★</small></div><span class="bid">12M</span></div>
+          <div class="crow"><div class="role-badge role-C">C</div><div class="nm">Ederson<small>Atalanta · ★★★</small></div><span class="bid">52M</span></div>
+          <div class="crow"><div class="role-badge role-A">A</div><div class="nm">Daniel Maldini<small>Monza · ★★</small></div><span class="bid">22M</span></div>
+        </div>
+        <div class="catcard">
+          <div class="catcard-h"><span class="cat-ic cat-SCAMBIO">S</span><span class="ti">Scambio</span><span class="cnt">2</span></div>
+          <div class="crow"><div class="role-badge role-C">C</div><div class="nm">Davide Frattesi<small>Inter · ★★★</small></div><span class="bid">—</span></div>
+          <div class="crow"><div class="role-badge role-A">A</div><div class="nm">Mateo Retegui<small>Atalanta · ★★★</small></div><span class="bid">—</span></div>
+        </div>
+        <div class="catcard">
+          <div class="catcard-h"><span class="cat-ic cat-VEND">V</span><span class="ti">Da Vendere</span><span class="cnt">0</span></div>
+          <div class="catcard-empty">Nessun giocatore in questa categoria</div>
+        </div>
+        <div class="catcard" style="border-style:dashed;align-items:center;justify-content:center;">
+          <div class="catcard-empty" style="font-style:normal;">+ Aggiungi giocatori<br><span style="font-size:10px;">dalle viste Svincolati / Altre rose</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ============ FRAME 2: TABELLA GIOCATORI ============ -->
+<div>
+  <div class="frame-label">Strategie Rubata — vista Giocatori (scope Svincolati, dati Misto, editing strategia)</div>
+  <div class="frame">
+    <div class="topbar"><span class="logo"></span><span class="nav">Lega Fantacontratti · <b>Strategie Rubata</b></span></div>
+    <div class="wrap">
+
+      <div class="htitle">
+        <div class="ic">🎯</div>
+        <div>
+          <h2>Strategie Rubata</h2>
+          <p>Imposta max bid, priorità e categoria per ogni giocatore che ti interessa.</p>
+        </div>
+        <div class="hstats">
+          <div class="hs"><div class="l">In watchlist</div><div class="v">14</div></div>
+          <div class="hs gold"><div class="l">Budget rubata</div><div class="v">187M</div></div>
+        </div>
+      </div>
+
+      <!-- PanelTabs scope -->
+      <div class="ptabs">
+        <button class="ptab">Overview</button>
+        <button class="ptab">Mia rosa <span class="n">25</span></button>
+        <button class="ptab">Altre rose <span class="n">175</span></button>
+        <button class="ptab on">Svincolati <span class="n">142</span></button>
+        <button class="ptab">Tutti <span class="n">342</span></button>
+      </div>
+
+      <!-- filtri sticky -->
+      <div class="filters">
+        <div class="seg"><button>Contratti</button><button>Stats</button><button class="on">Misto</button></div>
+        <span class="fchip on">Tutti</span><span class="fchip">P</span><span class="fchip">D</span><span class="fchip">C</span><span class="fchip">A</span>
+        <span class="search">🔍 Cerca…</span>
+        <span class="fchip">Squadra ▾</span>
+        <div class="right"><span class="toggle"><span class="tog"></span>Solo con strategia</span></div>
+      </div>
+
+      <!-- tabella -->
+      <div class="panel">
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>Giocatore</th>
+              <th class="r">Quot.</th>
+              <th class="grp bl" colspan="2">Statistiche</th>
+              <th class="grp bl" colspan="4">Strategia</th>
+            </tr>
+            <tr>
+              <th></th>
+              <th class="r"></th>
+              <th class="bl">Voto</th><th>Pres.</th>
+              <th class="bl">Max bid</th><th>Priorità</th><th>Categoria</th><th>Note</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="dirty">
+              <td><div class="pl"><div class="role-badge role-A">A</div><div><div class="nm">Ademola Lookman</div><div class="sb">Atalanta <span class="atag">TOP</span><span class="atag">BOMBER</span></div></div></div></td>
+              <td class="r"><span class="num t2">28</span></td>
+              <td class="bl"><span class="num">7.4</span></td><td><span class="num t2">32</span></td>
+              <td class="bl"><div class="amt"><button>−</button><span class="val">95</span><button>+</button></div></td>
+              <td><span class="stars">★★★★★</span></td>
+              <td><span class="catsel cat-DA_RUBARE" style="background:rgba(239,68,68,.2);color:var(--danger);border:1px solid rgba(239,68,68,.3);">Da Rubare ▾</span></td>
+              <td><span class="note-in">priorità assoluta</span></td>
+            </tr>
+            <tr>
+              <td><div class="pl"><div class="role-badge role-C">C</div><div><div class="nm">Teun Koopmeiners</div><div class="sb">Juventus <span class="atag">JOLLY</span></div></div></div></td>
+              <td class="r"><span class="num t2">25</span></td>
+              <td class="bl"><span class="num">7.1</span></td><td><span class="num t2">30</span></td>
+              <td class="bl"><div class="amt"><button>−</button><span class="val">70</span><button>+</button></div></td>
+              <td><span class="stars">★★★★<span class="off">★</span></span></td>
+              <td><span class="catsel cat-DA_RUBARE" style="background:rgba(239,68,68,.2);color:var(--danger);border:1px solid rgba(239,68,68,.3);">Da Rubare ▾</span></td>
+              <td><span class="note-in" style="color:var(--t3);font-style:italic;">+ nota</span></td>
+            </tr>
+            <tr>
+              <td><div class="pl"><div class="role-badge role-D">D</div><div><div class="nm">Sead Kolašinac</div><div class="sb">Atalanta</div></div></div></td>
+              <td class="r"><span class="num t2">12</span></td>
+              <td class="bl"><span class="num">6.3</span></td><td><span class="num t2">21</span></td>
+              <td class="bl"><div class="amt"><button>−</button><span class="val">18</span><button>+</button></div></td>
+              <td><span class="stars">★★<span class="off">★★★</span></span></td>
+              <td><span class="catsel cat-OSS" style="background:rgba(245,158,11,.2);color:var(--gold2);border:1px solid rgba(245,158,11,.3);">Osservazione ▾</span></td>
+              <td><span class="note-in" style="color:var(--t3);font-style:italic;">+ nota</span></td>
+            </tr>
+            <tr>
+              <td><div class="pl"><div class="role-badge role-A">A</div><div><div class="nm">Daniel Maldini</div><div class="sb">Monza</div></div></div></td>
+              <td class="r"><span class="num t2">15</span></td>
+              <td class="bl"><span class="num">6.6</span></td><td><span class="num t2">27</span></td>
+              <td class="bl"><div class="amt"><button>−</button><span class="val">22</span><button>+</button></div></td>
+              <td><span class="stars">★★<span class="off">★★★</span></span></td>
+              <td><span class="catsel cat-POT" style="background:rgba(34,197,94,.2);color:var(--secondary);border:1px solid rgba(34,197,94,.3);">Pot. Acquisto ▾</span></td>
+              <td><span class="note-in" style="color:var(--t3);font-style:italic;">+ nota</span></td>
+            </tr>
+            <tr>
+              <td><div class="pl"><div class="role-badge role-P">P</div><div><div class="nm">Marco Carnesecchi</div><div class="sb">Atalanta <span class="atag">PARATE</span></div></div></div></td>
+              <td class="r"><span class="num t2">18</span></td>
+              <td class="bl"><span class="num">6.8</span></td><td><span class="num t2">34</span></td>
+              <td class="bl"><div class="amt"><button>−</button><span class="val">30</span><button>+</button></div></td>
+              <td><span class="stars">★★★<span class="off">★★</span></span></td>
+              <td><span class="catsel cat-DA_RUBARE" style="background:rgba(239,68,68,.2);color:var(--danger);border:1px solid rgba(239,68,68,.3);">Da Rubare ▾</span></td>
+              <td><span class="note-in">titolare sicuro</span></td>
+            </tr>
+            <tr>
+              <td><div class="pl"><div class="role-badge role-C">C</div><div><div class="nm">Ederson</div><div class="sb">Atalanta <span class="atag">MOTORE</span></div></div></div></td>
+              <td class="r"><span class="num t2">22</span></td>
+              <td class="bl"><span class="num">7.0</span></td><td><span class="num t2">29</span></td>
+              <td class="bl"><div class="amt"><button>−</button><span class="val">52</span><button>+</button></div></td>
+              <td><span class="stars">★★★<span class="off">★★</span></span></td>
+              <td><span class="catsel cat-POT" style="background:rgba(34,197,94,.2);color:var(--secondary);border:1px solid rgba(34,197,94,.3);">Pot. Acquisto ▾</span></td>
+              <td><span class="note-in" style="color:var(--t3);font-style:italic;">+ nota</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:8px;margin-top:12px;">
+        <span class="micro">142 svincolati · 14 con strategia impostata</span>
+        <span style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--gold2);"><span style="width:8px;height:8px;border-radius:2px;background:var(--gold);"></span>modifica non salvata (autosave 2s)</span>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

@@ -1,37 +1,29 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useParams } from 'react-router-dom'
-import { rubataApi, leagueApi } from '../services/api'
-import { AUTO_TAG_DEFS, type AutoTagId } from '../services/player-stats.service'
+import { rubataApi, leagueApi } from '@/services/api'
+import { AUTO_TAG_DEFS, type AutoTagId } from '@/services/player-stats.service'
 
 // Watchlist categories (#219) — tassonomia condivisa con la pagina Rubata
 import { WATCHLIST_CATEGORIES, type WatchlistCategoryId } from '@/types/watchlist.types'
-import { Navigation } from '../components/Navigation'
-import { getTeamLogo } from '../utils/teamLogos'
-import { getPlayerPhotoUrl } from '../utils/player-images'
-import { POSITION_COLORS } from '../components/ui/PositionBadge'
-import { PlayerStatsModal, type PlayerInfo, type PlayerStats, type ComputedSeasonStats } from '../components/PlayerStatsModal'
-import RadarChart from '../components/ui/RadarChart'
+import { Navigation } from '@/components/Navigation'
+import { getTeamLogo } from '@/utils/teamLogos'
+import { POSITION_COLORS } from '@/components/ui/PositionBadge'
+import { PlayerStatsModal, type PlayerInfo, type PlayerStats, type ComputedSeasonStats } from '@/components/PlayerStatsModal'
+import { PlayerCompareModal } from '@/components/rubata/PlayerCompareModal'
+import { AmountStepper } from '@/components/ui/AmountStepper'
+import { Monogram } from '@/components/ui/Monogram'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { Skeleton } from '@/components/ui/Skeleton'
+import { useToast } from '@/components/ui/Toast'
+import type { BoardPlayer } from '@/types/rubata.types'
 
-// Player colors for radar chart comparison
-const PLAYER_CHART_COLORS = ['#3b82f6', '#ef4444', '#22c55e', '#a855f7']
-
-// Age color coding - younger is better
+// Age color coding (Stadium Nights tokens) - younger is better
 function getAgeColor(age: number | null | undefined): string {
   if (age === null || age === undefined) return 'text-gray-500'
-  if (age < 20) return 'text-secondary-400 font-bold' // Very young - excellent
-  if (age < 25) return 'text-secondary-400' // Young - good
-  if (age < 30) return 'text-warning-400' // Prime - neutral
-  if (age < 35) return 'text-passion-400' // Aging - caution
-  return 'text-danger-400' // Old - warning
-}
-
-function getAgeBgColor(age: number | null | undefined): string {
-  if (age === null || age === undefined) return 'bg-gray-500/20 text-gray-400'
-  if (age < 20) return 'bg-secondary-500/20 text-secondary-400 font-bold'
-  if (age < 25) return 'bg-secondary-500/20 text-secondary-400'
-  if (age < 30) return 'bg-warning-500/20 text-warning-400'
-  if (age < 35) return 'bg-passion-500/20 text-passion-400'
-  return 'bg-danger-500/20 text-danger-400'
+  if (age < 25) return 'text-secondary-400'
+  if (age < 30) return 'text-warning-400'
+  if (age < 35) return 'text-passion-400'
+  return 'text-danger-400'
 }
 
 interface StrategyPlayer {
@@ -123,7 +115,7 @@ interface StatsColumn {
 
 const STATS_COLUMNS: StatsColumn[] = [
   { key: 'appearances', label: 'Presenze', shortLabel: 'Pres', getValue: s => s?.games?.appearences ?? null },
-  { key: 'rating', label: 'Rating', shortLabel: 'Rat', getValue: s => s?.games?.rating ?? null, format: v => v?.toFixed(2) ?? '-' },
+  { key: 'rating', label: 'Rating', shortLabel: 'Voto', getValue: s => s?.games?.rating ?? null, format: v => v?.toFixed(2) ?? '-' },
   { key: 'goals', label: 'Gol', shortLabel: 'Gol', getValue: s => s?.goals?.total ?? null, colorClass: 'text-secondary-400' },
   { key: 'assists', label: 'Assist', shortLabel: 'Ass', getValue: s => s?.goals?.assists ?? null, colorClass: 'text-primary-400' },
   { key: 'minutes', label: 'Minuti', shortLabel: 'Min', getValue: s => s?.games?.minutes ?? null },
@@ -151,14 +143,6 @@ function TeamLogo({ team }: { team: string }) {
   )
 }
 
-// Sort configuration
-// - role: Position (P,D,C,A) > Alphabetical
-// - manager: Manager team name > Position > Alphabetical
-// - rubata: Rubata order > Position > Alphabetical (only when order is set)
-type SortMode = 'role' | 'manager' | 'rubata'
-type SortField = 'position' | 'name' | 'owner' | 'team' | 'contract' | 'rubata' | 'maxBid' | 'priority'
-type SortDirection = 'asc' | 'desc'
-
 // Local strategy state for a player (with debounce)
 interface LocalStrategy {
   maxBid: string
@@ -167,23 +151,69 @@ interface LocalStrategy {
   isDirty: boolean
 }
 
+// Round role badge (square, themed). Mirrors the mockup .role-badge.
+function RoleBadge({ position, size = 'md' }: { position: string; size?: 'sm' | 'md' }) {
+  const posColors = POSITION_COLORS[position] ?? { bg: 'bg-surface-100', text: 'text-gray-200', border: '' }
+  const dim = size === 'sm' ? 'w-7 h-7 text-xs' : 'w-8 h-8 text-sm'
+  return (
+    <span className={`${dim} rounded-lg ${posColors.bg} ${posColors.text} font-display font-bold flex items-center justify-center flex-shrink-0`}>
+      {position}
+    </span>
+  )
+}
+
+// Compact star rating (read-only) for overview lists
+function StarRating({ value }: { value: number }) {
+  return (
+    <span className="text-accent-400 text-[11px] tracking-wide" aria-label={`Priorità ${value} su 5`}>
+      {[1, 2, 3, 4, 5].map(s => (
+        <span key={s} className={s <= value ? '' : 'text-surface-50/50'}>★</span>
+      ))}
+    </span>
+  )
+}
+
+// Map a DisplayPlayer to the BoardPlayer shape consumed by PlayerCompareModal.
+// Svincolati lack contract data → fill with zero defaults (the modal renders them as 0/-).
+function toBoardPlayer(p: DisplayPlayer): BoardPlayer {
+  const isSvincolato = p.type === 'svincolato'
+  return {
+    rosterId: isSvincolato ? p.playerId : p.rosterId,
+    memberId: isSvincolato ? '' : p.memberId,
+    playerId: p.playerId,
+    playerName: p.playerName,
+    playerPosition: (p.playerPosition || '').toUpperCase() as BoardPlayer['playerPosition'],
+    playerTeam: p.playerTeam,
+    playerQuotation: isSvincolato ? undefined : p.playerQuotation,
+    playerAge: p.playerAge,
+    playerApiFootballId: p.playerApiFootballId,
+    playerApiFootballStats: p.playerApiFootballStats,
+    playerComputedStats: p.playerComputedStats,
+    ownerUsername: isSvincolato ? '' : p.ownerUsername,
+    ownerTeamName: isSvincolato ? null : p.ownerTeamName,
+    rubataPrice: isSvincolato ? 0 : p.rubataPrice,
+    contractSalary: isSvincolato ? 0 : p.contractSalary,
+    contractDuration: isSvincolato ? 0 : p.contractDuration,
+    contractClause: isSvincolato ? 0 : p.contractClause,
+  }
+}
+
 export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => void }) {
   const { leagueId } = useParams<{ leagueId: string }>()
+  const { toast } = useToast()
 
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
   const [savingPlayerIds, setSavingPlayerIds] = useState<Set<string>>(new Set())
   const [isLeagueAdmin, setIsLeagueAdmin] = useState(false)
 
   const [strategiesData, setStrategiesData] = useState<StrategiesData | null>(null)
   const [svincolatiData, setSvincolatiData] = useState<SvincolatiData | null>(null)
 
-  // View mode: my roster, owned players, svincolati, or all
-  const [viewMode, setViewMode] = useState<ViewMode>('myRoster')
+  // View mode (scope): overview is the default landing view (strategic output)
+  const [viewMode, setViewMode] = useState<ViewMode>('overview')
 
   // Data view mode: contracts, stats, or merge
-  const [dataViewMode, setDataViewMode] = useState<DataViewMode>('contracts')
+  const [dataViewMode, setDataViewMode] = useState<DataViewMode>('merge')
 
   // Filter state
   const [positionFilter, setPositionFilter] = useState<string>('ALL')
@@ -192,17 +222,15 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
   const [ownerFilter, setOwnerFilter] = useState<string>('ALL')
   const [teamFilter, setTeamFilter] = useState<string>('ALL')
 
-  // Sort state
-  const [sortMode] = useState<SortMode>('role')
-  const [sortField, setSortField] = useState<SortField>('position')
-  const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
-
   // Player stats modal
   const [selectedPlayerStats, setSelectedPlayerStats] = useState<PlayerInfo | null>(null)
 
   // Player comparison feature (#187)
   const [selectedForCompare, setSelectedForCompare] = useState<Set<string>>(new Set())
   const [showCompareModal, setShowCompareModal] = useState(false)
+
+  // Category popover (which player row has the category picker open)
+  const [openCategoryFor, setOpenCategoryFor] = useState<string | null>(null)
 
   // Local edits with debounce
   const [localStrategies, setLocalStrategies] = useState<Record<string, LocalStrategy>>({})
@@ -239,14 +267,6 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
       const locals: Record<string, LocalStrategy> = {}
 
       if (ownedRes.success && ownedRes.data) {
-        // DEBUG: Check what API returns
-        const withPrefs = ownedRes.data.players.filter(p => p.preference)
-        console.log('[Strategie DEBUG]', {
-          totalPlayers: ownedRes.data.players.length,
-          withPreferences: withPrefs.length,
-          samplePrefs: withPrefs.slice(0, 3).map(p => ({ name: p.playerName, pref: p.preference }))
-        })
-
         setStrategiesData(ownedRes.data as StrategiesData)
         ownedRes.data.players.forEach(p => {
           if (p.preference) {
@@ -259,7 +279,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
           }
         })
       } else {
-        setError(ownedRes.message || 'Errore nel caricamento giocatori')
+        toast.error(ownedRes.message || 'Errore nel caricamento giocatori')
       }
 
       if (svincolatiRes.success && svincolatiRes.data) {
@@ -277,12 +297,12 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
       }
 
       setLocalStrategies(locals)
-    } catch (_err) {
-      setError('Errore nel caricamento')
+    } catch {
+      toast.error('Errore nel caricamento')
     } finally {
       setLoading(false)
     }
-  }, [leagueId])
+  }, [leagueId, toast])
 
   useEffect(() => {
     void loadData()
@@ -294,21 +314,6 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
       Object.values(debounceTimers.current).forEach(timer => { clearTimeout(timer); })
     }
   }, [])
-
-  // Clear messages
-  useEffect(() => {
-    if (success) {
-      const timer = setTimeout(() => { setSuccess(''); }, 2000)
-      return () => { clearTimeout(timer); }
-    }
-  }, [success])
-
-  useEffect(() => {
-    if (error) {
-      const timer = setTimeout(() => { setError(''); }, 4000)
-      return () => { clearTimeout(timer); }
-    }
-  }, [error])
 
   // Get unique owners for filter
   const uniqueOwners = useMemo(() => {
@@ -348,7 +353,6 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
     // Use ref to get current value (avoids stale closure)
     const local = localStrategiesRef.current[playerId]
     if (!local || !local.isDirty) {
-      console.log('[Strategie SAVE skipped]', { playerId, local, isDirty: local?.isDirty })
       return
     }
 
@@ -360,7 +364,6 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
     const hasStrategy = maxBid !== null || priority !== null || !!notes
 
     try {
-      console.log('[Strategie SAVE]', { playerId, maxBid, priority, notes, hasStrategy })
       const res = await rubataApi.setPreference(leagueId, playerId, {
         maxBid,
         priority,
@@ -368,7 +371,6 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
         isWatchlist: hasStrategy,
         isAutoPass: false,
       })
-      console.log('[Strategie SAVE result]', res)
 
       if (res.success) {
         // Mark as not dirty
@@ -410,10 +412,11 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
             })
           }
         })
+      } else {
+        toast.error(res.message || 'Errore nel salvataggio della strategia')
       }
     } catch {
-      // Ignore errors, just log
-      console.error('Error saving strategy for', playerId)
+      toast.error('Errore nel salvataggio della strategia')
     } finally {
       setSavingPlayerIds(prev => {
         const next = new Set(prev)
@@ -421,17 +424,21 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
         return next
       })
     }
-  }, [leagueId])
+  }, [leagueId, toast])
 
   // Set watchlist category for a player (immediate save, no debounce) (#219)
   const setWatchlistCategory = useCallback(async (playerId: string, category: string | null) => {
     if (!leagueId) return
     setSavingPlayerIds(prev => new Set(prev).add(playerId))
     try {
-      await rubataApi.setPreference(leagueId, playerId, {
+      const res = await rubataApi.setPreference(leagueId, playerId, {
         watchlistCategory: category,
         isWatchlist: category !== null,
       })
+      if (!res.success) {
+        toast.error(res.message || 'Errore nel salvataggio della categoria')
+        return
+      }
       // Optimistic update for both datasets
       const buildPref = (p: { preference?: RubataPreference | null }): RubataPreference => ({
         id: p.preference?.id || 'temp',
@@ -453,11 +460,11 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
         players: prev.players.map(p => p.playerId !== playerId ? p : { ...p, preference: buildPref(p) })
       } : prev)
     } catch {
-      console.error('Error setting watchlist category for', playerId)
+      toast.error('Errore nel salvataggio della categoria')
     } finally {
       setSavingPlayerIds(prev => { const next = new Set(prev); next.delete(playerId); return next })
     }
-  }, [leagueId, strategiesData?.myMemberId])
+  }, [leagueId, strategiesData?.myMemberId, toast])
 
   // Update local strategy with debounced save
   const updateLocalStrategy = useCallback((
@@ -465,7 +472,6 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
     field: keyof Omit<LocalStrategy, 'isDirty'>,
     value: string | number
   ) => {
-    console.log('[Strategie UPDATE]', { playerId, field, value })
     setLocalStrategies(prev => {
       const current = prev[playerId] || { maxBid: '', priority: 0, notes: '', isDirty: false }
       return {
@@ -485,20 +491,9 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
 
     // Set new debounce timer (2 seconds)
     debounceTimers.current[playerId] = setTimeout(() => {
-      console.log('[Strategie DEBOUNCE fired]', playerId)
       void saveStrategy(playerId)
     }, 2000)
   }, [saveStrategy])
-
-  // Handle column sort
-  const handleSort = useCallback((field: SortField) => {
-    if (sortField === field) {
-      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')
-    } else {
-      setSortField(field)
-      setSortDirection('asc')
-    }
-  }, [sortField])
 
   // Toggle player for comparison (#187)
   const togglePlayerForCompare = useCallback((playerId: string) => {
@@ -518,7 +513,8 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
     setSelectedForCompare(new Set())
   }, [])
 
-  // Filtered and sorted players - supports myRoster, owned, svincolati, and all
+  // Filtered and sorted players - supports myRoster, owned, svincolati, and all.
+  // Sort is fixed by role (P→D→C→A) then alphabetical.
   const filteredPlayers = useMemo((): DisplayPlayer[] => {
     const result: DisplayPlayer[] = []
 
@@ -532,16 +528,9 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
     // Add MY players if viewMode is 'myRoster' or 'all'
     if ((viewMode === 'myRoster' || viewMode === 'all') && strategiesData?.players) {
       strategiesData.players.forEach(player => {
-        // Only include own players
         if (player.memberId !== myMemberId) return
-
-        // Position filter
         if (positionFilter !== 'ALL' && player.playerPosition !== positionFilter) return
-
-        // Team filter (Serie A team)
         if (teamFilter !== 'ALL' && player.playerTeam !== teamFilter) return
-
-        // Search filter
         if (searchQuery) {
           const query = searchQuery.toLowerCase()
           if (!player.playerName.toLowerCase().includes(query) &&
@@ -549,13 +538,10 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
             return
           }
         }
-
-        // Strategy filter
         if (showOnlyWithStrategy) {
           const local = getLocalStrategy(player.playerId)
           if (!local.maxBid && !local.priority && !local.notes) return
         }
-
         result.push({ ...player, type: 'myRoster' })
       })
     }
@@ -563,19 +549,10 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
     // Add OTHER owned players if viewMode is 'owned' or 'all'
     if ((viewMode === 'owned' || viewMode === 'all') && strategiesData?.players) {
       strategiesData.players.forEach(player => {
-        // Exclude own players
         if (player.memberId === myMemberId) return
-
-        // Position filter
         if (positionFilter !== 'ALL' && player.playerPosition !== positionFilter) return
-
-        // Team filter (Serie A team)
         if (teamFilter !== 'ALL' && player.playerTeam !== teamFilter) return
-
-        // Owner filter (only for owned)
         if (ownerFilter !== 'ALL' && player.ownerUsername !== ownerFilter) return
-
-        // Search filter
         if (searchQuery) {
           const query = searchQuery.toLowerCase()
           if (!player.playerName.toLowerCase().includes(query) &&
@@ -585,13 +562,10 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
             return
           }
         }
-
-        // Strategy filter
         if (showOnlyWithStrategy) {
           const local = getLocalStrategy(player.playerId)
           if (!local.maxBid && !local.priority && !local.notes) return
         }
-
         result.push({ ...player, type: 'owned' })
       })
     }
@@ -599,16 +573,10 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
     // Add svincolati if viewMode is 'svincolati' or 'all'
     if ((viewMode === 'svincolati' || viewMode === 'all') && svincolatiData?.players) {
       svincolatiData.players.forEach(player => {
-        // Position filter
         if (positionFilter !== 'ALL' && player.playerPosition !== positionFilter) return
-
-        // Team filter (Serie A team)
         if (teamFilter !== 'ALL' && player.playerTeam !== teamFilter) return
-
         // Owner filter doesn't apply to svincolati, skip them if a specific owner is selected
         if (viewMode === 'all' && ownerFilter !== 'ALL') return
-
-        // Search filter
         if (searchQuery) {
           const query = searchQuery.toLowerCase()
           if (!player.playerName.toLowerCase().includes(query) &&
@@ -616,83 +584,64 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
             return
           }
         }
-
-        // Strategy filter (not for myRoster view)
         if (showOnlyWithStrategy) {
           const local = getLocalStrategy(player.playerId)
           if (!local.maxBid && !local.priority && !local.notes) return
         }
-
         result.push({ ...player, type: 'svincolato' })
       })
     }
 
-    // Sort
+    // Sort by role then name
     result.sort((a, b) => {
-      let cmp = 0
-
-      // Compare by position
-      const comparePosition = () => getPositionOrder(a.playerPosition) - getPositionOrder(b.playerPosition)
-
-      // Compare alphabetically
-      const compareName = () => a.playerName.localeCompare(b.playerName)
-
-      // Compare by manager (only for owned)
-      const compareManager = () => {
-        if (a.type === 'svincolato' && b.type === 'svincolato') return 0
-        if (a.type === 'svincolato') return 1 // Svincolati after owned
-        if (b.type === 'svincolato') return -1
-        const teamA = a.ownerTeamName || a.ownerUsername
-        const teamB = b.ownerTeamName || b.ownerUsername
-        return teamA.localeCompare(teamB)
-      }
-
-      // Compare by rubata order (only for owned)
-      const compareRubataOrder = () => {
-        if (a.type === 'svincolato' && b.type === 'svincolato') return 0
-        if (a.type === 'svincolato') return 1
-        if (b.type === 'svincolato') return -1
-        const orderA = a.ownerRubataOrder ?? 999
-        const orderB = b.ownerRubataOrder ?? 999
-        return orderA - orderB
-      }
-
-      // Sort by mode
-      if (sortMode === 'rubata') {
-        cmp = compareRubataOrder()
-        if (cmp !== 0) return cmp
-        cmp = comparePosition()
-        if (cmp !== 0) return cmp
-        return compareName()
-      }
-
-      if (sortMode === 'manager') {
-        cmp = compareManager()
-        if (cmp !== 0) return cmp
-        cmp = comparePosition()
-        if (cmp !== 0) return cmp
-        return compareName()
-      }
-
-      // Default: role mode
-      cmp = comparePosition()
+      const cmp = getPositionOrder(a.playerPosition) - getPositionOrder(b.playerPosition)
       if (cmp !== 0) return cmp
-      return compareName()
+      return a.playerName.localeCompare(b.playerName)
     })
 
     return result
-  }, [strategiesData?.players, svincolatiData?.players, myMemberId, viewMode, positionFilter, teamFilter, ownerFilter, searchQuery, showOnlyWithStrategy, sortMode, getLocalStrategy])
+  }, [strategiesData?.players, svincolatiData?.players, myMemberId, viewMode, positionFilter, teamFilter, ownerFilter, searchQuery, showOnlyWithStrategy, getLocalStrategy])
 
-  // Players selected for comparison (#187) - must be after filteredPlayers
+  // Players selected for comparison (#187)
   const playersToCompare = useMemo(() => {
     return filteredPlayers.filter(p => selectedForCompare.has(p.playerId))
   }, [filteredPlayers, selectedForCompare])
 
+  // Scope counts for tabs
+  const counts = useMemo(() => {
+    const owned = strategiesData?.players ?? []
+    const svinc = svincolatiData?.players ?? []
+    const mine = owned.filter(p => p.memberId === myMemberId).length
+    const others = owned.length - mine
+    return {
+      myRoster: mine,
+      owned: others,
+      svincolati: svinc.length,
+      all: owned.length + svinc.length,
+    }
+  }, [strategiesData?.players, svincolatiData?.players, myMemberId])
+
+  // Watchlist headline stats (for the testata)
+  const watchlistStats = useMemo(() => {
+    let inWatchlist = 0
+    let daRubare = 0
+    let budget = 0
+    const tally = (cat: string | null | undefined, playerId: string) => {
+      if (cat) {
+        inWatchlist++
+        if (cat === 'DA_RUBARE') daRubare++
+        const maxBid = parseInt(getLocalStrategy(playerId).maxBid) || 0
+        budget += maxBid
+      }
+    }
+    strategiesData?.players.forEach(p => { if (p.memberId !== myMemberId) tally(p.preference?.watchlistCategory, p.playerId) })
+    svincolatiData?.players.forEach(p => { tally(p.preference?.watchlistCategory, p.playerId) })
+    return { inWatchlist, daRubare, budget }
+  }, [strategiesData?.players, svincolatiData?.players, myMemberId, getLocalStrategy])
+
   // My strategies count (for footer) - includes both owned and svincolati
   const myStrategiesCount = useMemo(() => {
     let count = 0
-
-    // Count owned strategies
     if (strategiesData?.players) {
       count += strategiesData.players.filter(p => {
         if (p.memberId === myMemberId) return false
@@ -700,1045 +649,672 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
         return local.maxBid || local.priority || local.notes
       }).length
     }
-
-    // Count svincolati strategies
     if (svincolatiData?.players) {
       count += svincolatiData.players.filter(p => {
         const local = getLocalStrategy(p.playerId)
         return local.maxBid || local.priority || local.notes
       }).length
     }
-
     return count
   }, [strategiesData?.players, svincolatiData?.players, myMemberId, getLocalStrategy])
 
-  // Sortable column header component
-  const SortableHeader = ({ field, label, className = '' }: { field: SortField; label: string; className?: string }) => (
-    <th
-      className={`cursor-pointer hover:bg-surface-50/10 transition-colors select-none ${className}`}
-      onClick={() => { handleSort(field); }}
-    >
-      <div className="flex items-center justify-center gap-1">
-        {label}
-        {sortField === field && (
-          <span className="text-primary-400">{sortDirection === 'asc' ? '▲' : '▼'}</span>
-        )}
-      </div>
-    </th>
-  )
+  // ---- Overview helpers ----
 
+  // All watched players (with a category) grouped, plus all with priority
+  const overviewData = useMemo(() => {
+    const byCategory: Record<WatchlistCategoryId, DisplayPlayer[]> = {
+      DA_RUBARE: [], SOTTO_OSSERVAZIONE: [], POTENZIALE_ACQUISTO: [], SCAMBIO: [], DA_VENDERE: [],
+    }
+    const withPriority: DisplayPlayer[] = []
+
+    const collect = (dp: DisplayPlayer) => {
+      const catId = dp.preference?.watchlistCategory as WatchlistCategoryId | null | undefined
+      if (catId && byCategory[catId]) byCategory[catId].push(dp)
+      if (getLocalStrategy(dp.playerId).priority > 0) withPriority.push(dp)
+    }
+
+    strategiesData?.players.forEach(p => {
+      const isMy = p.memberId === myMemberId
+      collect({ ...p, type: isMy ? 'myRoster' : 'owned' })
+    })
+    svincolatiData?.players.forEach(p => {
+      collect({ ...p, type: 'svincolato' })
+    })
+
+    // Sort each category by priority desc then maxBid desc
+    const sortFn = (a: DisplayPlayer, b: DisplayPlayer) => {
+      const la = getLocalStrategy(a.playerId)
+      const lb = getLocalStrategy(b.playerId)
+      if (lb.priority !== la.priority) return lb.priority - la.priority
+      return (parseInt(lb.maxBid) || 0) - (parseInt(la.maxBid) || 0)
+    }
+    ;(Object.keys(byCategory) as WatchlistCategoryId[]).forEach(k => byCategory[k].sort(sortFn))
+    withPriority.sort(sortFn)
+
+    return { byCategory, topPriority: withPriority.slice(0, 3) }
+  }, [strategiesData?.players, svincolatiData?.players, myMemberId, getLocalStrategy])
+
+  // Open the player stats modal for a player
+  const openStats = useCallback((player: DisplayPlayer) => {
+    setSelectedPlayerStats({
+      name: player.playerName,
+      team: player.playerTeam,
+      position: player.playerPosition,
+      quotation: player.type === 'svincolato' ? undefined : player.playerQuotation,
+      age: player.playerAge,
+      apiFootballId: player.playerApiFootballId,
+      computedStats: player.playerComputedStats,
+    })
+  }, [])
+
+  // ---------- LOADING ----------
   if (loading) {
     return (
-      <div className="min-h-screen">
+      <div className="min-h-screen pb-6">
         <Navigation currentPage="strategie-rubata" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
-        <main className="max-w-[1600px] mx-auto px-4 py-8">
-          <div className="flex items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-400"></div>
+        <main className="max-w-[1600px] mx-auto px-4 py-6 space-y-4">
+          <div className="flex items-center gap-4">
+            <Skeleton className="w-12 h-12 rounded-xl" />
+            <div className="space-y-2">
+              <Skeleton className="h-6 w-48" />
+              <Skeleton className="h-3 w-64" />
+            </div>
+          </div>
+          <Skeleton className="h-9 w-full max-w-md rounded-lg" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-44 rounded-2xl" />
+            ))}
           </div>
         </main>
       </div>
     )
   }
 
+  const isTableView = viewMode !== 'overview'
+
   return (
     <div className="min-h-screen pb-6">
       <Navigation currentPage="strategie-rubata" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
 
       <main className="max-w-[1600px] mx-auto px-4 py-6">
-        {/* Header */}
-        <div className="mb-4">
-          <div className="flex flex-wrap items-center gap-2 mb-2">
-            <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
-              Giocatori
-            </h1>
+        {/* === TESTATA === */}
+        <div className="flex items-center gap-3 sm:gap-4 mb-4">
+          <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-passion-700 to-passion-500 border border-passion-500/50 flex items-center justify-center text-2xl flex-shrink-0">
+            🎯
           </div>
-          <p className="text-gray-400 text-sm">
-            {viewMode === 'myRoster'
-              ? 'Visualizza la tua rosa con contratti e valori.'
-              : 'Imposta offerta massima, priorità e note per le strategie rubata. Le modifiche vengono salvate automaticamente.'
-            }
-          </p>
+          <div className="min-w-0">
+            <h1 className="font-display text-xl sm:text-2xl font-bold text-white">Strategie Rubata</h1>
+            <p className="text-gray-400 text-xs sm:text-sm mt-0.5">
+              {isTableView
+                ? 'Imposta max bid, priorità e categoria per ogni giocatore che ti interessa.'
+                : 'Prepara la tua watchlist, i max bid e le priorità prima che parta la rubata.'}
+            </p>
+          </div>
+          <div className="ml-auto hidden sm:flex items-center gap-5 lg:gap-7">
+            <div className="text-right">
+              <div className="micro-label text-gray-500">In watchlist</div>
+              <div className="stat-number text-lg text-white">{watchlistStats.inWatchlist}</div>
+            </div>
+            <div className="text-right">
+              <div className="micro-label text-gray-500">Da Rubare</div>
+              <div className="stat-number text-lg text-accent-400">{watchlistStats.daRubare}</div>
+            </div>
+            <div className="text-right">
+              <div className="micro-label text-gray-500">Budget rubata</div>
+              <div className="budget-display text-lg text-white">{watchlistStats.budget}M</div>
+            </div>
+          </div>
         </div>
 
-        {/* Messages */}
-        {error && (
-          <div className="bg-danger-500/20 border border-danger-500/30 text-danger-400 p-3 rounded-lg mb-4 text-sm">{error}</div>
-        )}
-        {success && (
-          <div className="bg-secondary-500/20 border border-secondary-500/30 text-secondary-400 p-3 rounded-lg mb-4 text-sm">{success}</div>
+        {/* === SCOPE TABS === */}
+        <div className="flex items-center gap-1 border-b border-surface-50/20 mb-4 overflow-x-auto">
+          {([
+            { key: 'overview', label: 'Overview', n: null },
+            { key: 'myRoster', label: 'Mia rosa', n: counts.myRoster },
+            { key: 'owned', label: 'Altre rose', n: counts.owned },
+            { key: 'svincolati', label: 'Svincolati', n: counts.svincolati },
+            { key: 'all', label: 'Tutti', n: counts.all },
+          ] as { key: ViewMode; label: string; n: number | null }[]).map(tab => {
+            const isActive = viewMode === tab.key
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => { setViewMode(tab.key); setOwnerFilter('ALL'); }}
+                className={`font-display text-sm font-semibold px-4 py-2.5 border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${
+                  isActive ? 'text-accent-400 border-accent-400' : 'text-gray-400 border-transparent hover:text-gray-200'
+                }`}
+              >
+                {tab.label}
+                {tab.n != null && (
+                  <span className={`font-mono text-[10px] ${isActive ? 'text-accent-400' : 'text-gray-500'}`}>{tab.n}</span>
+                )}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* === OVERVIEW (default) === */}
+        {viewMode === 'overview' && (
+          <OverviewSection
+            byCategory={overviewData.byCategory}
+            topPriority={overviewData.topPriority}
+            getLocalStrategy={getLocalStrategy}
+            onAddPlayers={() => { setViewMode('svincolati'); }}
+            onOpenStats={openStats}
+          />
         )}
 
-        {/* Main content: Table + Sidebar */}
-        <div className="flex flex-col xl:flex-row gap-4">
-          {/* Main Table */}
-          <div className="flex-1 min-w-0">
-            <div className="bg-surface-200 rounded-2xl border border-surface-50/20 overflow-hidden">
-              {/* === 3-LEVEL FILTER LAYOUT === */}
-
-              {/* LEVEL 1: Data View Toggle (sticky) */}
-              <div className="sticky top-0 z-10 p-2 border-b border-surface-50/20 bg-surface-300">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex gap-1 bg-surface-400/50 rounded-lg p-0.5">
-                    <button
-                      onClick={() => { setDataViewMode('contracts'); }}
-                      className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                        dataViewMode === 'contracts'
-                          ? 'bg-accent-500 text-white shadow-md'
-                          : 'text-gray-400 hover:text-white hover:bg-surface-300/50'
-                      }`}
-                      title="Vista contratti"
-                    >
-                      Contratti
-                    </button>
-                    <button
-                      onClick={() => { setDataViewMode('stats'); }}
-                      className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                        dataViewMode === 'stats'
-                          ? 'bg-info-500 text-white shadow-md'
-                          : 'text-gray-400 hover:text-white hover:bg-surface-300/50'
-                      }`}
-                      title="Vista statistiche"
-                    >
-                      Stats
-                    </button>
-                    <button
-                      onClick={() => { setDataViewMode('merge'); }}
-                      className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                        dataViewMode === 'merge'
-                          ? 'bg-primary-600 text-white shadow-md'
-                          : 'text-gray-400 hover:text-white hover:bg-surface-300/50'
-                      }`}
-                      title="Vista mista contratti e statistiche"
-                    >
-                      Contratti e Stats
-                    </button>
-                  </div>
-                  <div className="text-sm text-gray-400">
-                    <span className="font-semibold text-white">{filteredPlayers.length}</span> giocatori
-                  </div>
-                </div>
+        {/* === TABLE / CARDS VIEW === */}
+        {isTableView && (
+          <>
+            {/* Filters bar (sticky) */}
+            <div className="sticky top-0 z-20 flex flex-wrap items-center gap-2 bg-surface-300 border border-surface-50/20 rounded-xl px-3 py-2 mb-4">
+              {/* Data view segmented */}
+              <div className="inline-flex rounded-lg border border-surface-50/30 overflow-hidden">
+                {([
+                  { key: 'contracts', label: 'Contratti' },
+                  { key: 'stats', label: 'Stats' },
+                  { key: 'merge', label: 'Misto' },
+                ] as { key: DataViewMode; label: string }[]).map((seg, i) => (
+                  <button
+                    key={seg.key}
+                    type="button"
+                    onClick={() => { setDataViewMode(seg.key); }}
+                    className={`px-3 py-1.5 text-xs font-semibold transition-colors ${i > 0 ? 'border-l border-surface-50/30' : ''} ${
+                      dataViewMode === seg.key ? 'bg-accent-500 text-surface-400' : 'bg-surface-200 text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    {seg.label}
+                  </button>
+                ))}
               </div>
 
-              {/* LEVEL 2: Scope Buttons with Count Badges */}
-              <div className="p-2 border-b border-surface-50/20 bg-surface-300/50">
-                <div className="flex gap-2 overflow-x-auto pb-1">
-                  <button
-                    onClick={() => { setViewMode('myRoster'); setOwnerFilter('ALL'); }}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
-                      viewMode === 'myRoster'
-                        ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25'
-                        : 'bg-surface-300/70 text-gray-400 hover:text-white hover:bg-surface-300'
-                    }`}
-                    title="La mia rosa"
-                  >
-                    <span>La Mia Rosa</span>
-                    <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
-                      viewMode === 'myRoster' ? 'bg-white/20' : 'bg-primary-500/20 text-primary-400'
-                    }`}>
-                      {strategiesData?.players.filter(p => p.memberId === myMemberId).length || 0}
-                    </span>
-                  </button>
-                  <button
-                    onClick={() => { setViewMode('owned'); setOwnerFilter('ALL'); }}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
-                      viewMode === 'owned'
-                        ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25'
-                        : 'bg-surface-300/70 text-gray-400 hover:text-white hover:bg-surface-300'
-                    }`}
-                    title="Giocatori di altri manager"
-                  >
-                    <span>Altre Rose</span>
-                    <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
-                      viewMode === 'owned' ? 'bg-white/20' : 'bg-primary-500/20 text-primary-400'
-                    }`}>
-                      {strategiesData?.players.filter(p => p.memberId !== myMemberId).length || 0}
-                    </span>
-                  </button>
-                  <button
-                    onClick={() => { setViewMode('svincolati'); setOwnerFilter('ALL'); }}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
-                      viewMode === 'svincolati'
-                        ? 'bg-secondary-500 text-white shadow-lg shadow-secondary-500/25'
-                        : 'bg-surface-300/70 text-gray-400 hover:text-white hover:bg-surface-300'
-                    }`}
-                    title="Giocatori svincolati"
-                  >
-                    <span>Svincolati</span>
-                    <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
-                      viewMode === 'svincolati' ? 'bg-white/20' : 'bg-secondary-500/20 text-secondary-400'
-                    }`}>
-                      {svincolatiData?.players.length || 0}
-                    </span>
-                  </button>
-                  <button
-                    onClick={() => { setViewMode('all'); setOwnerFilter('ALL'); }}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
-                      viewMode === 'all'
-                        ? 'bg-passion-500 text-white shadow-lg shadow-passion-500/25'
-                        : 'bg-surface-300/70 text-gray-400 hover:text-white hover:bg-surface-300'
-                    }`}
-                    title="Tutti i giocatori"
-                  >
-                    <span>Tutti</span>
-                    <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
-                      viewMode === 'all' ? 'bg-white/20' : 'bg-passion-500/20 text-passion-400'
-                    }`}>
-                      {(strategiesData?.players.length || 0) + (svincolatiData?.players.length || 0)}
-                    </span>
-                  </button>
-                  <button
-                    onClick={() => { setViewMode('overview'); setOwnerFilter('ALL'); }}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
-                      viewMode === 'overview'
-                        ? 'bg-accent-500 text-white shadow-lg shadow-accent-500/25'
-                        : 'bg-surface-300/70 text-gray-400 hover:text-white hover:bg-surface-300'
-                    }`}
-                    title="Overview watchlist e priorità"
-                  >
-                    <span>Overview</span>
-                  </button>
-                </div>
+              {/* Position chips */}
+              <div className="flex gap-1">
+                {['ALL', 'P', 'D', 'C', 'A'].map(pos => {
+                  const active = positionFilter === pos
+                  return (
+                    <button
+                      key={pos}
+                      type="button"
+                      onClick={() => { setPositionFilter(pos); }}
+                      className={`px-2.5 py-1 rounded-full text-[11px] font-bold font-mono border transition-colors ${
+                        active ? 'bg-accent-500 text-surface-400 border-accent-500' : 'bg-surface-200 text-gray-400 border-surface-50/30 hover:text-white'
+                      }`}
+                    >
+                      {pos === 'ALL' ? 'Tutti' : pos}
+                    </button>
+                  )
+                })}
               </div>
 
-              {/* LEVEL 3: Filters (hidden in overview mode) */}
-              {viewMode !== 'overview' && <div className="p-2 border-b border-surface-50/20 bg-surface-300/30">
-                {/* Row 1: Position + Dropdowns */}
-                <div className="flex flex-wrap items-center gap-2 mb-2">
-                  {/* Position Filter Group */}
-                  <div className="flex gap-1">
-                    {['ALL', 'P', 'D', 'C', 'A'].map(pos => {
-                      const colors = POSITION_COLORS[pos] ?? { bg: 'bg-white/20', text: 'text-white', border: '' }
-                      return (
-                        <button
-                          key={pos}
-                          onClick={() => { setPositionFilter(pos); }}
-                          className={`px-2 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                            positionFilter === pos
-                              ? pos === 'ALL'
-                                ? 'bg-white/20 text-white'
-                                : `${colors.bg} ${colors.text}`
-                              : 'bg-surface-300 text-gray-500 hover:text-gray-300'
-                          }`}
-                        >
-                          {pos === 'ALL' ? 'Tutti' : pos}
-                        </button>
-                      )
-                    })}
-                  </div>
+              {/* Search */}
+              <div className="flex items-center gap-2 bg-surface-200 border border-surface-50/30 rounded-lg px-2.5 py-1.5 flex-1 min-w-[140px]">
+                <span className="text-gray-500 text-xs" aria-hidden="true">🔍</span>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => { setSearchQuery(e.target.value); }}
+                  placeholder="Cerca giocatore..."
+                  className="bg-transparent text-white text-xs w-full outline-none placeholder:text-gray-500"
+                />
+              </div>
 
-                  {/* Owner Filter - only for owned or all views */}
-                  {(viewMode === 'owned' || viewMode === 'all') && (
-                    <select
-                      value={ownerFilter}
-                      onChange={(e) => { setOwnerFilter(e.target.value); }}
-                      className="px-2 py-1.5 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-xs"
-                    >
-                      <option value="ALL">Manager</option>
-                      {uniqueOwners.map(o => (
-                        <option key={o.username} value={o.username}>{o.teamName}</option>
-                      ))}
-                    </select>
-                  )}
-
-                  {/* Team Filter */}
-                  <select
-                    value={teamFilter}
-                    onChange={(e) => { setTeamFilter(e.target.value); }}
-                    className="px-2 py-1.5 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-xs"
-                  >
-                    <option value="ALL">Squadra</option>
-                    {uniqueTeams.map(team => (
-                      <option key={team} value={team}>{team}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Row 2: Search + Strategy */}
-                <div className="flex items-center gap-2">
-                  {/* Search */}
-                  <div className="flex-1 min-w-0">
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => { setSearchQuery(e.target.value); }}
-                      placeholder="Cerca giocatore..."
-                      className="w-full px-2 py-1.5 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-xs"
-                    />
-                  </div>
-
-                  {/* Strategy filter */}
-                  <label className="flex items-center gap-2 cursor-pointer px-2.5 py-1.5 rounded-lg bg-primary-500/10 border border-primary-500/20 hover:bg-primary-500/20 transition-colors flex-shrink-0">
-                    <input
-                      type="checkbox"
-                      checked={showOnlyWithStrategy}
-                      onChange={(e) => { setShowOnlyWithStrategy(e.target.checked); }}
-                      className="w-4 h-4 rounded bg-surface-300 border-primary-500/50 text-primary-500 focus:ring-primary-500"
-                    />
-                    <span className="text-xs text-primary-300 whitespace-nowrap font-medium">Strategia</span>
-                  </label>
-
-                  {/* Compare button (#187) */}
-                  {selectedForCompare.size > 0 && (
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
-                      <button
-                        onClick={() => { setShowCompareModal(true); }}
-                        disabled={selectedForCompare.size < 2}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                          selectedForCompare.size >= 2
-                            ? 'bg-info-500 text-white hover:bg-info-600'
-                            : 'bg-info-500/30 text-info-400/50 cursor-not-allowed'
-                        }`}
-                      >
-                        Confronta ({selectedForCompare.size})
-                      </button>
-                      <button
-                        onClick={clearComparison}
-                        className="w-7 h-7 rounded-lg bg-surface-300/70 text-gray-400 hover:text-white hover:bg-surface-100 text-sm flex items-center justify-center transition-colors"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>}
-
-              {/* Overview Tab #219 */}
-              {viewMode === 'overview' && (
-                <div className="p-4 space-y-6">
-                  {/* Category cards */}
-                  {(Object.entries(WATCHLIST_CATEGORIES) as [WatchlistCategoryId, typeof WATCHLIST_CATEGORIES[WatchlistCategoryId]][]).map(([catId, cat]) => {
-                    // Collect all players in this category from both datasets
-                    const categoryPlayers: DisplayPlayer[] = []
-                    strategiesData?.players.forEach(p => {
-                      if (p.preference?.watchlistCategory === catId) {
-                        const isMy = p.memberId === myMemberId
-                        categoryPlayers.push({ ...p, type: isMy ? 'myRoster' : 'owned' })
-                      }
-                    })
-                    svincolatiData?.players.forEach(p => {
-                      if (p.preference?.watchlistCategory === catId) {
-                        categoryPlayers.push({ ...p, type: 'svincolato' })
-                      }
-                    })
-
-                    return (
-                      <div key={catId} className={`rounded-xl border ${cat.color} p-4`}>
-                        <div className="flex items-center justify-between mb-3">
-                          <h3 className="font-semibold text-base">{cat.icon} {cat.label}</h3>
-                          <span className="text-xs opacity-70">{categoryPlayers.length} giocatori</span>
-                        </div>
-                        {categoryPlayers.length === 0 ? (
-                          <p className="text-xs text-gray-500 italic">Nessun giocatore in questa categoria</p>
-                        ) : (
-                          <div className="space-y-2">
-                            {categoryPlayers.map(player => {
-                              const posC = POSITION_COLORS[player.playerPosition] ?? { bg: 'bg-gray-500', text: 'text-white', border: '' }
-                              const local = getLocalStrategy(player.playerId)
-                              return (
-                                <div key={player.playerId} className="flex items-center gap-3 bg-surface-300/50 rounded-lg p-2">
-                                  <span className={`w-8 h-8 rounded-full ${posC.bg} ${posC.text} flex items-center justify-center text-xs font-bold flex-shrink-0`}>
-                                    {player.playerPosition}
-                                  </span>
-                                  <div className="flex-1 min-w-0">
-                                    <div className="text-sm font-medium text-white truncate">{player.playerName}</div>
-                                    <div className="text-[10px] text-gray-500">{player.playerTeam} {player.type === 'svincolato' ? '(Svincolato)' : `(${(player as StrategyPlayerWithPreference).ownerUsername || ''})`}</div>
-                                  </div>
-                                  {local.priority > 0 && (
-                                    <span className="text-accent-400 text-xs font-bold">{'★'.repeat(local.priority)}</span>
-                                  )}
-                                  {local.maxBid && (
-                                    <span className="text-accent-400 text-xs font-bold">{local.maxBid}M</span>
-                                  )}
-                                  {/* Auto-tags */}
-                                  {player.playerAutoTags && player.playerAutoTags.length > 0 && (
-                                    <div className="flex gap-1">
-                                      {player.playerAutoTags.slice(0, 2).map(tagId => {
-                                        const def = AUTO_TAG_DEFS[tagId]
-                                        return def ? (
-                                          <span key={tagId} className={`text-[9px] px-1 py-0.5 rounded-full bg-surface-300 ${def.color}`} title={def.description}>
-                                            {def.icon}
-                                          </span>
-                                        ) : null
-                                      })}
-                                    </div>
-                                  )}
-                                </div>
-                              )
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })}
-
-                  {/* Top Priority Players */}
-                  <div className="rounded-xl border border-accent-500/30 bg-accent-500/10 p-4">
-                    <h3 className="font-semibold text-base text-accent-400 mb-3">Top Priorità</h3>
-                    {(() => {
-                      const allWithPriority: DisplayPlayer[] = []
-                      strategiesData?.players.forEach(p => {
-                        const local = getLocalStrategy(p.playerId)
-                        if (local.priority > 0) {
-                          const isMy = p.memberId === myMemberId
-                          allWithPriority.push({ ...p, type: isMy ? 'myRoster' : 'owned' })
-                        }
-                      })
-                      svincolatiData?.players.forEach(p => {
-                        const local = getLocalStrategy(p.playerId)
-                        if (local.priority > 0) {
-                          allWithPriority.push({ ...p, type: 'svincolato' })
-                        }
-                      })
-                      allWithPriority.sort((a, b) => {
-                        const prioA = getLocalStrategy(a.playerId).priority
-                        const prioB = getLocalStrategy(b.playerId).priority
-                        return prioB - prioA
-                      })
-
-                      if (allWithPriority.length === 0) {
-                        return <p className="text-xs text-gray-500 italic">Nessun giocatore con priorità impostata</p>
-                      }
-
-                      return (
-                        <div className="space-y-2">
-                          {allWithPriority.slice(0, 10).map(player => {
-                            const posC = POSITION_COLORS[player.playerPosition] ?? { bg: 'bg-gray-500', text: 'text-white', border: '' }
-                            const local = getLocalStrategy(player.playerId)
-                            const catId = player.preference?.watchlistCategory as WatchlistCategoryId | null
-                            const cat = catId ? WATCHLIST_CATEGORIES[catId] : null
-                            return (
-                              <div key={player.playerId} className="flex items-center gap-3 bg-surface-300/50 rounded-lg p-2">
-                                <span className={`w-8 h-8 rounded-full ${posC.bg} ${posC.text} flex items-center justify-center text-xs font-bold flex-shrink-0`}>
-                                  {player.playerPosition}
-                                </span>
-                                <div className="flex-1 min-w-0">
-                                  <div className="text-sm font-medium text-white truncate">{player.playerName}</div>
-                                  <div className="text-[10px] text-gray-500">{player.playerTeam}</div>
-                                </div>
-                                <span className="text-accent-400 text-sm font-bold">{'★'.repeat(local.priority)}</span>
-                                {local.maxBid && (
-                                  <span className="text-accent-400 text-xs font-bold">{local.maxBid}M</span>
-                                )}
-                                {cat && (
-                                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full border ${cat.color}`}>{cat.icon}</span>
-                                )}
-                              </div>
-                            )
-                          })}
-                        </div>
-                      )
-                    })()}
-                  </div>
-                </div>
+              {/* Owner filter (owned/all) */}
+              {(viewMode === 'owned' || viewMode === 'all') && (
+                <select
+                  value={ownerFilter}
+                  onChange={(e) => { setOwnerFilter(e.target.value); }}
+                  className="px-2.5 py-1.5 bg-surface-200 border border-surface-50/30 rounded-lg text-white text-xs"
+                >
+                  <option value="ALL">Manager</option>
+                  {uniqueOwners.map(o => (
+                    <option key={o.username} value={o.username}>{o.teamName}</option>
+                  ))}
+                </select>
               )}
 
-              {/* Mobile Card Layout */}
-              {viewMode !== 'overview' && <div className="md:hidden space-y-3 p-3">
-                {filteredPlayers.map(player => {
-                  const defaultColors = { bg: 'bg-gradient-to-r from-gray-500 to-gray-600', text: 'text-white', border: '' }
-                  const posColors = POSITION_COLORS[player.playerPosition] ?? defaultColors
+              {/* Team filter */}
+              <select
+                value={teamFilter}
+                onChange={(e) => { setTeamFilter(e.target.value); }}
+                className="px-2.5 py-1.5 bg-surface-200 border border-surface-50/30 rounded-lg text-white text-xs"
+              >
+                <option value="ALL">Squadra</option>
+                {uniqueTeams.map(team => (
+                  <option key={team} value={team}>{team}</option>
+                ))}
+              </select>
+
+              {/* Strategy toggle + compare on the right */}
+              <div className="ml-auto flex items-center gap-2">
+                {selectedForCompare.size > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => { setShowCompareModal(true); }}
+                      disabled={selectedForCompare.size < 2}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                        selectedForCompare.size >= 2 ? 'bg-info-500 text-white hover:bg-info-600' : 'bg-info-500/30 text-info-400/50 cursor-not-allowed'
+                      }`}
+                    >
+                      Confronta ({selectedForCompare.size})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={clearComparison}
+                      className="w-7 h-7 rounded-lg bg-surface-200 text-gray-400 hover:text-white hover:bg-surface-100 text-sm flex items-center justify-center transition-colors"
+                      aria-label="Annulla confronto"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+                <label className="flex items-center gap-2 cursor-pointer px-2.5 py-1.5 rounded-lg bg-surface-200 border border-surface-50/30 hover:border-secondary-500/40 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={showOnlyWithStrategy}
+                    onChange={(e) => { setShowOnlyWithStrategy(e.target.checked); }}
+                    className="w-4 h-4 rounded bg-surface-300 border-secondary-500/50 text-secondary-500 focus:ring-secondary-500"
+                  />
+                  <span className="text-xs text-gray-300 whitespace-nowrap font-medium">Solo con strategia</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden md:block bg-surface-200 rounded-2xl border border-surface-50/20 overflow-hidden">
+              {filteredPlayers.length === 0 ? (
+                <EmptyState
+                  compact
+                  icon="🔍"
+                  title={
+                    searchQuery || positionFilter !== 'ALL' || teamFilter !== 'ALL' || ownerFilter !== 'ALL' || showOnlyWithStrategy
+                      ? 'Nessun giocatore con questi filtri'
+                      : 'Nessun giocatore disponibile'
+                  }
+                  description={
+                    searchQuery || positionFilter !== 'ALL' || teamFilter !== 'ALL' || ownerFilter !== 'ALL' || showOnlyWithStrategy
+                      ? 'Prova ad allargare i filtri o la ricerca.'
+                      : undefined
+                  }
+                />
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[900px]">
+                    <thead>
+                      {/* Group headers */}
+                      <tr className="micro-label text-gray-500 bg-surface-300/50 border-b border-surface-50/20">
+                        <th className="text-left py-2 px-3" colSpan={2}>Giocatore</th>
+                        {(dataViewMode === 'contracts' || dataViewMode === 'merge') && (
+                          <th className="text-center py-2 px-3 border-l border-surface-50/20 text-accent-400" colSpan={4}>Contratto</th>
+                        )}
+                        {(dataViewMode === 'stats' || dataViewMode === 'merge') && (
+                          <th className="text-center py-2 px-3 border-l border-surface-50/20" colSpan={dataViewMode === 'stats' ? STATS_COLUMNS.length : MERGE_STATS_KEYS.length}>Statistiche</th>
+                        )}
+                        {dataViewMode === 'contracts' && (
+                          <th className="text-center py-2 px-3 border-l border-surface-50/20">Voto</th>
+                        )}
+                        <th className="text-center py-2 px-3 border-l border-surface-50/20 text-accent-400" colSpan={4}>Strategia</th>
+                      </tr>
+                      {/* Column headers */}
+                      <tr className="micro-label text-gray-500 bg-surface-300/30 border-b border-surface-50/20">
+                        <th className="text-center p-2 w-9"></th>
+                        <th className="text-left p-2">Nome</th>
+                        {(dataViewMode === 'contracts' || dataViewMode === 'merge') && (
+                          <>
+                            <th className="text-center p-2 border-l border-surface-50/20" title="Ingaggio">Ing.</th>
+                            <th className="text-center p-2" title="Durata (semestri)">Dur.</th>
+                            <th className="text-center p-2" title="Clausola rescissoria">Cls</th>
+                            <th className="text-center p-2" title="Prezzo rubata">Rub.</th>
+                          </>
+                        )}
+                        {dataViewMode === 'stats' && STATS_COLUMNS.map((col, idx) => (
+                          <th key={col.key} className={`text-center p-2 ${idx === 0 ? 'border-l border-surface-50/20' : ''}`} title={col.label}>{col.shortLabel}</th>
+                        ))}
+                        {dataViewMode === 'merge' && STATS_COLUMNS.filter(c => MERGE_STATS_KEYS.includes(c.key)).map((col, idx) => (
+                          <th key={col.key} className={`text-center p-2 ${idx === 0 ? 'border-l border-surface-50/20' : ''}`} title={col.label}>{col.shortLabel}</th>
+                        ))}
+                        {dataViewMode === 'contracts' && (
+                          <th className="text-center p-2 border-l border-surface-50/20" title="Rating medio">Voto</th>
+                        )}
+                        <th className="text-center p-2 border-l border-surface-50/20">Max bid</th>
+                        <th className="text-center p-2">Priorità</th>
+                        <th className="text-center p-2">Categoria</th>
+                        <th className="text-left p-2">Note</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredPlayers.map(player => {
+                        const local = getLocalStrategy(player.playerId)
+                        const isSaving = savingPlayerIds.has(player.playerId)
+                        const isSvincolato = player.type === 'svincolato'
+                        const catId = player.preference?.watchlistCategory as WatchlistCategoryId | null
+                        const cat = catId ? WATCHLIST_CATEGORIES[catId] : null
+
+                        return (
+                          <tr
+                            key={player.playerId}
+                            className={`border-t border-surface-50/10 transition-colors hover:bg-surface-300/30 ${
+                              local.isDirty ? 'shadow-[inset_3px_0_0_theme(colors.accent.500)]' : selectedForCompare.has(player.playerId) ? 'bg-info-500/10' : ''
+                            }`}
+                          >
+                            {/* Compare checkbox + role */}
+                            <td className="p-2 text-center">
+                              <input
+                                type="checkbox"
+                                checked={selectedForCompare.has(player.playerId)}
+                                onChange={() => { togglePlayerForCompare(player.playerId); }}
+                                className="w-4 h-4 rounded bg-surface-300 border-info-500/50 text-info-500 focus:ring-info-500"
+                                aria-label={`Seleziona ${player.playerName} per confronto`}
+                              />
+                            </td>
+
+                            {/* Player */}
+                            <td className="p-2">
+                              <div className="flex items-center gap-2.5">
+                                <RoleBadge position={player.playerPosition} />
+                                <div className="min-w-0">
+                                  <button
+                                    type="button"
+                                    onClick={() => { openStats(player); }}
+                                    className="font-display font-bold text-white text-[13px] truncate hover:text-accent-400 transition-colors text-left"
+                                  >
+                                    {player.playerName}
+                                  </button>
+                                  <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-gray-500">
+                                    <span className="w-3.5 h-3.5 flex-shrink-0"><TeamLogo team={player.playerTeam} /></span>
+                                    <span className="truncate">{player.playerTeam}</span>
+                                    {!isSvincolato && (
+                                      player.type === 'myRoster'
+                                        ? <span className="text-primary-400">· Mia rosa</span>
+                                        : <span className="inline-flex items-center gap-1">· <Monogram name={player.ownerTeamName || player.ownerUsername} size="xs" /></span>
+                                    )}
+                                    {isSvincolato && <span className="text-secondary-400">· Svincolato</span>}
+                                    {player.playerAutoTags && player.playerAutoTags.slice(0, 2).map(tagId => {
+                                      const def = AUTO_TAG_DEFS[tagId]
+                                      return def ? (
+                                        <span key={tagId} className={`font-mono text-[8px] font-bold px-1 py-0.5 rounded border border-surface-50/30 ${def.color}`} title={def.description}>
+                                          {def.icon}
+                                        </span>
+                                      ) : null
+                                    })}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Contract columns */}
+                            {(dataViewMode === 'contracts' || dataViewMode === 'merge') && (
+                              <>
+                                <td className="p-2 text-center border-l border-surface-50/10">
+                                  {isSvincolato ? <span className="text-gray-500">-</span> : <span className="stat-number text-sm text-accent-400">{player.contractSalary}</span>}
+                                </td>
+                                <td className="p-2 text-center">
+                                  {isSvincolato ? <span className="text-gray-500">-</span> : <span className="stat-number text-sm text-gray-300">{player.contractDuration}</span>}
+                                </td>
+                                <td className="p-2 text-center">
+                                  {isSvincolato ? <span className="text-gray-500">-</span> : <span className="stat-number text-sm text-passion-400">{player.contractClause}</span>}
+                                </td>
+                                <td className="p-2 text-center">
+                                  {isSvincolato ? <span className="text-gray-500">-</span> : <span className="stat-number text-sm text-warning-400">{player.rubataPrice}</span>}
+                                </td>
+                              </>
+                            )}
+
+                            {/* Stats columns - stats view */}
+                            {dataViewMode === 'stats' && STATS_COLUMNS.map((col, idx) => {
+                              let rawValue: number | string | null = null
+                              const cs = player.playerComputedStats
+                              if (col.key === 'appearances') rawValue = cs?.appearances ?? null
+                              else if (col.key === 'rating') rawValue = cs?.avgRating ?? null
+                              else if (col.key === 'goals') rawValue = cs?.totalGoals ?? null
+                              else if (col.key === 'assists') rawValue = cs?.totalAssists ?? null
+                              else if (col.key === 'minutes') rawValue = cs?.totalMinutes ?? null
+                              else rawValue = col.getValue(player.playerApiFootballStats)
+                              const numValue = rawValue != null && rawValue !== '' ? Number(rawValue) : null
+                              const formatted = col.format ? col.format(numValue) : (numValue ?? '-')
+                              return (
+                                <td key={col.key} className={`p-2 text-center ${idx === 0 ? 'border-l border-surface-50/10' : ''}`}>
+                                  <span className={`stat-number text-sm ${col.colorClass || 'text-gray-300'}`}>{formatted}</span>
+                                </td>
+                              )
+                            })}
+
+                            {/* Stats columns - merge view */}
+                            {dataViewMode === 'merge' && STATS_COLUMNS.filter(c => MERGE_STATS_KEYS.includes(c.key)).map((col, idx) => {
+                              const cs = player.playerComputedStats
+                              let rawValue: number | string | null = null
+                              if (col.key === 'rating') rawValue = cs?.avgRating ?? null
+                              else if (col.key === 'goals') rawValue = cs?.totalGoals ?? null
+                              else if (col.key === 'assists') rawValue = cs?.totalAssists ?? null
+                              else rawValue = col.getValue(player.playerApiFootballStats)
+                              const numValue = rawValue != null && rawValue !== '' ? Number(rawValue) : null
+                              const formatted = col.format ? col.format(numValue) : (numValue ?? '-')
+                              return (
+                                <td key={col.key} className={`p-2 text-center ${idx === 0 ? 'border-l border-surface-50/10' : ''}`}>
+                                  <span className={`stat-number text-sm ${col.colorClass || 'text-gray-300'}`}>{formatted}</span>
+                                </td>
+                              )
+                            })}
+
+                            {/* Rating column - contracts view */}
+                            {dataViewMode === 'contracts' && (
+                              <td className="p-2 text-center border-l border-surface-50/10">
+                                <span className="stat-number text-sm text-info-400">
+                                  {player.playerComputedStats?.avgRating != null ? player.playerComputedStats.avgRating.toFixed(1) : '-'}
+                                </span>
+                              </td>
+                            )}
+
+                            {/* === STRATEGY === */}
+                            <td className="p-2 text-center border-l border-surface-50/10">
+                              <AmountStepper
+                                value={parseInt(local.maxBid) || 0}
+                                onChange={(v) => { updateLocalStrategy(player.playerId, 'maxBid', v > 0 ? v.toString() : '') }}
+                                min={0}
+                                tone="accent"
+                                size="sm"
+                                disabled={isSaving}
+                                aria-label={`Max bid per ${player.playerName}`}
+                              />
+                            </td>
+                            <td className="p-2 text-center">
+                              <PriorityStars
+                                value={local.priority}
+                                onChange={(v) => { updateLocalStrategy(player.playerId, 'priority', v) }}
+                              />
+                            </td>
+                            <td className="p-2 text-center">
+                              <CategoryPicker
+                                current={cat}
+                                open={openCategoryFor === player.playerId}
+                                onToggleOpen={() => { setOpenCategoryFor(prev => prev === player.playerId ? null : player.playerId) }}
+                                onSelect={(id) => { void setWatchlistCategory(player.playerId, id); setOpenCategoryFor(null) }}
+                              />
+                            </td>
+                            <td className="p-2">
+                              <input
+                                type="text"
+                                value={local.notes}
+                                onChange={(e) => { updateLocalStrategy(player.playerId, 'notes', e.target.value); }}
+                                placeholder="+ nota"
+                                className="w-full min-w-[100px] px-2 py-1 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-xs focus:border-accent-500 focus:outline-none placeholder:text-gray-500 placeholder:italic"
+                              />
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Mobile card layout */}
+            <div className="md:hidden space-y-3">
+              {filteredPlayers.length === 0 ? (
+                <EmptyState
+                  compact
+                  icon="🔍"
+                  title={
+                    searchQuery || positionFilter !== 'ALL' || teamFilter !== 'ALL' || ownerFilter !== 'ALL' || showOnlyWithStrategy
+                      ? 'Nessun giocatore con questi filtri'
+                      : 'Nessun giocatore disponibile'
+                  }
+                  description={
+                    searchQuery || positionFilter !== 'ALL' || teamFilter !== 'ALL' || ownerFilter !== 'ALL' || showOnlyWithStrategy
+                      ? 'Prova ad allargare i filtri o la ricerca.'
+                      : undefined
+                  }
+                />
+              ) : (
+                filteredPlayers.map(player => {
                   const local = getLocalStrategy(player.playerId)
-                  const hasStrategy = !!(local.maxBid || local.priority || local.notes)
+                  const isSaving = savingPlayerIds.has(player.playerId)
                   const isSvincolato = player.type === 'svincolato'
-                  const isMyRoster = player.type === 'myRoster'
+                  const catId = player.preference?.watchlistCategory as WatchlistCategoryId | null
+                  const cat = catId ? WATCHLIST_CATEGORIES[catId] : null
 
                   return (
-                    <div key={player.playerId} className={`bg-surface-300/30 rounded-lg p-3 border ${selectedForCompare.has(player.playerId) ? 'border-info-500/50 bg-info-500/10' : isMyRoster ? 'border-primary-500/30 bg-primary-500/5' : hasStrategy ? 'border-primary-500/30 bg-primary-500/5' : isSvincolato ? 'border-secondary-500/20' : 'border-surface-50/10'}`}>
-                      {/* Header: Checkbox + Photo + Player + Svincolato badge */}
-                      <div className="flex items-center gap-2 mb-2">
-                        {/* Compare checkbox (#187) */}
+                    <div
+                      key={player.playerId}
+                      className={`bg-surface-200 rounded-xl p-3 border transition-colors ${
+                        local.isDirty ? 'border-accent-500/60' : selectedForCompare.has(player.playerId) ? 'border-info-500/50' : 'border-surface-50/20'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 mb-2">
                         <input
                           type="checkbox"
                           checked={selectedForCompare.has(player.playerId)}
                           onChange={() => { togglePlayerForCompare(player.playerId); }}
                           className="w-5 h-5 rounded bg-surface-300 border-info-500/50 text-info-500 focus:ring-info-500 flex-shrink-0"
+                          aria-label={`Seleziona ${player.playerName} per confronto`}
                         />
-                        {/* Player Photo with Team Logo Badge - increased size #186 */}
-                        <div className="relative flex-shrink-0">
-                          {(() => {
-                            const photoUrl = getPlayerPhotoUrl(player.playerApiFootballId)
-                            return photoUrl ? (
-                              <img
-                                src={photoUrl}
-                                alt={player.playerName}
-                                className="w-12 h-12 rounded-full object-cover bg-surface-300 border-2 border-surface-50/20"
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).style.display = 'none'
-                                  const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement
-                                  if (fallback) fallback.style.display = 'flex'
-                                }}
-                              />
-                            ) : null
-                          })()}
-                          <div
-                            className={`w-12 h-12 rounded-full ${posColors.bg} ${posColors.text} items-center justify-center text-sm font-bold ${getPlayerPhotoUrl(player.playerApiFootballId) ? 'hidden' : 'flex'}`}
-                          >
-                            {player.playerPosition}
-                          </div>
-                          {/* Team logo badge - increased size #186 */}
-                          <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-white p-0.5 border border-surface-50/20">
-                            <TeamLogo team={player.playerTeam} />
-                          </div>
-                        </div>
+                        <RoleBadge position={player.playerPosition} />
                         <div className="flex-1 min-w-0">
                           <button
-                            onClick={() => { setSelectedPlayerStats({
-                              name: player.playerName,
-                              team: player.playerTeam,
-                              position: player.playerPosition,
-                              quotation: isSvincolato ? undefined : player.playerQuotation,
-                              age: player.playerAge,
-                              apiFootballId: player.playerApiFootballId,
-                              computedStats: player.playerComputedStats,
-                            }); }}
-                            className="font-medium text-white text-base truncate hover:text-primary-400 transition-colors text-left"
+                            type="button"
+                            onClick={() => { openStats(player); }}
+                            className="font-display font-bold text-white text-sm truncate hover:text-accent-400 transition-colors text-left block"
                           >
                             {player.playerName}
                           </button>
-                          {/* Auto-tags #220 */}
-                          {player.playerAutoTags && player.playerAutoTags.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-0.5">
-                              {player.playerAutoTags.map(tagId => {
-                                const def = AUTO_TAG_DEFS[tagId]
-                                return def ? (
-                                  <span key={tagId} className={`text-[10px] px-1.5 py-0.5 rounded-full bg-surface-300 ${def.color} font-medium`} title={def.description}>
-                                    {def.icon} {def.label}
-                                  </span>
-                                ) : null
-                              })}
-                            </div>
-                          )}
+                          <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
+                            <span className="w-3.5 h-3.5 flex-shrink-0"><TeamLogo team={player.playerTeam} /></span>
+                            <span className="truncate">{player.playerTeam}</span>
+                            {player.playerAge != null && <span className={getAgeColor(player.playerAge)}>· {player.playerAge}a</span>}
+                            {isSvincolato
+                              ? <span className="text-secondary-400">· Svincolato</span>
+                              : player.type === 'myRoster'
+                                ? <span className="text-primary-400">· Mia rosa</span>
+                                : <span className="truncate">· {player.ownerTeamName || player.ownerUsername}</span>}
+                          </div>
                         </div>
                       </div>
-                      {/* Player details: Squadra, Età, Owner */}
-                      <div className="grid grid-cols-3 gap-2 mb-2 text-xs">
-                        <div>
-                          <span className="text-gray-500">Squadra: </span>
-                          <div className="flex items-center gap-1 mt-0.5">
-                            <div className="w-4 h-4 flex-shrink-0">
-                              <TeamLogo team={player.playerTeam} />
-                            </div>
-                            <span className="text-gray-300 truncate">{player.playerTeam}</span>
-                          </div>
-                        </div>
-                        <div>
-                          <span className="text-gray-500">Età: </span>
-                          <span className={getAgeColor(player.playerAge)}>
-                            {player.playerAge != null ? `${player.playerAge} anni` : '-'}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-gray-500">Prop: </span>
-                          {isSvincolato ? (
-                            <span className="text-secondary-400">Svincolato</span>
-                          ) : isMyRoster ? (
-                            <span className="text-primary-400">La Mia Rosa</span>
-                          ) : (
-                            <span className="text-gray-300">{player.ownerTeamName || player.ownerUsername}</span>
-                          )}
-                        </div>
-                      </div>
-                      {/* Contract info - only for contracts/merge view */}
-                      {!isSvincolato && (dataViewMode === 'contracts' || dataViewMode === 'merge') && (
-                        <div className="grid grid-cols-2 gap-2 text-center text-xs mb-3">
-                          <div className="bg-surface-300/50 rounded p-1.5">
-                            <div className="text-gray-500 text-[10px] uppercase">Clausola</div>
-                            <div className="text-passion-400 font-medium">{player.contractClause}M</div>
-                          </div>
-                          <div className="bg-surface-300/50 rounded p-1.5">
-                            <div className="text-gray-500 text-[10px] uppercase">Rubata</div>
-                            <div className="text-warning-400 font-bold">{player.rubataPrice}M</div>
-                          </div>
+
+                      {/* Auto-tags */}
+                      {player.playerAutoTags && player.playerAutoTags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mb-2">
+                          {player.playerAutoTags.map(tagId => {
+                            const def = AUTO_TAG_DEFS[tagId]
+                            return def ? (
+                              <span key={tagId} className={`font-mono text-[9px] font-bold px-1.5 py-0.5 rounded border border-surface-50/30 ${def.color}`} title={def.description}>
+                                {def.icon} {def.label}
+                              </span>
+                            ) : null
+                          })}
                         </div>
                       )}
 
-                      {/* Stats info - only for stats/merge view (using computedStats) */}
-                      {(dataViewMode === 'stats' || dataViewMode === 'merge') && (
-                        <div className="grid grid-cols-3 gap-2 text-center text-xs mb-3">
-                          <div className="bg-info-500/10 rounded p-1.5 border border-info-500/20">
-                            <div className="text-gray-500 text-[10px] uppercase">Rating</div>
-                            <div className="text-info-400 font-semibold">
-                              {player.playerComputedStats?.avgRating != null
-                                ? player.playerComputedStats.avgRating.toFixed(1)
-                                : '-'}
-                            </div>
-                          </div>
-                          <div className="bg-secondary-500/10 rounded p-1.5 border border-secondary-500/20">
-                            <div className="text-gray-500 text-[10px] uppercase">Gol</div>
-                            <div className="text-secondary-400 font-medium">
-                              {player.playerComputedStats?.totalGoals ?? '-'}
-                            </div>
-                          </div>
-                          <div className="bg-primary-500/10 rounded p-1.5 border border-primary-500/20">
-                            <div className="text-gray-500 text-[10px] uppercase">Assist</div>
-                            <div className="text-primary-400 font-medium">
-                              {player.playerComputedStats?.totalAssists ?? '-'}
-                            </div>
-                          </div>
+                      {/* Contract / stats chips */}
+                      {!isSvincolato && (dataViewMode === 'contracts' || dataViewMode === 'merge') && (
+                        <div className="grid grid-cols-4 gap-1.5 text-center mb-2">
+                          <StatChip label="Ing." value={`${player.contractSalary}`} className="text-accent-400" />
+                          <StatChip label="Dur." value={`${player.contractDuration}`} className="text-gray-300" />
+                          <StatChip label="Cls" value={`${player.contractClause}`} className="text-passion-400" />
+                          <StatChip label="Rub." value={`${player.rubataPrice}`} className="text-warning-400" />
                         </div>
                       )}
-                      {/* Strategy Section - always visible */}
-                      <div className="bg-primary-500/10 rounded-lg p-2 border border-primary-500/20">
-                        <div className="flex items-center gap-2 mb-2">
-                          {/* Max Bid */}
-                          <div className="flex items-center gap-1">
-                            <span className="text-[10px] text-gray-500 uppercase">Max:</span>
-                            <button onClick={() => { updateLocalStrategy(player.playerId, 'maxBid', Math.max(0, (parseInt(local.maxBid) || 0) - 1).toString()); }} className="w-6 h-6 min-h-[44px] min-w-[44px] rounded bg-surface-300/70 text-gray-400 text-sm font-bold flex items-center justify-center">−</button>
-                            <input type="number" inputMode="decimal" value={local.maxBid} onChange={(e) => { updateLocalStrategy(player.playerId, 'maxBid', e.target.value); }} placeholder="-" className="w-12 px-1 py-1 min-h-[44px] bg-surface-300/50 border border-surface-50/30 rounded text-white text-center text-sm" />
-                            <button onClick={() => { updateLocalStrategy(player.playerId, 'maxBid', ((parseInt(local.maxBid) || 0) + 1).toString()); }} className="w-6 h-6 min-h-[44px] min-w-[44px] rounded bg-surface-300/70 text-gray-400 text-sm font-bold flex items-center justify-center">+</button>
-                          </div>
-                          {/* Priority - increased size #186 */}
-                          <div className="flex items-center gap-0.5 ml-auto">
-                            {[1, 2, 3, 4, 5].map(star => (
-                              <button key={star} onClick={() => { updateLocalStrategy(player.playerId, 'priority', local.priority === star ? 0 : star); }} className={`w-8 h-8 min-h-[44px] min-w-[44px] text-xl flex items-center justify-center ${local.priority >= star ? 'text-accent-400' : 'text-gray-500'}`}>★</button>
-                            ))}
-                          </div>
+                      {(dataViewMode === 'stats' || dataViewMode === 'merge') && (
+                        <div className="grid grid-cols-3 gap-1.5 text-center mb-2">
+                          <StatChip label="Voto" value={player.playerComputedStats?.avgRating != null ? player.playerComputedStats.avgRating.toFixed(1) : '-'} className="text-info-400" />
+                          <StatChip label="Gol" value={`${player.playerComputedStats?.totalGoals ?? '-'}`} className="text-secondary-400" />
+                          <StatChip label="Ass" value={`${player.playerComputedStats?.totalAssists ?? '-'}`} className="text-primary-400" />
                         </div>
-                        {/* Notes */}
-                        <input type="text" value={local.notes} onChange={(e) => { updateLocalStrategy(player.playerId, 'notes', e.target.value); }} placeholder="Note..." className="w-full px-2 py-1 bg-surface-300/50 border border-surface-50/30 rounded text-white text-sm" />
-                        {/* Watchlist Category #219 */}
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {(Object.entries(WATCHLIST_CATEGORIES) as [WatchlistCategoryId, typeof WATCHLIST_CATEGORIES[WatchlistCategoryId]][]).map(([catId, cat]) => {
-                            const isActive = player.preference?.watchlistCategory === catId
+                      )}
+
+                      {/* Strategy */}
+                      <div className="bg-surface-300 rounded-lg p-2.5 border border-surface-50/20 space-y-2.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="micro-label text-gray-500">Max</span>
+                            <AmountStepper
+                              value={parseInt(local.maxBid) || 0}
+                              onChange={(v) => { updateLocalStrategy(player.playerId, 'maxBid', v > 0 ? v.toString() : '') }}
+                              min={0}
+                              tone="accent"
+                              size="sm"
+                              disabled={isSaving}
+                              aria-label={`Max bid per ${player.playerName}`}
+                            />
+                          </div>
+                          <PriorityStars
+                            value={local.priority}
+                            onChange={(v) => { updateLocalStrategy(player.playerId, 'priority', v) }}
+                            large
+                          />
+                        </div>
+                        <input
+                          type="text"
+                          value={local.notes}
+                          onChange={(e) => { updateLocalStrategy(player.playerId, 'notes', e.target.value); }}
+                          placeholder="+ nota"
+                          className="w-full px-2 py-1.5 bg-surface-200 border border-surface-50/30 rounded-lg text-white text-sm focus:border-accent-500 focus:outline-none placeholder:text-gray-500 placeholder:italic"
+                        />
+                        <div className="flex flex-wrap gap-1.5">
+                          {(Object.entries(WATCHLIST_CATEGORIES) as [WatchlistCategoryId, typeof WATCHLIST_CATEGORIES[WatchlistCategoryId]][]).map(([cid, c]) => {
+                            const isActive = catId === cid
                             return (
                               <button
-                                key={catId}
-                                onClick={() => { void setWatchlistCategory(player.playerId, isActive ? null : catId) }}
-                                className={`px-2 py-1 rounded-full text-[10px] font-medium border transition-all ${isActive ? cat.color : 'bg-surface-300/50 text-gray-500 border-surface-50/20 hover:text-gray-300'}`}
+                                key={cid}
+                                type="button"
+                                onClick={() => { void setWatchlistCategory(player.playerId, isActive ? null : cid) }}
+                                className={`px-2.5 py-1 rounded-full text-[10px] font-medium border transition-colors ${
+                                  isActive ? c.color : 'bg-surface-300 text-gray-500 border-surface-50/20 hover:text-gray-300'
+                                }`}
                               >
-                                {cat.icon} {cat.label}
+                                {c.icon} {c.label}
                               </button>
                             )
                           })}
                         </div>
+                        {cat && (
+                          <div className="text-[10px] text-gray-500">
+                            Categoria: <span className={`font-medium px-1.5 py-0.5 rounded border ${cat.color}`}>{cat.label}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )
-                })}
-                {filteredPlayers.length === 0 && (
-                  <div className="text-center text-gray-500 py-8">Nessun giocatore trovato</div>
-                )}
-              </div>}
-
-              {/* Desktop Table */}
-              {viewMode !== 'overview' && <div className="hidden md:block overflow-x-auto">
-                <table className="w-full min-w-[900px] text-sm">
-                  <thead className="bg-surface-300/50">
-                    {/* Group headers */}
-                    <tr className="text-[10px] text-gray-500 uppercase border-b border-surface-50/20">
-                      <th className="w-10 py-1 px-2 bg-info-500/10"></th>
-                      <th colSpan={5} className="text-left py-1 px-3 bg-surface-300/30">
-                        Giocatore
-                      </th>
-                      {(dataViewMode === 'contracts' || dataViewMode === 'merge') && (
-                        <th colSpan={4} className="text-center py-1 px-3 bg-accent-500/10 border-l border-surface-50/20">
-                          Contratto
-                        </th>
-                      )}
-                      {dataViewMode === 'contracts' && (
-                        <th className="text-center py-1 px-3 bg-info-500/10 border-l border-surface-50/20">Stat</th>
-                      )}
-                      {(dataViewMode === 'stats' || dataViewMode === 'merge') && (
-                        <th colSpan={dataViewMode === 'stats' ? STATS_COLUMNS.length : MERGE_STATS_KEYS.length} className="text-center py-1 px-3 bg-info-500/10 border-l border-surface-50/20">
-                          Statistiche
-                        </th>
-                      )}
-                      <th colSpan={4} className="text-center py-1 px-3 bg-primary-500/10 border-l border-surface-50/20">
-                        Strategia
-                      </th>
-                    </tr>
-                    {/* Column headers */}
-                    <tr className="text-xs text-gray-400 uppercase">
-                      {/* Compare checkbox header (#187) */}
-                      <th className="w-10 p-2 text-center bg-info-500/5">
-                        <input
-                          type="checkbox"
-                          checked={selectedForCompare.size > 0}
-                          onChange={() => { if (selectedForCompare.size > 0) clearComparison(); }}
-                          className="w-4 h-4 rounded bg-surface-300 border-info-500/50 text-info-500 focus:ring-info-500"
-                        />
-                      </th>
-                      <SortableHeader field="position" label="R" className="w-10 p-2 text-center" />
-                      <SortableHeader field="name" label="Giocatore" className="text-left p-2" />
-                      <th className="text-left p-2">Squadra</th>
-                      <th className="text-center p-2 w-12">Età</th>
-                      <SortableHeader field="owner" label="Prop." className="text-left p-2" />
-                      {/* Contract columns */}
-                      {(dataViewMode === 'contracts' || dataViewMode === 'merge') && (
-                        <>
-                          <th className="text-center p-2 text-accent-400 border-l border-surface-50/20">Ing.</th>
-                          <th className="text-center p-2">Dur.</th>
-                          <th className="text-center p-2 text-passion-400">Cls</th>
-                          <SortableHeader field="rubata" label="Rub." className="text-center p-2" />
-                        </>
-                      )}
-                      {dataViewMode === 'contracts' && (
-                        <th className="text-center p-2 text-info-400 border-l border-surface-50/20" title="Rating medio">Rat</th>
-                      )}
-                      {/* Stats columns */}
-                      {dataViewMode === 'stats' && STATS_COLUMNS.map((col, idx) => (
-                        <th key={col.key} className={`text-center p-2 ${col.colorClass || ''} ${idx === 0 ? 'border-l border-surface-50/20' : ''}`} title={col.label}>
-                          {col.shortLabel}
-                        </th>
-                      ))}
-                      {dataViewMode === 'merge' && STATS_COLUMNS.filter(c => MERGE_STATS_KEYS.includes(c.key)).map((col, idx) => (
-                        <th key={col.key} className={`text-center p-2 ${col.colorClass || ''} ${idx === 0 ? 'border-l border-surface-50/20' : ''}`} title={col.label}>
-                          {col.shortLabel}
-                        </th>
-                      ))}
-                      {/* Strategy columns */}
-                      <th className="text-center p-2 bg-primary-500/5 border-l border-surface-50/20">Max</th>
-                      <th className="text-center p-2 bg-primary-500/5">★</th>
-                      <th className="text-left p-2 bg-primary-500/5">Note</th>
-                      <th className="text-center p-2 bg-primary-500/5">Cat.</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredPlayers.map(player => {
-                      const defaultColors = { bg: 'bg-gradient-to-r from-gray-500 to-gray-600', text: 'text-white', border: '' }
-                      const posColors = POSITION_COLORS[player.playerPosition] ?? defaultColors
-                      const local = getLocalStrategy(player.playerId)
-                      const isSaving = savingPlayerIds.has(player.playerId)
-                      const hasStrategy = !!(local.maxBid || local.priority || local.notes)
-                      const isSvincolato = player.type === 'svincolato'
-                      const isMyRoster = player.type === 'myRoster'
-
-                      return (
-                        <tr
-                          key={player.playerId}
-                          className={`border-t border-surface-50/10 transition-colors ${
-                            selectedForCompare.has(player.playerId) ? 'bg-info-500/10' : isMyRoster ? 'bg-primary-500/5' : hasStrategy ? 'bg-primary-500/5' : isSvincolato ? 'bg-secondary-500/5' : ''
-                          } hover:bg-surface-300/30`}
-                        >
-                          {/* Compare checkbox (#187) */}
-                          <td className="p-2 text-center bg-info-500/5">
-                            <input
-                              type="checkbox"
-                              checked={selectedForCompare.has(player.playerId)}
-                              onChange={() => { togglePlayerForCompare(player.playerId); }}
-                              className="w-4 h-4 rounded bg-surface-300 border-info-500/50 text-info-500 focus:ring-info-500"
-                            />
-                          </td>
-
-                          {/* Position */}
-                          <td className="p-2 text-center">
-                            <div className={`w-8 h-8 mx-auto rounded-full ${posColors.bg} ${posColors.text} flex items-center justify-center text-sm font-bold`}>
-                              {player.playerPosition}
-                            </div>
-                          </td>
-
-                          {/* Player - increased sizes #186 */}
-                          <td className="p-2">
-                            <div className="flex items-center gap-2">
-                              {/* Player Photo - increased size #186 */}
-                              <div className="relative flex-shrink-0">
-                                {(() => {
-                                  const photoUrl = getPlayerPhotoUrl(player.playerApiFootballId)
-                                  return photoUrl ? (
-                                    <img
-                                      src={photoUrl}
-                                      alt={player.playerName}
-                                      className="w-10 h-10 rounded-full object-cover bg-surface-300 border-2 border-surface-50/20"
-                                      onError={(e) => {
-                                        (e.target as HTMLImageElement).style.display = 'none'
-                                        const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement
-                                        if (fallback) fallback.style.display = 'flex'
-                                      }}
-                                    />
-                                  ) : null
-                                })()}
-                                <div
-                                  className={`w-10 h-10 rounded-full ${posColors.bg} ${posColors.text} items-center justify-center font-bold text-sm ${getPlayerPhotoUrl(player.playerApiFootballId) ? 'hidden' : 'flex'}`}
-                                >
-                                  {player.playerPosition}
-                                </div>
-                              </div>
-                              <div className="min-w-0">
-                                <button
-                                  onClick={() => { setSelectedPlayerStats({
-                                    name: player.playerName,
-                                    team: player.playerTeam,
-                                    position: player.playerPosition,
-                                    quotation: isSvincolato ? undefined : player.playerQuotation,
-                                    age: player.playerAge,
-                                    apiFootballId: player.playerApiFootballId,
-                                    computedStats: player.playerComputedStats,
-                                  }); }}
-                                  className="font-medium text-white text-base truncate hover:text-primary-400 transition-colors text-left"
-                                >
-                                  {player.playerName}
-                                </button>
-                                {/* Auto-tags #220 */}
-                                {player.playerAutoTags && player.playerAutoTags.length > 0 && (
-                                  <div className="flex flex-wrap gap-1 mt-0.5">
-                                    {player.playerAutoTags.map(tagId => {
-                                      const def = AUTO_TAG_DEFS[tagId]
-                                      return def ? (
-                                        <span key={tagId} className={`text-[10px] px-1.5 py-0.5 rounded-full bg-surface-300 ${def.color} font-medium`} title={def.description}>
-                                          {def.icon} {def.label}
-                                        </span>
-                                      ) : null
-                                    })}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-
-                          {/* Squadra */}
-                          <td className="p-2">
-                            <div className="flex items-center gap-2">
-                              <div className="w-5 h-5 flex-shrink-0">
-                                <TeamLogo team={player.playerTeam} />
-                              </div>
-                              <span className="text-sm text-gray-300 truncate">{player.playerTeam}</span>
-                            </div>
-                          </td>
-
-                          {/* Età */}
-                          {/* Età */}
-                          <td className="p-2 text-center">
-                            <span className={`text-sm px-2 py-0.5 rounded ${getAgeBgColor(player.playerAge)}`}>
-                              {player.playerAge != null ? player.playerAge : '-'}
-                            </span>
-                          </td>
-
-                          {/* Owner / Svincolato / My Roster */}
-                          <td className="p-2">
-                            {isSvincolato ? (
-                              <div className="min-w-0">
-                                <div className="font-medium text-secondary-400 text-sm">Svincolato</div>
-                              </div>
-                            ) : player.type === 'myRoster' ? (
-                              <div className="min-w-0">
-                                <div className="font-medium text-primary-400 text-sm">La Mia Rosa</div>
-                              </div>
-                            ) : (
-                              <div className="min-w-0">
-                                <div className="font-medium text-gray-300 text-sm truncate">
-                                  {player.ownerTeamName || player.ownerUsername}
-                                </div>
-                                {player.ownerTeamName && (
-                                  <div className="text-xs text-gray-500">{player.ownerUsername}</div>
-                                )}
-                              </div>
-                            )}
-                          </td>
-
-                          {/* Contract columns - only for contracts and merge views */}
-                          {(dataViewMode === 'contracts' || dataViewMode === 'merge') && (
-                            <>
-                              {/* Ingaggio */}
-                              <td className="p-2 text-center border-l border-surface-50/10">
-                                {isSvincolato ? (
-                                  <span className="text-gray-400">-</span>
-                                ) : (
-                                  <span className="text-accent-400 font-medium text-xs">{player.contractSalary}M</span>
-                                )}
-                              </td>
-
-                              {/* Durata */}
-                              <td className="p-2 text-center">
-                                {isSvincolato ? (
-                                  <span className="text-gray-400">-</span>
-                                ) : (
-                                  <span className="text-white text-xs">{player.contractDuration}</span>
-                                )}
-                              </td>
-
-                              {/* Clausola */}
-                              <td className="p-2 text-center">
-                                {isSvincolato ? (
-                                  <span className="text-gray-400">-</span>
-                                ) : (
-                                  <span className="text-passion-400 font-medium">{player.contractClause}M</span>
-                                )}
-                              </td>
-
-                              {/* Rubata Price */}
-                              <td className="p-2 text-center">
-                                {isSvincolato ? (
-                                  <span className="text-gray-400">-</span>
-                                ) : (
-                                  <span className="text-warning-400 font-bold">{player.rubataPrice}M</span>
-                                )}
-                              </td>
-                            </>
-                          )}
-
-                          {/* Rating column in contracts view */}
-                          {dataViewMode === 'contracts' && (
-                            <td className="p-2 text-center text-xs text-info-400 border-l border-surface-50/10">
-                              {player.playerComputedStats?.avgRating != null
-                                ? player.playerComputedStats.avgRating.toFixed(1)
-                                : '-'}
-                            </td>
-                          )}
-
-                          {/* Stats columns - full set for stats view (using computedStats for main stats) */}
-                          {dataViewMode === 'stats' && STATS_COLUMNS.map((col, idx) => {
-                            // Use computedStats for main stats (more accurate data)
-                            let rawValue: number | string | null = null
-                            const cs = player.playerComputedStats
-                            if (col.key === 'appearances') rawValue = cs?.appearances ?? null
-                            else if (col.key === 'rating') rawValue = cs?.avgRating ?? null
-                            else if (col.key === 'goals') rawValue = cs?.totalGoals ?? null
-                            else if (col.key === 'assists') rawValue = cs?.totalAssists ?? null
-                            else if (col.key === 'minutes') rawValue = cs?.totalMinutes ?? null
-                            else rawValue = col.getValue(player.playerApiFootballStats) // secondary stats from API
-                            const numValue = rawValue != null && rawValue !== '' ? Number(rawValue) : null
-                            const formatted = col.format ? col.format(numValue) : (numValue ?? '-')
-                            return (
-                              <td key={col.key} className={`p-2 text-center text-xs ${col.colorClass || 'text-gray-300'} ${idx === 0 ? 'border-l border-surface-50/10' : ''}`}>
-                                {formatted}
-                              </td>
-                            )
-                          })}
-
-                          {/* Stats columns - essential only for merge view (using computedStats) */}
-                          {dataViewMode === 'merge' && STATS_COLUMNS.filter(c => MERGE_STATS_KEYS.includes(c.key)).map((col, idx) => {
-                            const cs = player.playerComputedStats
-                            let rawValue: number | string | null = null
-                            if (col.key === 'rating') rawValue = cs?.avgRating ?? null
-                            else if (col.key === 'goals') rawValue = cs?.totalGoals ?? null
-                            else if (col.key === 'assists') rawValue = cs?.totalAssists ?? null
-                            else rawValue = col.getValue(player.playerApiFootballStats)
-                            const numValue = rawValue != null && rawValue !== '' ? Number(rawValue) : null
-                            const formatted = col.format ? col.format(numValue) : (numValue ?? '-')
-                            return (
-                              <td key={col.key} className={`p-2 text-center text-xs ${col.colorClass || 'text-gray-300'} ${idx === 0 ? 'border-l border-surface-50/10' : ''}`}>
-                                {formatted}
-                              </td>
-                            )
-                          })}
-
-                          {/* === STRATEGY SECTION === */}
-                          {/* Offerta Max */}
-                          <td className="p-2 text-center bg-primary-500/5 border-l border-surface-50/10">
-                            <div className="flex items-center justify-center gap-1">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const current = parseInt(local.maxBid) || 0
-                                  updateLocalStrategy(player.playerId, 'maxBid', Math.max(0, current - 1).toString())
-                                }}
-                                className="w-5 h-5 rounded bg-surface-300/70 text-gray-400 hover:text-white hover:bg-surface-100 text-xs font-bold flex items-center justify-center transition-colors"
-                              >
-                                −
-                              </button>
-                              <input
-                                type="number"
-                                inputMode="decimal"
-                                value={local.maxBid}
-                                onChange={(e) => { updateLocalStrategy(player.playerId, 'maxBid', e.target.value); }}
-                                placeholder="-"
-                                className={`w-10 px-1 py-0.5 bg-surface-300/50 border rounded text-white text-center text-xs font-medium focus:border-primary-500 focus:outline-none placeholder:text-gray-500 ${
-                                  isSaving ? 'border-primary-500/50' : local.isDirty ? 'border-warning-500/50' : 'border-surface-50/30'
-                                }`}
-                              />
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const current = parseInt(local.maxBid) || 0
-                                  updateLocalStrategy(player.playerId, 'maxBid', (current + 1).toString())
-                                }}
-                                className="w-5 h-5 rounded bg-surface-300/70 text-gray-400 hover:text-white hover:bg-surface-100 text-xs font-bold flex items-center justify-center transition-colors"
-                              >
-                                +
-                              </button>
-                            </div>
-                          </td>
-
-                          {/* Priority - increased size #186 */}
-                          <td className="p-2 text-center bg-primary-500/5">
-                            <div className="flex items-center justify-center gap-0.5">
-                              {[1, 2, 3, 4, 5].map(star => (
-                                <button
-                                  key={star}
-                                  type="button"
-                                  onClick={() => {
-                                    const newPrio = local.priority === star ? 0 : star
-                                    updateLocalStrategy(player.playerId, 'priority', newPrio)
-                                  }}
-                                  className={`w-5 h-5 text-sm transition-colors ${
-                                    local.priority >= star
-                                      ? 'text-accent-400 hover:text-accent-300'
-                                      : 'text-gray-500 hover:text-gray-300'
-                                  }`}
-                                >
-                                  ★
-                                </button>
-                              ))}
-                            </div>
-                          </td>
-
-                          {/* Notes */}
-                          <td className="p-2 bg-primary-500/5">
-                            <input
-                              type="text"
-                              value={local.notes}
-                              onChange={(e) => { updateLocalStrategy(player.playerId, 'notes', e.target.value); }}
-                              placeholder="Note..."
-                              className={`w-full min-w-[60px] px-1 py-0.5 bg-surface-300/50 border rounded text-white text-xs focus:border-primary-500 focus:outline-none placeholder:text-gray-500 ${
-                                isSaving ? 'border-primary-500/50' : local.isDirty ? 'border-warning-500/50' : 'border-surface-50/30'
-                              }`}
-                            />
-                          </td>
-
-                          {/* Watchlist Category #219 */}
-                          <td className="p-2 bg-primary-500/5">
-                            <select
-                              value={player.preference?.watchlistCategory || ''}
-                              onChange={(e) => { void setWatchlistCategory(player.playerId, e.target.value || null) }}
-                              className="w-full min-w-[80px] px-1 py-0.5 bg-surface-300/50 border border-surface-50/30 rounded text-xs focus:border-primary-500 focus:outline-none text-white"
-                            >
-                              <option value="">-</option>
-                              {(Object.entries(WATCHLIST_CATEGORIES) as [WatchlistCategoryId, typeof WATCHLIST_CATEGORIES[WatchlistCategoryId]][]).map(([catId, cat]) => (
-                                <option key={catId} value={catId}>{cat.icon} {cat.label}</option>
-                              ))}
-                            </select>
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-
-                {filteredPlayers.length === 0 && (
-                  <div className="text-center text-gray-500 py-12">
-                    Nessun giocatore trovato
-                  </div>
-                )}
-              </div>}
-
-              {/* Legend */}
-              <div className="p-3 border-t border-surface-50/20 bg-surface-300/20 text-[10px] text-gray-500 flex flex-wrap gap-x-4 gap-y-1">
-                <span><b className="text-accent-400">Ing.</b> = Ingaggio</span>
-                <span><b>Dur.</b> = Durata contratto (semestri)</span>
-                <span><b className="text-passion-400">Cls</b> = Clausola rescissoria</span>
-                <span><b>Rub.</b> = Prezzo rubata</span>
-                <span><b>Max</b> = Offerta massima</span>
-                <span><b>★</b> = Priorità (1-3)</span>
-                <span><b>Rat</b> = Rating medio</span>
-                <span><b>Gol</b> / <b>Ass</b> = Gol / Assist</span>
-              </div>
-
-              {/* Footer */}
-              <div className="p-3 border-t border-surface-50/20 bg-surface-300/20 text-xs text-gray-500 flex flex-wrap justify-between gap-2">
-                <span>
-                  {filteredPlayers.length} giocatori
-                  {viewMode === 'myRoster' && ' (la mia rosa)'}
-                  {viewMode === 'owned' && ' (altre rose)'}
-                  {viewMode === 'svincolati' && ' (svincolati)'}
-                  {viewMode === 'all' && ` (${filteredPlayers.filter(p => p.type === 'myRoster').length} miei, ${filteredPlayers.filter(p => p.type === 'owned').length} altri, ${filteredPlayers.filter(p => p.type === 'svincolato').length} svinc.)`}
-                </span>
-                {viewMode !== 'myRoster' && (
-                  <span className="text-primary-400">{myStrategiesCount} strategie impostate</span>
-                )}
-              </div>
+                })
+              )}
             </div>
-          </div>
-        </div>
+
+            {/* Footer */}
+            <div className="flex flex-wrap items-center justify-between gap-2 mt-3 px-1">
+              <span className="micro-label text-gray-500">
+                {filteredPlayers.length} giocatori · {myStrategiesCount} con strategia impostata
+              </span>
+              <span className="inline-flex items-center gap-1.5 font-mono text-[10px] text-accent-400">
+                <span className="w-2 h-2 rounded-sm bg-accent-500" aria-hidden="true" />
+                modifica non salvata (autosave 2s)
+              </span>
+            </div>
+          </>
+        )}
       </main>
 
       {/* Player Stats Modal */}
@@ -1748,340 +1324,205 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
         player={selectedPlayerStats}
       />
 
-      {/* Player Compare Modal (#187) */}
+      {/* Player Compare Modal (#187) — shared with Rubata live */}
       {showCompareModal && playersToCompare.length >= 2 && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-surface-200 rounded-xl border border-surface-50/20 max-w-4xl w-full max-h-[90vh] overflow-hidden">
-            {/* Modal Header */}
-            <div className="p-6 border-b border-surface-50/20 bg-gradient-to-r from-info-500/10 to-surface-200">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-white">Confronto Giocatori</h2>
+        <PlayerCompareModal
+          isOpen={showCompareModal}
+          onClose={() => { setShowCompareModal(false); }}
+          players={playersToCompare.map(toBoardPlayer)}
+        />
+      )}
+    </div>
+  )
+}
+
+// ===== Sub-components (presentation only) =====
+
+function StatChip({ label, value, className = '' }: { label: string; value: string; className?: string }) {
+  return (
+    <div className="bg-surface-300 rounded-lg p-1.5">
+      <div className="micro-label text-gray-500">{label}</div>
+      <div className={`stat-number text-sm ${className}`}>{value}</div>
+    </div>
+  )
+}
+
+function PriorityStars({ value, onChange, large = false }: { value: number; onChange: (v: number) => void; large?: boolean }) {
+  const size = large ? 'w-8 h-8 text-xl' : 'w-7 h-7 text-base'
+  return (
+    <div className="flex items-center justify-center">
+      {[1, 2, 3, 4, 5].map(star => (
+        <button
+          key={star}
+          type="button"
+          onClick={() => { onChange(value === star ? 0 : star) }}
+          className={`${size} flex items-center justify-center transition-colors ${
+            value >= star ? 'text-accent-400 hover:text-accent-300' : 'text-gray-600 hover:text-gray-400'
+          }`}
+          aria-label={`Priorità ${star}`}
+        >
+          ★
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function CategoryPicker({
+  current,
+  open,
+  onToggleOpen,
+  onSelect,
+}: {
+  current: typeof WATCHLIST_CATEGORIES[WatchlistCategoryId] | null
+  open: boolean
+  onToggleOpen: () => void
+  onSelect: (id: WatchlistCategoryId | null) => void
+}) {
+  return (
+    <div className="relative inline-block">
+      <button
+        type="button"
+        onClick={onToggleOpen}
+        className={`px-2.5 py-1 rounded-full text-[10px] font-medium border transition-colors whitespace-nowrap ${
+          current ? current.color : 'bg-surface-300 text-gray-500 border-surface-50/30 hover:text-gray-300'
+        }`}
+      >
+        {current ? `${current.icon} ${current.label}` : '+ categoria'} ▾
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-30" onClick={onToggleOpen} aria-hidden="true" />
+          <div className="absolute right-0 z-40 mt-1 w-44 bg-surface-100 border border-surface-50/40 rounded-lg shadow-xl py-1">
+            <button
+              type="button"
+              onClick={() => { onSelect(null) }}
+              className="w-full text-left px-3 py-1.5 text-xs text-gray-400 hover:bg-surface-50/20"
+            >
+              Nessuna
+            </button>
+            {(Object.entries(WATCHLIST_CATEGORIES) as [WatchlistCategoryId, typeof WATCHLIST_CATEGORIES[WatchlistCategoryId]][]).map(([cid, c]) => (
+              <button
+                key={cid}
+                type="button"
+                onClick={() => { onSelect(cid) }}
+                className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-gray-200 hover:bg-surface-50/20"
+              >
+                <span className={`w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-bold border ${c.color}`}>{c.icon}</span>
+                {c.label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+function OverviewSection({
+  byCategory,
+  topPriority,
+  getLocalStrategy,
+  onAddPlayers,
+  onOpenStats,
+}: {
+  byCategory: Record<WatchlistCategoryId, DisplayPlayer[]>
+  topPriority: DisplayPlayer[]
+  getLocalStrategy: (playerId: string) => LocalStrategy
+  onAddPlayers: () => void
+  onOpenStats: (player: DisplayPlayer) => void
+}) {
+  return (
+    <div className="space-y-4">
+      {/* Top priority */}
+      <div className="bg-surface-200 rounded-2xl border border-accent-500/30 shadow-[0_0_0_1px_rgba(245,158,11,0.08)] p-4">
+        <div className="micro-label text-accent-400 mb-3">★ Top priorità · i tuoi 3 obiettivi</div>
+        {topPriority.length === 0 ? (
+          <p className="text-xs text-gray-500 italic">Nessun giocatore con priorità impostata. Assegna delle stelle dalle viste giocatori.</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            {topPriority.map((player, idx) => {
+              const local = getLocalStrategy(player.playerId)
+              return (
                 <button
-                  onClick={() => { setShowCompareModal(false); }}
-                  className="w-10 h-10 rounded-lg bg-surface-300 hover:bg-surface-50/20 flex items-center justify-center text-gray-400 hover:text-white transition-colors"
+                  key={player.playerId}
+                  type="button"
+                  onClick={() => { onOpenStats(player); }}
+                  className="flex items-center gap-2.5 bg-surface-300 border border-surface-50/20 rounded-xl p-2.5 text-left hover:border-accent-500/40 transition-colors"
                 >
-                  ✕
-                </button>
-              </div>
-            </div>
-
-            {/* Modal Content */}
-            <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
-              {/* Player Cards Header */}
-              <div className="flex flex-wrap justify-center gap-6 mb-8">
-                {playersToCompare.map((player, idx) => {
-                  const photoUrl = getPlayerPhotoUrl(player.playerApiFootballId)
-                  const posColors = POSITION_COLORS[player.playerPosition] ?? { bg: 'bg-gradient-to-r from-gray-500 to-gray-600', text: 'text-white' }
-
-                  return (
-                    <div key={player.playerId} className="flex flex-col items-center gap-2">
-                      <div
-                        className="w-4 h-4 rounded-full mb-1"
-                        style={{ backgroundColor: PLAYER_CHART_COLORS[idx % PLAYER_CHART_COLORS.length] }}
-                      />
-                      <div className="relative">
-                        {photoUrl ? (
-                          <img
-                            src={photoUrl}
-                            alt={player.playerName}
-                            className="w-16 h-16 rounded-full object-cover bg-surface-300 border-3 border-surface-50/20"
-                            style={{ borderColor: PLAYER_CHART_COLORS[idx % PLAYER_CHART_COLORS.length] }}
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).style.display = 'none'
-                            }}
-                          />
-                        ) : (
-                          <div
-                            className={`w-16 h-16 rounded-full ${posColors.bg} ${posColors.text} flex items-center justify-center font-bold text-xl`}
-                          >
-                            {player.playerPosition}
-                          </div>
-                        )}
-                        <span
-                          className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full ${posColors.bg} flex items-center justify-center text-white font-bold text-xs border-2 border-surface-200`}
-                        >
-                          {player.playerPosition}
-                        </span>
-                      </div>
-                      <span className="font-medium text-white">{player.playerName}</span>
-                      <div className="flex items-center gap-1">
-                        <img
-                          src={getTeamLogo(player.playerTeam)}
-                          alt={player.playerTeam}
-                          className="w-5 h-5 object-contain"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = 'none'
-                          }}
-                        />
-                        <span className="text-sm text-gray-400">{player.playerTeam}</span>
-                      </div>
-                      {player.type !== 'svincolato' && (
-                        <span className="text-lg font-bold text-primary-400">Quot. {player.playerQuotation}</span>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-
-              {/* Radar Charts - different for goalkeepers vs outfield players */}
-              {(() => {
-                const allGoalkeepers = playersToCompare.every(p => p.playerPosition === 'P')
-                const hasGoalkeepers = playersToCompare.some(p => p.playerPosition === 'P')
-
-                if (allGoalkeepers) {
-                  // All goalkeepers - show goalkeeper-specific radar charts
-                  return (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                      {/* Goalkeeper Performance Radar */}
-                      <div className="bg-warning-500/10 rounded-xl p-4 border border-warning-500/20">
-                        <h3 className="text-center text-warning-400 font-semibold mb-4">Performance Portiere</h3>
-                        <RadarChart
-                          size={280}
-                          players={playersToCompare.map((p, i) => ({
-                            name: p.playerName,
-                            color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length] ?? '#6b7280'
-                          }))}
-                          data={[
-                            { label: 'Parate', values: playersToCompare.map(p => p.playerApiFootballStats?.goals?.saves ?? 0) },
-                            { label: 'Rig. Parati', values: playersToCompare.map(p => (p.playerApiFootballStats?.penalty?.saved ?? 0) * 10) },
-                            { label: 'Rating', values: playersToCompare.map(p => Math.round((Number(p.playerApiFootballStats?.games?.rating) || 0) * 10)) },
-                            { label: 'Presenze', values: playersToCompare.map(p => p.playerApiFootballStats?.games?.appearences ?? 0) },
-                            { label: 'Minuti', values: playersToCompare.map(p => Math.round((p.playerApiFootballStats?.games?.minutes ?? 0) / 100)) },
-                            { label: 'Passaggi', values: playersToCompare.map(p => Math.round((p.playerApiFootballStats?.passes?.total ?? 0) / 10)) },
-                          ]}
-                        />
-                      </div>
-
-                      {/* Goalkeeper Goals Conceded Radar */}
-                      <div className="bg-warning-500/10 rounded-xl p-4 border border-warning-500/20">
-                        <h3 className="text-center text-warning-400 font-semibold mb-4">Gol Subiti (meno è meglio)</h3>
-                        <RadarChart
-                          size={280}
-                          players={playersToCompare.map((p, i) => ({
-                            name: p.playerName,
-                            color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length] ?? '#6b7280'
-                          }))}
-                          data={[
-                            { label: 'Gol Subiti', values: playersToCompare.map(p => p.playerApiFootballStats?.goals?.conceded ?? 0) },
-                            { label: 'Prec. Pass', values: playersToCompare.map(p => p.playerApiFootballStats?.passes?.accuracy ?? 0) },
-                            { label: 'Gialli', values: playersToCompare.map(p => (p.playerApiFootballStats?.cards?.yellow ?? 0) * 5) },
-                            { label: 'Rossi', values: playersToCompare.map(p => (p.playerApiFootballStats?.cards?.red ?? 0) * 20) },
-                          ]}
-                        />
-                      </div>
-                    </div>
-                  )
-                }
-
-                // Mixed or outfield players - show standard radar charts
-                return (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                    {hasGoalkeepers && (
-                      <div className="col-span-full text-center text-sm text-warning-400 bg-warning-500/10 rounded-lg p-2 mb-2">
-                        Confronto misto portieri/giocatori - alcune statistiche potrebbero non essere comparabili
-                      </div>
-                    )}
-                    {/* Offensive Stats Radar */}
-                    <div className="bg-surface-300/50 rounded-xl p-4">
-                      <h3 className="text-center text-white font-semibold mb-4">Statistiche Offensive</h3>
-                      <RadarChart
-                        size={280}
-                        players={playersToCompare.map((p, i) => ({
-                          name: p.playerName,
-                          color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length] ?? '#6b7280'
-                        }))}
-                        data={[
-                          { label: 'Gol', values: playersToCompare.map(p => p.playerApiFootballStats?.goals?.total ?? 0) },
-                          { label: 'Assist', values: playersToCompare.map(p => p.playerApiFootballStats?.goals?.assists ?? 0) },
-                          { label: 'Tiri', values: playersToCompare.map(p => p.playerApiFootballStats?.shots?.total ?? 0) },
-                          { label: 'Tiri Porta', values: playersToCompare.map(p => p.playerApiFootballStats?.shots?.on ?? 0) },
-                          { label: 'Dribbling', values: playersToCompare.map(p => p.playerApiFootballStats?.dribbles?.success ?? 0) },
-                          { label: 'Pass Chiave', values: playersToCompare.map(p => p.playerApiFootballStats?.passes?.key ?? 0) },
-                        ]}
-                      />
-                    </div>
-
-                    {/* Defensive/General Stats Radar */}
-                    <div className="bg-surface-300/50 rounded-xl p-4">
-                      <h3 className="text-center text-white font-semibold mb-4">Statistiche Difensive</h3>
-                      <RadarChart
-                        size={280}
-                        players={playersToCompare.map((p, i) => ({
-                          name: p.playerName,
-                          color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length] ?? '#6b7280'
-                        }))}
-                        data={[
-                          { label: 'Contrasti', values: playersToCompare.map(p => p.playerApiFootballStats?.tackles?.total ?? 0) },
-                          { label: 'Intercetti', values: playersToCompare.map(p => p.playerApiFootballStats?.tackles?.interceptions ?? 0) },
-                          { label: 'Passaggi', values: playersToCompare.map(p => Math.round((p.playerApiFootballStats?.passes?.total ?? 0) / 10)) },
-                          { label: 'Presenze', values: playersToCompare.map(p => p.playerApiFootballStats?.games?.appearences ?? 0) },
-                          { label: 'Rating', values: playersToCompare.map(p => Math.round((Number(p.playerApiFootballStats?.games?.rating) || 0) * 10)) },
-                          { label: 'Minuti', values: playersToCompare.map(p => Math.round((p.playerApiFootballStats?.games?.minutes ?? 0) / 100)) },
-                        ]}
-                      />
+                  <span className="budget-display text-2xl text-accent-400 w-6 text-center flex-shrink-0">{idx + 1}</span>
+                  <RoleBadge position={player.playerPosition} />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-display font-bold text-[13px] text-white truncate">{player.playerName}</div>
+                    <div className="text-[10.5px] text-gray-500 flex items-center gap-1.5">
+                      <span className="truncate">{player.playerTeam}</span>· <StarRating value={local.priority} />
                     </div>
                   </div>
-                )
-              })()}
-
-              {/* Detailed Stats Table */}
-              <div className="bg-surface-300/30 rounded-xl overflow-hidden">
-                <h3 className="text-white font-semibold p-4 border-b border-surface-50/10">Dettaglio Statistiche</h3>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-surface-300/50">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-400">Statistica</th>
-                        {playersToCompare.map((player, idx) => (
-                          <th key={player.playerId} className="px-4 py-3 text-center">
-                            <div className="flex items-center justify-center gap-2">
-                              <div
-                                className="w-3 h-3 rounded-full"
-                                style={{ backgroundColor: PLAYER_CHART_COLORS[idx % PLAYER_CHART_COLORS.length] }}
-                              />
-                              <span className="text-sm font-medium text-white">{player.playerName}</span>
-                            </div>
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-surface-50/10">
-                      {/* Basic info: Squadra, Età */}
-                      <tr className="hover:bg-surface-300/30">
-                        <td className="px-4 py-3 text-sm text-gray-300">Squadra</td>
-                        {playersToCompare.map(player => (
-                          <td key={player.playerId} className="px-4 py-3 text-center">
-                            <div className="flex items-center justify-center gap-2">
-                              <div className="w-5 h-5 flex-shrink-0">
-                                <TeamLogo team={player.playerTeam} />
-                              </div>
-                              <span className="text-sm text-gray-300">{player.playerTeam}</span>
-                            </div>
-                          </td>
-                        ))}
-                      </tr>
-                      <tr className="hover:bg-surface-300/30">
-                        <td className="px-4 py-3 text-sm text-gray-300">Età</td>
-                        {playersToCompare.map(player => (
-                          <td key={player.playerId} className="px-4 py-3 text-center">
-                            <span className={`px-2 py-1 rounded ${getAgeBgColor(player.playerAge)}`}>
-                              {player.playerAge != null ? `${player.playerAge} anni` : '-'}
-                            </span>
-                          </td>
-                        ))}
-                      </tr>
-                      {/* Contract info - only for non-svincolati */}
-                      {playersToCompare.some(p => p.type !== 'svincolato') && (
-                        <>
-                          <tr className="hover:bg-surface-300/30">
-                            <td className="px-4 py-3 text-sm text-gray-300">Quotazione</td>
-                            {playersToCompare.map(player => (
-                              <td key={player.playerId} className="px-4 py-3 text-center font-medium text-white">
-                                {player.type !== 'svincolato' ? `${player.playerQuotation}M` : '-'}
-                              </td>
-                            ))}
-                          </tr>
-                          <tr className="hover:bg-surface-300/30">
-                            <td className="px-4 py-3 text-sm text-gray-300">Ingaggio</td>
-                            {playersToCompare.map(player => (
-                              <td key={player.playerId} className="px-4 py-3 text-center font-medium text-accent-400">
-                                {player.type !== 'svincolato' ? `${player.contractSalary}M` : '-'}
-                              </td>
-                            ))}
-                          </tr>
-                          <tr className="hover:bg-surface-300/30">
-                            <td className="px-4 py-3 text-sm text-gray-300">Durata</td>
-                            {playersToCompare.map(player => (
-                              <td key={player.playerId} className="px-4 py-3 text-center font-medium text-white">
-                                {player.type !== 'svincolato' ? `${player.contractDuration} stagioni` : '-'}
-                              </td>
-                            ))}
-                          </tr>
-                          <tr className="hover:bg-surface-300/30">
-                            <td className="px-4 py-3 text-sm text-gray-300">Clausola</td>
-                            {playersToCompare.map(player => (
-                              <td key={player.playerId} className="px-4 py-3 text-center font-medium text-passion-400">
-                                {player.type !== 'svincolato' ? `${player.contractClause}M` : '-'}
-                              </td>
-                            ))}
-                          </tr>
-                          <tr className="hover:bg-surface-300/30">
-                            <td className="px-4 py-3 text-sm text-gray-300">Prezzo Rubata</td>
-                            {playersToCompare.map(player => (
-                              <td key={player.playerId} className="px-4 py-3 text-center font-medium text-warning-400">
-                                {player.type !== 'svincolato' ? `${player.rubataPrice}M` : '-'}
-                              </td>
-                            ))}
-                          </tr>
-                        </>
-                      )}
-                      {/* Stats - includes goalkeeper-specific stats */}
-                      {[
-                        { label: 'Presenze', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.games?.appearences },
-                        { label: 'Minuti', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.games?.minutes },
-                        { label: 'Rating', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.games?.rating, format: (v: number | null) => v != null ? v.toFixed(2) : '-' },
-                        // Goalkeeper-specific stats
-                        { label: 'Parate', getValue: (p: DisplayPlayer) => p.playerPosition === 'P' ? p.playerApiFootballStats?.goals?.saves : null, colorClass: 'text-warning-400', goalkeeperOnly: true },
-                        { label: 'Gol Subiti', getValue: (p: DisplayPlayer) => p.playerPosition === 'P' ? p.playerApiFootballStats?.goals?.conceded : null, colorClass: 'text-warning-400', goalkeeperOnly: true, lowerIsBetter: true },
-                        { label: 'Rigori Parati', getValue: (p: DisplayPlayer) => p.playerPosition === 'P' ? p.playerApiFootballStats?.penalty?.saved : null, colorClass: 'text-warning-400', goalkeeperOnly: true },
-                        // Outfield stats
-                        { label: 'Gol', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.goals?.total, colorClass: 'text-secondary-400' },
-                        { label: 'Assist', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.goals?.assists, colorClass: 'text-primary-400' },
-                        { label: 'Tiri Totali', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.shots?.total },
-                        { label: 'Tiri in Porta', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.shots?.on },
-                        { label: 'Contrasti', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.tackles?.total },
-                        { label: 'Intercetti', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.tackles?.interceptions },
-                        { label: 'Passaggi Chiave', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.passes?.key },
-                        { label: 'Precisione Passaggi', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.passes?.accuracy, format: (v: number | null) => v != null ? `${v}%` : '-' },
-                        { label: 'Dribbling Riusciti', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.dribbles?.success },
-                        { label: 'Ammonizioni', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.cards?.yellow, colorClass: 'text-warning-400' },
-                        { label: 'Espulsioni', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.cards?.red, colorClass: 'text-danger-400' },
-                      ].filter(row => {
-                        // Hide goalkeeper-only rows if no goalkeepers in comparison
-                        if ((row as { goalkeeperOnly?: boolean }).goalkeeperOnly) {
-                          return playersToCompare.some(p => p.playerPosition === 'P')
-                        }
-                        return true
-                      }).map(row => {
-                        const values = playersToCompare.map(p => {
-                          const val = row.getValue(p)
-                          return val != null ? val : 0
-                        })
-                        const maxVal = Math.max(...values.filter(v => v > 0))
-
-                        return (
-                          <tr key={row.label} className="hover:bg-surface-300/30">
-                            <td className="px-4 py-3 text-sm text-gray-300">{row.label}</td>
-                            {playersToCompare.map((player, idx) => {
-                              const val = values[idx]
-                              const isMax = val === maxVal && maxVal > 0
-                              const formatted = row.format ? row.format(val || null) : (val || '-')
-
-                              return (
-                                <td
-                                  key={player.playerId}
-                                  className={`px-4 py-3 text-center font-medium ${
-                                    isMax ? 'text-secondary-400' : row.colorClass || 'text-white'
-                                  }`}
-                                >
-                                  {isMax && maxVal > 0 && (
-                                    <span className="inline-block w-2 h-2 rounded-full bg-secondary-400 mr-2" />
-                                  )}
-                                  {formatted}
-                                </td>
-                              )
-                            })}
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
+                  {local.maxBid && (
+                    <div className="text-right flex-shrink-0">
+                      <div className="micro-label text-gray-500">Max bid</div>
+                      <div className="budget-display text-lg text-accent-400">{local.maxBid}M</div>
+                    </div>
+                  )}
+                </button>
+              )
+            })}
           </div>
-        </div>
-      )}
+        )}
+      </div>
+
+      {/* Category cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {(Object.entries(WATCHLIST_CATEGORIES) as [WatchlistCategoryId, typeof WATCHLIST_CATEGORIES[WatchlistCategoryId]][]).map(([catId, cat]) => {
+          const players = byCategory[catId]
+          return (
+            <div key={catId} className="bg-surface-200 rounded-2xl border border-surface-50/20 overflow-hidden flex flex-col">
+              <div className="flex items-center gap-2.5 px-4 py-3 border-b border-surface-50/20">
+                <span className={`w-6 h-6 rounded-md flex items-center justify-center text-xs font-display font-bold border ${cat.color}`}>{cat.icon}</span>
+                <span className="font-display font-bold text-[13.5px] text-white">{cat.label}</span>
+                <span className="ml-auto font-mono text-[10.5px] text-gray-500">{players.length}</span>
+              </div>
+              {players.length === 0 ? (
+                <p className="px-4 py-5 text-center text-[11.5px] text-gray-500 italic">Nessun giocatore in questa categoria</p>
+              ) : (
+                <div>
+                  {players.map(player => {
+                    const local = getLocalStrategy(player.playerId)
+                    return (
+                      <button
+                        key={player.playerId}
+                        type="button"
+                        onClick={() => { onOpenStats(player); }}
+                        className="w-full flex items-center gap-2.5 px-4 py-2 border-b border-surface-50/10 last:border-b-0 text-left hover:bg-surface-300/40 transition-colors"
+                      >
+                        <RoleBadge position={player.playerPosition} size="sm" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-display font-semibold text-[12.5px] text-white truncate">{player.playerName}</div>
+                          <div className="text-[10.5px] text-gray-500 flex items-center gap-1.5">
+                            <span className="truncate">{player.playerTeam}</span>
+                            {local.priority > 0 && <>· <StarRating value={local.priority} /></>}
+                          </div>
+                        </div>
+                        <span className="stat-number text-sm text-accent-400 flex-shrink-0">{local.maxBid ? `${local.maxBid}M` : '—'}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )
+        })}
+
+        {/* Add players CTA */}
+        <button
+          type="button"
+          onClick={onAddPlayers}
+          className="bg-surface-200/50 rounded-2xl border border-dashed border-surface-50/30 flex flex-col items-center justify-center p-6 text-center hover:border-accent-500/40 hover:bg-surface-200 transition-colors min-h-[120px]"
+        >
+          <span className="font-display font-semibold text-sm text-gray-300">+ Aggiungi giocatori</span>
+          <span className="text-[10.5px] text-gray-500 mt-1">dalle viste Svincolati / Altre rose</span>
+        </button>
+      </div>
     </div>
   )
 }
