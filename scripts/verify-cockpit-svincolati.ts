@@ -6,7 +6,7 @@ import { chromium } from '@playwright/test'
 import * as fs from 'fs'
 
 const BASE = process.env.E2E_BASE_URL || 'http://localhost:5174'
-const LEAGUE_ID = 'cmq3eqxpf06p7xt0cjcjil3qe'
+const LEAGUE_ID = process.env.LEAGUE_ID || 'cmq1a61zj000938rrglhxl7u2'
 const OUT = 'tmp-cockpit-verify'
 
 async function main() {
