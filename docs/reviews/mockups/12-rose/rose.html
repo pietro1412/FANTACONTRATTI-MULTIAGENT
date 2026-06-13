@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Mockup — Cockpit Rose 1440×860</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=Oswald:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Cockpit Rose — derivato dal CSS cockpit (svincolati/scambi/contratti).
+     Vista densa (tabella rosa + filtri + distribuzione): viewport bloccata, scroll solo nel pannello.
+     Selettore manager = avatar-strip (chi vedo), non più <select>. Linguaggio comune del cluster
+     Rose/Giocatori: PositionBadge, TeamLogo unico, .micro-label, numeroni Oswald. */
+  :root{
+    --bg:#0a0a0b; --card:#1a1c20; --elev:#111214; --hover:#252830;
+    --border:#2d3139; --primary:#3b82f6; --secondary:#22c55e;
+    --gold:#f59e0b; --gold2:#fbbf24; --danger:#ef4444; --passion:#ea580c;
+    --t1:#f9fafb; --t2:#9ca3af; --t3:#8b919d;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--t1);font-family:'Inter',sans-serif;padding:40px 0 80px;}
+  button{font:inherit;}
+  h1.page{font-family:'Outfit',sans-serif;font-size:22px;font-weight:700;text-align:center;margin-bottom:6px;}
+  p.sub{text-align:center;color:var(--t3);font-size:13px;margin-bottom:36px;max-width:1050px;margin-left:auto;margin-right:auto;}
+  .frames{display:flex;flex-direction:column;align-items:center;gap:56px;}
+  .frame-label{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--t3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;}
+
+  .frame{width:1440px;height:860px;border:1px solid var(--border);border-radius:16px;background:var(--bg);overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.55);display:grid;grid-template-rows:56px 48px minmax(0,1fr);}
+  .frame>*{min-width:0;min-height:0;}
+
+  .scrollwrap{position:relative;flex:1;min-height:0;}
+  .scrollbody{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:#3a3f49 transparent;}
+  .scrollbody::-webkit-scrollbar{width:6px;}
+  .scrollbody::-webkit-scrollbar-thumb{background:#3a3f49;border-radius:3px;}
+  .fadeb{position:absolute;left:1px;right:7px;bottom:0;height:30px;background:linear-gradient(180deg,rgba(26,28,32,0),var(--card) 88%);pointer-events:none;}
+  .micro{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);}
+
+  /* testata */
+  .head{display:flex;align-items:center;gap:12px;padding:0 20px;background:var(--elev);border-bottom:1px solid var(--border);}
+  .crest{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#b45309,#f59e0b);display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-weight:800;font-size:13px;color:#1a1206;flex-shrink:0;}
+  .head-id .nm{font-family:'Outfit',sans-serif;font-size:15px;font-weight:700;line-height:1.2;}
+  .head-id .sb{font-size:11px;color:var(--t3);margin-top:1px;}
+  .me-pill{display:inline-flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:var(--gold2);background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.4);border-radius:999px;padding:3px 10px;}
+  .head-stats{display:flex;gap:18px;margin-left:auto;align-items:center;}
+  .hstat{text-align:right;}
+  .hstat .l{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.11em;color:var(--t3);text-transform:uppercase;}
+  .hstat .v{font-family:'Oswald',sans-serif;font-size:20px;font-weight:600;color:var(--t1);line-height:1.1;font-variant-numeric:tabular-nums;}
+  .hstat.gold .v{color:var(--gold2);}
+  .hsep{width:1px;height:26px;background:var(--border);}
+
+  /* barra: avatar-strip manager + filtri */
+  .subbar{display:flex;align-items:center;gap:10px;padding:0 20px;background:var(--elev);border-bottom:1px solid var(--border);}
+  .who{display:flex;align-items:center;gap:6px;overflow:hidden;}
+  .who .micro{flex-shrink:0;margin-right:2px;}
+  .mchip{display:inline-flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--border);border-radius:999px;padding:3px 11px 3px 3px;flex-shrink:0;cursor:pointer;font-size:11.5px;color:var(--t2);}
+  .mchip .mono{width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-size:9px;font-weight:700;color:#fff;}
+  .mchip.sel{border-color:rgba(245,158,11,.55);background:rgba(245,158,11,.1);color:var(--t1);font-weight:600;}
+  .mchip.me{border-style:dashed;}
+  .subbar .right{margin-left:auto;display:flex;align-items:center;gap:7px;flex-shrink:0;}
+  .fchip{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;border:1px solid var(--border);border-radius:999px;padding:4px 10px;color:var(--t3);cursor:pointer;}
+  .fchip.on{color:#0a0a0b;background:var(--gold2);border-color:var(--gold2);}
+  .search{display:flex;align-items:center;gap:7px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:5px 11px;color:var(--t3);font-size:12px;min-width:140px;}
+
+  .main{display:grid;grid-template-columns:minmax(0,1fr) 264px;gap:14px;padding:12px 20px 16px;min-height:0;}
+  .main>*{min-width:0;min-height:0;}
+
+  .panel{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;min-height:0;}
+  .thead{display:grid;grid-template-columns:1.6fr 88px 96px 80px 150px;gap:10px;padding:9px 16px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--elev);}
+  .thead .micro{font-size:9px;}
+  .thead .r{text-align:right;} .thead .c{text-align:center;}
+  .grow{display:grid;grid-template-columns:1.6fr 88px 96px 80px 150px;gap:10px;align-items:center;padding:9px 16px;border-bottom:1px solid var(--border);}
+  .grow:hover{background:var(--hover);}
+
+  .role-badge{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-weight:800;font-size:12px;flex-shrink:0;}
+  .role-P{background:rgba(245,158,11,.14);color:var(--gold2);border:1px solid rgba(245,158,11,.4);}
+  .role-D{background:rgba(59,130,246,.15);color:var(--primary);border:1px solid rgba(59,130,246,.4);}
+  .role-C{background:rgba(34,197,94,.14);color:var(--secondary);border:1px solid rgba(34,197,94,.4);}
+  .role-A{background:rgba(239,68,68,.15);color:var(--danger);border:1px solid rgba(239,68,68,.4);}
+  .pl{display:flex;align-items:center;gap:10px;min-width:0;}
+  .tlogo{width:18px;height:18px;border-radius:4px;background:var(--hover);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:8px;color:var(--t3);}
+  .pl .nm{font-family:'Outfit',sans-serif;font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .pl .sb{font-size:10px;color:var(--t3);display:flex;align-items:center;gap:5px;margin-top:1px;}
+  .num{font-family:'Oswald',sans-serif;font-size:16px;font-weight:600;font-variant-numeric:tabular-nums;}
+  .num.gold{color:var(--gold2);} .num.t2{color:var(--t2);}
+  .ctr{text-align:right;}
+  .ctr .sub{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);}
+  .ministats{display:flex;gap:9px;justify-content:flex-end;}
+  .ms{text-align:center;}
+  .ms .l{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--t3);}
+  .ms .v{font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;color:var(--t2);}
+
+  /* sidebar distribuzione */
+  .side{display:flex;flex-direction:column;gap:12px;min-height:0;}
+  .scard{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:13px 15px;}
+  .scard h4{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin-bottom:11px;}
+  .compo{display:flex;flex-direction:column;gap:9px;}
+  .compo-row{display:flex;align-items:center;gap:9px;}
+  .compo-row .rl{width:16px;font-family:'Outfit',sans-serif;font-weight:800;font-size:12px;}
+  .compo-row.P .rl{color:var(--gold2);} .compo-row.D .rl{color:var(--primary);}
+  .compo-row.C .rl{color:var(--secondary);} .compo-row.A .rl{color:var(--danger);}
+  .ctrack{flex:1;height:6px;border-radius:3px;background:var(--border);overflow:hidden;}
+  .cfill{height:100%;border-radius:3px;}
+  .compo-row.P .cfill{background:var(--gold);} .compo-row.D .cfill{background:var(--primary);}
+  .compo-row.C .cfill{background:var(--secondary);} .compo-row.A .cfill{background:var(--danger);}
+  .compo-row .cn{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--t2);min-width:30px;text-align:right;}
+  .teams{display:flex;flex-direction:column;gap:7px;}
+  .trow{display:flex;align-items:center;gap:8px;font-size:11.5px;}
+  .trow .tl{width:16px;height:16px;border-radius:4px;background:var(--hover);flex-shrink:0;}
+  .trow .tn{flex:1;color:var(--t2);}
+  .trow .tc{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--t3);}
+</style>
+</head>
+<body>
+
+<h1 class="page">Cockpit — Rose 1440×860</h1>
+<p class="sub">Vista densa a viewport bloccata: scroll solo nella tabella. Selettore manager = <b>avatar-strip</b> (di chi vedo la rosa, "io" tratteggiato) al posto della &lt;select&gt;. Linguaggio comune del cluster: PositionBadge, TeamLogo unico, .micro-label, numeroni Oswald, palette durata/età a token. Testata con stat della rosa selezionata sempre visibili.</p>
+
+<div class="frames">
+<div>
+  <div class="frame-label">Rose — rosa di un manager (vista contratti)</div>
+  <div class="frame">
+
+    <!-- testata -->
+    <div class="head">
+      <div class="crest">FC</div>
+      <div class="head-id">
+        <div class="nm">Rose · Mirko FC</div>
+        <div class="sb">Lega Fantacontratti · 26 giocatori</div>
+      </div>
+      <div class="head-stats">
+        <div class="hstat gold"><div class="l">Budget</div><div class="v">243M</div></div>
+        <div class="hsep"></div>
+        <div class="hstat"><div class="l">Monte ingaggi</div><div class="v">158M</div></div>
+        <div class="hsep"></div>
+        <div class="hstat"><div class="l">Clausole tot.</div><div class="v">1.4K</div></div>
+      </div>
+    </div>
+
+    <!-- barra: avatar-strip + filtri -->
+    <div class="subbar">
+      <div class="who">
+        <span class="micro">Rosa di</span>
+        <span class="mchip me"><span class="mono" style="background:linear-gradient(135deg,#b45309,#f59e0b);">DI</span>Diego (tu)</span>
+        <span class="mchip sel"><span class="mono" style="background:linear-gradient(135deg,#15803d,#22c55e);">MK</span>Mirko</span>
+        <span class="mchip"><span class="mono" style="background:linear-gradient(135deg,#1e40af,#3b82f6);">ML</span>Marcolino</span>
+        <span class="mchip"><span class="mono" style="background:linear-gradient(135deg,#7c2d12,#ea580c);">EM</span>Emmanuele</span>
+        <span class="mchip"><span class="mono" style="background:linear-gradient(135deg,#6d28d9,#8b5cf6);">EL</span>Emiliano</span>
+        <span class="mchip"><span class="mono" style="background:var(--hover);color:var(--t3);">+3</span></span>
+      </div>
+      <div class="right">
+        <span class="fchip on">Tutti</span><span class="fchip">P</span><span class="fchip">D</span><span class="fchip">C</span><span class="fchip">A</span>
+        <span class="search">🔍 Cerca…</span>
+      </div>
+    </div>
+
+    <div class="main">
+      <!-- tabella rosa -->
+      <div class="panel">
+        <div class="thead">
+          <span class="micro">Giocatore</span>
+          <span class="micro r">Ingaggio</span>
+          <span class="micro r">Clausola</span>
+          <span class="micro r">Rubata</span>
+          <span class="micro c">Rendimento</span>
+        </div>
+        <div class="scrollwrap">
+          <div class="scrollbody">
+            <!-- righe -->
+            <div class="grow">
+              <div class="pl"><div class="role-badge role-A">A</div><div style="min-width:0;"><div class="nm">Ademola Lookman</div><div class="sb"><span class="tlogo">ATA</span>Atalanta · 27</div></div></div>
+              <div class="ctr"><span class="num gold">23M</span><div class="sub">×3 sem</div></div>
+              <div class="ctr"><span class="num">207</span></div>
+              <div class="ctr"><span class="num t2">95</span></div>
+              <div class="ministats"><div class="ms"><div class="l">PR</div><div class="v">32</div></div><div class="ms"><div class="l">G</div><div class="v">14</div></div><div class="ms"><div class="l">A</div><div class="v">7</div></div><div class="ms"><div class="l">VT</div><div class="v">7.4</div></div></div>
+            </div>
+            <div class="grow">
+              <div class="pl"><div class="role-badge role-C">C</div><div style="min-width:0;"><div class="nm">Teun Koopmeiners</div><div class="sb"><span class="tlogo">JUV</span>Juventus · 28</div></div></div>
+              <div class="ctr"><span class="num gold">25M</span><div class="sub">×3 sem</div></div>
+              <div class="ctr"><span class="num">225</span></div>
+              <div class="ctr"><span class="num t2">70</span></div>
+              <div class="ministats"><div class="ms"><div class="l">PR</div><div class="v">30</div></div><div class="ms"><div class="l">G</div><div class="v">9</div></div><div class="ms"><div class="l">A</div><div class="v">6</div></div><div class="ms"><div class="l">VT</div><div class="v">7.1</div></div></div>
+            </div>
+            <div class="grow">
+              <div class="pl"><div class="role-badge role-D">D</div><div style="min-width:0;"><div class="nm">Giorgio Scalvini</div><div class="sb"><span class="tlogo">ATA</span>Atalanta · 21</div></div></div>
+              <div class="ctr"><span class="num gold">12M</span><div class="sub">×4 sem</div></div>
+              <div class="ctr"><span class="num">132</span></div>
+              <div class="ctr"><span class="num t2">55</span></div>
+              <div class="ministats"><div class="ms"><div class="l">PR</div><div class="v">28</div></div><div class="ms"><div class="l">G</div><div class="v">2</div></div><div class="ms"><div class="l">A</div><div class="v">1</div></div><div class="ms"><div class="l">VT</div><div class="v">6.5</div></div></div>
+            </div>
+            <div class="grow">
+              <div class="pl"><div class="role-badge role-P">P</div><div style="min-width:0;"><div class="nm">Marco Carnesecchi</div><div class="sb"><span class="tlogo">ATA</span>Atalanta · 24</div></div></div>
+              <div class="ctr"><span class="num gold">15M</span><div class="sub">×4 sem</div></div>
+              <div class="ctr"><span class="num">165</span></div>
+              <div class="ctr"><span class="num t2">30</span></div>
+              <div class="ministats"><div class="ms"><div class="l">PR</div><div class="v">34</div></div><div class="ms"><div class="l">G</div><div class="v">0</div></div><div class="ms"><div class="l">A</div><div class="v">0</div></div><div class="ms"><div class="l">VT</div><div class="v">6.8</div></div></div>
+            </div>
+            <div class="grow">
+              <div class="pl"><div class="role-badge role-C">C</div><div style="min-width:0;"><div class="nm">Marten de Roon</div><div class="sb"><span class="tlogo">ATA</span>Atalanta · 33</div></div></div>
+              <div class="ctr"><span class="num gold">13M</span><div class="sub">×2 sem</div></div>
+              <div class="ctr"><span class="num">91</span></div>
+              <div class="ctr"><span class="num t2">25</span></div>
+              <div class="ministats"><div class="ms"><div class="l">PR</div><div class="v">27</div></div><div class="ms"><div class="l">G</div><div class="v">1</div></div><div class="ms"><div class="l">A</div><div class="v">3</div></div><div class="ms"><div class="l">VT</div><div class="v">6.6</div></div></div>
+            </div>
+            <div class="grow">
+              <div class="pl"><div class="role-badge role-A">A</div><div style="min-width:0;"><div class="nm">Charles De Ketelaere</div><div class="sb"><span class="tlogo">ATA</span>Atalanta · 23</div></div></div>
+              <div class="ctr"><span class="num gold">19M</span><div class="sub">×3 sem</div></div>
+              <div class="ctr"><span class="num">171</span></div>
+              <div class="ctr"><span class="num t2">48</span></div>
+              <div class="ministats"><div class="ms"><div class="l">PR</div><div class="v">29</div></div><div class="ms"><div class="l">G</div><div class="v">8</div></div><div class="ms"><div class="l">A</div><div class="v">9</div></div><div class="ms"><div class="l">VT</div><div class="v">6.9</div></div></div>
+            </div>
+            <div class="grow">
+              <div class="pl"><div class="role-badge role-D">D</div><div style="min-width:0;"><div class="nm">Sead Kolašinac</div><div class="sb"><span class="tlogo">ATA</span>Atalanta · 31</div></div></div>
+              <div class="ctr"><span class="num gold">10M</span><div class="sub">×2 sem</div></div>
+              <div class="ctr"><span class="num">70</span></div>
+              <div class="ctr"><span class="num t2">18</span></div>
+              <div class="ministats"><div class="ms"><div class="l">PR</div><div class="v">21</div></div><div class="ms"><div class="l">G</div><div class="v">1</div></div><div class="ms"><div class="l">A</div><div class="v">2</div></div><div class="ms"><div class="l">VT</div><div class="v">6.3</div></div></div>
+            </div>
+          </div>
+          <div class="fadeb"></div>
+        </div>
+      </div>
+
+      <!-- sidebar distribuzione -->
+      <div class="side">
+        <div class="scard">
+          <h4>Composizione · 26 giocatori</h4>
+          <div class="compo">
+            <div class="compo-row P"><span class="rl">P</span><div class="ctrack"><div class="cfill" style="width:100%"></div></div><span class="cn">3</span></div>
+            <div class="compo-row D"><span class="rl">D</span><div class="ctrack"><div class="cfill" style="width:90%"></div></div><span class="cn">9</span></div>
+            <div class="compo-row C"><span class="rl">C</span><div class="ctrack"><div class="cfill" style="width:80%"></div></div><span class="cn">8</span></div>
+            <div class="compo-row A"><span class="rl">A</span><div class="ctrack"><div class="cfill" style="width:60%"></div></div><span class="cn">6</span></div>
+          </div>
+        </div>
+        <div class="scard" style="flex:1;min-height:0;display:flex;flex-direction:column;">
+          <h4>Squadre rappresentate</h4>
+          <div class="teams">
+            <div class="trow"><span class="tl"></span><span class="tn">Atalanta</span><span class="tc">9</span></div>
+            <div class="trow"><span class="tl"></span><span class="tn">Juventus</span><span class="tc">4</span></div>
+            <div class="trow"><span class="tl"></span><span class="tn">Inter</span><span class="tc">3</span></div>
+            <div class="trow"><span class="tl"></span><span class="tn">Lazio</span><span class="tc">3</span></div>
+            <div class="trow"><span class="tl"></span><span class="tn">Milan</span><span class="tc">2</span></div>
+            <div class="trow"><span class="tl"></span><span class="tn">Altre</span><span class="tc">5</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</body>
+</html>

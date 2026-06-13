@@ -187,7 +187,8 @@ describe('Rose Page', () => {
     render(<Rose onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Rose')).toBeInTheDocument()
+      // Cockpit header is rendered (Monte ingaggi label is unique to the testata)
+      expect(screen.getByText('Monte ingaggi')).toBeInTheDocument()
     })
 
     // Player names should appear (both in mobile card and desktop table)
@@ -195,28 +196,28 @@ describe('Rose Page', () => {
     expect(screen.getAllByText('Luigi Bianchi').length).toBeGreaterThan(0)
   })
 
-  it('displays position counts and budget stats', async () => {
+  it('displays roster composition and budget stats', async () => {
     mockGetAllRosters.mockResolvedValue({ success: true, data: mockLeagueData })
 
     render(<Rose onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      // Stats bar: position counts
-      expect(screen.getByText('A: 1')).toBeInTheDocument()
-      expect(screen.getByText('D: 1')).toBeInTheDocument()
+      // Sidebar composition header reflects the roster size
+      expect(screen.getByText(/Composizione · 2 giocatori/)).toBeInTheDocument()
     })
 
-    // Budget display
-    expect(screen.getAllByText('200M').length).toBeGreaterThan(0)
+    // Header stats: budget (200M) and salary monte ingaggi (5 + 3 = 8)
+    expect(screen.getByText('200')).toBeInTheDocument()
+    expect(screen.getByText('Monte ingaggi')).toBeInTheDocument()
   })
 
-  it('shows "LA MIA ROSA" badge for the current user', async () => {
+  it('shows the "La mia rosa" badge for the current user', async () => {
     mockGetAllRosters.mockResolvedValue({ success: true, data: mockLeagueData })
 
     render(<Rose onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      expect(screen.getByText('LA MIA ROSA')).toBeInTheDocument()
+      expect(screen.getByText('La mia rosa')).toBeInTheDocument()
     })
   })
 
