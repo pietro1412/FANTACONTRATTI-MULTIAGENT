@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Mockup — Cockpit Giocatori 1440×860</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=Oswald:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Cockpit Giocatori — FUSIONE di AllPlayers (lista database) + PlayerStats (tabellone stats)
+     in una pagina con toggle Lista/Statistiche. Cockpit viewport bloccata, scroll solo nella
+     lista/tabella. Riusa i componenti del cluster (PlayerRoleBadge, TeamLogo, filtri). */
+  :root{
+    --bg:#0a0a0b; --card:#1a1c20; --elev:#111214; --hover:#252830;
+    --border:#2d3139; --primary:#3b82f6; --secondary:#22c55e;
+    --gold:#f59e0b; --gold2:#fbbf24; --danger:#ef4444; --passion:#ea580c;
+    --t1:#f9fafb; --t2:#9ca3af; --t3:#8b919d;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--t1);font-family:'Inter',sans-serif;padding:40px 0 80px;}
+  button{font:inherit;}
+  h1.page{font-family:'Outfit',sans-serif;font-size:22px;font-weight:700;text-align:center;margin-bottom:6px;}
+  p.sub{text-align:center;color:var(--t3);font-size:13px;margin-bottom:36px;max-width:1050px;margin-left:auto;margin-right:auto;}
+  .frames{display:flex;flex-direction:column;align-items:center;gap:56px;}
+  .frame-label{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--t3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;}
+
+  .frame{width:1440px;height:860px;border:1px solid var(--border);border-radius:16px;background:var(--bg);overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.55);display:grid;grid-template-rows:56px 48px minmax(0,1fr);}
+  .frame>*{min-width:0;min-height:0;}
+
+  .scrollwrap{position:relative;flex:1;min-height:0;}
+  .scrollbody{position:absolute;inset:0;overflow:auto;scrollbar-width:thin;scrollbar-color:#3a3f49 transparent;}
+  .scrollbody::-webkit-scrollbar{width:6px;height:6px;}
+  .scrollbody::-webkit-scrollbar-thumb{background:#3a3f49;border-radius:3px;}
+  .fadeb{position:absolute;left:1px;right:7px;bottom:0;height:30px;background:linear-gradient(180deg,rgba(26,28,32,0),var(--card) 88%);pointer-events:none;}
+  .micro{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);}
+
+  /* testata */
+  .head{display:flex;align-items:center;gap:12px;padding:0 20px;background:var(--elev);border-bottom:1px solid var(--border);}
+  .crest{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#1e40af,#3b82f6);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+  .head-id .nm{font-family:'Outfit',sans-serif;font-size:15px;font-weight:700;line-height:1.2;}
+  .head-id .sb{font-size:11px;color:var(--t3);margin-top:1px;}
+  .head-stats{display:flex;gap:18px;margin-left:auto;align-items:center;}
+  .hstat{text-align:right;}
+  .hstat .l{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.11em;color:var(--t3);text-transform:uppercase;}
+  .hstat .v{font-family:'Oswald',sans-serif;font-size:20px;font-weight:600;color:var(--t1);line-height:1.1;font-variant-numeric:tabular-nums;}
+  .hstat.good .v{color:var(--secondary);}
+  .search{display:flex;align-items:center;gap:7px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--t3);font-size:12px;min-width:200px;}
+
+  /* barra: toggle vista + filtri */
+  .subbar{display:flex;align-items:center;gap:10px;padding:0 20px;background:var(--elev);border-bottom:1px solid var(--border);}
+  .seg{display:inline-flex;border:1px solid var(--border);border-radius:9px;overflow:hidden;flex-shrink:0;}
+  .seg button{display:inline-flex;align-items:center;gap:6px;padding:6px 15px;font-family:'Outfit',sans-serif;font-size:12.5px;font-weight:600;color:var(--t2);background:var(--card);border:none;border-right:1px solid var(--border);cursor:pointer;}
+  .seg button:last-child{border-right:none;}
+  .seg button.on{color:#0a0a0b;background:var(--gold2);}
+  .fchip{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;border:1px solid var(--border);border-radius:999px;padding:4px 10px;color:var(--t3);cursor:pointer;}
+  .fchip.on{color:#0a0a0b;background:var(--gold2);border-color:var(--gold2);}
+  .pillgrp{display:inline-flex;gap:5px;align-items:center;}
+  .vsep{width:1px;height:18px;background:var(--border);margin:0 3px;}
+  .subbar .right{margin-left:auto;display:flex;align-items:center;gap:7px;flex-shrink:0;}
+  .preset{font-family:'Inter',sans-serif;font-size:11px;font-weight:600;border:1px solid var(--border);border-radius:7px;padding:5px 11px;color:var(--t2);cursor:pointer;background:var(--card);}
+  .preset.on{color:var(--gold2);border-color:rgba(245,158,11,.5);background:rgba(245,158,11,.08);}
+
+  .main{padding:12px 20px 16px;min-height:0;display:flex;}
+  .panel{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;min-height:0;width:100%;}
+
+  .role-badge{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-weight:800;font-size:12px;flex-shrink:0;}
+  .role-P{background:rgba(245,158,11,.14);color:var(--gold2);border:1px solid rgba(245,158,11,.4);}
+  .role-D{background:rgba(59,130,246,.15);color:var(--primary);border:1px solid rgba(59,130,246,.4);}
+  .role-C{background:rgba(34,197,94,.14);color:var(--secondary);border:1px solid rgba(34,197,94,.4);}
+  .role-A{background:rgba(239,68,68,.15);color:var(--danger);border:1px solid rgba(239,68,68,.4);}
+  .tlogo{width:18px;height:18px;border-radius:4px;background:var(--hover);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:7px;color:var(--t3);}
+
+  /* ===== vista LISTA ===== */
+  .lrow{display:grid;grid-template-columns:2fr 130px 110px 90px;gap:12px;align-items:center;padding:9px 16px;border-bottom:1px solid var(--border);cursor:pointer;}
+  .lrow:hover{background:var(--hover);}
+  .lhead{display:grid;grid-template-columns:2fr 130px 110px 90px;gap:12px;padding:9px 16px;border-bottom:1px solid var(--border);background:var(--elev);flex-shrink:0;}
+  .lhead .r{text-align:right;} .lhead .c{text-align:center;}
+  .pl{display:flex;align-items:center;gap:10px;min-width:0;}
+  .photo{width:32px;height:32px;border-radius:50%;background:var(--hover);border:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--t3);font-family:'Outfit',sans-serif;font-weight:700;}
+  .pl .nm{font-family:'Outfit',sans-serif;font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .pl .sb{font-size:10px;color:var(--t3);display:flex;align-items:center;gap:5px;margin-top:1px;}
+  .status{display:inline-flex;align-items:center;gap:6px;font-size:11px;justify-content:flex-end;}
+  .status .free{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;color:var(--secondary);background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.35);border-radius:999px;padding:2px 9px;}
+  .status .owned{display:inline-flex;align-items:center;gap:6px;color:var(--t2);}
+  .status .owned .mono{width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-size:8px;font-weight:700;color:#fff;}
+  .num{font-family:'Oswald',sans-serif;font-size:16px;font-weight:600;font-variant-numeric:tabular-nums;}
+  .num.t2{color:var(--t2);} .num.gold{color:var(--gold2);}
+  .qbadge{font-family:'Oswald',sans-serif;font-size:16px;font-weight:600;color:var(--t1);}
+
+  /* ===== vista STATISTICHE (tabellone) ===== */
+  .stbl{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%;}
+  .stbl thead th{position:sticky;top:0;background:var(--elev);font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--t3);padding:9px 10px;border-bottom:1px solid var(--border);white-space:nowrap;text-align:right;cursor:pointer;}
+  .stbl thead th.lead{text-align:left;position:sticky;left:0;z-index:2;min-width:200px;}
+  .stbl thead th.sorted{color:var(--gold2);}
+  .stbl td{padding:8px 10px;border-bottom:1px solid var(--border);font-family:'Oswald',sans-serif;font-size:14px;font-weight:600;text-align:right;color:var(--t2);font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .stbl td.lead{position:sticky;left:0;background:var(--card);z-index:1;text-align:left;}
+  .stbl tr:hover td{background:var(--hover);}
+  .stbl tr:hover td.lead{background:#23262d;}
+  .stbl td.hi{color:var(--gold2);font-weight:700;}
+  .stbl td.g{color:var(--secondary);} .stbl td.a{color:var(--primary);} .stbl td.w{color:var(--warning,#f59e0b);}
+  .lead-cell{display:flex;align-items:center;gap:9px;}
+  .lead-cell .nm{font-family:'Outfit',sans-serif;font-weight:700;font-size:13px;color:var(--t1);}
+  .lead-cell .sb{font-size:10px;color:var(--t3);}
+</style>
+</head>
+<body>
+
+<h1 class="page">Cockpit — Giocatori 1440×860 (fusione AllPlayers + PlayerStats)</h1>
+<p class="sub">UNA pagina "Giocatori" con toggle <b>Lista / Statistiche</b> al posto di due rotte separate (AllPlayers orfana + PlayerStats nascosta). Cockpit: filtri/preset in testata fissa, lista o tabellone in scroll interno. Riusa i componenti del cluster (PlayerRoleBadge, TeamLogo). La voce di menu "Giocatori" punterà finalmente qui.</p>
+
+<div class="frames">
+
+<!-- ============ FRAME 1: LISTA ============ -->
+<div>
+  <div class="frame-label">Giocatori — vista Lista (database: liberi + in rosa)</div>
+  <div class="frame">
+    <div class="head">
+      <div class="crest">👥</div>
+      <div class="head-id"><div class="nm">Giocatori</div><div class="sb">Lega Fantacontratti · database Serie A</div></div>
+      <div class="head-stats">
+        <div class="hstat"><div class="l">Totale</div><div class="v">542</div></div>
+        <div class="hstat good"><div class="l">Liberi</div><div class="v">142</div></div>
+        <span class="search">🔍 Cerca giocatore o squadra…</span>
+      </div>
+    </div>
+
+    <div class="subbar">
+      <div class="seg">
+        <button class="on">☰ Lista</button>
+        <button>📊 Statistiche</button>
+      </div>
+      <div class="vsep"></div>
+      <span class="pillgrp"><span class="fchip on">Tutti</span><span class="fchip">P</span><span class="fchip">D</span><span class="fchip">C</span><span class="fchip">A</span></span>
+      <div class="vsep"></div>
+      <span class="pillgrp"><span class="fchip">Tutti</span><span class="fchip on" style="color:#0a0a0b;background:var(--secondary);border-color:var(--secondary);">Liberi</span><span class="fchip">In rosa</span></span>
+      <div class="right"><span class="fchip">Squadra ▾</span></div>
+    </div>
+
+    <div class="main">
+      <div class="panel">
+        <div class="lhead">
+          <span class="micro">Giocatore</span>
+          <span class="micro">Stato</span>
+          <span class="micro r">Quotazione</span>
+          <span class="micro r">Voto</span>
+        </div>
+        <div class="scrollwrap">
+          <div class="scrollbody">
+            <div class="lrow"><div class="pl"><span class="photo">LL</span><div class="role-badge role-A">A</div><div style="min-width:0;"><div class="nm">Lorenzo Lucca</div><div class="sb"><span class="tlogo">UDI</span>Udinese</div></div></div><div class="status"><span class="free">LIBERO</span></div><div style="text-align:right;"><span class="qbadge">18</span></div><div style="text-align:right;"><span class="num t2">6.4</span></div></div>
+            <div class="lrow"><div class="pl"><span class="photo">AL</span><div class="role-badge role-A">A</div><div style="min-width:0;"><div class="nm">Ademola Lookman</div><div class="sb"><span class="tlogo">ATA</span>Atalanta</div></div></div><div class="status"><span class="owned"><span class="mono" style="background:linear-gradient(135deg,#15803d,#22c55e);">MK</span>Mirko FC</span></div><div style="text-align:right;"><span class="qbadge">28</span></div><div style="text-align:right;"><span class="num gold">7.4</span></div></div>
+            <div class="lrow"><div class="pl"><span class="photo">NR</span><div class="role-badge role-C">C</div><div style="min-width:0;"><div class="nm">Nicolò Rovella</div><div class="sb"><span class="tlogo">LAZ</span>Lazio</div></div></div><div class="status"><span class="free">LIBERO</span></div><div style="text-align:right;"><span class="qbadge">15</span></div><div style="text-align:right;"><span class="num t2">6.6</span></div></div>
+            <div class="lrow"><div class="pl"><span class="photo">SB</span><div class="role-badge role-D">D</div><div style="min-width:0;"><div class="nm">Sam Beukema</div><div class="sb"><span class="tlogo">BOL</span>Bologna</div></div></div><div class="status"><span class="free">LIBERO</span></div><div style="text-align:right;"><span class="qbadge">12</span></div><div style="text-align:right;"><span class="num t2">6.5</span></div></div>
+            <div class="lrow"><div class="pl"><span class="photo">TK</span><div class="role-badge role-C">C</div><div style="min-width:0;"><div class="nm">Teun Koopmeiners</div><div class="sb"><span class="tlogo">JUV</span>Juventus</div></div></div><div class="status"><span class="owned"><span class="mono" style="background:linear-gradient(135deg,#15803d,#22c55e);">MK</span>Mirko FC</span></div><div style="text-align:right;"><span class="qbadge">25</span></div><div style="text-align:right;"><span class="num gold">7.1</span></div></div>
+            <div class="lrow"><div class="pl"><span class="photo">EC</span><div class="role-badge role-P">P</div><div style="min-width:0;"><div class="nm">Elia Caprile</div><div class="sb"><span class="tlogo">CAG</span>Cagliari</div></div></div><div class="status"><span class="free">LIBERO</span></div><div style="text-align:right;"><span class="qbadge">10</span></div><div style="text-align:right;"><span class="num t2">6.3</span></div></div>
+            <div class="lrow"><div class="pl"><span class="photo">AP</span><div class="role-badge role-A">A</div><div style="min-width:0;"><div class="nm">Andrea Pinamonti</div><div class="sb"><span class="tlogo">GEN</span>Genoa</div></div></div><div class="status"><span class="owned"><span class="mono" style="background:linear-gradient(135deg,#1e40af,#3b82f6);">ML</span>Marcolino FC</span></div><div style="text-align:right;"><span class="qbadge">16</span></div><div style="text-align:right;"><span class="num t2">6.7</span></div></div>
+            <div class="lrow"><div class="pl"><span class="photo">MH</span><div class="role-badge role-C">C</div><div style="min-width:0;"><div class="nm">Morten Hjulmand</div><div class="sb"><span class="tlogo">—</span>Sporting</div></div></div><div class="status"><span class="free">LIBERO</span></div><div style="text-align:right;"><span class="qbadge">14</span></div><div style="text-align:right;"><span class="num t2">6.5</span></div></div>
+            <div class="lrow"><div class="pl"><span class="photo">RP</span><div class="role-badge role-A">A</div><div style="min-width:0;"><div class="nm">Roberto Piccoli</div><div class="sb"><span class="tlogo">CAG</span>Cagliari</div></div></div><div class="status"><span class="free">LIBERO</span></div><div style="text-align:right;"><span class="qbadge">13</span></div><div style="text-align:right;"><span class="num t2">6.4</span></div></div>
+          </div>
+          <div class="fadeb"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ FRAME 2: STATISTICHE ============ -->
+<div>
+  <div class="frame-label">Giocatori — vista Statistiche (tabellone, preset ruolo, colonne sortabili)</div>
+  <div class="frame">
+    <div class="head">
+      <div class="crest">👥</div>
+      <div class="head-id"><div class="nm">Giocatori</div><div class="sb">Statistiche Serie A · stagione 2025/26</div></div>
+      <div class="head-stats">
+        <div class="hstat"><div class="l">Giocatori</div><div class="v">542</div></div>
+        <span class="search">🔍 Cerca giocatore o squadra…</span>
+      </div>
+    </div>
+
+    <div class="subbar">
+      <div class="seg">
+        <button>☰ Lista</button>
+        <button class="on">📊 Statistiche</button>
+      </div>
+      <div class="vsep"></div>
+      <span class="pillgrp"><span class="fchip on">Tutti</span><span class="fchip">P</span><span class="fchip">D</span><span class="fchip">C</span><span class="fchip">A</span></span>
+      <div class="right">
+        <span class="micro" style="margin-right:2px;">Preset</span>
+        <span class="preset on">Essenziali</span><span class="preset">Attaccante</span><span class="preset">Centroc.</span><span class="preset">Difensore</span><span class="preset">Portiere</span><span class="preset">Tutte</span>
+      </div>
+    </div>
+
+    <div class="main">
+      <div class="panel">
+        <div class="scrollwrap">
+          <div class="scrollbody">
+            <table class="stbl">
+              <thead>
+                <tr>
+                  <th class="lead">Giocatore</th>
+                  <th class="sorted">Pres ▾</th><th>Min</th><th>Rating</th>
+                  <th>Gol</th><th>Ass</th><th>G+A</th><th>Tiri</th><th>TiP</th>
+                  <th>KeyP</th><th>Drb</th><th>Tckl</th><th>Int</th>
+                  <th>Amm</th><th>Esp</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td class="lead"><div class="lead-cell"><div class="role-badge role-A">A</div><div><div class="nm">Ademola Lookman</div><div class="sb">Atalanta</div></div></div></td><td class="hi">32</td><td>2680</td><td class="hi">7.4</td><td class="g">14</td><td class="a">7</td><td>21</td><td>78</td><td>41</td><td>38</td><td>72</td><td>14</td><td>9</td><td class="w">4</td><td>0</td></tr>
+                <tr><td class="lead"><div class="lead-cell"><div class="role-badge role-C">C</div><div><div class="nm">Teun Koopmeiners</div><div class="sb">Juventus</div></div></div></td><td class="hi">30</td><td>2510</td><td class="hi">7.1</td><td class="g">9</td><td class="a">6</td><td>15</td><td>54</td><td>26</td><td>45</td><td>33</td><td>28</td><td>19</td><td class="w">6</td><td>0</td></tr>
+                <tr><td class="lead"><div class="lead-cell"><div class="role-badge role-A">A</div><div><div class="nm">Charles De Ketelaere</div><div class="sb">Atalanta</div></div></div></td><td class="hi">29</td><td>2340</td><td>6.9</td><td class="g">8</td><td class="a">9</td><td>17</td><td>61</td><td>30</td><td>52</td><td>48</td><td>11</td><td>7</td><td class="w">3</td><td>0</td></tr>
+                <tr><td class="lead"><div class="lead-cell"><div class="role-badge role-C">C</div><div><div class="nm">Nicolò Barella</div><div class="sb">Inter</div></div></div></td><td class="hi">31</td><td>2720</td><td class="hi">7.0</td><td class="g">5</td><td class="a">8</td><td>13</td><td>49</td><td>22</td><td>61</td><td>40</td><td>34</td><td>22</td><td class="w">8</td><td>1</td></tr>
+                <tr><td class="lead"><div class="lead-cell"><div class="role-badge role-A">A</div><div><div class="nm">Mateo Retegui</div><div class="sb">Atalanta</div></div></div></td><td class="hi">30</td><td>2480</td><td>7.0</td><td class="g">22</td><td class="a">4</td><td>26</td><td>92</td><td>54</td><td>21</td><td>18</td><td>9</td><td>4</td><td class="w">5</td><td>0</td></tr>
+                <tr><td class="lead"><div class="lead-cell"><div class="role-badge role-D">D</div><div><div class="nm">Alessandro Bastoni</div><div class="sb">Inter</div></div></div></td><td class="hi">28</td><td>2450</td><td>6.8</td><td class="g">2</td><td class="a">5</td><td>7</td><td>21</td><td>9</td><td>34</td><td>15</td><td>52</td><td>41</td><td class="w">5</td><td>0</td></tr>
+                <tr><td class="lead"><div class="lead-cell"><div class="role-badge role-P">P</div><div><div class="nm">Marco Carnesecchi</div><div class="sb">Atalanta</div></div></div></td><td class="hi">34</td><td>3060</td><td>6.8</td><td class="g">0</td><td class="a">0</td><td>0</td><td>0</td><td>0</td><td>2</td><td>0</td><td>1</td><td>3</td><td class="w">2</td><td>0</td></tr>
+                <tr><td class="lead"><div class="lead-cell"><div class="role-badge role-C">C</div><div><div class="nm">Hakan Çalhanoğlu</div><div class="sb">Inter</div></div></div></td><td class="hi">27</td><td>2210</td><td class="hi">7.2</td><td class="g">11</td><td class="a">7</td><td>18</td><td>58</td><td>29</td><td>49</td><td>22</td><td>19</td><td>14</td><td class="w">7</td><td>0</td></tr>
+                <tr><td class="lead"><div class="lead-cell"><div class="role-badge role-A">A</div><div><div class="nm">Gianluca Scamacca</div><div class="sb">Atalanta</div></div></div></td><td>18</td><td>1320</td><td>6.6</td><td class="g">7</td><td class="a">2</td><td>9</td><td>44</td><td>23</td><td>14</td><td>9</td><td>5</td><td>2</td><td class="w">2</td><td>0</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="fadeb"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

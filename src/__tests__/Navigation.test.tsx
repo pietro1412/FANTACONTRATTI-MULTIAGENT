@@ -255,7 +255,7 @@ describe('Navigation Component', () => {
       })
 
       await user.click(screen.getByTestId('nav-giocatori'))
-      expect(mockOnNavigate).toHaveBeenCalledWith('strategie-rubata', { leagueId: 'league-123' })
+      expect(mockOnNavigate).toHaveBeenCalledWith('allPlayers', { leagueId: 'league-123' })
     })
 
     it('calls onNavigate when back to leagues button is clicked', async () => {
@@ -392,7 +392,7 @@ describe('Navigation Component', () => {
         expect(screen.queryByTestId('mobile-menu')).not.toBeInTheDocument()
       })
 
-      expect(mockOnNavigate).toHaveBeenCalledWith('strategie-rubata', { leagueId: 'league-123' })
+      expect(mockOnNavigate).toHaveBeenCalledWith('allPlayers', { leagueId: 'league-123' })
     })
 
     it('shows mobile logout button and handles logout', async () => {
@@ -427,7 +427,7 @@ describe('Navigation Component', () => {
       act(() => {
         render(
           <Navigation
-            currentPage="strategie-rubata"
+            currentPage="allPlayers"
             leagueId="league-123"
             onNavigate={mockOnNavigate}
           />
@@ -470,7 +470,7 @@ describe('Navigation Component', () => {
       act(() => {
         render(
           <Navigation
-            currentPage="strategie-rubata"
+            currentPage="allPlayers"
             leagueId="league-123"
             onNavigate={mockOnNavigate}
           />

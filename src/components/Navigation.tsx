@@ -57,8 +57,7 @@ const MenuIcons = {
 const LEAGUE_MENU_ITEMS = [
   { key: 'leagueDetail', label: 'Dashboard', adminOnly: false, icon: 'dashboard' },
   { key: 'adminPanel', label: 'Admin', adminOnly: true, icon: 'admin' },
-  { key: 'strategie-rubata', label: 'Giocatori', adminOnly: false, icon: 'allRosters' },
-  // { key: 'playerStats', label: 'Statistiche', adminOnly: false, icon: 'stats' },  // Temporarily hidden - route still works
+  { key: 'allPlayers', label: 'Giocatori', adminOnly: false, icon: 'allRosters' },
   { key: 'financials', label: 'Finanze', adminOnly: false, icon: 'financials' },
   { key: 'history', label: 'Storico', adminOnly: false, icon: 'history' },
   { key: 'prophecies', label: 'Profezie', adminOnly: false, icon: 'prophecy' },
@@ -71,6 +70,7 @@ function getPageDisplayName(page: string): string {
     leagueDetail: 'Dashboard',
     adminPanel: 'Admin',
     rose: 'Rose',
+    allPlayers: 'Giocatori',
     playerStats: 'Statistiche',
     svincolati: 'Svincolati',
     movements: 'Movimenti',
