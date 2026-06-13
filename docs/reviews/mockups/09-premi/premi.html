@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Mockup — Fase Premi 1280</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=Oswald:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Fase Premi — NON cockpit (vista di configurazione admin sequenziale + consultazione manager).
+     Flusso di pagina normale + stepper admin per dare ordine alle 4 fasi. Stesso linguaggio
+     tipografico/token delle altre sezioni. Premi = oro accent. */
+  :root{
+    --bg:#0a0a0b; --card:#1a1c20; --elev:#111214; --hover:#252830;
+    --border:#2d3139; --primary:#3b82f6; --secondary:#22c55e;
+    --gold:#f59e0b; --gold2:#fbbf24; --danger:#ef4444; --passion:#ea580c;
+    --t1:#f9fafb; --t2:#9ca3af; --t3:#8b919d;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--t1);font-family:'Inter',sans-serif;padding:40px 0 80px;}
+  button{font:inherit;}
+  h1.page{font-family:'Outfit',sans-serif;font-size:22px;font-weight:700;text-align:center;margin-bottom:6px;}
+  p.sub{text-align:center;color:var(--t3);font-size:13px;margin-bottom:36px;max-width:1000px;margin-left:auto;margin-right:auto;}
+  .frames{display:flex;flex-direction:column;align-items:center;gap:56px;}
+  .frame-label{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--t3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;}
+
+  .frame{width:1280px;border:1px solid var(--border);border-radius:16px;background:var(--bg);overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.55);}
+  .topbar{height:48px;background:var(--elev);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:10px;}
+  .topbar .logo{width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,#1e40af,#3b82f6);}
+  .topbar .nav{font-size:12px;color:var(--t3);}
+  .topbar .nav b{color:var(--t1);font-weight:600;}
+
+  .wrap{padding:22px 28px 30px;}
+  .micro{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);}
+
+  /* testata premi (oro) */
+  .ptesta{display:flex;align-items:center;gap:16px;background:var(--card);border:1px solid rgba(245,158,11,.35);border-radius:16px;padding:18px 22px;margin-bottom:20px;box-shadow:0 0 0 1px rgba(245,158,11,.1);}
+  .trophy{width:54px;height:54px;border-radius:14px;background:linear-gradient(135deg,#b45309,#fbbf24);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;border:1px solid rgba(245,158,11,.5);}
+  .ptesta .ti h2{font-family:'Outfit',sans-serif;font-size:21px;font-weight:700;}
+  .ptesta .ti p{font-size:12.5px;color:var(--t3);margin-top:2px;}
+  .ptesta .ph-stats{margin-left:auto;display:flex;gap:24px;align-items:center;}
+  .ph-stat{text-align:right;}
+  .ph-stat .l{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;color:var(--t3);}
+  .ph-stat .v{font-family:'Oswald',sans-serif;font-size:24px;font-weight:600;line-height:1.05;font-variant-numeric:tabular-nums;}
+  .ph-stat.gold .v{color:var(--gold2);}
+
+  /* stepper orizzontale */
+  .stepbar{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:22px;}
+  .stepchip{display:flex;align-items:center;gap:11px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:11px 14px;}
+  .stepchip.done{border-color:rgba(34,197,94,.4);}
+  .stepchip.curr{border-color:var(--gold);background:rgba(245,158,11,.06);box-shadow:0 0 0 1px rgba(245,158,11,.2);}
+  .stepchip.lock{opacity:.5;}
+  .sc-num{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Oswald',sans-serif;font-weight:700;font-size:15px;flex-shrink:0;background:var(--hover);color:var(--t2);}
+  .stepchip.done .sc-num{background:var(--secondary);color:#06200f;}
+  .stepchip.curr .sc-num{background:var(--gold2);color:#0a0a0b;}
+  .sc-info .sc-l{font-family:'JetBrains Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);}
+  .sc-info .sc-t{font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;margin-top:1px;}
+  .sc-info .sc-s{font-size:10.5px;margin-top:1px;}
+  .stepchip.done .sc-s{color:var(--secondary);}
+  .stepchip.curr .sc-s{color:var(--gold2);}
+  .stepchip.lock .sc-s{color:var(--t3);}
+
+  /* card step */
+  .scard{background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:16px;overflow:hidden;}
+  .scard.zone{border-color:var(--gold);box-shadow:0 0 0 1px rgba(245,158,11,.15);}
+  .sc-head{display:flex;align-items:center;gap:11px;padding:13px 18px;border-bottom:1px solid var(--border);}
+  .sc-badge{width:24px;height:24px;border-radius:50%;background:var(--hover);color:var(--t2);font-family:'Oswald',sans-serif;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .scard.zone .sc-badge{background:var(--gold2);color:#0a0a0b;}
+  .scard.done2 .sc-badge{background:var(--secondary);color:#06200f;}
+  .sc-head h3{font-family:'Outfit',sans-serif;font-size:15px;font-weight:700;}
+  .sc-head .st{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.05em;border-radius:6px;padding:3px 9px;}
+  .st.ok{color:var(--secondary);background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.35);}
+  .st.todo{color:var(--gold2);background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.4);}
+  .st.lock{color:var(--t3);border:1px solid var(--border);}
+  .sc-body{padding:15px 18px;}
+
+  .role-badge{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-weight:800;font-size:12px;flex-shrink:0;}
+  .role-P{background:rgba(245,158,11,.14);color:var(--gold2);border:1px solid rgba(245,158,11,.4);}
+  .role-D{background:rgba(59,130,246,.15);color:var(--primary);border:1px solid rgba(59,130,246,.4);}
+  .role-C{background:rgba(34,197,94,.14);color:var(--secondary);border:1px solid rgba(34,197,94,.4);}
+  .role-A{background:rgba(239,68,68,.15);color:var(--danger);border:1px solid rgba(239,68,68,.4);}
+  .mono{width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;background:var(--hover);color:var(--t1);border:1px solid var(--border);flex-shrink:0;}
+
+  /* stepper compatto inline */
+  .stepper{display:inline-flex;align-items:stretch;border:1px solid var(--border);border-radius:9px;overflow:hidden;background:var(--elev);}
+  .step-btn{width:30px;border:none;background:var(--card);color:var(--t1);font-family:'Oswald',sans-serif;font-size:16px;cursor:pointer;}
+  .step-val{display:flex;align-items:center;justify-content:center;min-width:60px;font-family:'Oswald',sans-serif;font-size:17px;font-weight:700;color:var(--gold2);font-variant-numeric:tabular-nums;}
+
+  .btn-gold{font-family:'Outfit',sans-serif;font-size:13px;font-weight:800;letter-spacing:.03em;color:#0a0a0b;background:linear-gradient(180deg,var(--gold2),var(--gold));border:none;border-radius:9px;padding:9px 20px;cursor:pointer;text-transform:uppercase;}
+  .btn-ghost{font-family:'Inter',sans-serif;font-size:12.5px;font-weight:600;color:var(--t1);background:var(--elev);border:1px solid var(--border);border-radius:9px;padding:8px 16px;cursor:pointer;}
+  .btn-final{font-family:'Outfit',sans-serif;font-size:14px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;border:none;border-radius:10px;padding:11px 26px;cursor:pointer;}
+  .btn-final.off{color:var(--t3);background:var(--hover);cursor:not-allowed;}
+
+  /* tabella generica */
+  .tbl{width:100%;border-collapse:collapse;}
+  .tbl th{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);text-align:left;padding:7px 10px;border-bottom:1px solid var(--border);}
+  .tbl th.r,.tbl td.r{text-align:right;}
+  .tbl td{padding:9px 10px;border-bottom:1px solid var(--border);font-size:13px;}
+  .tbl tr:last-child td{border-bottom:none;}
+  .pl{display:flex;align-items:center;gap:9px;}
+  .pl .nm{font-family:'Outfit',sans-serif;font-weight:700;font-size:13px;}
+  .pl .sb{font-size:10.5px;color:var(--t3);}
+  .num{font-family:'Oswald',sans-serif;font-size:16px;font-weight:600;font-variant-numeric:tabular-nums;}
+  .num.gold{color:var(--gold2);} .num.dng{color:var(--danger);} .num.t2{color:var(--t2);}
+  .mgr{display:flex;align-items:center;gap:8px;}
+  .mgr .nm{font-family:'Outfit',sans-serif;font-weight:700;font-size:12.5px;}
+
+  .row-info{display:flex;align-items:center;gap:14px;}
+  .row-info .lbl{font-size:13px;color:var(--t2);}
+  .row-info .lbl b{color:var(--t1);}
+
+  /* riepilogo manager */
+  .prize-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:13px;margin-bottom:16px;}
+  .prize{background:var(--elev);border:1px solid var(--border);border-radius:12px;padding:14px 16px;}
+  .prize.win{border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.05);}
+  .prize .cat{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--t3);}
+  .prize .amt{font-family:'Oswald',sans-serif;font-size:30px;font-weight:700;color:var(--gold2);line-height:1.1;margin-top:6px;}
+  .prize .dsc{font-size:11px;color:var(--t2);margin-top:3px;}
+  .prize.win .cat{color:var(--gold2);}
+
+  .tot-banner{display:flex;align-items:center;gap:14px;background:linear-gradient(135deg,rgba(245,158,11,.12),rgba(245,158,11,.03));border:1px solid rgba(245,158,11,.4);border-radius:12px;padding:14px 20px;margin-bottom:18px;}
+  .tot-banner .l{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--gold2);}
+  .tot-banner .v{margin-left:auto;font-family:'Oswald',sans-serif;font-size:34px;font-weight:700;color:var(--gold2);}
+  .tot-banner .pill{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:var(--secondary);background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.35);border-radius:999px;padding:3px 11px;}
+
+  /* accordion storico */
+  .hist{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+  .hist-h{display:flex;align-items:center;gap:10px;padding:13px 18px;cursor:pointer;}
+  .hist-h .micro{font-size:10px;}
+  .hist-h .chev{margin-left:auto;color:var(--t3);}
+  .hist-row{display:flex;align-items:center;gap:12px;padding:11px 18px;border-top:1px solid var(--border);}
+  .hist-row .ssn{font-family:'Outfit',sans-serif;font-weight:700;font-size:13px;}
+  .hist-row .dt{font-size:11px;color:var(--t3);}
+  .hist-row .winner{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--t2);}
+  .hist-row .winner b{color:var(--t1);}
+  .hist-row .amt{font-family:'Oswald',sans-serif;font-size:16px;font-weight:600;color:var(--gold2);}
+</style>
+</head>
+<body>
+
+<h1 class="page">Fase Premi — vista Admin e vista Manager</h1>
+<p class="sub">NON cockpit: configurazione admin sequenziale + consultazione manager, flusso di pagina normale. Le 4 fasi admin diventano uno <b>stepper con stato</b> (fatto/corrente/bloccato), le azioni irreversibili (Consolida, Finalizza) sono in zone-decisione oro. Premi = oro accent · numeroni Oswald · palette a token (via yellow/cyan/green grezzi).</p>
+
+<div class="frames">
+
+<!-- ============ FRAME 1: ADMIN ============ -->
+<div>
+  <div class="frame-label">Premi — vista Admin (4 fasi a stepper)</div>
+  <div class="frame">
+    <div class="topbar"><span class="logo"></span><span class="nav">Lega Fantacontratti · <b>Premi</b></span></div>
+    <div class="wrap">
+
+      <!-- testata premi -->
+      <div class="ptesta">
+        <div class="trophy">🏆</div>
+        <div class="ti">
+          <h2>Fase Premi · Stagione 2025/26</h2>
+          <p>Definisci re-incremento, indennizzi e premi, poi finalizza per accreditare i budget.</p>
+        </div>
+        <div class="ph-stats">
+          <div class="ph-stat"><div class="l">Montepremi</div><div class="v">340M</div></div>
+          <div class="ph-stat gold"><div class="l">Assegnato</div><div class="v">295M</div></div>
+          <div class="ph-stat"><div class="l">Manager</div><div class="v">8</div></div>
+        </div>
+      </div>
+
+      <!-- stepper -->
+      <div class="stepbar">
+        <div class="stepchip done"><span class="sc-num">✓</span><div class="sc-info"><div class="sc-l">Step 1</div><div class="sc-t">Re-incremento base</div><div class="sc-s">100M impostati</div></div></div>
+        <div class="stepchip curr"><span class="sc-num">2</span><div class="sc-info"><div class="sc-l">Step 2</div><div class="sc-t">Indennizzi estero</div><div class="sc-s">da consolidare</div></div></div>
+        <div class="stepchip"><span class="sc-num">3</span><div class="sc-info"><div class="sc-l">Step 3</div><div class="sc-t">Assegna premi</div><div class="sc-s">3/5 categorie</div></div></div>
+        <div class="stepchip lock"><span class="sc-num">🔒</span><div class="sc-info"><div class="sc-l">Step 4</div><div class="sc-t">Finalizza</div><div class="sc-s">richiede step 2</div></div></div>
+      </div>
+
+      <!-- step 1 (done) -->
+      <div class="scard done2">
+        <div class="sc-head"><span class="sc-badge">✓</span><h3>Re-incremento Budget Base</h3><span class="st ok">Impostato</span></div>
+        <div class="sc-body">
+          <div class="row-info">
+            <span class="lbl">Ogni manager riceve a inizio stagione un re-incremento di base pari a</span>
+            <div class="stepper"><button class="step-btn">−</button><div class="step-val">100</div><button class="step-btn">+</button></div>
+            <span class="micro">milioni</span>
+            <button class="btn-ghost" style="margin-left:auto;">Aggiorna</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- step 2 (zone-decisione, corrente) -->
+      <div class="scard zone">
+        <div class="sc-head"><span class="sc-badge">2</span><h3>Indennizzi · giocatori usciti all'estero</h3><span class="st todo">Da consolidare</span></div>
+        <div class="sc-body">
+          <table class="tbl">
+            <thead><tr><th>Giocatore</th><th>Ruolo</th><th class="r">Quotazione</th><th class="r">Contratto</th><th class="r">Indennizzo</th></tr></thead>
+            <tbody>
+              <tr><td><div class="pl"><div class="role-badge role-A">A</div><div><div class="nm">Gianluca Scamacca</div><div class="sb">→ West Ham</div></div></div></td><td>Att</td><td class="r"><span class="num t2">28</span></td><td class="r"><span class="num t2">22×3</span></td><td class="r"><div class="stepper" style="display:inline-flex;"><button class="step-btn">−</button><div class="step-val">17</div><button class="step-btn">+</button></div></td></tr>
+              <tr><td><div class="pl"><div class="role-badge role-D">D</div><div><div class="nm">Caleb Okoli</div><div class="sb">→ Leicester</div></div></div></td><td>Dif</td><td class="r"><span class="num t2">12</span></td><td class="r"><span class="num t2">9×2</span></td><td class="r"><div class="stepper" style="display:inline-flex;"><button class="step-btn">−</button><div class="step-val">6</div><button class="step-btn">+</button></div></td></tr>
+            </tbody>
+            <tfoot><tr><td colspan="4" class="r"><span class="micro">Totale indennizzi estero</span></td><td class="r"><span class="num gold">23M</span></td></tr></tfoot>
+          </table>
+          <div style="display:flex;align-items:center;gap:12px;margin-top:14px;padding-top:13px;border-top:1px solid var(--border);">
+            <span style="font-size:12px;color:var(--gold2);">⚠ Una volta consolidati, gli indennizzi non sono più modificabili.</span>
+            <button class="btn-gold" style="margin-left:auto;">Consolida indennizzi</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- step 3 (assegnazione premi) -->
+      <div class="scard">
+        <div class="sc-head"><span class="sc-badge">3</span><h3>Assegnazione premi</h3><span class="st todo">3/5 categorie</span><button class="btn-ghost" style="margin-left:12px;">+ Categoria</button></div>
+        <div class="sc-body">
+          <table class="tbl">
+            <thead><tr><th>Categoria</th><th>Vincitore</th><th class="r">Importo</th><th class="r">Stato</th></tr></thead>
+            <tbody>
+              <tr><td><b style="font-family:'Outfit',sans-serif;">Campione</b></td><td><div class="mgr"><span class="mono">MK</span><span class="nm">Mirko FC</span></div></td><td class="r"><div class="stepper" style="display:inline-flex;"><button class="step-btn">−</button><div class="step-val">120</div><button class="step-btn">+</button></div></td><td class="r"><span class="st ok">Assegnato</span></td></tr>
+              <tr><td><b style="font-family:'Outfit',sans-serif;">Coppa</b></td><td><div class="mgr"><span class="mono">DI</span><span class="nm">Diego FC</span></div></td><td class="r"><div class="stepper" style="display:inline-flex;"><button class="step-btn">−</button><div class="step-val">75</div><button class="step-btn">+</button></div></td><td class="r"><span class="st ok">Assegnato</span></td></tr>
+              <tr><td><b style="font-family:'Outfit',sans-serif;">Capocannoniere</b></td><td><div class="mgr"><span class="mono">ML</span><span class="nm">Marcolino FC</span></div></td><td class="r"><div class="stepper" style="display:inline-flex;"><button class="step-btn">−</button><div class="step-val">100</div><button class="step-btn">+</button></div></td><td class="r"><span class="st ok">Assegnato</span></td></tr>
+              <tr><td><b style="font-family:'Outfit',sans-serif;">Fairplay</b></td><td><span style="color:var(--t3);font-size:12px;font-style:italic;">— scegli vincitore —</span></td><td class="r"><span class="num t2">0</span></td><td class="r"><span class="st todo">Da fare</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- step 4 (finalizza, bloccato) -->
+      <div class="scard">
+        <div class="sc-head"><span class="sc-badge">4</span><h3>Finalizza fase premi</h3><span class="st lock">🔒 Bloccato</span></div>
+        <div class="sc-body">
+          <div style="display:flex;align-items:center;gap:14px;">
+            <span style="font-size:12.5px;color:var(--t2);">Per finalizzare devi prima <b style="color:var(--gold2);">consolidare gli indennizzi</b> (step 2). La finalizzazione accredita i premi ai budget ed è <b style="color:var(--danger);">irreversibile</b>.</span>
+            <button class="btn-final off" style="margin-left:auto;">Finalizza premi</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ============ FRAME 2: MANAGER ============ -->
+<div>
+  <div class="frame-label">Premi — vista Manager (consultazione)</div>
+  <div class="frame">
+    <div class="topbar"><span class="logo"></span><span class="nav">Lega Fantacontratti · <b>Premi</b></span></div>
+    <div class="wrap">
+
+      <div class="ptesta">
+        <div class="trophy">🏆</div>
+        <div class="ti">
+          <h2>I tuoi premi · Stagione 2025/26</h2>
+          <p>Premi e indennizzi accreditati al tuo budget per questa stagione.</p>
+        </div>
+        <div class="ph-stats">
+          <div class="ph-stat"><div class="l">Budget pre-premi</div><div class="v">336M</div></div>
+          <div class="ph-stat gold"><div class="l">Budget aggiornato</div><div class="v">412M</div></div>
+        </div>
+      </div>
+
+      <!-- totale ricevuto -->
+      <div class="tot-banner">
+        <span class="l">Totale accreditato</span>
+        <span class="pill">✓ Finalizzato</span>
+        <span class="v">+76M</span>
+      </div>
+
+      <!-- premi ricevuti -->
+      <div class="micro" style="margin-bottom:10px;">I tuoi riconoscimenti</div>
+      <div class="prize-grid">
+        <div class="prize win"><div class="cat">🏆 Coppa</div><div class="amt">+75M</div><div class="dsc">2° classificato stagione</div></div>
+        <div class="prize"><div class="cat">Re-incremento base</div><div class="amt">+100M</div><div class="dsc">uguale per tutti i manager</div></div>
+        <div class="prize"><div class="cat">Indennizzo estero</div><div class="amt">+1M</div><div class="dsc">Scamacca → West Ham</div></div>
+      </div>
+
+      <!-- storico -->
+      <div class="hist">
+        <div class="hist-h"><span class="micro">Storico premi · stagioni precedenti</span><span class="chev">▾</span></div>
+        <div class="hist-row"><div><div class="ssn">Stagione 2024/25</div><div class="dt">finalizzata 12 giu 2025</div></div><div class="winner"><span class="mono">DI</span>Campione: <b>Diego FC</b><span class="amt">+120M</span></div></div>
+        <div class="hist-row"><div><div class="ssn">Stagione 2023/24</div><div class="dt">finalizzata 09 giu 2024</div></div><div class="winner"><span class="mono">MK</span>Campione: <b>Mirko FC</b><span class="amt">+120M</span></div></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

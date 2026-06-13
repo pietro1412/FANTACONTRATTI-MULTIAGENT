@@ -1,22 +1,19 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useAuth } from '@/hooks/useAuth'
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog'
-import { Button } from './ui/Button'
-import { prizePhaseApi } from '../services/api'
-import { getTeamLogo } from '../utils/teamLogos'
-
-// Team logo component
-function TeamLogo({ team }: { team: string }) {
-  return (
-    <img
-      src={getTeamLogo(team)}
-      alt={team}
-      className="w-full h-full object-contain"
-      onError={(e) => {
-        (e.target as HTMLImageElement).style.display = 'none'
-      }}
-    />
-  )
-}
+import { useToast } from '@/components/ui/Toast'
+import { Button } from '@/components/ui/Button'
+import { Spinner } from '@/components/ui/Spinner'
+import { ErrorState } from '@/components/ui/ErrorState'
+import { Input } from '@/components/ui/Input'
+import { AmountStepper } from '@/components/ui/AmountStepper'
+import { PrizePhaseHeader } from '@/components/prizes/PrizePhaseHeader'
+import { PrizeStepper, type PrizeStep } from '@/components/prizes/PrizeStepper'
+import { StepCard } from '@/components/prizes/StepCard'
+import { IndemnityTable } from '@/components/prizes/IndemnityTable'
+import { PrizeAssignmentTable } from '@/components/prizes/PrizeAssignmentTable'
+import { ManagerPrizeSummary, type ManagerRecognition } from '@/components/prizes/ManagerPrizeSummary'
+import { prizePhaseApi } from '@/services/api'
 
 interface PrizePhaseConfig {
   id: string
@@ -86,29 +83,27 @@ interface PrizePhaseManagerProps {
   onUpdate?: () => void
 }
 
+const DEFAULT_INDEMNITY = 50
+
 export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseManagerProps) {
+  const { user } = useAuth()
   const { confirm: confirmDialog } = useConfirmDialog()
+  const { toast } = useToast()
   const [data, setData] = useState<PrizePhaseData | null>(null)
   const [loading, setLoading] = useState(true)
   // Init condivisa: garantisce UNA sola initializePrizePhase anche se l'effect viene
   // invocato due volte (React StrictMode in dev) → evita due init concorrenti che
   // violerebbero il vincolo unique sulla config (P2002 → 500). Vedi oss. #34.
   const initPromiseRef = useRef<Promise<unknown> | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  // Errore SOLO per il caricamento iniziale (sostituisce la UI con recovery). Gli
+  // errori delle singole azioni vanno a toast.error e NON smontano la pagina.
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Form states
   const [newCategoryName, setNewCategoryName] = useState('')
   const [editingBaseReincrement, setEditingBaseReincrement] = useState(false)
   const [baseReincrementValue, setBaseReincrementValue] = useState(100)
-  const [showFinalizeConfirm, setShowFinalizeConfirm] = useState(false)
-
-  // Editing prizes state: { categoryId: { memberId: value } }
-  const [editingPrizes, setEditingPrizes] = useState<Record<string, Record<string, number>>>({})
-
-  // Focus state for inputs: stores original value when input is focused
-  const [focusedInput, setFocusedInput] = useState<{ catId: string; memberId: string; originalValue: number } | null>(null)
-  const [inputDisplayValue, setInputDisplayValue] = useState<string>('')
 
   // Custom indemnity amounts: { playerId: amount }
   const [customIndemnities, setCustomIndemnities] = useState<Record<string, number>>({})
@@ -117,7 +112,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
 
   const fetchData = useCallback(async () => {
     setLoading(true)
-    setError(null)
+    setLoadError(null)
     try {
       const result = await prizePhaseApi.getData(sessionId)
       if (result.success && result.data) {
@@ -148,16 +143,16 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
             setData(refreshResult.data as PrizePhaseData)
             setBaseReincrementValue((refreshResult.data as PrizePhaseData).config.baseReincrement)
           } else {
-            setError(refreshResult.message || 'Errore inizializzazione')
+            setLoadError(refreshResult.message || 'Errore inizializzazione')
           }
         } else {
-          setError('Fase premi non ancora inizializzata dall\'admin')
+          setLoadError('Fase premi non ancora inizializzata dall\'admin')
         }
       } else {
-        setError(result.message || 'Errore caricamento dati')
+        setLoadError(result.message || 'Errore caricamento dati')
       }
-    } catch (_err) {
-      setError('Errore di connessione')
+    } catch {
+      setLoadError('Errore di connessione')
     } finally {
       setLoading(false)
     }
@@ -173,11 +168,14 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
       const result = await prizePhaseApi.updateBaseReincrement(sessionId, baseReincrementValue)
       if (result.success) {
         setEditingBaseReincrement(false)
+        toast.success('Re-incremento base aggiornato')
         void fetchData()
         onUpdate?.()
       } else {
-        setError(result.message || 'Errore aggiornamento')
+        toast.error(result.message || 'Errore aggiornamento')
       }
+    } catch {
+      toast.error('Errore di connessione')
     } finally {
       setIsSubmitting(false)
     }
@@ -190,11 +188,14 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
       const result = await prizePhaseApi.createCategory(sessionId, newCategoryName.trim())
       if (result.success) {
         setNewCategoryName('')
+        toast.success('Categoria creata')
         void fetchData()
         onUpdate?.()
       } else {
-        setError(result.message || 'Errore creazione categoria')
+        toast.error(result.message || 'Errore creazione categoria')
       }
+    } catch {
+      toast.error('Errore di connessione')
     } finally {
       setIsSubmitting(false)
     }
@@ -212,31 +213,24 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
     try {
       const result = await prizePhaseApi.deleteCategory(categoryId)
       if (result.success) {
+        toast.success('Categoria eliminata')
         void fetchData()
         onUpdate?.()
       } else {
-        setError(result.message || 'Errore eliminazione')
+        toast.error(result.message || 'Errore eliminazione')
       }
+    } catch {
+      toast.error('Errore di connessione')
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  const handlePrizeChange = (categoryId: string, memberId: string, value: number) => {
-    setEditingPrizes(prev => ({
-      ...prev,
-      [categoryId]: {
-        ...(prev[categoryId] || {}),
-        [memberId]: value
-      }
-    }))
-  }
+  // Save a member prize, with optimistic local update.
+  const handleSavePrize = async (categoryId: string, memberId: string, value: number) => {
+    if (value < 0) return
 
-  const handleSavePrize = async (categoryId: string, memberId: string, directValue?: number) => {
-    const value = directValue ?? editingPrizes[categoryId]?.[memberId]
-    if (value === undefined) return
-
-    // Update local state immediately (optimistic update)
+    // Optimistic update
     setData(prev => {
       if (!prev) return prev
       return {
@@ -251,87 +245,76 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                 p.memberId === memberId ? { ...p, amount: value } : p
               )
             }
-          } else {
-            // Add new prize entry
-            const member = prev.members.find(m => m.id === memberId)
-            return {
-              ...cat,
-              prizes: [...cat.prizes, {
-                memberId,
-                teamName: member?.teamName || '',
-                username: member?.username || '',
-                amount: value
-              }]
-            }
+          }
+          const member = prev.members.find(m => m.id === memberId)
+          return {
+            ...cat,
+            prizes: [...cat.prizes, {
+              memberId,
+              teamName: member?.teamName || '',
+              username: member?.username || '',
+              amount: value
+            }]
           }
         })
       }
-    })
-
-    // Clear editing state for this cell
-    setEditingPrizes(prev => {
-      const newState = { ...prev }
-      if (newState[categoryId]) {
-        const { [memberId]: _, ...restMembers } = newState[categoryId]
-        if (Object.keys(restMembers).length === 0) {
-          const { [categoryId]: __, ...restCategories } = newState
-          return restCategories
-        }
-        return { ...newState, [categoryId]: restMembers }
-      }
-      return newState
     })
 
     // Save to server in background (no loading state)
     try {
       const result = await prizePhaseApi.setMemberPrize(categoryId, memberId, value)
       if (!result.success) {
-        setError(result.message || 'Errore salvataggio')
-        // Revert on error by fetching fresh data
+        toast.error(result.message || 'Errore salvataggio premio')
         void fetchData()
       }
     } catch {
-      setError('Errore di connessione')
+      toast.error('Errore di connessione')
       void fetchData()
     }
   }
 
   const handleFinalize = async () => {
+    const ok = await confirmDialog({
+      title: 'Finalizza fase premi',
+      message: 'I premi verranno accreditati sui budget dei manager e non potranno più essere modificati. Confermi la finalizzazione?',
+      confirmLabel: 'Finalizza',
+      variant: 'warning'
+    })
+    if (!ok) return
     setIsSubmitting(true)
     try {
       const result = await prizePhaseApi.finalize(sessionId)
       if (result.success) {
-        setShowFinalizeConfirm(false)
+        toast.success('Premi finalizzati e accreditati')
         void fetchData()
         onUpdate?.()
       } else {
-        setError(result.message || 'Errore finalizzazione')
+        toast.error(result.message || 'Errore finalizzazione')
       }
+    } catch {
+      toast.error('Errore di connessione')
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  // Handle custom indemnity change for ESTERO players
-  const handleIndemnityChange = async (playerId: string, delta: number) => {
-    const currentAmount = customIndemnities[playerId] ?? 50
-    const newAmount = Math.max(0, currentAmount + delta)
+  // Set the absolute custom indemnity for an ESTERO player (NumberStepper gives the new value).
+  const handleIndemnityChange = async (playerId: string, newAmount: number) => {
+    const currentAmount = customIndemnities[playerId] ?? DEFAULT_INDEMNITY
+    const safeAmount = Math.max(0, newAmount)
 
-    // Optimistic update
-    setCustomIndemnities(prev => ({ ...prev, [playerId]: newAmount }))
+    setCustomIndemnities(prev => ({ ...prev, [playerId]: safeAmount }))
     setSavingIndemnity(playerId)
 
     try {
-      const result = await prizePhaseApi.setCustomIndemnity(sessionId, playerId, newAmount)
+      const result = await prizePhaseApi.setCustomIndemnity(sessionId, playerId, safeAmount)
       if (!result.success) {
-        // Revert on error
         setCustomIndemnities(prev => ({ ...prev, [playerId]: currentAmount }))
-        setError(result.message || 'Errore salvataggio indennizzo')
+        toast.error(result.message || 'Errore salvataggio indennizzo')
       }
     } catch {
-      // Revert on error
       setCustomIndemnities(prev => ({ ...prev, [playerId]: currentAmount }))
-      setError('Errore di connessione')
+      toast.error('Errore di connessione')
     } finally {
       setSavingIndemnity(null)
     }
@@ -339,10 +322,9 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
 
   // Get indemnity amount for a player (custom or default 50)
   const getIndemnityAmount = (playerId: string) => {
-    return customIndemnities[playerId] ?? 50
+    return customIndemnities[playerId] ?? DEFAULT_INDEMNITY
   }
 
-  // Handle consolidate indemnities
   const handleConsolidateIndemnities = async () => {
     const ok = await confirmDialog({
       title: 'Consolida indennizzi',
@@ -356,13 +338,14 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
     try {
       const result = await prizePhaseApi.consolidateIndemnities(sessionId)
       if (result.success) {
+        toast.success('Indennizzi consolidati')
         void fetchData()
         onUpdate?.()
       } else {
-        setError(result.message || 'Errore consolidamento indennizzi')
+        toast.error(result.message || 'Errore consolidamento indennizzi')
       }
     } catch {
-      setError('Errore di connessione')
+      toast.error('Errore di connessione')
     } finally {
       setConsolidatingIndemnities(false)
     }
@@ -371,18 +354,19 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
   if (loading) {
     return (
       <div className="bg-surface-200 rounded-2xl border border-surface-50/20 p-8 text-center">
-        <div className="animate-spin w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full mx-auto mb-4" />
+        <Spinner size="lg" color="accent" className="mx-auto mb-4" />
         <p className="text-gray-400">Caricamento fase premi...</p>
       </div>
     )
   }
 
-  if (error) {
+  if (loadError) {
     return (
-      <div className="bg-danger-500/20 border border-danger-500/30 rounded-xl p-6">
-        <p className="text-danger-400 mb-4">{error}</p>
-        <Button variant="outline" onClick={() => void fetchData()}>Riprova</Button>
-      </div>
+      <ErrorState
+        title="Impossibile caricare la fase premi"
+        message={loadError}
+        onRetry={() => void fetchData()}
+      />
     )
   }
 
@@ -390,739 +374,361 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
 
   const { config, categories, members } = data
 
-  // Separate regular categories from indemnity-related categories
-  // Indemnity categories include:
-  // - "Indennizzo Partenza Estero" (base system category - should not show per-manager)
-  // - "Indennizzo - PlayerName" (individual player indemnities)
+  // Separate regular categories from indemnity-related categories.
+  // isIndemnityCategory uses backend-mirrored magic strings — leave as-is (#out of scope).
   const isIndemnityCategory = (cat: { name: string }) =>
     cat.name.startsWith('Indennizzo - ') || cat.name === 'Indennizzo Partenza Estero'
 
   const regularCategories = categories.filter(cat => !isIndemnityCategory(cat))
   const indemnityCategories = categories.filter(cat => cat.name.startsWith('Indennizzo - '))
 
-  // Calculate indemnity total per member (sum of all "Indennizzo - X" categories)
+  const getPrizeAmount = (categoryId: string, memberId: string) =>
+    categories.find(c => c.id === categoryId)?.prizes.find(p => p.memberId === memberId)?.amount ?? 0
+
+  // Sum of all "Indennizzo - X" categories for a member.
   const calculateMemberIndemnityTotal = (memberId: string) => {
     let total = 0
     for (const cat of indemnityCategories) {
       const prize = cat.prizes.find(p => p.memberId === memberId)
-      if (prize) {
-        total += prize.amount
-      }
+      if (prize) total += prize.amount
     }
     return total
   }
 
-  // Calculate totals for display
-  // Includes regular categories + individual indemnities (but NOT the base "Indennizzo Partenza Estero")
-  // Indemnities are only included when consolidated
+  // Total = base + regular category prizes + (indemnities only when consolidated).
   const calculateMemberTotal = (memberId: string) => {
     let total = config.baseReincrement
-
-    // Add regular category prizes
     for (const cat of regularCategories) {
       const prize = cat.prizes.find(p => p.memberId === memberId)
-      if (prize) {
-        total += prize.amount
-      }
+      if (prize) total += prize.amount
     }
-
-    // Add individual indemnity prizes only if consolidated
     if (config.indemnityConsolidated) {
       total += calculateMemberIndemnityTotal(memberId)
     }
-
     return total
   }
 
+  const showIndemnities = indemnityCategories.length > 0 && config.indemnityConsolidated
+  const hasIndemnityPlayers = data.indemnityStats.totalPlayers > 0
+  const hasEsteroIndemnities = data.indemnityStats.byReason.ESTERO > 0
+
+  // -- Derive stepper status from existing data (no logic change) --
+  const assignedCategories = regularCategories.filter(cat =>
+    cat.prizes.some(p => p.amount > 0)
+  ).length
+  const totalCategories = regularCategories.length
+
+  const step1Done = config.baseReincrement > 0
+  const step2Done = config.indemnityConsolidated || !hasEsteroIndemnities
+  const step2NeedsAction = hasEsteroIndemnities && !config.indemnityConsolidated
+  const step4Available = step2Done && !config.isFinalized
+
+  let step3Status: PrizeStep['status']
+  if (config.isFinalized || (totalCategories > 0 && assignedCategories === totalCategories)) {
+    step3Status = 'done'
+  } else if (step2Done) {
+    step3Status = 'current'
+  } else {
+    step3Status = 'todo'
+  }
+
+  const steps: PrizeStep[] = [
+    {
+      num: 1,
+      title: 'Re-incremento base',
+      status: step1Done ? 'done' : 'current',
+      hint: step1Done ? `${config.baseReincrement}M impostati` : 'da impostare',
+    },
+    {
+      num: 2,
+      title: 'Indennizzi estero',
+      status: !hasEsteroIndemnities
+        ? 'done'
+        : config.indemnityConsolidated
+          ? 'done'
+          : 'current',
+      hint: !hasEsteroIndemnities
+        ? 'nessun indennizzo'
+        : config.indemnityConsolidated
+          ? 'consolidati'
+          : 'da consolidare',
+    },
+    {
+      num: 3,
+      title: 'Assegna premi',
+      status: step3Status,
+      hint: totalCategories > 0 ? `${assignedCategories}/${totalCategories} categorie` : 'nessuna categoria',
+    },
+    {
+      num: 4,
+      title: 'Finalizza',
+      status: config.isFinalized ? 'done' : step4Available ? 'current' : 'locked',
+      hint: config.isFinalized ? 'finalizzato' : step4Available ? 'pronto' : 'richiede step 2',
+    },
+  ]
+
+  // -- Header stats --
+  const montepremiTotal = members.reduce((sum, m) => sum + calculateMemberTotal(m.id), 0)
+  const assignedTotal = members.reduce(
+    (sum, m) =>
+      sum +
+      regularCategories.reduce((s, cat) => {
+        const prize = cat.prizes.find(p => p.memberId === m.id)
+        return s + (prize?.amount ?? 0)
+      }, 0),
+    0
+  )
+
+  // ====================== MANAGER VIEW ======================
+  if (!isAdmin) {
+    const myMember = members.find(m => m.username === user?.username) ?? null
+
+    const recognitions: ManagerRecognition[] = []
+    if (myMember && config.isFinalized) {
+      recognitions.push({
+        key: 'base',
+        category: 'Re-incremento base',
+        amount: config.baseReincrement,
+        description: 'uguale per tutti i manager',
+      })
+      for (const cat of regularCategories) {
+        const prize = cat.prizes.find(p => p.memberId === myMember.id)
+        if (prize && prize.amount > 0) {
+          recognitions.push({
+            key: cat.id,
+            category: cat.name,
+            amount: prize.amount,
+            description: cat.isSystemPrize ? 'premio di lega' : 'premio personalizzato',
+            highlight: true,
+          })
+        }
+      }
+      const indemnityTotal = calculateMemberIndemnityTotal(myMember.id)
+      if (indemnityTotal > 0) {
+        recognitions.push({
+          key: 'indemnity',
+          category: 'Indennizzi estero',
+          amount: indemnityTotal,
+          description: 'giocatori usciti all\'estero',
+        })
+      }
+    }
+
+    const myTotal = myMember ? calculateMemberTotal(myMember.id) : config.baseReincrement
+    const budgetPre = myMember?.currentBudget ?? 0
+
+    return (
+      <div className="space-y-5">
+        <PrizePhaseHeader
+          title="I tuoi premi"
+          subtitle="Premi e indennizzi accreditati al tuo budget per questa stagione."
+          stats={[
+            { label: 'Budget pre-premi', value: `${budgetPre}M` },
+            ...(config.isFinalized
+              ? [{ label: 'Budget aggiornato', value: `${budgetPre + myTotal}M`, gold: true }]
+              : []),
+          ]}
+        />
+
+        <ManagerPrizeSummary
+          isFinalized={config.isFinalized}
+          baseReincrement={config.baseReincrement}
+          total={myTotal}
+          recognitions={recognitions}
+        />
+      </div>
+    )
+  }
+
+  // ====================== ADMIN VIEW ======================
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-yellow-600/20 to-yellow-500/10 border border-yellow-500/30 rounded-2xl p-6">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-full bg-yellow-500/20 flex items-center justify-center">
-            <span className="text-3xl">🏆</span>
-          </div>
-          <div className="flex-1">
-            <h2 className="text-xl font-bold text-white">Gestione Premi Budget</h2>
-            <p className="text-gray-400">
-              {config.isFinalized
-                ? `Premi finalizzati il ${new Date(config.finalizedAt!).toLocaleString('it-IT')}`
-                : 'Configura i premi da assegnare ai manager'}
-            </p>
-          </div>
-          {config.isFinalized && (
-            <span className="px-4 py-2 bg-green-500/30 text-green-400 text-sm font-bold rounded-full uppercase">
-              Finalizzato
-            </span>
-          )}
-        </div>
-      </div>
+    <div className="space-y-5">
+      <PrizePhaseHeader
+        title="Fase Premi"
+        subtitle={
+          config.isFinalized
+            ? `Finalizzata il ${new Date(config.finalizedAt!).toLocaleString('it-IT')}`
+            : 'Definisci re-incremento, indennizzi e premi, poi finalizza per accreditare i budget.'
+        }
+        stats={[
+          { label: 'Montepremi', value: `${montepremiTotal}M` },
+          { label: 'Assegnato', value: `${assignedTotal}M`, gold: true },
+          { label: 'Manager', value: String(members.length) },
+        ]}
+      />
 
-      {/* Base Reincrement - Read-only for non-admin or when finalized */}
-      <div className="bg-surface-200 rounded-2xl border border-surface-50/20 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="text-lg font-bold text-white">Re-incremento Budget Base</h3>
-            <p className="text-sm text-gray-400">Importo base uguale per tutti i manager</p>
-          </div>
-          {isAdmin && !config.isFinalized && !editingBaseReincrement && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => { setEditingBaseReincrement(true); }}
-            >
-              Modifica
-            </Button>
-          )}
-        </div>
+      <PrizeStepper steps={steps} />
 
-        {editingBaseReincrement ? (
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => { setBaseReincrementValue(Math.max(0, baseReincrementValue - 10)); }}
-              className="w-10 h-10 bg-surface-400 hover:bg-surface-500 text-white rounded-lg text-xl font-bold flex items-center justify-center"
-              disabled={baseReincrementValue === 0}
-            >
-              -
-            </button>
-            <input
-              type="number"
-              inputMode="decimal"
+      {/* Step 1 - Base reincrement */}
+      <StepCard
+        num={1}
+        title="Re-incremento Budget Base"
+        chipLabel={step1Done ? 'Impostato' : 'Da fare'}
+        chipKind={step1Done ? 'ok' : 'todo'}
+        done={step1Done}
+      >
+        {editingBaseReincrement && !config.isFinalized ? (
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-sm text-gray-400">Ogni manager riceve a inizio stagione un re-incremento di base pari a</span>
+            <AmountStepper
               value={baseReincrementValue}
-              onChange={(e) => { setBaseReincrementValue(Number(e.target.value)); }}
-              onFocus={(e) => { e.target.select(); }}
-              className="w-24 px-3 py-2 bg-surface-300 border border-surface-50/20 rounded-lg text-white text-center text-xl font-bold"
+              onChange={setBaseReincrementValue}
               min={0}
+              step={10}
+              size="sm"
+              aria-label="Re-incremento base"
             />
-            <button
-              onClick={() => { setBaseReincrementValue(baseReincrementValue + 10); }}
-              className="w-10 h-10 bg-surface-400 hover:bg-surface-500 text-white rounded-lg text-xl font-bold flex items-center justify-center"
-            >
-              +
-            </button>
-            <span className="text-gray-400 text-lg">M</span>
-            <Button
-              size="sm"
-              onClick={() => void handleUpdateBaseReincrement()}
-              disabled={isSubmitting}
-            >
-              Salva
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => {
-                setEditingBaseReincrement(false)
-                setBaseReincrementValue(config.baseReincrement)
-              }}
-            >
-              Annulla
-            </Button>
-          </div>
-        ) : (
-          <div className="text-3xl font-bold text-primary-400">
-            {config.baseReincrement}M
-          </div>
-        )}
-      </div>
-
-      {/* Indemnity Details Section - Show if there are affected players */}
-      {data.indemnityStats.totalPlayers > 0 && (
-        <div className="bg-surface-200 rounded-2xl border border-surface-50/20 overflow-hidden">
-          <div className="p-4 border-b border-surface-50/20 bg-gradient-to-r from-cyan-500/10 to-surface-200">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center">
-                  <span className="text-xl">⚠️</span>
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-white">Giocatori Usciti dalla Lista</h3>
-                  <p className="text-sm text-gray-400">
-                    {data.indemnityStats.totalPlayers} giocatori con contratti attivi
-                  </p>
-                  <p className="text-xs text-cyan-400 mt-0.5">
-                    Importi potenziali — pagati al consolidamento contratti se il manager rilascia il giocatore
-                  </p>
-                </div>
-              </div>
-              {/* Stats badges */}
-              <div className="flex items-center gap-2">
-                {data.indemnityStats.byReason.RITIRATO > 0 && (
-                  <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-500/20 text-gray-400 border border-gray-500/30">
-                    {data.indemnityStats.byReason.RITIRATO} Ritirati
-                  </span>
-                )}
-                {data.indemnityStats.byReason.RETROCESSO > 0 && (
-                  <span className="px-3 py-1 rounded-full text-xs font-medium bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                    {data.indemnityStats.byReason.RETROCESSO} Retrocessi
-                  </span>
-                )}
-                {data.indemnityStats.byReason.ESTERO > 0 && (
-                  <span className="px-3 py-1 rounded-full text-xs font-medium bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
-                    {data.indemnityStats.byReason.ESTERO} Estero
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-surface-300/50">
-                <tr className="text-xs text-gray-400 uppercase">
-                  <th className="text-left py-3 px-4">Manager</th>
-                  <th className="text-center py-3 px-2 w-10">R</th>
-                  <th className="text-left py-3 px-3">Giocatore</th>
-                  <th className="text-center py-3 px-2 hidden lg:table-cell">Quot.</th>
-                  <th className="text-center py-3 px-2 hidden lg:table-cell">Contratto</th>
-                  <th className="text-center py-3 px-3">Motivo</th>
-                  <th className="text-right py-3 px-4">Indennizzo</th>
-                </tr>
-              </thead>
-              <tbody>
-                {members.filter(m => m.indemnityPlayers.length > 0).flatMap(member =>
-                  member.indemnityPlayers.map((player, idx) => {
-                    const posColorMap: Record<string, { bg: string; text: string }> = {
-                      P: { bg: 'bg-gradient-to-r from-amber-500 to-amber-600', text: 'text-white' },
-                      D: { bg: 'bg-gradient-to-r from-blue-500 to-blue-600', text: 'text-white' },
-                      C: { bg: 'bg-gradient-to-r from-emerald-500 to-emerald-600', text: 'text-white' },
-                      A: { bg: 'bg-gradient-to-r from-red-500 to-red-600', text: 'text-white' },
-                    }
-                    const exitConfig: Record<string, { bg: string; text: string; label: string; indemnity: string }> = {
-                      RITIRATO: { bg: 'bg-gray-500/10', text: 'text-gray-400', label: 'Ritirato', indemnity: '-' },
-                      RETROCESSO: { bg: 'bg-amber-500/10', text: 'text-amber-400', label: 'Retrocesso', indemnity: '-' },
-                      ESTERO: { bg: 'bg-cyan-500/10', text: 'text-cyan-400', label: 'Estero', indemnity: '50M' },
-                    }
-                    const posColors = posColorMap[player.position] || { bg: 'bg-gradient-to-r from-gray-500 to-gray-600', text: 'text-white' }
-                    const cfg = exitConfig[player.exitReason]!
-                    const isFirstOfMember = idx === 0
-                    const memberRowSpan = member.indemnityPlayers.length
-
-                    return (
-                      <tr key={`${member.id}-${player.playerId}`} className={`border-t border-surface-50/10 ${cfg.bg}`}>
-                        {isFirstOfMember && (
-                          <td rowSpan={memberRowSpan} className="py-2 px-4 border-r border-surface-50/10 align-top">
-                            <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500/30 to-accent-500/30 flex items-center justify-center text-white font-bold text-xs">
-                                {member.teamName?.charAt(0) || '?'}
-                              </div>
-                              <div>
-                                <p className="font-medium text-white text-sm">{member.teamName}</p>
-                                <p className="text-[10px] text-gray-500">@{member.username}</p>
-                              </div>
-                            </div>
-                          </td>
-                        )}
-                        <td className="py-2 px-2 text-center">
-                          <div className={`w-7 h-7 mx-auto rounded-full ${posColors.bg} ${posColors.text} flex items-center justify-center text-xs font-bold`}>
-                            {player.position}
-                          </div>
-                        </td>
-                        <td className="py-2 px-3">
-                          <div className="flex items-center gap-2">
-                            <div className="w-7 h-7 bg-white rounded p-0.5 flex-shrink-0">
-                              <TeamLogo team={player.team} />
-                            </div>
-                            <div className="min-w-0">
-                              <span className="font-medium text-white text-sm">{player.playerName}</span>
-                              <div className="text-xs text-gray-500">{player.team}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-2 px-2 text-center text-gray-400 hidden lg:table-cell">
-                          {player.quotation}M
-                        </td>
-                        <td className="py-2 px-2 text-center text-primary-400 hidden lg:table-cell">
-                          {player.contract ? `${player.contract.salary}M/${player.contract.duration}a` : '-'}
-                        </td>
-                        <td className="py-2 px-3 text-center">
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${cfg.text} ${cfg.bg} border border-current/30`}>
-                            {cfg.label}
-                          </span>
-                        </td>
-                        <td className="py-2 px-4 text-right">
-                          {player.exitReason === 'ESTERO' ? (
-                            isAdmin && !config.isFinalized && !config.indemnityConsolidated ? (
-                              <div className="flex items-center justify-end gap-0.5">
-                                <button
-                                  type="button"
-                                  className="w-6 h-6 bg-surface-400 hover:bg-surface-500 text-white rounded text-sm font-bold flex items-center justify-center transition-colors disabled:opacity-50"
-                                  onClick={() => { void handleIndemnityChange(player.playerId, -1) }}
-                                  disabled={savingIndemnity === player.playerId || getIndemnityAmount(player.playerId) <= 0}
-                                >
-                                  −
-                                </button>
-                                <span className={`w-14 px-1 py-1 bg-surface-300 border border-cyan-500/30 rounded text-cyan-400 text-center text-sm font-medium ${savingIndemnity === player.playerId ? 'opacity-50' : ''}`}>
-                                  {getIndemnityAmount(player.playerId)}
-                                </span>
-                                <button
-                                  type="button"
-                                  className="w-6 h-6 bg-surface-400 hover:bg-surface-500 text-white rounded text-sm font-bold flex items-center justify-center transition-colors disabled:opacity-50"
-                                  onClick={() => { void handleIndemnityChange(player.playerId, 1) }}
-                                  disabled={savingIndemnity === player.playerId}
-                                >
-                                  +
-                                </button>
-                              </div>
-                            ) : (
-                              <span className="text-cyan-400 font-bold">{getIndemnityAmount(player.playerId)}M</span>
-                            )
-                          ) : (
-                            <span className="text-gray-500">−</span>
-                          )}
-                        </td>
-                      </tr>
-                    )
-                  })
-                )}
-              </tbody>
-              {/* Footer with totals */}
-              <tfoot>
-                <tr className="border-t-2 border-surface-50/30 bg-surface-300/30">
-                  <td colSpan={6} className="py-3 px-4 text-right text-gray-400 font-medium">
-                    Totale Indennizzi Estero:
-                  </td>
-                  <td className="py-3 px-4 text-right">
-                    <span className="text-cyan-400 font-bold text-lg">
-                      {members.flatMap(m => m.indemnityPlayers)
-                        .filter(p => p.exitReason === 'ESTERO')
-                        .reduce((sum, p) => sum + getIndemnityAmount(p.playerId), 0)}M
-                    </span>
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-
-          {/* Consolidate Indemnities Button - Only for admin when not yet consolidated and not finalized */}
-          {isAdmin && !config.indemnityConsolidated && !config.isFinalized && data.indemnityStats.byReason.ESTERO > 0 && (
-            <div className="p-4 border-t border-surface-50/20 bg-cyan-500/5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center">
-                    <span className="text-lg">💾</span>
-                  </div>
-                  <div>
-                    <p className="text-white font-medium text-sm">Consolida gli indennizzi</p>
-                    <p className="text-gray-500 text-xs">Conferma gli importi impostati sopra per mostrarli nella tabella premi</p>
-                  </div>
-                </div>
-                <Button
-                  onClick={() => void handleConsolidateIndemnities()}
-                  disabled={consolidatingIndemnities}
-                  className="bg-cyan-600 hover:bg-cyan-500"
-                >
-                  {consolidatingIndemnities ? 'Consolidamento...' : 'Consolida Indennizzi'}
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* Consolidated badge */}
-          {config.indemnityConsolidated && (
-            <div className="p-4 border-t border-surface-50/20 bg-green-500/5">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center">
-                  <span className="text-lg">✅</span>
-                </div>
-                <div>
-                  <p className="text-green-400 font-medium text-sm">Indennizzi consolidati</p>
-                  <p className="text-gray-500 text-xs">
-                    Consolidati il {config.indemnityConsolidatedAt ? new Date(config.indemnityConsolidatedAt).toLocaleString('it-IT') : '-'}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Legend */}
-          <div className="p-4 border-t border-surface-50/20 bg-surface-300/20">
-            <div className="flex flex-wrap gap-6 text-xs text-gray-400">
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded bg-gray-500/30"></span>
-                <span><strong>Ritirato:</strong> Contratto terminato, nessun compenso</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded bg-amber-500/30"></span>
-                <span><strong>Retrocesso:</strong> Il manager deciderà se mantenere o rilasciare</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded bg-cyan-500/30"></span>
-                <span><strong>Estero:</strong> Se il manager rilascia, riceve l'indennizzo</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Categories and Prizes Table - Admin only */}
-      {isAdmin && (
-        <div className="bg-surface-200 rounded-2xl border border-surface-50/20 overflow-hidden">
-          <div className="p-4 border-b border-surface-50/20">
-            <h3 className="text-lg font-bold text-white">Assegnazione Premi per Manager</h3>
-            <p className="text-sm text-gray-400 mt-1">Configura i premi budget per ogni manager</p>
-          </div>
-
-          {/* Desktop: Table View */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-yellow-500/10 text-xs text-gray-400 uppercase">
-                  <th className="text-left p-3">Manager / Squadra</th>
-                  <th className="text-center p-2 border-l border-surface-50/20">Budget</th>
-                  {regularCategories.map(cat => (
-                    <th key={cat.id} className="text-center p-2 min-w-[100px]">
-                      <div className="flex items-center justify-center gap-1">
-                        <span className="truncate">{cat.name}</span>
-                        {!cat.isSystemPrize && !config.isFinalized && (
-                          <button
-                            onClick={() => { void handleDeleteCategory(cat.id) }}
-                            className="text-danger-400 hover:text-danger-300 text-sm"
-                            title="Elimina categoria"
-                          >
-                            ×
-                          </button>
-                        )}
-                      </div>
-                    </th>
-                  ))}
-                  {/* Single column for total indemnities (read-only) - only show when consolidated */}
-                  {indemnityCategories.length > 0 && config.indemnityConsolidated && (
-                    <th className="text-center p-2 min-w-[100px] text-cyan-400">
-                      <span>Indennizzi</span>
-                    </th>
-                  )}
-                  <th className="text-center p-2 text-primary-400 font-bold border-l border-surface-50/20">Premio Tot.</th>
-                  <th className="text-center p-2 text-emerald-400 font-bold border-l border-surface-50/20">Budget Tot.</th>
-                </tr>
-              </thead>
-              <tbody>
-                {members.map(member => (
-                  <tr key={member.id} className="border-t border-surface-50/10 hover:bg-surface-300/30">
-                    <td className="p-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500/30 to-accent-500/30 flex items-center justify-center text-white font-bold">
-                          {member.teamName?.charAt(0) || '?'}
-                        </div>
-                        <div>
-                          <p className="text-white font-medium">{member.teamName || 'Senza nome'}</p>
-                          <p className="text-gray-500 text-xs">@{member.username}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="p-2 text-center border-l border-surface-50/20">
-                      <span className="text-accent-400 font-medium">{member.currentBudget}M</span>
-                    </td>
-                    {regularCategories.map(cat => {
-                      const prize = cat.prizes.find(p => p.memberId === member.id)
-                      const savedValue = editingPrizes[cat.id]?.[member.id] ?? prize?.amount ?? 0
-                      const isFocused = focusedInput?.catId === cat.id && focusedInput?.memberId === member.id
-
-                      const handleFocus = () => {
-                        setFocusedInput({ catId: cat.id, memberId: member.id, originalValue: savedValue })
-                        setInputDisplayValue('')
-                      }
-
-                      const handleBlur = () => {
-                        if (inputDisplayValue === '' && focusedInput) {
-                          // Restore original value if nothing was entered
-                          setFocusedInput(null)
-                          setInputDisplayValue('')
-                        } else if (inputDisplayValue !== '') {
-                          // Save the new value
-                          const newValue = parseInt(inputDisplayValue, 10)
-                          if (!isNaN(newValue) && newValue >= 0) {
-                            handlePrizeChange(cat.id, member.id, newValue)
-                            void handleSavePrize(cat.id, member.id, newValue)
-                          }
-                          setFocusedInput(null)
-                          setInputDisplayValue('')
-                        } else {
-                          setFocusedInput(null)
-                        }
-                      }
-
-                      const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-                        setInputDisplayValue(e.target.value)
-                      }
-
-                      const handleIncrement = () => {
-                        const newValue = savedValue + 1
-                        handlePrizeChange(cat.id, member.id, newValue)
-                        void handleSavePrize(cat.id, member.id, newValue)
-                      }
-
-                      const handleDecrement = () => {
-                        const newValue = Math.max(0, savedValue - 1)
-                        handlePrizeChange(cat.id, member.id, newValue)
-                        void handleSavePrize(cat.id, member.id, newValue)
-                      }
-
-                      return (
-                        <td key={cat.id} className="text-center py-2 px-1">
-                          {config.isFinalized ? (
-                            <span className="text-gray-300">{prize?.amount ?? 0}M</span>
-                          ) : (
-                            <div className="flex items-center justify-center gap-0.5">
-                              <button
-                                onClick={handleDecrement}
-                                className="w-6 h-6 bg-surface-400 hover:bg-surface-500 text-white rounded text-sm font-bold flex items-center justify-center"
-                                disabled={isSubmitting || savedValue === 0}
-                              >
-                                -
-                              </button>
-                              <input
-                                type="number"
-                                inputMode="decimal"
-                                value={isFocused ? inputDisplayValue : savedValue}
-                                onChange={handleInputChange}
-                                onFocus={handleFocus}
-                                onBlur={handleBlur}
-                                className="w-14 px-1 py-1 bg-surface-300 border border-surface-50/20 rounded text-white text-center text-sm"
-                                min={0}
-                                placeholder={isFocused ? String(focusedInput?.originalValue) : ''}
-                              />
-                              <button
-                                onClick={handleIncrement}
-                                className="w-6 h-6 bg-surface-400 hover:bg-surface-500 text-white rounded text-sm font-bold flex items-center justify-center"
-                                disabled={isSubmitting}
-                              >
-                                +
-                              </button>
-                            </div>
-                          )}
-                        </td>
-                      )
-                    })}
-                    {/* Single column showing total indemnities (read-only) - only show when consolidated */}
-                    {indemnityCategories.length > 0 && config.indemnityConsolidated && (
-                      <td className="text-center py-2 px-1">
-                        <span className="text-cyan-400 font-medium">
-                          {calculateMemberIndemnityTotal(member.id)}M
-                        </span>
-                      </td>
-                    )}
-                    <td className="text-center p-2 border-l border-surface-50/20">
-                      <span className="text-primary-400 font-bold text-lg">
-                        {calculateMemberTotal(member.id)}M
-                      </span>
-                    </td>
-                    <td className="text-center p-2 border-l border-surface-50/20">
-                      <span className="text-emerald-400 font-bold text-lg">
-                        {member.currentBudget + calculateMemberTotal(member.id)}M
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Mobile: Card View */}
-          <div className="md:hidden p-4 space-y-4">
-            {members.map(member => (
-              <div key={member.id} className="bg-surface-300 rounded-xl p-4 border border-surface-50/20">
-                {/* Header: Manager info */}
-                <div className="flex items-center gap-3 mb-3 pb-3 border-b border-surface-50/20">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary-500/30 to-accent-500/30 flex items-center justify-center text-white font-bold text-lg">
-                    {member.teamName?.charAt(0) || '?'}
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-white font-bold">{member.teamName || 'Senza nome'}</p>
-                    <p className="text-gray-400 text-sm">@{member.username}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-primary-400 font-bold text-lg">{calculateMemberTotal(member.id)}M</p>
-                    <p className="text-gray-500 text-xs">Premio totale</p>
-                  </div>
-                </div>
-
-                {/* Budget */}
-                <div className="flex items-center justify-between mb-2 text-sm">
-                  <span className="text-gray-400">Budget attuale:</span>
-                  <span className="text-accent-400 font-medium">{member.currentBudget}M</span>
-                </div>
-                <div className="flex items-center justify-between mb-3 text-sm">
-                  <span className="text-gray-400">Budget totale:</span>
-                  <span className="text-emerald-400 font-bold">{member.currentBudget + calculateMemberTotal(member.id)}M</span>
-                </div>
-
-                {/* Prizes */}
-                <div className="space-y-2">
-                  {regularCategories.map(cat => {
-                    const prize = cat.prizes.find(p => p.memberId === member.id)
-                    const savedValue = editingPrizes[cat.id]?.[member.id] ?? prize?.amount ?? 0
-
-                    return (
-                      <div key={cat.id} className="flex items-center justify-between">
-                        <span className="text-gray-300 text-sm truncate flex-1">{cat.name}</span>
-                        {config.isFinalized ? (
-                          <span className="text-gray-300 font-medium">{savedValue}M</span>
-                        ) : (
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={() => {
-                                const newValue = Math.max(0, savedValue - 1)
-                                handlePrizeChange(cat.id, member.id, newValue)
-                                void handleSavePrize(cat.id, member.id, newValue)
-                              }}
-                              className="w-8 h-8 bg-surface-400 text-white rounded font-bold"
-                              disabled={isSubmitting || savedValue === 0}
-                            >-</button>
-                            <span className="w-14 text-center text-white font-medium">{savedValue}M</span>
-                            <button
-                              onClick={() => {
-                                const newValue = savedValue + 1
-                                handlePrizeChange(cat.id, member.id, newValue)
-                                void handleSavePrize(cat.id, member.id, newValue)
-                              }}
-                              className="w-8 h-8 bg-surface-400 text-white rounded font-bold"
-                              disabled={isSubmitting}
-                            >+</button>
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })}
-                  {/* Single row for total indemnities (read-only) - only show when consolidated */}
-                  {indemnityCategories.length > 0 && config.indemnityConsolidated && (
-                    <div className="flex items-center justify-between pt-2 border-t border-surface-50/20">
-                      <span className="text-cyan-400 text-sm font-medium">Indennizzi</span>
-                      <span className="text-cyan-400 font-medium">{calculateMemberIndemnityTotal(member.id)}M</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Add category - only if not finalized */}
-          {!config.isFinalized && (
-            <div className="mt-4 pt-4 border-t border-surface-50/20">
-              <div className="flex items-center gap-3">
-                <input
-                  type="text"
-                  value={newCategoryName}
-                  onChange={(e) => { setNewCategoryName(e.target.value); }}
-                  placeholder="Nome nuova categoria (es. Classifica Portieri)"
-                  className="flex-1 px-3 py-2 bg-surface-300 border border-surface-50/20 rounded-lg text-white placeholder-gray-500"
-                />
-                <Button
-                  onClick={() => void handleCreateCategory()}
-                  disabled={!newCategoryName.trim() || isSubmitting}
-                >
-                  Aggiungi Categoria
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Summary for managers (non-admin) */}
-      {!isAdmin && (
-        <div className="bg-surface-200 rounded-2xl border border-surface-50/20 overflow-hidden">
-          {/* Header with status */}
-          <div className={`p-4 border-b border-surface-50/20 ${config.isFinalized ? 'bg-green-500/10' : 'bg-yellow-500/10'}`}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${config.isFinalized ? 'bg-green-500/20' : 'bg-yellow-500/20'}`}>
-                  <span className="text-xl">{config.isFinalized ? '✅' : '⏳'}</span>
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-white">Assegnazione Premi</h3>
-                  <p className="text-sm text-gray-400">
-                    {config.isFinalized
-                      ? `Convalidati il ${new Date(config.finalizedAt!).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`
-                      : 'In attesa di convalida da parte dell\'admin lega'}
-                  </p>
-                </div>
-              </div>
-              <span className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase ${
-                config.isFinalized
-                  ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                  : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
-              }`}>
-                {config.isFinalized ? 'Convalidato' : 'In attesa'}
-              </span>
-            </div>
-          </div>
-
-          {/* Content */}
-          <div className="p-6">
-            {config.isFinalized ? (
-              <div className="space-y-3">
-                {members.map(member => (
-                  <div key={member.id} className="flex items-center justify-between p-3 bg-surface-300 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500/30 to-accent-500/30 flex items-center justify-center text-white font-bold">
-                        {member.teamName?.charAt(0) || '?'}
-                      </div>
-                      <div>
-                        <p className="text-white font-medium">{member.teamName}</p>
-                        <p className="text-gray-500 text-xs">@{member.username}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-green-400 font-bold text-lg">+{member.totalPrize}M</p>
-                      <p className="text-gray-500 text-xs">Budget: {member.currentBudget}M</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-6">
-                <div className="w-16 h-16 bg-yellow-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-3xl">⏳</span>
-                </div>
-                <p className="text-gray-300 font-medium mb-2">Premi non ancora convalidati</p>
-                <p className="text-gray-500 text-sm">L'admin della lega deve ancora finalizzare l'assegnazione dei premi.</p>
-                <div className="mt-4 p-3 bg-surface-300 rounded-lg inline-block">
-                  <p className="text-gray-400 text-sm">Re-incremento base garantito:</p>
-                  <p className="text-primary-400 font-bold text-xl">{config.baseReincrement}M</p>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Finalize button - Admin only */}
-      {isAdmin && !config.isFinalized && (
-        <div className="bg-surface-200 rounded-2xl border border-surface-50/20 p-6">
-          <h3 className="text-lg font-bold text-white mb-4">Finalizza Premi</h3>
-          <p className="text-gray-400 mb-4">
-            Una volta finalizzati, i premi verranno accreditati sui budget dei manager e non potranno essere modificati.
-          </p>
-
-          {!showFinalizeConfirm ? (
-            <Button
-              onClick={() => { setShowFinalizeConfirm(true); }}
-              disabled={isSubmitting}
-            >
-              Finalizza Premi
-            </Button>
-          ) : (
-            <div className="flex items-center gap-3 bg-warning-500/20 p-4 rounded-lg">
-              <span className="text-warning-400">Confermi la finalizzazione dei premi?</span>
-              <Button
-                size="sm"
-                onClick={() => void handleFinalize()}
-                disabled={isSubmitting}
-              >
-                Conferma
+            <span className="micro-label">milioni</span>
+            <div className="flex items-center gap-2 ml-auto">
+              <Button size="sm" onClick={() => void handleUpdateBaseReincrement()} disabled={isSubmitting}>
+                Salva
               </Button>
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => { setShowFinalizeConfirm(false); }}
+                onClick={() => {
+                  setEditingBaseReincrement(false)
+                  setBaseReincrementValue(config.baseReincrement)
+                }}
               >
                 Annulla
               </Button>
             </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-4">
+            <span className="stat-number text-3xl text-accent-400">{config.baseReincrement}M</span>
+            <span className="text-sm text-gray-500">uguale per tutti i manager</span>
+            {!config.isFinalized && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="ml-auto"
+                onClick={() => { setEditingBaseReincrement(true) }}
+              >
+                Modifica
+              </Button>
+            )}
+          </div>
+        )}
+      </StepCard>
+
+      {/* Step 2 - Indemnities (decision zone) */}
+      {hasIndemnityPlayers && (
+        <StepCard
+          num={2}
+          title="Indennizzi · giocatori usciti"
+          chipLabel={config.indemnityConsolidated ? 'Consolidati' : hasEsteroIndemnities ? 'Da consolidare' : 'Nessun estero'}
+          chipKind={config.indemnityConsolidated ? 'ok' : hasEsteroIndemnities ? 'todo' : 'ok'}
+          zone={step2NeedsAction}
+          done={config.indemnityConsolidated}
+        >
+          <IndemnityTable
+            members={members}
+            getAmount={getIndemnityAmount}
+            editable={!config.isFinalized && !config.indemnityConsolidated}
+            savingPlayerId={savingIndemnity}
+            onAmountChange={(playerId, newAmount) => { void handleIndemnityChange(playerId, newAmount) }}
+          />
+
+          {!config.indemnityConsolidated && !config.isFinalized && hasEsteroIndemnities && (
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 mt-4 pt-4 border-t border-surface-50/20">
+              <p className="text-sm text-accent-400">
+                Una volta consolidati, gli indennizzi non sono più modificabili.
+              </p>
+              <Button
+                className="sm:ml-auto"
+                onClick={() => void handleConsolidateIndemnities()}
+                disabled={consolidatingIndemnities}
+              >
+                {consolidatingIndemnities ? 'Consolidamento...' : 'Consolida indennizzi'}
+              </Button>
+            </div>
           )}
-        </div>
+
+          {config.indemnityConsolidated && (
+            <p className="text-sm text-secondary-400 mt-4 pt-4 border-t border-surface-50/20">
+              Indennizzi consolidati il{' '}
+              {config.indemnityConsolidatedAt
+                ? new Date(config.indemnityConsolidatedAt).toLocaleString('it-IT')
+                : '-'}
+            </p>
+          )}
+        </StepCard>
+      )}
+
+      {/* Step 3 - Prize assignment */}
+      <StepCard
+        num={3}
+        title="Assegnazione premi"
+        chipLabel={totalCategories > 0 ? `${assignedCategories}/${totalCategories} categorie` : 'Nessuna categoria'}
+        chipKind={step3Status === 'done' ? 'ok' : 'todo'}
+        done={step3Status === 'done'}
+      >
+        <PrizeAssignmentTable
+          members={members}
+          categories={regularCategories}
+          isFinalized={config.isFinalized}
+          showIndemnities={showIndemnities}
+          getPrizeAmount={getPrizeAmount}
+          getIndemnityTotal={calculateMemberIndemnityTotal}
+          getMemberTotal={calculateMemberTotal}
+          onPrizeChange={(catId, memberId, value) => { void handleSavePrize(catId, memberId, value) }}
+          onDeleteCategory={(catId) => { void handleDeleteCategory(catId) }}
+        />
+
+        {!config.isFinalized && (
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mt-4 pt-4 border-t border-surface-50/20">
+            <Input
+              value={newCategoryName}
+              onChange={(e) => { setNewCategoryName(e.target.value) }}
+              placeholder="Nome nuova categoria (es. Classifica Portieri)"
+              className="flex-1"
+            />
+            <Button
+              onClick={() => void handleCreateCategory()}
+              disabled={!newCategoryName.trim() || isSubmitting}
+            >
+              + Categoria
+            </Button>
+          </div>
+        )}
+      </StepCard>
+
+      {/* Step 4 - Finalize (decision zone) */}
+      {!config.isFinalized && (
+        <StepCard
+          num={4}
+          title="Finalizza fase premi"
+          chipLabel={step4Available ? 'Pronto' : 'Bloccato'}
+          chipKind={step4Available ? 'todo' : 'locked'}
+          zone={step4Available}
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <p className="text-sm text-gray-400">
+              {step4Available ? (
+                <>
+                  La finalizzazione accredita i premi ai budget dei manager ed è{' '}
+                  <b className="text-danger-400">irreversibile</b>.
+                </>
+              ) : (
+                <>
+                  Per finalizzare devi prima{' '}
+                  <b className="text-accent-400">consolidare gli indennizzi</b> (step 2). La
+                  finalizzazione accredita i premi ai budget ed è{' '}
+                  <b className="text-danger-400">irreversibile</b>.
+                </>
+              )}
+            </p>
+            <Button
+              className="sm:ml-auto"
+              onClick={() => void handleFinalize()}
+              disabled={isSubmitting || !step4Available}
+            >
+              Finalizza premi
+            </Button>
+          </div>
+        </StepCard>
       )}
     </div>
   )
