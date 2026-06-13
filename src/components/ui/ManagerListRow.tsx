@@ -23,6 +23,8 @@ export interface ManagerListRowProps {
   smallValue?: React.ReactNode
   /** Pallino di connessione sull'avatar (true verde, false rosso, undefined nascosto) */
   connectedDot?: boolean | null
+  /** Sostituisce il monogramma con un badge custom (es. numero di turno) */
+  leadingBadge?: React.ReactNode
   onClick?: () => void
   title?: string
 }
@@ -44,6 +46,7 @@ export const ManagerListRow = memo(function ManagerListRow({
   bigValueGold = false,
   smallValue,
   connectedDot,
+  leadingBadge,
   onClick,
   title,
 }: ManagerListRowProps) {
@@ -57,13 +60,15 @@ export const ManagerListRow = memo(function ManagerListRow({
 
   return (
     <div onClick={onClick} title={title} className={rowClass}>
-      {/* Avatar */}
+      {/* Avatar (monogramma o badge custom, es. numero di turno) */}
       <span className="relative flex-shrink-0">
-        <Monogram
-          name={name}
-          size="md"
-          className={isMe ? 'border-accent-500/60 text-accent-400' : ''}
-        />
+        {leadingBadge ?? (
+          <Monogram
+            name={name}
+            size="md"
+            className={isMe ? 'border-accent-500/60 text-accent-400' : ''}
+          />
+        )}
         {connectedDot != null && (
           <span
             className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border-2 border-surface-200 ${

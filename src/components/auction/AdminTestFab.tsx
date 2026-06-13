@@ -1,42 +1,37 @@
 import { useState } from 'react'
 import { FlaskConical, X } from 'lucide-react'
-import { AdminControlsPanel } from './AdminControlsPanel'
 
 /**
  * I controlli di test esistono solo per le sessioni di prova: visibili in dev
  * (npm run dev / dev:local) o forzabili in build con VITE_TEST_CONTROLS=true.
  * In produzione il FAB sparisce per costruzione.
  */
-const TEST_CONTROLS_ENABLED =
+export const TEST_CONTROLS_ENABLED =
   import.meta.env.DEV || import.meta.env.VITE_TEST_CONTROLS === 'true'
 
 interface AdminTestFabProps {
   isAdmin: boolean
-  hasAuction: boolean
-  onBotNominate?: () => void
-  onBotConfirmNomination?: () => void
-  onBotBid?: () => void
-  onForceAllReady?: () => void
-  onForceAcknowledgeAll?: () => void
-  onCompleteAllSlots?: () => void
-  onResetFirstMarket?: () => void
+  /** Contenuto del pannello test (specifico per sala asta / svincolati / …) */
+  children: React.ReactNode
+  /** Larghezza del pannello aperto (default 18rem) */
+  panelClassName?: string
 }
 
 /**
- * Floating button per i Controlli Admin (TEST) della sala asta: il pannello
- * non occupa più spazio nella maschera (l'admin vede la stessa sala dei
- * manager) e si apre on demand in overlay sopra il cockpit.
+ * Floating button per i Controlli Admin (TEST): il pannello non occupa spazio
+ * nella maschera (l'admin vede la stessa sala dei manager) e si apre on demand
+ * in overlay sopra il cockpit. Guscio generico — il contenuto arriva via children.
  */
-export function AdminTestFab(props: AdminTestFabProps) {
+export function AdminTestFab({ isAdmin, children, panelClassName = 'w-72' }: AdminTestFabProps) {
   const [open, setOpen] = useState(false)
 
-  if (!props.isAdmin || !TEST_CONTROLS_ENABLED) return null
+  if (!isAdmin || !TEST_CONTROLS_ENABLED) return null
 
   return (
     <div className="fixed bottom-20 lg:bottom-4 right-4 z-50 flex flex-col items-end gap-2">
       {open && (
-        <div className="w-72 max-h-[70vh] overflow-y-auto rounded-xl shadow-card-hover">
-          <AdminControlsPanel {...props} />
+        <div className={`${panelClassName} max-h-[70vh] overflow-y-auto rounded-xl shadow-card-hover`}>
+          {children}
         </div>
       )}
       <button

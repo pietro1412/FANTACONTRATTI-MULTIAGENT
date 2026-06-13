@@ -8,6 +8,7 @@ import { MyPortfolio } from './MyPortfolio'
 import { MobileSidePanel } from './MobileSidePanel'
 import { MobileBottomBar } from './MobileBottomBar'
 import { AdminActionsPanel } from './AdminActionsPanel'
+import { AdminControlsPanel } from '../auction/AdminControlsPanel'
 import { AdminTestFab } from '../auction/AdminTestFab'
 import type { AuctionViewProps } from './types'
 
@@ -130,17 +131,19 @@ export function AuctionRoomLayout(props: AuctionViewProps) {
       </div>
 
       {/* Controlli admin di TEST in floating button (solo dev/test, sparisce in produzione) */}
-      <AdminTestFab
-        isAdmin={props.isAdmin}
-        hasAuction={!!props.auction}
-        onBotNominate={props.onBotNominate}
-        onBotConfirmNomination={props.onBotConfirmNomination}
-        onBotBid={props.onBotBid}
-        onForceAllReady={props.onForceAllReady}
-        onForceAcknowledgeAll={props.onForceAcknowledgeAll}
-        onCompleteAllSlots={props.onCompleteAllSlots}
-        onResetFirstMarket={props.onResetFirstMarket}
-      />
+      <AdminTestFab isAdmin={props.isAdmin}>
+        <AdminControlsPanel
+          isAdmin={props.isAdmin}
+          hasAuction={!!props.auction}
+          onBotNominate={props.onBotNominate}
+          onBotConfirmNomination={props.onBotConfirmNomination}
+          onBotBid={props.onBotBid}
+          onForceAllReady={props.onForceAllReady}
+          onForceAcknowledgeAll={props.onForceAcknowledgeAll}
+          onCompleteAllSlots={props.onCompleteAllSlots}
+          onResetFirstMarket={props.onResetFirstMarket}
+        />
+      </AdminTestFab>
 
       {/* Mobile: sticky bottom bid controls during auction */}
       <MobileBottomBar

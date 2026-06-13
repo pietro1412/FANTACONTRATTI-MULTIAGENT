@@ -379,10 +379,10 @@ describe('Svincolati', () => {
 
     render(<Svincolati leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    // "IL TUO TURNO" appears in both the turn banner and the selection panel
+    // "il tuo turno" appears in both the turn banner and the arena prompt
     expect(screen.getAllByText(/il tuo turno/i).length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText('Mario Rossi')).toBeInTheDocument()
-    expect(screen.getByText(/Passo \(non chiamo più\)/)).toBeInTheDocument()
+    expect(screen.getByText(/Passo — non chiamo più/)).toBeInTheDocument()
   })
 
   // ---- Not my turn: Waiting ----
@@ -406,7 +406,7 @@ describe('Svincolati', () => {
 
     render(<Svincolati leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    expect(screen.getByText('In attesa...')).toBeInTheDocument()
+    expect(screen.getByText(/In attesa/)).toBeInTheDocument()
   })
 
   // ---- Completed state ----
@@ -427,7 +427,7 @@ describe('Svincolati', () => {
 
     render(<Svincolati leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    expect(screen.getByText('Fase Svincolati Completata!')).toBeInTheDocument()
+    expect(screen.getByText('Fase Svincolati completata!')).toBeInTheDocument()
     expect(screen.getByText('Tutti i manager hanno terminato le chiamate.')).toBeInTheDocument()
   })
 
@@ -572,7 +572,7 @@ describe('Svincolati', () => {
     expect(screen.getByText('Conferma la tua scelta')).toBeInTheDocument()
     expect(screen.getByText('Mario Rossi')).toBeInTheDocument()
     expect(screen.getByText('Juventus')).toBeInTheDocument()
-    expect(screen.getByText(/CONFERMA/)).toBeInTheDocument()
+    expect(screen.getByText('Conferma')).toBeInTheDocument()
     expect(screen.getByText('Cambia')).toBeInTheDocument()
   })
 
@@ -590,7 +590,7 @@ describe('Svincolati', () => {
 
     render(<Svincolati leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    await user.click(screen.getByText(/CONFERMA/))
+    await user.click(screen.getByText('Conferma'))
     expect(mockHandleConfirmNomination).toHaveBeenCalled()
   })
 
@@ -628,9 +628,8 @@ describe('Svincolati', () => {
     render(<Svincolati leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
     expect(screen.getByText('OtherUser ha chiamato')).toBeInTheDocument()
-    expect(screen.getByText('DG pronti')).toBeInTheDocument()
-    expect(screen.getByText('1/2')).toBeInTheDocument()
-    expect(screen.getByText('SONO PRONTO')).toBeInTheDocument()
+    expect(screen.getByText(/Pronti 1\/2/)).toBeInTheDocument()
+    expect(screen.getByText('Sono pronto')).toBeInTheDocument()
   })
 
   // ---- NOMINATION: mark ready handler ----
@@ -649,7 +648,7 @@ describe('Svincolati', () => {
 
     render(<Svincolati leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    await user.click(screen.getByText('SONO PRONTO'))
+    await user.click(screen.getByText('Sono pronto'))
     expect(mockHandleMarkReady).toHaveBeenCalled()
   })
 
@@ -668,7 +667,7 @@ describe('Svincolati', () => {
 
     render(<Svincolati leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    expect(screen.getByText(/Pronto - In attesa degli altri/)).toBeInTheDocument()
+    expect(screen.getByText(/Pronto — in attesa degli altri/)).toBeInTheDocument()
   })
 
   // ---- AUCTION: active auction with bids ----
@@ -693,16 +692,15 @@ describe('Svincolati', () => {
 
     render(<Svincolati leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    expect(screen.getByText('Asta in Corso')).toBeInTheDocument()
+    expect(screen.getByText(/Asta svincolato · in corso/)).toBeInTheDocument()
     expect(screen.getByText('Mario Rossi')).toBeInTheDocument()
-    // "15" appears in both the main price display and the bid history — use getAllByText
-    expect(screen.getAllByText('15').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getByText('Offerta Attuale')).toBeInTheDocument()
-    expect(screen.getByText('di OtherUser')).toBeInTheDocument()
-    expect(screen.getByText('Offri')).toBeInTheDocument()
-    expect(screen.getByText('Storico Offerte')).toBeInTheDocument()
-    expect(screen.getByText('2 offerte')).toBeInTheDocument()
-    expect(screen.getByText('Tempo rimanente')).toBeInTheDocument()
+    // "15M" appears in the price display and "15M" chip — use getAllByText
+    expect(screen.getAllByText(/15M/).length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText('Offerta attuale')).toBeInTheDocument()
+    // bidder name appears in the price box, the chips, and the DG list
+    expect(screen.getAllByText(/OtherUser/).length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText(/Offri/)).toBeInTheDocument()
+    expect(screen.getByText('Ultime offerte')).toBeInTheDocument()
   })
 
   // ---- AUCTION: bid button calls handleBid ----
@@ -724,7 +722,7 @@ describe('Svincolati', () => {
 
     render(<Svincolati leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    await user.click(screen.getByText('Offri'))
+    await user.click(screen.getByText(/Offri/))
     expect(mockHandleBid).toHaveBeenCalled()
   })
 
@@ -745,7 +743,7 @@ describe('Svincolati', () => {
 
     render(<Svincolati leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    expect(screen.getByText(/Base d'asta: 10/)).toBeInTheDocument()
+    expect(screen.getByText(/Base d'asta:/)).toBeInTheDocument()
   })
 
   // ---- AUCTION: isUserWinning shows badge ----
@@ -766,7 +764,7 @@ describe('Svincolati', () => {
 
     render(<Svincolati leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    expect(screen.getByText('Stai vincendo!')).toBeInTheDocument()
+    expect(screen.getByText('Stai vincendo')).toBeInTheDocument()
   })
 
   // ---- AUCTION: current user bid highlighted with (TU) ----
@@ -787,12 +785,12 @@ describe('Svincolati', () => {
 
     render(<Svincolati leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    expect(screen.getByText(/di TestUser/)).toBeInTheDocument()
-    expect(screen.getByText(/\(TU\)/)).toBeInTheDocument()
+    // il mio rilancio in testa è etichettato "offerta tua" nel box prezzo
+    expect(screen.getByText(/offerta tua/)).toBeInTheDocument()
   })
 
-  // ---- AUCTION: timer near expiry shows "Affrettati!" ----
-  it('shows "Affrettati!" warning when timer is <= 10 seconds', () => {
+  // ---- AUCTION: timer near expiry shows countdown ----
+  it('shows the formatted countdown when timer is running', () => {
     hookOverrides = {
       board: makeAuctionBoard({
         state: 'AUCTION',
@@ -801,6 +799,7 @@ describe('Svincolati', () => {
           currentPrice: 10,
           basePrice: 10,
           timerExpiresAt: new Date(Date.now() + 5000).toISOString(),
+          timerSeconds: 20,
           bids: [],
         },
       }) as never,
@@ -809,7 +808,7 @@ describe('Svincolati', () => {
 
     render(<Svincolati leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    expect(screen.getByText('Affrettati!')).toBeInTheDocument()
+    expect(screen.getByText('0:05')).toBeInTheDocument()
   })
 
   // ---- AUCTION: finished user sees disabled bid and "Finito" label ----
@@ -831,8 +830,8 @@ describe('Svincolati', () => {
 
     render(<Svincolati leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    expect(screen.getByText('Finito')).toBeInTheDocument()
-    expect(screen.getByText(/Hai dichiarato di aver finito questa fase/)).toBeInTheDocument()
+    expect(screen.getAllByText(/Hai dichiarato di aver finito/).length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText(/Non puoi più fare offerte/)).toBeInTheDocument()
   })
 
   // ---- AUCTION: admin sees "Chiudi Asta Manualmente" ----
@@ -853,7 +852,7 @@ describe('Svincolati', () => {
 
     render(<Svincolati leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    expect(screen.getByText('Chiudi Asta Manualmente')).toBeInTheDocument()
+    expect(screen.getByText('Chiudi asta manualmente')).toBeInTheDocument()
   })
 
   // ---- Admin controls panel: timer, pause, test buttons ----
@@ -874,14 +873,12 @@ describe('Svincolati', () => {
 
     render(<Svincolati leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    expect(screen.getByText('Controlli Admin')).toBeInTheDocument()
-    expect(screen.getByText('Timer Asta')).toBeInTheDocument()
+    expect(screen.getByText('Timer')).toBeInTheDocument()
     expect(screen.getByText('10s')).toBeInTheDocument()
     expect(screen.getByText('30s')).toBeInTheDocument()
     expect(screen.getByText('60s')).toBeInTheDocument()
     expect(screen.getByText('Pausa')).toBeInTheDocument()
-    expect(screen.getByText('Test Mode')).toBeInTheDocument()
-    expect(screen.getByText('Termina Fase')).toBeInTheDocument()
+    expect(screen.getByText('Termina fase')).toBeInTheDocument()
   })
 
   // ---- PAUSED state shows resume button ----
@@ -908,19 +905,20 @@ describe('Svincolati', () => {
           { id: 'member1', username: 'TestUser', budget: 200, hasPassed: false, isConnected: true },
           { id: 'm2', username: 'OtherUser', budget: 150, hasPassed: false, isConnected: true },
           { id: 'm3', username: 'PassedUser', budget: 100, hasPassed: true, isConnected: false },
+          { id: 'm4', username: 'DoneUser', budget: 80, hasPassed: false, isConnected: true },
         ],
-        finishedMembers: ['m3'],
+        finishedMembers: ['m4'],
       }) as never,
     }
 
     render(<Svincolati leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    expect(screen.getByText('Direttori Generali')).toBeInTheDocument()
+    expect(screen.getByText(/Direttori Generali/)).toBeInTheDocument()
     // "TestUser" appears in the DG list; "OtherUser" appears in both turn banner and DG list
     expect(screen.getAllByText('TestUser').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getByText('(tu)')).toBeInTheDocument()
+    expect(screen.getByText('TU')).toBeInTheDocument()
     expect(screen.getAllByText(/OtherUser/).length).toBeGreaterThanOrEqual(1)
-    expect(screen.getByText('TURNO')).toBeInTheDocument()
+    expect(screen.getByText(/Sta chiamando/)).toBeInTheDocument()
     expect(screen.getByText('PASS')).toBeInTheDocument()
     expect(screen.getByText('FINITO')).toBeInTheDocument()
   })
@@ -937,7 +935,7 @@ describe('Svincolati', () => {
 
     render(<Svincolati leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    const btn = screen.getByText(/Ho Finito/)
+    const btn = screen.getByText(/Ho finito/)
     expect(btn).toBeInTheDocument()
     await user.click(btn)
     expect(mockHandleDeclareFinished).toHaveBeenCalled()
@@ -954,12 +952,13 @@ describe('Svincolati', () => {
 
     render(<Svincolati leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    expect(screen.getByText('Hai dichiarato di aver finito')).toBeInTheDocument()
-    expect(screen.getByText(/Non puoi più fare offerte/)).toBeInTheDocument()
+    expect(screen.getByText(/Hai dichiarato di aver finito/)).toBeInTheDocument()
+    expect(screen.getByText(/non fai più offerte/)).toBeInTheDocument()
   })
 
-  // ---- DG list: admin can force all finished ----
-  it('shows "Simula Tutti Finiti" for admin when not all members are finished', () => {
+  // ---- Test FAB: admin can force all finished (test controls in floating button) ----
+  it('shows "Simula Tutti Finiti" inside the test FAB for admin when not all are finished', async () => {
+    const user = userEvent.setup()
     hookOverrides = {
       board: makeAuctionBoard({
         state: 'READY_CHECK',
@@ -970,11 +969,14 @@ describe('Svincolati', () => {
 
     render(<Svincolati leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
+    // i controlli di test vivono nel floating button, chiuso di default
+    expect(screen.queryByText(/Simula Tutti Finiti/)).not.toBeInTheDocument()
+    await user.click(screen.getByLabelText('Apri controlli admin di test'))
     expect(screen.getByText(/Simula Tutti Finiti/)).toBeInTheDocument()
   })
 
-  // ---- DG list: admin "Chiudi Fase" when all finished ----
-  it('shows "Chiudi Fase Svincolati" for admin when all members finished', () => {
+  // ---- Admin: "Termina fase" sempre disponibile nella barra admin ----
+  it('shows "Termina fase" in the admin bar', () => {
     hookOverrides = {
       board: makeAuctionBoard({
         state: 'READY_CHECK',
@@ -985,7 +987,7 @@ describe('Svincolati', () => {
 
     render(<Svincolati leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    expect(screen.getByText('Chiudi Fase Svincolati')).toBeInTheDocument()
+    expect(screen.getByText('Termina fase')).toBeInTheDocument()
   })
 
   // ---- Finish confirm modal ----
@@ -1342,9 +1344,8 @@ describe('Svincolati', () => {
 
     render(<Svincolati leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    const dot = document.querySelector('[title="Real-time disconnesso"]')
-    expect(dot).toBeTruthy()
-    expect(dot?.classList.contains('bg-red-400')).toBe(true)
+    // la testata cockpit mostra lo stato "Disconnesso" quando Pusher è giù
+    expect(screen.getByText('Disconnesso')).toBeInTheDocument()
   })
 
   // ---- PENDING_ACK spinner in center column ----
@@ -1364,7 +1365,7 @@ describe('Svincolati', () => {
 
     render(<Svincolati leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    expect(screen.getByText('Conferma transazione in corso...')).toBeInTheDocument()
+    expect(screen.getByText(/Conferma transazione in corso/)).toBeInTheDocument()
   })
 
   // ---- COMPLETED header shows "Fase completata" subtitle ----
@@ -1419,7 +1420,7 @@ describe('Svincolati', () => {
 
     render(<Svincolati leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    await user.click(screen.getByText(/Passo \(non chiamo più\)/))
+    await user.click(screen.getByText(/Passo — non chiamo più/))
     expect(mockHandlePassTurn).toHaveBeenCalled()
   })
 
@@ -1433,6 +1434,7 @@ describe('Svincolati', () => {
 
     render(<Svincolati leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    expect(screen.getByText('1/2 manager hanno finito')).toBeInTheDocument()
+    // progresso "finiti" mostrato sia nella barra admin sia nel piè della colonna DG
+    expect(screen.getAllByText(/1\/2/).length).toBeGreaterThanOrEqual(1)
   })
 })

@@ -20,6 +20,8 @@ export interface BidControlsSharedProps {
   disabledLabel?: string
   /** T-003: connessione persa — banner e controlli disabilitati */
   isConnected?: boolean
+  /** Verbo del bottone principale: "Rilancia" (default) o "Offri" (svincolati) */
+  actionLabel?: string
   /** Spaziature ridotte (arena orizzontale rubata) */
   compact?: boolean
 }
@@ -45,6 +47,7 @@ export function BidControlsShared({
   isDisabled = false,
   disabledLabel = 'Scaduto',
   isConnected = true,
+  actionLabel = 'Rilancia',
 }: BidControlsSharedProps) {
   const [showHighConfirm, setShowHighConfirm] = useState(false)
 
@@ -208,7 +211,7 @@ export function BidControlsShared({
               <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
             </span>
           ) : isDisabled ? disabledLabel : (
-            <>Rilancia <span className="font-mono">{bidAmount}M</span></>
+            <>{actionLabel} <span className="font-mono">{bidAmount}M</span></>
           )}
         </button>
       </div>
