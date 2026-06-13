@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { superadminApi, leagueApi } from '../services/api'
 import { Button } from './ui/Button'
+import { LeagueCrest } from './ui/LeagueCrest'
 import { Notifications } from './Notifications'
 import { PendingInvites } from './PendingInvites'
 import { FeedbackBadge } from './FeedbackBadge'
@@ -92,21 +93,9 @@ function getPageDisplayName(page: string): string {
 interface LeagueIdentity { id: string; name: string; imageUrl: string | null }
 const leagueIdentityCache = new Map<string, LeagueIdentity>()
 
-// Small league crest: shows the uploaded logo, or a monogram fallback.
-function LeagueCrest({ imageUrl, name }: { imageUrl?: string | null; name?: string }) {
-  if (imageUrl) {
-    return (
-      <div className="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0 ring-1 ring-surface-50/30">
-        <img src={imageUrl} alt={name ? `Logo ${name}` : 'Logo lega'} className="w-full h-full object-cover" />
-      </div>
-    )
-  }
-  const initials = (name || '?').trim().slice(0, 2).toUpperCase()
-  return (
-    <div className="w-8 h-8 rounded-lg flex-shrink-0 bg-gradient-to-br from-accent-500 to-accent-700 flex items-center justify-center text-[11px] font-bold text-white">
-      {initials}
-    </div>
-  )
+// Small league crest for the nav header: shared LeagueCrest with a sensible name fallback.
+function NavLeagueCrest({ imageUrl, name }: { imageUrl?: string | null; name?: string }) {
+  return <LeagueCrest name={name || 'Lega'} imageUrl={imageUrl} size="sm" />
 }
 
 export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeagueAdmin, activeTab, isInAuction, onNavigate }: NavigationProps) {
@@ -316,7 +305,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
                 title={leagueIdentity?.name || leagueName || 'Vai alla lega'}
                 data-testid="league-identity"
               >
-                <LeagueCrest imageUrl={leagueIdentity?.imageUrl} name={leagueIdentity?.name || leagueName} />
+                <NavLeagueCrest imageUrl={leagueIdentity?.imageUrl} name={leagueIdentity?.name || leagueName} />
                 <span className="hidden md:block text-sm font-semibold text-white max-w-[160px] truncate group-hover/league:text-primary-300 transition-colors">
                   {leagueIdentity?.name || leagueName || 'Lega'}
                 </span>
@@ -696,7 +685,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
             {/* League Context Banner */}
             {leagueId && (leagueIdentity?.name || leagueName) && (
               <div className="px-4 py-3 rounded-xl border bg-primary-500/10 border-primary-500/30 flex items-center gap-3">
-                <LeagueCrest imageUrl={leagueIdentity?.imageUrl} name={leagueIdentity?.name || leagueName} />
+                <NavLeagueCrest imageUrl={leagueIdentity?.imageUrl} name={leagueIdentity?.name || leagueName} />
                 <div className="min-w-0">
                   <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Lega corrente</p>
                   <p className="text-sm font-semibold truncate text-primary-300">{leagueIdentity?.name || leagueName}</p>

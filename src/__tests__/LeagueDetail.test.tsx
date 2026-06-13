@@ -65,6 +65,10 @@ vi.mock('../components/league-detail', () => ({
   AdminBanner: ({ isAdmin, onOpenAuctionClick }: { isAdmin: boolean; onOpenAuctionClick: () => void; leagueStatus: string; activeSession: unknown; isFirstMarketCompleted: boolean; leagueId: string; onNavigate: unknown }) => (
     isAdmin ? <div data-testid="admin-banner"><button onClick={onOpenAuctionClick}>Start Auction</button></div> : null
   ),
+  AttentionRail: ({ summary }: { summary: unknown; leagueId: string; onNavigate: unknown }) => (
+    summary ? <div data-testid="attention-rail">Attention</div> : null
+  ),
+  QuickAccessTiles: () => <div data-testid="quick-access-tiles">Accessi rapidi</div>,
   FinancialKPIs: () => <div data-testid="financial-kpis">KPIs</div>,
   StrategySummary: () => <div data-testid="strategy-summary">Strategy</div>,
   RecentMovements: () => <div data-testid="recent-movements">Movements</div>,
@@ -88,6 +92,7 @@ const mockGetStatus = vi.fn()
 const mockGetFinancials = vi.fn()
 const mockGetLeagueMovements = vi.fn()
 const mockGetStrategySummary = vi.fn()
+const mockGetDashboardSummary = vi.fn()
 const mockCreateSession = vi.fn()
 const mockLeave = vi.fn()
 
@@ -96,6 +101,7 @@ vi.mock('../services/api', () => ({
     getById: (...args: unknown[]) => mockGetById(...args),
     getFinancials: (...args: unknown[]) => mockGetFinancials(...args),
     getStrategySummary: (...args: unknown[]) => mockGetStrategySummary(...args),
+    getDashboardSummary: (...args: unknown[]) => mockGetDashboardSummary(...args),
     leave: (...args: unknown[]) => mockLeave(...args),
     getPendingRequests: vi.fn().mockResolvedValue({ success: true, data: [] }),
   },
@@ -154,6 +160,7 @@ describe('LeagueDetail', () => {
     mockGetFinancials.mockResolvedValue({ success: true, data: { teams: [] } })
     mockGetLeagueMovements.mockResolvedValue({ success: true, data: [] })
     mockGetStrategySummary.mockResolvedValue({ success: true, data: { targets: 3, topPriority: 1, watching: 2, toSell: 0, total: 6 } })
+    mockGetDashboardSummary.mockResolvedValue({ success: true, data: { summaries: {} } })
   })
 
   it('shows initial loading spinner while checking superadmin', () => {

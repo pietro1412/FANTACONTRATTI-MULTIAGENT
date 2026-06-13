@@ -1,12 +1,17 @@
 import { useState, useEffect } from 'react'
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { useToast } from '@/components/ui/Toast'
 import { leagueApi, auctionApi, superadminApi, movementApi } from '../services/api'
 import { Button } from '../components/ui/Button'
+import { SkeletonCard } from '../components/ui/Skeleton'
 import { Navigation } from '../components/Navigation'
 import { computeLeagueTotals, type LeagueTotals, type FinancialsData } from '../components/finance/types'
+import type { LeagueSummary } from '../components/league/attention'
 import {
   LeagueDetailHeader,
   AdminBanner,
+  AttentionRail,
+  QuickAccessTiles,
   FinancialKPIs,
   StrategySummary,
   RecentMovements,
@@ -26,6 +31,8 @@ interface League {
   id: string
   name: string
   description?: string
+  imageUrl?: string | null
+  inviteCode?: string
   minParticipants: number
   maxParticipants: number
   initialBudget: number
@@ -76,13 +83,14 @@ interface MovementData {
 
 export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
   const { confirm: confirmDialog } = useConfirmDialog()
+  const { toast } = useToast()
   // Core state
   const [league, setLeague] = useState<League | null>(null)
   const [sessions, setSessions] = useState<Session[]>([])
   const [isAdmin, setIsAdmin] = useState(false)
   const [userMembership, setUserMembership] = useState<{ id: string; currentBudget: number } | null>(null)
+  const [summary, setSummary] = useState<LeagueSummary | undefined>(undefined)
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState('')
   const [authExpired, setAuthExpired] = useState(false)
   const [isSuperAdmin, setIsSuperAdmin] = useState<boolean | null>(null)
 
@@ -118,9 +126,12 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
   }, [leagueId, onNavigate])
 
   async function loadCriticalData() {
-    const [leagueResult, sessionsResult] = await Promise.all([
+    // Per-league attention signals: stesso endpoint della Dashboard, filtrato sulla lega corrente.
+    // Failure non bloccante (la rotaia attenzione semplicemente non appare).
+    const [leagueResult, sessionsResult, summaryResult] = await Promise.all([
       leagueApi.getById(leagueId),
       auctionApi.getSessions(leagueId),
+      leagueApi.getDashboardSummary(),
     ])
 
     if (leagueResult.success && leagueResult.data) {
@@ -135,6 +146,11 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
 
     if (sessionsResult.success && sessionsResult.data) {
       setSessions(sessionsResult.data as Session[])
+    }
+
+    if (summaryResult.success && summaryResult.data) {
+      const data = summaryResult.data as { summaries?: Record<string, LeagueSummary> }
+      setSummary(data.summaries?.[leagueId])
     }
 
     setIsLoading(false)
@@ -187,7 +203,6 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
 
   // Actions
   async function handleConfirmCreateSession() {
-    setError('')
     setIsCreatingSession(true)
     const isRegularMarket = isFirstMarketCompleted()
     const result = await auctionApi.createSession(leagueId, isRegularMarket)
@@ -212,7 +227,7 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
         setSessions(sessionsResult.data as Session[])
       }
     } else {
-      setError(result.message || 'Errore nella creazione della sessione')
+      toast.error(result.message || 'Errore nella creazione della sessione')
     }
     setIsCreatingSession(false)
   }
@@ -230,7 +245,7 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
     if (result.success) {
       onNavigate('dashboard')
     } else {
-      setError(result.message || "Errore nell'abbandono della lega")
+      toast.error(result.message || "Errore nell'abbandono della lega")
     }
     setIsLeaving(false)
   }
@@ -247,25 +262,21 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
   if (isLoading) {
     return (
       <div className="min-h-screen">
-        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-6 space-y-6 animate-pulse">
-          <div className="h-8 w-48 bg-surface-100 rounded" />
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-6 space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="bg-surface-200 rounded-xl p-4 space-y-3 border border-surface-50/20">
-                <div className="h-4 w-3/4 bg-surface-100 rounded" />
-                <div className="h-8 w-full bg-surface-100 rounded" />
-              </div>
+              <SkeletonCard key={i} />
             ))}
           </div>
           <div className="grid lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-4">
               {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="h-16 bg-surface-200 rounded-lg border border-surface-50/20" />
+                <SkeletonCard key={i} />
               ))}
             </div>
             <div className="space-y-4">
               {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-14 bg-surface-200 rounded-lg border border-surface-50/20" />
+                <SkeletonCard key={i} />
               ))}
             </div>
           </div>
@@ -307,29 +318,21 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
     <div className="min-h-screen">
       <Navigation currentPage="leagueDetail" leagueId={leagueId} isLeagueAdmin={isAdmin} onNavigate={onNavigate} />
 
-      {/* Header: nome + stepper + budget */}
+      {/* Header: crest + nome + indicatore fase unico + budget */}
       <LeagueDetailHeader
         leagueName={league.name}
         leagueStatus={league.status}
+        leagueImageUrl={league.imageUrl}
+        memberCount={activeMembers.length}
         sessions={sessions}
         userBudget={userMembership?.currentBudget || 0}
       />
 
       <main className="max-w-[1600px] mx-auto px-4 sm:px-6 py-4 sm:py-8 space-y-6">
-        {/* Error banner */}
-        {error && (
-          <div className="bg-surface-200 border border-danger-500/50 rounded-xl p-4 flex items-center gap-3 shadow-lg animate-in fade-in slide-in-from-top-2">
-            <div className="w-8 h-8 rounded-full bg-danger-500/20 flex items-center justify-center flex-shrink-0">
-              <span className="text-danger-400 text-sm">!</span>
-            </div>
-            <p className="text-gray-300 text-sm flex-1">{error}</p>
-            <button onClick={() => { setError(''); }} className="text-gray-500 hover:text-white transition-colors flex-shrink-0 p-1">
-              <span className="text-lg leading-none">&times;</span>
-            </button>
-          </div>
-        )}
+        {/* Richiede la tua attenzione (per-lega, riuso getDashboardSummary) */}
+        <AttentionRail leagueId={leagueId} summary={summary} onNavigate={onNavigate} />
 
-        {/* Admin / Phase Banner */}
+        {/* CTA dell'azione corrente (fase attiva) */}
         <AdminBanner
           leagueStatus={league.status}
           isAdmin={isAdmin}
@@ -338,6 +341,13 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
           leagueId={leagueId}
           onNavigate={onNavigate}
           onOpenAuctionClick={() => { setShowAuctionConfirm(true); }}
+        />
+
+        {/* Smistatore: accessi rapidi alle sezioni */}
+        <QuickAccessTiles
+          leagueId={leagueId}
+          onNavigate={onNavigate}
+          tradeOffers={summary?.tradeOffersReceived ?? 0}
         />
 
         {/* Main grid: 2/3 content + 1/3 sidebar */}
@@ -355,13 +365,9 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
 
             {/* Financial KPIs skeleton */}
             {hasFinancialData && !leagueTotals && (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 animate-pulse">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="bg-surface-200 rounded-xl p-4 space-y-2 border border-surface-50/20">
-                    <div className="h-3 w-20 bg-surface-100 rounded" />
-                    <div className="h-7 w-16 bg-surface-100 rounded" />
-                    <div className="h-1.5 w-full bg-surface-100 rounded-full" />
-                  </div>
+                  <SkeletonCard key={i} />
                 ))}
               </div>
             )}
@@ -401,6 +407,7 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
               isAdmin={isAdmin}
               isLeaving={isLeaving}
               totals={leagueTotals}
+              inviteCode={league.inviteCode}
               onLeaveLeague={() => void handleLeaveLeague()}
             />
           </div>

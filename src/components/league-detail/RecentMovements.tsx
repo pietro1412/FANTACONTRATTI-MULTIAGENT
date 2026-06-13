@@ -1,5 +1,6 @@
 import { MOVEMENT_TYPE_SHORT, MOVEMENT_TYPE_COLORS, MOVEMENT_TYPE_ICONS } from '../../utils/movement-constants'
 import { POSITION_TEXT_COLORS } from '@/components/ui/PositionBadge'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 interface Movement {
   id: string
@@ -36,22 +37,17 @@ export function RecentMovements({ movements, onNavigate, leagueId }: RecentMovem
   return (
     <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
       <div className="p-5 border-b border-surface-50/20 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-lg">{'\uD83D\uDCDC'}</span>
-          <h3 className="text-base font-bold text-white">Ultimi Movimenti</h3>
-        </div>
+        <span className="micro-label text-gray-400">\uD83D\uDCDC Movimenti recenti</span>
         <button
           onClick={() => { onNavigate('movements', { leagueId }); }}
           className="text-xs text-primary-400 hover:text-primary-300 transition-colors font-medium"
         >
-          Vedi tutti &rarr;
+          Tutti &rarr;
         </button>
       </div>
 
       {movements.length === 0 ? (
-        <div className="p-6 text-center text-gray-500 text-sm">
-          Nessun movimento registrato
-        </div>
+        <EmptyState compact icon="📜" title="Nessun movimento registrato" />
       ) : (
         <div className="divide-y divide-surface-50/10">
           {movements.map((m) => {

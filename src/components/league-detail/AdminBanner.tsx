@@ -57,7 +57,7 @@ const COLOR_MAP: Record<string, { bg: string; border: string; text: string; icon
   primary: { bg: 'from-primary-600/30 to-primary-500/20', border: 'border-primary-500/50', text: 'text-primary-400', iconBg: 'bg-primary-500/30' },
   accent: { bg: 'from-accent-600/30 to-accent-500/20', border: 'border-accent-500/50', text: 'text-accent-400', iconBg: 'bg-accent-500/30' },
   warning: { bg: 'from-warning-600/30 to-warning-500/20', border: 'border-warning-500/50', text: 'text-warning-400', iconBg: 'bg-warning-500/30' },
-  success: { bg: 'from-green-600/30 to-green-500/20', border: 'border-green-500/50', text: 'text-green-400', iconBg: 'bg-green-500/30' },
+  success: { bg: 'from-secondary-600/30 to-secondary-500/20', border: 'border-secondary-500/50', text: 'text-secondary-400', iconBg: 'bg-secondary-500/30' },
 }
 
 export function AdminBanner({
@@ -143,40 +143,61 @@ export function AdminBanner({
 
     const phaseTitle = phase === 'ASTA_LIBERA' && isFirstMarket ? 'Asta Primo Mercato' : (PHASE_LABELS[phase] || phase)
 
+    const content = (
+      <>
+        <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+          <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full ${colors.iconBg} flex items-center justify-center animate-pulse flex-shrink-0`}>
+            <span className="text-2xl sm:text-3xl">{config.icon}</span>
+          </div>
+          <div className="min-w-0">
+            <h2 className={`font-display text-lg sm:text-xl font-bold ${colors.text}`}>{phaseTitle}</h2>
+            <p className="text-gray-300 text-sm sm:text-base">
+              {!showButton
+                ? "Fase gestita dall'admin. Attendi il completamento per proseguire."
+                : isFirstMarket && phase === 'ASTA_LIBERA'
+                  ? 'Costruisci la tua rosa! Entra in asta e acquista i tuoi giocatori.'
+                  : 'Fase attiva - clicca per entrare'}
+            </p>
+            {showButton && (
+              <span className={`text-xs ${colors.text} font-medium mt-1 inline-block md:hidden`}>
+                Vai alla fase &rarr;
+              </span>
+            )}
+          </div>
+        </div>
+        {showButton && (
+          <div className="flex items-center gap-3 flex-shrink-0 ml-3">
+            <span className="hidden md:inline-block">
+              <span className="inline-flex items-center justify-center font-semibold rounded-lg px-5 py-2.5 text-base min-h-[48px] bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg">
+                Entra nella Fase
+              </span>
+            </span>
+            <svg className={`w-5 h-5 ${colors.text} group-hover:translate-x-1 transition-transform duration-200`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </div>
+        )}
+      </>
+    )
+
+    // Membro in fase adminOnly: niente link verso una sezione che non può usare → stato informativo.
+    if (!showButton) {
+      return (
+        <div
+          className={`bg-gradient-to-r ${colors.bg} border-2 ${colors.border} rounded-2xl p-4 sm:p-6 flex items-center justify-between`}
+        >
+          {content}
+        </div>
+      )
+    }
+
     return (
       <button
         onClick={() => { onNavigate(nav.page, nav.params); }}
         className={`bg-gradient-to-r ${colors.bg} border-2 ${colors.border} rounded-2xl p-4 sm:p-6 flex items-center justify-between w-full text-left cursor-pointer hover:translate-x-1 hover:border-primary-500/50 transition-all duration-200 group`}
         role="link"
       >
-        <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
-          <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full ${colors.iconBg} flex items-center justify-center animate-pulse flex-shrink-0`}>
-            <span className="text-2xl sm:text-3xl">{config.icon}</span>
-          </div>
-          <div className="min-w-0">
-            <h2 className={`text-lg sm:text-xl font-bold ${colors.text}`}>{phaseTitle}</h2>
-            <p className="text-gray-300 text-sm sm:text-base">
-              {isFirstMarket && phase === 'ASTA_LIBERA'
-                ? 'Costruisci la tua rosa! Entra in asta e acquista i tuoi giocatori.'
-                : `Fase attiva - clicca per entrare`}
-            </p>
-            <span className={`text-xs ${colors.text} font-medium mt-1 inline-block md:hidden`}>
-              Vai alla fase &rarr;
-            </span>
-          </div>
-        </div>
-        <div className="flex items-center gap-3 flex-shrink-0 ml-3">
-          {showButton && (
-            <span className="hidden md:inline-block">
-              <span className={`inline-flex items-center justify-center font-semibold rounded-lg px-5 py-2.5 text-base min-h-[48px] bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg`}>
-                Entra nella Fase
-              </span>
-            </span>
-          )}
-          <svg className={`w-5 h-5 ${colors.text} group-hover:translate-x-1 transition-transform duration-200`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-        </div>
+        {content}
       </button>
     )
   }

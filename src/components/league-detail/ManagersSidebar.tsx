@@ -1,4 +1,7 @@
 import { useState } from 'react'
+import { Monogram } from '@/components/ui/Monogram'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { RoleTag } from '@/components/league/attention'
 import type { LeagueTotals } from '../finance/types'
 
 interface Member {
@@ -19,13 +22,14 @@ interface ManagersSidebarProps {
   isAdmin: boolean
   isLeaving: boolean
   totals: LeagueTotals | null
+  inviteCode?: string
   onLeaveLeague: () => void
 }
 
 function getGiniLabel(gini: number): { label: string; color: string } {
-  if (gini < 0.2) return { label: 'OTTIMA', color: 'text-green-400' }
-  if (gini < 0.35) return { label: 'BUONA', color: 'text-emerald-400' }
-  if (gini < 0.5) return { label: 'DISCRETA', color: 'text-amber-400' }
+  if (gini < 0.2) return { label: 'OTTIMA', color: 'text-secondary-400' }
+  if (gini < 0.35) return { label: 'BUONA', color: 'text-secondary-400' }
+  if (gini < 0.5) return { label: 'DISCRETA', color: 'text-warning-400' }
   return { label: 'SBILANCIATA', color: 'text-danger-400' }
 }
 
@@ -37,15 +41,19 @@ export function ManagersSidebar({
   isAdmin,
   isLeaving,
   totals,
+  inviteCode,
   onLeaveLeague,
 }: ManagersSidebarProps) {
   const [copied, setCopied] = useState(false)
   const activeMembers = members.filter(m => m.status === 'ACTIVE')
   const missing = maxParticipants - activeMembers.length
-  const inviteCode = leagueId.slice(0, 8)
+  const code = inviteCode ?? leagueId.slice(0, 8)
+
+  // Classifica per bilancio (desc); fallback al budget se balance non disponibile.
+  const ranked = [...activeMembers].sort((a, b) => (b.balance ?? b.currentBudget) - (a.balance ?? a.currentBudget))
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(inviteCode)
+    await navigator.clipboard.writeText(code)
     setCopied(true)
     setTimeout(() => { setCopied(false); }, 2000)
   }
@@ -54,69 +62,49 @@ export function ManagersSidebar({
 
   return (
     <div className="space-y-6">
-      {/* Manager List */}
+      {/* Classifica bilanci */}
       <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
         <div className="p-4 border-b border-surface-50/20 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-lg">{'\uD83D\uDC54'}</span>
-            <h3 className="text-base font-bold text-white">Manager Lega</h3>
-          </div>
+          <span className="micro-label text-gray-400">Classifica bilanci</span>
           <span className="bg-surface-300 px-2.5 py-0.5 rounded-full text-xs text-gray-400 font-medium">
             {activeMembers.length}/{maxParticipants}
           </span>
         </div>
 
-        <div className="divide-y divide-surface-50/10">
-          {activeMembers.map((member) => (
-            <div key={member.id} className="flex items-center justify-between px-4 py-3 hover:bg-surface-300/30 transition-colors">
-              <div className="flex items-center gap-2.5 min-w-0">
-                {member.user.profilePhoto ? (
-                  <img
-                    src={member.user.profilePhoto}
-                    alt={member.user.username}
-                    className="w-9 h-9 rounded-full object-cover border-2 border-surface-50/30 flex-shrink-0"
-                    width={36}
-                    height={36}
-                  />
-                ) : (
-                  <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0 ${
-                    member.role === 'ADMIN' ? 'bg-gradient-to-br from-accent-500 to-accent-700' : 'bg-gradient-to-br from-primary-500 to-primary-700'
-                  }`}>
-                    {member.user.username[0]?.toUpperCase() || '?'}
+        {ranked.length === 0 ? (
+          <EmptyState compact icon="👥" title="Nessun manager attivo" />
+        ) : (
+          <div className="divide-y divide-surface-50/10">
+            {ranked.map((member, idx) => {
+              const balance = member.balance ?? member.currentBudget
+              const name = member.teamName || member.user.username
+              return (
+                <div key={member.id} className="flex items-center gap-2.5 px-4 py-3 hover:bg-surface-300/30 transition-colors">
+                  <span className="stat-number w-4 text-sm text-gray-500 text-center flex-shrink-0">{idx + 1}</span>
+                  <Monogram name={name} size="md" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-display text-sm font-bold text-white truncate">{name}</span>
+                      {member.role === 'ADMIN' && <RoleTag role="ADMIN" />}
+                    </div>
+                    {member.teamName && <p className="text-[10px] text-gray-500 truncate">{member.user.username}</p>}
                   </div>
-                )}
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-semibold text-white text-sm truncate">
-                      {member.teamName || member.user.username}
-                    </span>
-                    {member.role === 'ADMIN' && (
-                      <span className="text-[10px] bg-accent-500/20 text-accent-400 px-1.5 py-0.5 rounded-full border border-accent-500/40 font-medium flex-shrink-0">
-                        Pres.
-                      </span>
-                    )}
-                  </div>
-                  {member.teamName && (
-                    <p className="text-[10px] text-gray-500">{member.user.username}</p>
-                  )}
+                  <span className={`stat-number text-sm font-bold text-right flex-shrink-0 ${balance >= 0 ? 'text-secondary-400' : 'text-danger-400'}`}>
+                    {balance >= 0 ? '+' : ''}{balance}M
+                  </span>
                 </div>
-              </div>
-              <div className="text-right flex-shrink-0">
-                <span className={`text-sm font-bold ${(member.balance ?? member.currentBudget) >= 0 ? 'text-green-400' : 'text-danger-400'}`}>
-                  {(member.balance ?? member.currentBudget) >= 0 ? '+' : ''}{member.balance ?? member.currentBudget}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
+              )
+            })}
+          </div>
+        )}
 
-        {/* Missing managers + invite code */}
+        {/* Mancano manager + codice invito */}
         {missing > 0 && (
           <div className="px-4 py-3 border-t border-surface-50/20 bg-surface-300/30">
-            <p className="text-xs text-gray-500 mb-2">Mancano {missing} Manager</p>
+            <p className="text-xs text-gray-500 mb-2">Mancano {missing} manager</p>
             <div className="flex items-center gap-2">
               <code className="font-mono text-primary-400 bg-surface-300 px-3 py-1.5 rounded text-sm flex-1 text-center">
-                {inviteCode}
+                {code}
               </code>
               <button
                 onClick={() => void handleCopy()}
@@ -129,30 +117,25 @@ export function ManagersSidebar({
         )}
       </div>
 
-      {/* Financial Health Stats */}
+      {/* Stats Lega */}
       {totals && (
         <div className="bg-surface-200 rounded-xl border border-surface-50/20 p-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <span className="text-lg">{'\uD83D\uDCC8'}</span>
-            <h3 className="text-sm font-bold text-white">Stats Lega</h3>
-          </div>
+          <span className="micro-label text-gray-400">Stats Lega</span>
           <div className="space-y-2">
             <div className="flex justify-between items-center text-sm">
-              <span className="text-gray-400">Salute Finanziaria</span>
-              {giniInfo && (
-                <span className={`font-bold text-xs ${giniInfo.color}`}>{giniInfo.label}</span>
-              )}
+              <span className="text-gray-400">Salute finanziaria</span>
+              {giniInfo && <span className={`font-bold text-xs ${giniInfo.color}`}>{giniInfo.label}</span>}
             </div>
             <div className="flex justify-between items-center text-sm">
-              <span className="text-gray-400">Giocatori a Roster</span>
+              <span className="text-gray-400">Giocatori a roster</span>
               <span className="text-white font-medium">{totals.totalSlots}/{totals.maxTotalSlots}</span>
             </div>
             <div className="flex justify-between items-center text-sm">
               <span className="text-gray-400">Team OK / Attenzione / Critico</span>
               <span className="text-sm">
-                <span className="text-green-400 font-medium">{totals.healthyTeams}</span>
+                <span className="text-secondary-400 font-medium">{totals.healthyTeams}</span>
                 <span className="text-gray-400 mx-0.5">/</span>
-                <span className="text-amber-400 font-medium">{totals.warningTeams}</span>
+                <span className="text-warning-400 font-medium">{totals.warningTeams}</span>
                 <span className="text-gray-400 mx-0.5">/</span>
                 <span className="text-danger-400 font-medium">{totals.criticalTeams}</span>
               </span>
@@ -161,7 +144,7 @@ export function ManagersSidebar({
         </div>
       )}
 
-      {/* Leave League Button */}
+      {/* Abbandona lega (solo membri, solo prima dell'avvio) */}
       {!isAdmin && leagueStatus === 'DRAFT' && (
         <div className="bg-surface-200 rounded-xl border border-surface-50/20 p-4">
           <button
@@ -169,7 +152,7 @@ export function ManagersSidebar({
             disabled={isLeaving}
             className="w-full py-2.5 border-2 border-danger-500/50 text-danger-400 rounded-lg hover:bg-danger-500/10 transition-colors font-medium text-sm disabled:opacity-50"
           >
-            {isLeaving ? 'Abbandono...' : 'Abbandona Lega'}
+            {isLeaving ? 'Abbandono...' : 'Abbandona lega'}
           </button>
           <p className="text-[10px] text-gray-500 mt-1.5 text-center">
             Puoi abbandonare solo prima che la lega sia avviata

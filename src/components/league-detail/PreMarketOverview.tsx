@@ -1,3 +1,5 @@
+import { PositionBadge } from '@/components/ui/PositionBadge'
+
 interface PreMarketOverviewProps {
   initialBudget: number
   teamCount: number
@@ -10,10 +12,10 @@ interface PreMarketOverviewProps {
 }
 
 const SLOT_CONFIG = [
-  { key: 'P', label: 'Portieri', color: 'bg-amber-500' },
-  { key: 'D', label: 'Difensori', color: 'bg-blue-500' },
-  { key: 'C', label: 'Centrocampisti', color: 'bg-emerald-500' },
-  { key: 'A', label: 'Attaccanti', color: 'bg-red-500' },
+  { key: 'P', label: 'Portieri' },
+  { key: 'D', label: 'Difensori' },
+  { key: 'C', label: 'Centrocampisti' },
+  { key: 'A', label: 'Attaccanti' },
 ] as const
 
 export function PreMarketOverview({
@@ -64,13 +66,13 @@ export function PreMarketOverview({
           <span className="bg-surface-300 px-2 py-0.5 rounded-full text-xs text-gray-400">{totalSlots} slot</span>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {SLOT_CONFIG.map(({ key, label, color }) => (
+          {SLOT_CONFIG.map(({ key, label }) => (
             <div key={key} className="bg-surface-300/50 rounded-lg p-3 text-center">
-              <div className={`w-8 h-8 ${color} rounded-full flex items-center justify-center text-white font-bold text-sm mx-auto`}>
-                {key}
+              <div className="flex justify-center">
+                <PositionBadge position={key} size="md" showLabel showIcon={false} />
               </div>
-              <div className="text-xl font-bold text-white mt-2">{slots[key]}</div>
-              <div className="text-[10px] text-gray-500 uppercase tracking-wide mt-0.5">{label}</div>
+              <div className="stat-number text-xl font-bold text-white mt-2">{slots[key]}</div>
+              <div className="micro-label text-gray-500 mt-0.5">{label}</div>
             </div>
           ))}
         </div>

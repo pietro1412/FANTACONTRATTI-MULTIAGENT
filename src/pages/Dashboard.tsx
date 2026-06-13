@@ -5,6 +5,15 @@ import { Button } from '../components/ui/Button'
 import { Navigation } from '../components/Navigation'
 import { SearchLeaguesModal } from '../components/SearchLeaguesModal'
 import { SkeletonCard } from '../components/ui/Skeleton'
+import { LeagueCrest, getLeagueIdentity } from '../components/ui/LeagueCrest'
+import {
+  buildActions,
+  phaseLabel,
+  RoleTag,
+  TONE_CHIP,
+  type DashAction,
+  type LeagueSummary,
+} from '../components/league/attention'
 
 interface DashboardProps {
   onNavigate: (page: string, params?: Record<string, string>) => void
@@ -31,18 +40,6 @@ interface LeagueData {
   league: League
 }
 
-// Per-league signals from GET /api/leagues/dashboard-summary (see league.service.ts)
-interface LeagueSummary {
-  phase: { type: string; currentPhase: string | null } | null
-  tradeOffersReceived: number
-  isAdmin: boolean
-  pendingJoinRequests: number
-  pendingAppeals: number
-  needsConsolidation: boolean
-  isYourTurn: boolean
-  turnTarget: { kind: 'auction' | 'rubata' | 'svincolati'; sessionId: string } | null
-}
-
 function getTimeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime()
   const mins = Math.floor(diff / 60000)
@@ -52,194 +49,6 @@ function getTimeAgo(dateStr: string): string {
   if (hours < 24) return `${hours}h fa`
   const days = Math.floor(hours / 24)
   return `${days}g fa`
-}
-
-// ---- Identità lega: monogramma + colore deterministico dal nome ----
-const IDENTITY_GRADIENTS = [
-  'from-primary-500 to-indigo-600',
-  'from-secondary-500 to-emerald-700',
-  'from-accent-500 to-amber-700',
-  'from-rose-500 to-red-700',
-  'from-violet-500 to-purple-700',
-  'from-cyan-500 to-blue-700',
-]
-
-function getIdentity(name: string): { initials: string; gradient: string } {
-  const words = name.trim().split(/\s+/).filter(Boolean)
-  const first = words[0] ?? ''
-  const second = words[1] ?? ''
-  const initials = (words.length >= 2 ? first.charAt(0) + second.charAt(0) : name.slice(0, 2)).toUpperCase()
-  let hash = 0
-  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0
-  const gradient = IDENTITY_GRADIENTS[hash % IDENTITY_GRADIENTS.length] ?? 'from-primary-500 to-indigo-600'
-  return { initials, gradient }
-}
-
-const PHASE_LABELS: Record<string, string> = {
-  ASTA_LIBERA: 'Asta in corso',
-  OFFERTE_PRE_RINNOVO: 'Offerte pre-rinnovo',
-  PREMI: 'Fase premi',
-  CONTRATTI: 'Rinnovo contratti',
-  RUBATA: 'Rubata',
-  ASTA_SVINCOLATI: 'Asta svincolati',
-  OFFERTE_POST_ASTA_SVINCOLATI: 'Offerte post-svincolati',
-}
-
-function phaseLabel(summary?: LeagueSummary): string | null {
-  if (!summary?.phase?.currentPhase) return null
-  if (summary.phase.type === 'PRIMO_MERCATO' && summary.phase.currentPhase === 'ASTA_LIBERA') {
-    return 'Primo Mercato · Asta'
-  }
-  return PHASE_LABELS[summary.phase.currentPhase] || summary.phase.currentPhase
-}
-
-type ActionTone = 'urgent' | 'info' | 'warn' | 'admin'
-
-interface DashAction {
-  key: string
-  chip: string
-  emoji: string
-  text: string
-  sub?: string
-  tone: ActionTone
-  ctaLabel: string
-  ctaVariant: 'primary' | 'accent'
-  go: () => void
-}
-
-const TONE_CHIP: Record<ActionTone, string> = {
-  urgent: 'bg-danger-500/15 text-danger-400 border border-danger-500/40',
-  info: 'bg-primary-500/15 text-primary-400 border border-primary-500/40',
-  warn: 'bg-accent-500/15 text-accent-400 border border-accent-500/40',
-  admin: 'bg-purple-500/15 text-purple-400 border border-purple-500/40',
-}
-
-function buildActions(
-  ld: LeagueData,
-  summary: LeagueSummary | undefined,
-  onNavigate: DashboardProps['onNavigate']
-): DashAction[] {
-  const out: DashAction[] = []
-  if (!summary) return out
-  const leagueId = ld.league.id
-
-  // Highest priority: it is the user's turn to act in an auction phase.
-  if (summary.isYourTurn) {
-    const target = summary.turnTarget
-    const sub =
-      target?.kind === 'svincolati'
-        ? 'tocca a te nominare un giocatore svincolato'
-        : target?.kind === 'rubata'
-          ? 'tocca a te nella rubata'
-          : 'tocca a te nominare un giocatore'
-    out.push({
-      key: 'your-turn',
-      chip: '🔴 Tocca a te',
-      emoji: '🔴',
-      text: 'È il tuo turno',
-      sub,
-      tone: 'urgent',
-      ctaLabel: 'Entra →',
-      ctaVariant: 'primary',
-      go: () => {
-        if (target?.kind === 'auction') {
-          onNavigate('auction', { leagueId, sessionId: target.sessionId })
-        } else if (target?.kind === 'rubata') {
-          onNavigate('rubata', { leagueId })
-        } else if (target?.kind === 'svincolati') {
-          onNavigate('svincolati', { leagueId })
-        } else {
-          onNavigate('leagueDetail', { leagueId })
-        }
-      },
-    })
-  }
-
-  if (summary.tradeOffersReceived > 0) {
-    const n = summary.tradeOffersReceived
-    out.push({
-      key: 'trades',
-      chip: `📨 ${n}`,
-      emoji: '📨',
-      text: `${n} ${n === 1 ? 'offerta di scambio' : 'offerte di scambio'} da valutare`,
-      tone: 'info',
-      ctaLabel: 'Valuta offerte →',
-      ctaVariant: 'primary',
-      go: () => { onNavigate('trades', { leagueId }) },
-    })
-  }
-
-  if (summary.needsConsolidation) {
-    out.push({
-      key: 'consolidation',
-      chip: '📝 Consolida',
-      emoji: '📝',
-      text: 'Consolidamento contratti da completare',
-      sub: 'la fase contratti è aperta',
-      tone: 'warn',
-      ctaLabel: 'Vai ai contratti →',
-      ctaVariant: 'accent',
-      go: () => { onNavigate('contracts', { leagueId }) },
-    })
-  }
-
-  if (summary.isAdmin && summary.pendingJoinRequests > 0) {
-    const n = summary.pendingJoinRequests
-    out.push({
-      key: 'requests',
-      chip: `🙋 ${n}`,
-      emoji: '🙋',
-      text: `${n} ${n === 1 ? 'richiesta di adesione' : 'richieste di adesione'} da approvare`,
-      tone: 'admin',
-      ctaLabel: 'Pannello Admin',
-      ctaVariant: 'accent',
-      go: () => { onNavigate('adminPanel', { leagueId, tab: 'members' }) },
-    })
-  }
-
-  if (summary.isAdmin && summary.pendingAppeals > 0) {
-    const n = summary.pendingAppeals
-    out.push({
-      key: 'appeals',
-      chip: `⚖ ${n}`,
-      emoji: '⚖️',
-      text: `${n} ${n === 1 ? 'ricorso' : 'ricorsi'} da gestire`,
-      tone: 'admin',
-      ctaLabel: 'Gestisci ricorsi',
-      ctaVariant: 'accent',
-      go: () => { onNavigate('adminPanel', { leagueId, tab: 'appeals' }) },
-    })
-  }
-
-  return out
-}
-
-function RoleTag({ role }: { role: string }) {
-  return role === 'ADMIN' ? (
-    <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-accent-500/15 text-accent-400 border border-accent-500/30">
-      Presidente
-    </span>
-  ) : (
-    <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-primary-500/15 text-primary-400 border border-primary-500/30">
-      DG
-    </span>
-  )
-}
-
-function Crest({ identity, size = 'md', imageUrl, name }: { identity: { initials: string; gradient: string }; size?: 'sm' | 'md'; imageUrl?: string | null; name?: string }) {
-  const dim = size === 'sm' ? 'w-9 h-9 text-xs' : 'w-11 h-11 text-sm'
-  if (imageUrl) {
-    return (
-      <div className={`${dim} rounded-xl overflow-hidden flex-shrink-0 shadow-lg`}>
-        <img src={imageUrl} alt={name ? `Immagine ${name}` : 'Immagine lega'} className="w-full h-full object-cover" />
-      </div>
-    )
-  }
-  return (
-    <div className={`${dim} rounded-xl bg-gradient-to-br ${identity.gradient} flex items-center justify-center font-bold text-white flex-shrink-0 shadow-lg`}>
-      {identity.initials}
-    </div>
-  )
 }
 
 // ---- Attention card (rotaia "Richiede la tua attenzione") ----
@@ -253,7 +62,7 @@ function AttentionCard({
   actions: DashAction[]
 }) {
   const { league, membership } = ld
-  const identity = getIdentity(league.name)
+  const identity = getLeagueIdentity(league.name)
   const primary = actions[0]
   const ph = phaseLabel(summary)
   const phaseText = ph ?? (league.status === 'DRAFT' ? 'In preparazione · in attesa di avvio' : '—')
@@ -268,7 +77,7 @@ function AttentionCard({
       <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${identity.gradient}`} aria-hidden="true" />
 
       <div className="flex items-center gap-3 mb-3">
-        <Crest identity={identity} imageUrl={league.imageUrl} name={league.name} />
+        <LeagueCrest name={league.name} imageUrl={league.imageUrl} />
         <div className="flex-1 min-w-0">
           <p className="font-bold text-white leading-tight truncate">{league.name}</p>
           <span className="inline-flex items-center gap-1.5 text-[11px] text-gray-400 mt-1">
@@ -342,7 +151,6 @@ function LeagueCard({
   cancelling: boolean
 }) {
   const { league, membership } = ld
-  const identity = getIdentity(league.name)
   const isPending = membership.status === 'PENDING'
   const isAdmin = membership.role === 'ADMIN'
   const ph = phaseLabel(summary)
@@ -369,7 +177,7 @@ function LeagueCard({
       onClick={() => { if (clickable) onNavigate('leagueDetail', { leagueId: league.id }) }}
     >
       <div className="flex items-center gap-3 mb-3">
-        <Crest identity={identity} size="sm" imageUrl={league.imageUrl} name={league.name} />
+        <LeagueCrest name={league.name} imageUrl={league.imageUrl} size="sm" />
         <div className="flex-1 min-w-0">
           <p className={`font-bold leading-tight truncate ${isPending ? 'text-amber-200' : 'text-white group-hover:text-primary-400 transition-colors'}`}>
             {league.name}
@@ -580,7 +388,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   // Derive attention leagues (membership ACTIVE with at least one pending action) vs the calm full list
   const attention = leagues
     .filter(ld => ld.membership.status === 'ACTIVE')
-    .map(ld => ({ ld, actions: buildActions(ld, summaries[ld.league.id], onNavigate) }))
+    .map(ld => ({ ld, actions: buildActions(ld.league.id, summaries[ld.league.id], onNavigate) }))
     .filter(item => item.actions.length > 0)
 
   const CALM_RANK: Record<string, number> = { ACTIVE: 0, DRAFT: 1, COMPLETED: 3 }

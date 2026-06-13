@@ -22,7 +22,7 @@ export function FinancialKPIs({ totals, initialBudget, teamCount }: FinancialKPI
         value={`${totals.totalBalance >= 0 ? '+' : ''}${totals.totalBalance}`}
         subtitle={`${balancePct.toFixed(0)}% del budget lega`}
         progress={Math.min(100, balancePct)}
-        progressColor={balanceVariant === 'success' ? 'bg-green-500' : balanceVariant === 'warning' ? 'bg-amber-500' : 'bg-danger-500'}
+        progressColor={balanceVariant === 'success' ? 'bg-secondary-500' : balanceVariant === 'warning' ? 'bg-warning-500' : 'bg-danger-500'}
         variant={balanceVariant}
         description="Somma dei bilanci (budget - ingaggi) di tutti i manager"
       />
