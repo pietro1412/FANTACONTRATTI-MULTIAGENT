@@ -244,6 +244,18 @@ Vedi **Bibbia FINANZE.md** sezione 3 per il modello completo con esempi numerici
 
 ## 4. REGOLE DI BUSINESS
 
+### 4.0 Vincoli di Rosa (nessun limite di slot)
+
+Nella Rubata **non esiste alcun limite di slot per ruolo**: gli slot per ruolo
+(3P/8D/8C/6A, ...) vincolano **solo il Primo Mercato assoluto** (`PRIMO-MERCATO.md`).
+L'unico limite per dichiarare/rilanciare una rubata è **finanziario** (bilancio,
+vedi §4.1-§4.2). Il tetto di rosa di **29 giocatori** (indipendente dal ruolo) è
+verificato **solo al Consolidamento** (`CONTRATTI.md §15`), non durante la Rubata:
+chi sfora rientra al consolidamento successivo. Nessun blocco in tempo reale.
+
+> **Conseguenza UI**: le viste di rosa durante la Rubata mostrano solo il
+> **conteggio** dei giocatori, mai "slot pieni / X/Y per ruolo / slot liberi".
+
 ### 4.1 Chi Può Dichiarare Rubata
 - Qualsiasi manager attivo **tranne** il proprietario del giocatore
 - **NON può rubare un giocatore che era suo a inizio mercato ricorrente** ma che ha cambiato squadra nella fase 1 (offerte e scambi). Il manager deve vedere chiaramente che il giocatore non è rubabile perché ceduto nella fase precedente.

@@ -853,6 +853,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
         <ManagerDetailModal
           selectedManager={selectedManager}
           onClose={() => { setSelectedManager(null); }}
+          rosterMode="count"
         />
       )}
     </div>

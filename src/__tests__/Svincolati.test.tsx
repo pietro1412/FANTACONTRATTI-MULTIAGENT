@@ -1312,12 +1312,15 @@ describe('Svincolati', () => {
     // "OtherUser" appears in both the turn banner and the roster modal
     expect(screen.getAllByText(/OtherUser/).length).toBeGreaterThanOrEqual(2)
     expect(screen.getByText('Team Beta')).toBeInTheDocument()
-    expect(screen.getByText('3/25')).toBeInTheDocument()
     expect(screen.getByText('Gigi Buffon')).toBeInTheDocument()
     expect(screen.getByText('Paolo Maldini')).toBeInTheDocument()
     expect(screen.getByText('Andrea Pirlo')).toBeInTheDocument()
-    // Position with no players shows the free-slots placeholder
-    expect(screen.getAllByText(/slot liber/).length).toBeGreaterThan(0)
+    // count mode (svincolati): conteggio rosa, niente slot per ruolo né "slot liberi"
+    expect(screen.getByText(/giocatori/)).toBeInTheDocument()
+    expect(screen.queryByText('3/25')).not.toBeInTheDocument()
+    expect(screen.queryByText(/slot liber/)).not.toBeInTheDocument()
+    // ruolo senza giocatori → "Nessuno"
+    expect(screen.getByText('Nessuno')).toBeInTheDocument()
   })
 
   // ---- Success message display in auction room ----

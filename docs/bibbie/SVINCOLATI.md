@@ -15,6 +15,23 @@ L'asta svincolati e la fase 5 del mercato ricorrente. I manager, a turno, posson
 - Giocatori svincolati disponibili (scadenza contratto, tagli, mai acquistati)
 - Almeno un manager con budget sufficiente
 
+### 1.2 Vincoli di Rosa (IMPORTANTE)
+
+**Negli Svincolati NON esiste alcun limite di slot per ruolo.** Gli slot per ruolo
+(es. 3 portieri, 8 difensori, ...) vincolano **solo il Primo Mercato assoluto**
+(`PRIMO-MERCATO.md §1.1, §2.2, §2.3`). Qui un manager puo acquistare quanti
+giocatori vuole di qualunque ruolo: l'unico limite e **finanziario** (vedi §5.2).
+
+Il tetto massimo di rosa (**29 giocatori**, indipendente dal ruolo) e verificato
+**solo alla fase Consolidamento** (`CONTRATTI.md §15`, `MERCATO-RICORRENTE.md §5.3`),
+**non** durante gli Svincolati. Un manager puo quindi sforare temporaneamente i 29
+acquistando agli Svincolati: dovra rientrare (tagliando) prima del consolidamento
+successivo. Nessun blocco in tempo reale.
+
+> **Conseguenza UI**: le viste di rosa durante questa fase NON devono mostrare
+> "slot pieni" / "X/Y per ruolo" / "slot liberi" (sono concetti del solo Primo
+> Mercato), ma solo il **conteggio** dei giocatori posseduti.
+
 ---
 
 ## 2. ORDINE DI CHIAMATA
@@ -40,7 +57,9 @@ Ogni manager, al proprio turno, sceglie un giocatore svincolato da mettere all'a
 
 ### 3.1 Svolgimento
 
-L'asta si svolge come il Primo Mercato:
+L'asta si svolge come il Primo Mercato **nella sola meccanica** (base, timer,
+offerta libera, vincitore) — **NON** nei vincoli di slot: qui non c'e limite di
+slot per ruolo (vedi §1.2).
 - **Base d'asta**: 1
 - **Offerta libera**: qualsiasi manager puo rilanciare
 - **Timer**: configurabile dall'admin, reset ad ogni offerta

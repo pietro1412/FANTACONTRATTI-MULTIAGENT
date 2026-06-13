@@ -30,6 +30,12 @@ export interface ManagerDetailData {
 interface ManagerDetailModalProps {
   selectedManager: ManagerDetailData | null
   onClose: () => void
+  /**
+   * 'slots' (default, Primo Mercato): mostra slot per ruolo X/Y e slot liberi.
+   * 'count' (aste ricorrenti: svincolati, rubata): solo il conteggio dei
+   * giocatori, niente vincolo di slot per ruolo — vedi SVINCOLATI.md §1.2.
+   */
+  rosterMode?: 'slots' | 'count'
 }
 
 interface AcknowledgmentModalProps {
@@ -90,8 +96,10 @@ const MODAL_POS_STYLES: Record<string, { bg: string; border: string; text: strin
   A: { bg: 'bg-red-500/15', border: 'border-red-500/40', text: 'text-red-400' },
 }
 
-export function ManagerDetailModal({ selectedManager, onClose }: ManagerDetailModalProps) {
+export function ManagerDetailModal({ selectedManager, onClose, rosterMode = 'slots' }: ManagerDetailModalProps) {
   if (!selectedManager) return null
+
+  const countOnly = rosterMode === 'count'
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={onClose}>
@@ -121,7 +129,11 @@ export function ManagerDetailModal({ selectedManager, onClose }: ManagerDetailMo
             </div>
             <div className="bg-surface-300 border border-surface-50 rounded-lg px-4 py-2.5 flex-1 text-center">
               <p className="text-sm text-gray-500 uppercase tracking-wider font-semibold">Rosa</p>
-              <p className="stat-number text-2xl font-black text-white">{selectedManager.slotsFilled}/{selectedManager.totalSlots}</p>
+              <p className="stat-number text-2xl font-black text-white">
+                {selectedManager.slotsFilled}
+                {!countOnly && <span className="text-gray-500">/{selectedManager.totalSlots}</span>}
+                {countOnly && <span className="text-sm text-gray-500 font-semibold"> giocatori</span>}
+              </p>
             </div>
           </div>
 
@@ -140,7 +152,9 @@ export function ManagerDetailModal({ selectedManager, onClose }: ManagerDetailMo
                       <span className={`w-5 h-5 rounded-full bg-gradient-to-br ${POSITION_COLORS[pos] ?? ''} flex items-center justify-center text-sm font-bold text-white flex-shrink-0`}>{pos}</span>
                       <span className="text-sm font-bold text-gray-300 uppercase">{POSITION_NAMES[pos]}</span>
                     </div>
-                    <span className={`text-sm font-mono font-bold ${slot.filled >= slot.total ? 'text-green-400' : 'text-gray-500'}`}>{slot.filled}/{slot.total}</span>
+                    <span className={`text-sm font-mono font-bold ${countOnly ? 'text-gray-400' : slot.filled >= slot.total ? 'text-green-400' : 'text-gray-500'}`}>
+                      {countOnly ? slot.filled : `${slot.filled}/${slot.total}`}
+                    </span>
                   </div>
 
                   {/* Player rows */}
@@ -162,10 +176,13 @@ export function ManagerDetailModal({ selectedManager, onClose }: ManagerDetailMo
                         <span className={`text-sms font-mono font-bold flex-shrink-0 ${style.text}`}>{p.acquisitionPrice}M</span>
                       </div>
                     ))}
-                    {freeSlots > 0 && (
+                    {!countOnly && freeSlots > 0 && (
                       <div className={`flex items-center justify-center rounded-lg px-2 py-1.5 border border-dashed ${style.border} opacity-40`}>
                         <span className="text-sm text-gray-400">{freeSlots} slot liber{freeSlots === 1 ? 'o' : 'i'}</span>
                       </div>
+                    )}
+                    {countOnly && posPlayers.length === 0 && (
+                      <p className="text-sm text-gray-600 italic px-2 py-1">Nessuno</p>
                     )}
                   </div>
                 </div>
