@@ -17,10 +17,13 @@ interface DealRosterPanelProps {
   onSearchChange?: (q: string) => void
   filterRole?: string
   onFilterRoleChange?: (r: string) => void
+  targetMember?: LeagueMember
+  /** Mobile-only: lets the partner panel pick the recipient when none chosen yet. */
   members?: LeagueMember[]
   selectedMemberId?: string
   onMemberChange?: (id: string) => void
-  targetMember?: LeagueMember
+  /** When true the panel uses inline (non-cockpit) height — for mobile BottomSheet. */
+  variant?: 'cockpit' | 'sheet'
   // Player stats
   onViewStats?: (entry: RosterEntry) => void
 }
@@ -47,84 +50,75 @@ export function DealRosterPanel(props: DealRosterPanelProps) {
     onSearchChange,
     filterRole = '',
     onFilterRoleChange,
+    targetMember,
     members = [],
     selectedMemberId = '',
     onMemberChange,
-    targetMember,
+    variant = 'cockpit',
     onViewStats,
   } = props
 
   const isMine = side === 'mine'
   const roster = isMine ? myRoster : filteredPlayers
-  const selectedCount = isMine ? selectedOfferedPlayers.length : selectedRequestedPlayers.length
+  const partnerName = targetMember?.user.username
+  const heightClass = variant === 'sheet' ? 'max-h-[70vh]' : 'h-full'
 
   return (
-    <div className="bg-surface-200 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden h-[calc(100vh-180px)] flex flex-col">
+    <div className={`bg-surface-200 border border-surface-50 rounded-xl overflow-hidden flex flex-col min-h-0 ${heightClass}`}>
       {/* Header */}
-      <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          {isMine ? (
-            <svg className="w-4 h-4 text-danger-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-            </svg>
-          ) : (
-            <svg className="w-4 h-4 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-            </svg>
-          )}
-          <h3 className="text-base font-bold text-white">
-            {isMine ? 'La Mia Rosa' : (targetMember ? targetMember.user.username : 'Rosa Partner')}
+      <div className="px-3.5 py-2.5 border-b border-surface-50 flex-shrink-0">
+        <div className="flex items-baseline gap-2">
+          <h3 className="micro-label">
+            {isMine
+              ? 'La mia rosa · scegli chi cedere'
+              : partnerName
+                ? `Rosa di ${partnerName} · scegli cosa chiedere`
+                : 'Rosa partner · scegli un destinatario'}
           </h3>
-          {selectedCount > 0 && (
-            <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${isMine ? 'bg-danger-500/20 text-danger-400' : 'bg-primary-500/20 text-primary-400'}`}>
-              {selectedCount}
-            </span>
-          )}
+          <span className="ml-auto font-mono text-[10.5px] text-gray-500">{roster.length}</span>
         </div>
         {isMine && myBudget != null && (
-          <span className="text-sm text-gray-400">
-            Budget: <span className="text-white font-mono font-semibold">{myBudget}</span>
-          </span>
+          <p className="mt-1 text-xs text-gray-500">
+            Budget <span className="budget-display text-accent-400">{myBudget}M</span>
+          </p>
         )}
       </div>
 
-      {/* Partner filters */}
+      {/* Partner: recipient selector (mobile only — cockpit picks it in DealTable) + search + role filter */}
       {!isMine && (
-        <div className="px-3 py-2.5 border-b border-white/5 space-y-2">
-          {/* DG selector */}
-          <select
-            value={selectedMemberId}
-            onChange={e => onMemberChange?.(e.target.value)}
-            className="w-full px-2.5 py-2 bg-surface-300 border border-white/10 rounded-lg text-white text-sm focus:border-primary-500 focus:outline-none"
-          >
-            <option value="">Seleziona DG...</option>
-            {members.map(m => (
-              <option key={m.id} value={m.id}>{m.user.username}</option>
-            ))}
-          </select>
-
-          {/* Search */}
+        <div className="px-3 py-2.5 border-b border-surface-50 space-y-2 flex-shrink-0">
+          {onMemberChange && (
+            <select
+              value={selectedMemberId}
+              onChange={e => { onMemberChange(e.target.value); }}
+              className="lg:hidden w-full px-2.5 py-2 bg-surface-300 border border-surface-50 rounded-lg text-white text-sm focus:border-primary-500 focus:outline-none"
+            >
+              <option value="">Seleziona destinatario…</option>
+              {members.map(m => (
+                <option key={m.id} value={m.id}>{m.user.username}</option>
+              ))}
+            </select>
+          )}
           <input
             type="text"
             value={searchQuery}
             onChange={e => onSearchChange?.(e.target.value)}
-            placeholder="Cerca giocatore..."
-            className="w-full px-2.5 py-2 bg-surface-300 border border-white/10 rounded-lg text-white text-sm focus:border-primary-500 focus:outline-none placeholder:text-gray-500"
+            placeholder="Cerca giocatore…"
+            className="w-full px-2.5 py-2 bg-surface-300 border border-surface-50 rounded-lg text-white text-sm focus:border-primary-500 focus:outline-none placeholder:text-gray-500"
           />
-
-          {/* Role tabs */}
-          <div className="flex gap-1">
+          <div className="flex gap-1.5">
             {ROLES.map(r => {
               const isActive = filterRole === r.key
               const filterColor = r.key ? (POSITION_FILTER_COLORS[r.key] ?? '') : ''
               return (
                 <button
                   key={r.key}
+                  type="button"
                   onClick={() => onFilterRoleChange?.(r.key)}
-                  className={`flex-1 py-1.5 rounded text-xs font-bold transition-colors border ${
+                  className={`flex-1 py-1.5 rounded-full font-mono text-[9.5px] font-bold border transition-colors ${
                     isActive
-                      ? (r.key ? filterColor : 'bg-white/10 text-white border-white/20')
-                      : 'text-gray-500 border-transparent hover:text-gray-300'
+                      ? (r.key ? filterColor : 'bg-surface-100 text-white border-surface-50')
+                      : 'text-gray-500 border-surface-50 hover:text-gray-300'
                   }`}
                 >
                   {r.label}
@@ -136,10 +130,10 @@ export function DealRosterPanel(props: DealRosterPanelProps) {
       )}
 
       {/* Scrollable list */}
-      <div className="flex-1 overflow-y-auto divide-y divide-white/5">
+      <div className="panel-scroll flex-1 min-h-0">
         {roster.length === 0 ? (
-          <div className="flex items-center justify-center h-32 text-gray-500 text-sm">
-            {isMine ? 'Nessun giocatore in rosa' : (selectedMemberId ? 'Nessun giocatore trovato' : 'Seleziona un DG')}
+          <div className="flex items-center justify-center h-32 text-gray-500 text-sm px-4 text-center">
+            {isMine ? 'Nessun giocatore in rosa' : (partnerName || selectedMemberId ? 'Nessun giocatore trovato' : 'Seleziona un destinatario nel tavolo')}
           </div>
         ) : (
           roster.map(entry => (
@@ -160,13 +154,6 @@ export function DealRosterPanel(props: DealRosterPanelProps) {
           ))
         )}
       </div>
-
-      {/* Footer count */}
-      {selectedCount > 0 && (
-        <div className={`px-4 py-2.5 border-t border-white/5 text-sm font-medium ${isMine ? 'text-danger-400' : 'text-primary-400'}`}>
-          {selectedCount} giocator{selectedCount === 1 ? 'e' : 'i'} selezionat{selectedCount === 1 ? 'o' : 'i'}
-        </div>
-      )}
     </div>
   )
 }

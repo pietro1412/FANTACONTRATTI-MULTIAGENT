@@ -22,21 +22,22 @@ export function getTimeRemaining(expiresAt: string | undefined): { text: string;
   }
 }
 
+/** Badge ruolo stile cockpit (token semantici: P oro, D blu, C verde, A rosso). */
 export function getRoleStyle(position: string) {
   switch (position) {
-    case 'P': return { bg: 'bg-amber-500/20', text: 'text-amber-400', border: 'border-amber-500/40', label: 'POR' }
-    case 'D': return { bg: 'bg-blue-500/20', text: 'text-blue-400', border: 'border-blue-500/40', label: 'DIF' }
-    case 'C': return { bg: 'bg-emerald-500/20', text: 'text-emerald-400', border: 'border-emerald-500/40', label: 'CEN' }
-    case 'A': return { bg: 'bg-red-500/20', text: 'text-red-400', border: 'border-red-500/40', label: 'ATT' }
-    default: return { bg: 'bg-gray-500/20', text: 'text-gray-400', border: 'border-gray-500/40', label: position }
+    case 'P': return { bg: 'bg-accent-500/[0.14]', text: 'text-accent-400', border: 'border-accent-500/40', label: 'POR' }
+    case 'D': return { bg: 'bg-primary-500/[0.14]', text: 'text-primary-400', border: 'border-primary-500/40', label: 'DIF' }
+    case 'C': return { bg: 'bg-secondary-500/[0.14]', text: 'text-secondary-400', border: 'border-secondary-500/40', label: 'CEN' }
+    case 'A': return { bg: 'bg-danger-500/[0.14]', text: 'text-danger-400', border: 'border-danger-500/40', label: 'ATT' }
+    default: return { bg: 'bg-surface-100', text: 'text-gray-400', border: 'border-surface-50', label: position }
   }
 }
 
 export function getAgeColor(age: number | null | undefined): string {
   if (age === null || age === undefined) return 'text-gray-500'
-  if (age < 20) return 'text-emerald-400 font-bold'
-  if (age < 25) return 'text-green-400'
-  if (age < 30) return 'text-yellow-400'
-  if (age < 35) return 'text-orange-400'
-  return 'text-red-400'
+  if (age < 20) return 'text-secondary-400 font-bold'
+  if (age < 25) return 'text-secondary-400'
+  if (age < 30) return 'text-warning-400'
+  if (age < 35) return 'text-accent-400'
+  return 'text-danger-400'
 }

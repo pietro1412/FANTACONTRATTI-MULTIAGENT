@@ -22,7 +22,7 @@ export function DealMobileFooter({
       className="fixed bottom-0 left-0 right-0 z-40 lg:hidden"
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
-      <div className="bg-surface-200 backdrop-blur-xl border-t border-white/10 p-3 shadow-2xl">
+      <div className="bg-surface-200 border-t border-surface-50/30 p-3 shadow-2xl">
         {/* Impact row */}
         <div className="flex items-center justify-center gap-4 mb-2 text-xs">
           <div className="flex items-center gap-1.5">

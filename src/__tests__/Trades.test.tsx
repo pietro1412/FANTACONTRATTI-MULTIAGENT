@@ -13,23 +13,6 @@ vi.mock('../components/Navigation', () => ({
   ),
 }))
 
-// Mock Button
-vi.mock('../components/ui/Button', () => ({
-  Button: ({ children, onClick, disabled, ...props }: React.ComponentProps<'button'>) => (
-    <button onClick={onClick} disabled={disabled} {...props}>{children}</button>
-  ),
-}))
-
-// Mock Card
-vi.mock('../components/ui/Card', () => ({
-  Card: ({ children, className }: { children: React.ReactNode; className?: string }) => (
-    <div data-testid="card" className={className}>{children}</div>
-  ),
-  CardContent: ({ children, className }: { children: React.ReactNode; className?: string }) => (
-    <div data-testid="card-content" className={className}>{children}</div>
-  ),
-}))
-
 // Mock EmptyState
 vi.mock('../components/ui/EmptyState', () => ({
   EmptyState: ({ title, description }: { title: string; description?: string }) => (
@@ -53,9 +36,6 @@ vi.mock('../components/ContractModifier', () => ({
 
 // Mock deal-room components — DealTable invokes onOpenMyRoster/onOpenPartnerRoster so we can test BottomSheet
 vi.mock('../components/trades/deal-room', () => ({
-  DealFinanceBar: ({ isInTradePhase }: { isInTradePhase: boolean }) => (
-    <div data-testid="deal-finance-bar" data-in-trade={isInTradePhase}>Finance Bar</div>
-  ),
   DealRosterPanel: () => <div data-testid="deal-roster-panel">Roster Panel</div>,
   DealTable: ({ onOpenMyRoster, onOpenPartnerRoster, onSubmit }: { onOpenMyRoster?: () => void; onOpenPartnerRoster?: () => void; onSubmit?: (e: React.FormEvent) => void }) => (
     <div data-testid="deal-table">
@@ -74,9 +54,11 @@ vi.mock('../components/PlayerStatsModal', () => ({
 }))
 
 // Mock Toast
+const mockToastSuccess = vi.fn()
+const mockToastError = vi.fn()
 vi.mock('@/components/ui/Toast', () => ({
   useToast: () => ({
-    toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() },
+    toast: { success: mockToastSuccess, error: mockToastError, warning: vi.fn(), info: vi.fn() },
   }),
 }))
 
@@ -97,12 +79,10 @@ vi.mock('../services/pusher.client', () => ({
   usePusherTrades: () => ({ isConnected: true }),
 }))
 
-// Mock trades index (types, utils, components)
-vi.mock('../components/trades', () => ({
-  getTimeRemaining: () => ({ text: '23h', isUrgent: false, isExpired: false }),
-  PlayersTable: ({ players }: { players: unknown[] }) => (
-    <div data-testid="players-table">Players: {players.length}</div>
-  ),
+// CounterOfferModal is the only piece pulled from the trades barrel that needs a
+// runtime stub; TradeOfferCard + utils render for real.
+vi.mock('../components/trades/CounterOfferModal', () => ({
+  CounterOfferModal: () => null,
 }))
 
 // Mock finance types (type-only import, no runtime mock needed, but satisfy module resolution)
@@ -251,11 +231,11 @@ describe('Trades Page', () => {
     expect(screen.getByText('Caricamento trattative...')).toBeInTheDocument()
   })
 
-  it('renders page header with title after data loads', async () => {
+  it('renders cockpit header with team identity after data loads', async () => {
     render(<Trades leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Trattative')).toBeInTheDocument()
+      expect(screen.getByText('FC Test · Trattative')).toBeInTheDocument()
     })
   })
 
@@ -269,15 +249,15 @@ describe('Trades Page', () => {
     })
   })
 
-  it('shows active trade phase indicator when in trade phase', async () => {
+  it('shows active trade phase pill when in trade phase', async () => {
     render(<Trades leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Scambi attivi')).toBeInTheDocument()
+      expect(screen.getByText('Offerte pre-rinnovo')).toBeInTheDocument()
     })
   })
 
-  it('shows inactive trade phase indicator when not in trade phase', async () => {
+  it('shows inactive trade phase pill when not in trade phase', async () => {
     mockGetSessions.mockResolvedValue({ success: true, data: [] })
 
     render(<Trades leagueId={leagueId} onNavigate={mockOnNavigate} />)
@@ -296,14 +276,6 @@ describe('Trades Page', () => {
     expect(screen.getByText('Ricevute')).toBeInTheDocument()
     expect(screen.getByText('Inviate')).toBeInTheDocument()
     expect(screen.getByText('Concluse')).toBeInTheDocument()
-  })
-
-  it('shows DealFinanceBar component', async () => {
-    render(<Trades leagueId={leagueId} onNavigate={mockOnNavigate} />)
-
-    await waitFor(() => {
-      expect(screen.getByTestId('deal-finance-bar')).toBeInTheDocument()
-    })
   })
 
   it('shows received offers count badge when there are offers', async () => {
@@ -346,8 +318,6 @@ describe('Trades Page', () => {
 
     await user.click(screen.getByText('Ricevute'))
 
-    // After switching to received tab, check that the tab is highlighted
-    // (border-accent-500 class indicates active received tab)
     const ricevuteButton = screen.getByText('Ricevute').closest('button')
     expect(ricevuteButton?.className).toContain('border-accent-500')
   })
@@ -501,23 +471,22 @@ describe('Trades Page', () => {
     await waitFor(() => {
       // Sender username rendered
       expect(screen.getByText('Rival')).toBeInTheDocument()
-      // Status badge
-      expect(screen.getByText('In attesa')).toBeInTheDocument()
-      // Section headers
-      expect(screen.getByText('Riceveresti')).toBeInTheDocument()
-      expect(screen.getByText('Cederesti')).toBeInTheDocument()
-      // Budget amounts
-      expect(screen.getByText('+ 15 crediti')).toBeInTheDocument()
-      expect(screen.getByText('+ 5 crediti')).toBeInTheDocument()
+      // Leg labels (received perspective)
+      expect(screen.getByText('Ricevi')).toBeInTheDocument()
+      expect(screen.getByText('Cedi')).toBeInTheDocument()
+      // Player chips
+      expect(screen.getByText('Player Offered')).toBeInTheDocument()
+      expect(screen.getByText('Player Requested')).toBeInTheDocument()
       // Message
       expect(screen.getByText(/"Buona offerta!"/)).toBeInTheDocument()
       // Action buttons
-      expect(screen.getByText('Accetta Scambio')).toBeInTheDocument()
+      expect(screen.getByText('Accetta')).toBeInTheDocument()
       expect(screen.getByText('Rifiuta')).toBeInTheDocument()
+      expect(screen.getByText('Controfferta')).toBeInTheDocument()
     })
   })
 
-  it('calls accept API when Accetta Scambio is clicked', async () => {
+  it('calls accept API when Accetta is clicked', async () => {
     const user = userEvent.setup()
     mockAcceptTrade.mockResolvedValue({ success: true })
     mockGetReceived.mockResolvedValue({
@@ -547,10 +516,10 @@ describe('Trades Page', () => {
     await user.click(screen.getByText('Ricevute'))
 
     await waitFor(() => {
-      expect(screen.getByText('Accetta Scambio')).toBeInTheDocument()
+      expect(screen.getByText('Accetta')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByText('Accetta Scambio'))
+    await user.click(screen.getByText('Accetta'))
 
     await waitFor(() => {
       expect(mockAcceptTrade).toHaveBeenCalledWith('offer-accept-1')
@@ -649,12 +618,12 @@ describe('Trades Page', () => {
       expect(screen.getByText('A: Rival')).toBeInTheDocument()
       expect(screen.getByText('Offri')).toBeInTheDocument()
       expect(screen.getByText('Richiedi')).toBeInTheDocument()
-      expect(screen.getByText('+ 20 crediti')).toBeInTheDocument()
-      expect(screen.getByText('Annulla Offerta')).toBeInTheDocument()
+      expect(screen.getByText('My Player')).toBeInTheDocument()
+      expect(screen.getByText('Annulla offerta')).toBeInTheDocument()
     })
   })
 
-  it('calls cancel API when Annulla Offerta is clicked', async () => {
+  it('calls cancel API when Annulla offerta is clicked', async () => {
     const user = userEvent.setup()
     mockCancelTrade.mockResolvedValue({ success: true })
     mockGetSent.mockResolvedValue({
@@ -684,10 +653,10 @@ describe('Trades Page', () => {
     await user.click(screen.getByText('Inviate'))
 
     await waitFor(() => {
-      expect(screen.getByText('Annulla Offerta')).toBeInTheDocument()
+      expect(screen.getByText('Annulla offerta')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByText('Annulla Offerta'))
+    await user.click(screen.getByText('Annulla offerta'))
 
     await waitFor(() => {
       expect(mockCancelTrade).toHaveBeenCalledWith('sent-cancel-1')
@@ -776,7 +745,7 @@ describe('Trades Page', () => {
     await waitFor(() => {
       expect(screen.getByText('Accettato')).toBeInTheDocument()
       expect(screen.getByText('Rifiutato')).toBeInTheDocument()
-      // Multiple trades have "Offerti" / "Richiesti" headers
+      // Both history cards expose "Offerti" / "Richiesti" leg labels
       expect(screen.getAllByText('Offerti').length).toBe(2)
       expect(screen.getAllByText('Richiesti').length).toBe(2)
     })
@@ -880,7 +849,7 @@ describe('Trades Page', () => {
     render(<Trades leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Trattative')).toBeInTheDocument()
+      expect(screen.getByText('FC Test · Trattative')).toBeInTheDocument()
     })
     // Navigation renders — admin status passed through (we just verify no crash)
     expect(screen.getByTestId('navigation')).toBeInTheDocument()
@@ -1005,17 +974,18 @@ describe('Trades Page', () => {
     await user.click(screen.getByText('Ricevute'))
 
     await waitFor(() => {
-      expect(screen.getByText('Accetta Scambio')).toBeInTheDocument()
+      expect(screen.getByText('Accetta')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByText('Accetta Scambio'))
+    await user.click(screen.getByText('Accetta'))
 
     await waitFor(() => {
       expect(mockAcceptTrade).toHaveBeenCalledWith('offer-fail')
+      expect(mockToastError).toHaveBeenCalledWith('Budget insufficiente')
     })
   })
 
-  it('sets isLeagueAdmin from OFFERTE_POST_ASTA_SVINCOLATI phase', async () => {
+  it('treats OFFERTE_POST_ASTA_SVINCOLATI as an active trade phase', async () => {
     mockGetSessions.mockResolvedValue({
       success: true,
       data: [
@@ -1026,7 +996,7 @@ describe('Trades Page', () => {
     render(<Trades leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Scambi attivi')).toBeInTheDocument()
+      expect(screen.getByText('Offerte pre-rinnovo')).toBeInTheDocument()
     })
   })
 
@@ -1133,7 +1103,7 @@ describe('Trades Page', () => {
     })
   })
 
-  it('shows error message after failed offer creation', async () => {
+  it('shows toast error after failed offer creation', async () => {
     const user = userEvent.setup()
     mockCreate.mockResolvedValue({ success: false, message: 'Errore: budget insufficiente' })
 
@@ -1146,7 +1116,7 @@ describe('Trades Page', () => {
     await user.click(screen.getByTestId('submit-offer'))
 
     await waitFor(() => {
-      expect(screen.getByText('Errore: budget insufficiente')).toBeInTheDocument()
+      expect(mockToastError).toHaveBeenCalledWith('Errore: budget insufficiente')
     })
   })
 
@@ -1180,7 +1150,7 @@ describe('Trades Page', () => {
     render(<Trades leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Trattative')).toBeInTheDocument()
+      expect(screen.getByText('FC Test · Trattative')).toBeInTheDocument()
     })
 
     // Verify allRosters was processed (API was called)
@@ -1208,7 +1178,7 @@ describe('Trades Page', () => {
     render(<Trades leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Trattative')).toBeInTheDocument()
+      expect(screen.getByText('FC Test · Trattative')).toBeInTheDocument()
     })
 
     expect(mockGetLeagueRosters).toHaveBeenCalledWith(leagueId)
@@ -1245,9 +1215,8 @@ describe('Trades Page', () => {
     await user.click(screen.getByText('Ricevute'))
 
     await waitFor(() => {
-      // Should show "no players offered" message
-      expect(screen.getByText('Nessun giocatore o credito offerto')).toBeInTheDocument()
-      expect(screen.getByText('Nessun giocatore o credito richiesto')).toBeInTheDocument()
+      // Empty legs render the "nulla" placeholder on both sides
+      expect(screen.getAllByText('nulla').length).toBe(2)
     })
   })
 
@@ -1266,7 +1235,7 @@ describe('Trades Page', () => {
     render(<Trades leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Trattative')).toBeInTheDocument()
+      expect(screen.getByText('FC Test · Trattative')).toBeInTheDocument()
     })
 
     expect(mockGetFinancials).toHaveBeenCalledWith(leagueId)

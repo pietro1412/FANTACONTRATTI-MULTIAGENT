@@ -1,5 +1,4 @@
 export { DealAssetCard } from './DealAssetCard'
-export { DealFinanceBar } from './DealFinanceBar'
 export { DealRosterPanel } from './DealRosterPanel'
 export { DealTable } from './DealTable'
 export { DealMobileFooter } from './DealMobileFooter'

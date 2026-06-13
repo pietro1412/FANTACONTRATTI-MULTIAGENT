@@ -30,7 +30,7 @@ export function DealAssetCard({ entry, isSelected, onToggle, side, onViewStats }
   return (
     <div
       onClick={onToggle}
-      className={`px-3 py-3 cursor-pointer hover:bg-white/[0.08] transition-colors flex items-center justify-between ${
+      className={`px-3 py-3 cursor-pointer hover:bg-surface-100 transition-colors flex items-center justify-between border-b border-surface-50/40 ${
         isSelected ? styles.selected : ''
       }`}
     >
@@ -42,7 +42,7 @@ export function DealAssetCard({ entry, isSelected, onToggle, side, onViewStats }
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
             </svg>
           ) : (
-            <div className="w-4 h-4 rounded-full border-2 border-white/20" />
+            <div className="w-4 h-4 rounded-full border-2 border-surface-50" />
           )}
         </div>
 

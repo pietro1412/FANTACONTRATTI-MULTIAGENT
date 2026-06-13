@@ -1,22 +1,20 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { tradeApi, auctionApi, leagueApi, contractApi } from '../services/api'
 import { usePusherTrades } from '../services/pusher.client'
-import { Button } from '../components/ui/Button'
-import { Card, CardContent } from '../components/ui/Card'
 import { Navigation } from '../components/Navigation'
+import { CockpitShell } from '@/components/cockpit/CockpitShell'
 import { ContractModifierModal } from '../components/ContractModifier'
 import { EmptyState } from '../components/ui/EmptyState'
 import { BottomSheet } from '../components/ui/BottomSheet'
-import { DealFinanceBar, DealRosterPanel, DealTable, DealMobileFooter } from '../components/trades/deal-room'
+import { DealRosterPanel, DealTable, DealMobileFooter } from '../components/trades/deal-room'
 import { PlayerStatsModal, type PlayerInfo } from '../components/PlayerStatsModal'
 import { useToast } from '@/components/ui/Toast'
 import { Tabs } from '@/components/ui/Tabs'
 import haptic from '../utils/haptics'
-import type { FinancialsData, TeamData } from '../components/finance/types'
+import type { FinancialsData } from '../components/finance/types'
 import {
-  type TradeOffer, type LeagueMember, type RosterEntry, type MarketSession,
-  getTimeRemaining,
-  PlayersTable,
+  type TradeOffer, type LeagueMember, type RosterEntry, type MarketSession, type Player,
+  TradeOfferCard,
   CounterOfferModal,
 } from '../components/trades'
 
@@ -29,6 +27,7 @@ interface TradesProps {
 export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) {
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(true)
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false)
   const [activeTab, setActiveTab] = useState<'create' | 'received' | 'sent' | 'history'>(
     highlightOfferId ? 'received' : 'create'
   )
@@ -44,13 +43,14 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
   const [myBudget, setMyBudget] = useState(0)
   const [myFinancials, setMyFinancials] = useState<{ annualContractCost: number; slotCount: number }>({ annualContractCost: 0, slotCount: 0 })
   const [isInTradePhase, setIsInTradePhase] = useState(false)
-  const [currentSession, setCurrentSession] = useState<MarketSession | null>(null)
+  const [, setCurrentSession] = useState<MarketSession | null>(null)
   const [tradeHistory, setTradeHistory] = useState<TradeOffer[]>([])
   const [historyFilter, setHistoryFilter] = useState<'ALL' | 'ACCEPTED' | 'REJECTED' | 'INVALIDATED' | 'CANCELLED'>('ALL')
 
-  // Financial data for DealFinanceBar
-  const [financialsData, setFinancialsData] = useState<FinancialsData | null>(null)
-  const [myTeamData, setMyTeamData] = useState<TeamData | null>(null)
+  // Identity for the cockpit header
+  const [leagueName, setLeagueName] = useState('')
+  const [totalMembers, setTotalMembers] = useState(0)
+  const [myTeamName, setMyTeamName] = useState('')
 
   // Create offer form
   const [selectedMemberId, setSelectedMemberId] = useState('')
@@ -61,9 +61,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
   const [message, setMessage] = useState('')
   const [offerDuration, setOfferDuration] = useState(24)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState('')
   const [loadError, setLoadError] = useState('')
-  const [success, setSuccess] = useState('')
 
   // Search filters for create offer
   const [searchQuery, setSearchQuery] = useState('')
@@ -157,8 +155,9 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
     }
 
     if (leagueRes.success && leagueRes.data) {
-      const data = leagueRes.data as { userMembership?: { role: string } }
+      const data = leagueRes.data as { name?: string; userMembership?: { role: string } }
       setIsLeagueAdmin(data.userMembership?.role === 'ADMIN')
+      if (data.name) setLeagueName(data.name)
     }
 
     if (receivedRes.success && receivedRes.data) {
@@ -174,16 +173,16 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
     const financialsMap = new Map<string, { budget: number; annualContractCost: number; slotCount: number }>()
     if (financialsRes.success && financialsRes.data) {
       const fData = financialsRes.data as FinancialsData
-      setFinancialsData(fData)
       for (const t of fData.teams || []) {
         financialsMap.set(t.memberId, { budget: t.budget, annualContractCost: t.annualContractCost, slotCount: t.slotCount })
       }
-      const myTeam = fData.teams.find(t => t.memberId === currentMemberId)
-      if (myTeam) setMyTeamData(myTeam)
     }
 
     if (membersRes.success && membersRes.data) {
-      const allMembers = (membersRes.data as { members: LeagueMember[] }).members || []
+      const allMembers = (membersRes.data as { members: (LeagueMember & { teamName?: string })[] }).members || []
+      setTotalMembers(allMembers.length)
+      const myMember = allMembers.find(m => m.id === currentMemberId)
+      if (myMember) setMyTeamName(myMember.teamName || myMember.user.username)
       const enriched = allMembers.map(m => {
         const fin = financialsMap.get(m.id)
         return fin
@@ -357,6 +356,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
       setLoadError('Errore nel caricamento delle trattative. Verifica la connessione.')
     }
     setIsLoading(false)
+    setHasLoadedOnce(true)
   }
 
   // Helper to select a requested player and auto-set the target member
@@ -397,12 +397,6 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
   // Financial calculations
   const myTotalSalary = myFinancials.annualContractCost
 
-  // Has financial details flag
-  const hasFinancialDetails = useMemo(() => {
-    if (!financialsData) return false
-    return financialsData.teams.some(t => t.totalReleaseCosts !== null || t.totalIndemnities !== null) && !financialsData.inContrattiPhase
-  }, [financialsData])
-
   // Simulated post-trade impact
   const offeredSalaryTotal = useMemo(() =>
     selectedOfferedPlayers.reduce((sum, id) => {
@@ -420,6 +414,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
   )
   const myPostTradeBudget = myBudget - offeredBudget + requestedBudget
   const myPostTradeSalary = myTotalSalary - offeredSalaryTotal + requestedSalaryTotal
+  const myRosterNext = myRoster.length - selectedOfferedPlayers.length + selectedRequestedPlayers.length
 
   const hasTradeSelections = selectedOfferedPlayers.length > 0 || selectedRequestedPlayers.length > 0 || offeredBudget > 0 || requestedBudget > 0
 
@@ -435,12 +430,9 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
     setSearchQuery('')
     setFilterRole('')
     setFilterManager('')
-    setError('')
-    setSuccess('')
   }
 
-  function handleViewStats(entry: RosterEntry) {
-    const p = entry.player
+  function handleViewStats(p: Player) {
     setSelectedPlayerStats({
       name: p.name,
       team: p.team,
@@ -453,10 +445,12 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
     })
   }
 
+  function handleViewStatsEntry(entry: RosterEntry) {
+    handleViewStats(entry.player)
+  }
+
   async function handleCreateOffer(e: React.FormEvent) {
     e.preventDefault()
-    setError('')
-    setSuccess('')
     setIsSubmitting(true)
 
     const res = await tradeApi.create(leagueId, {
@@ -472,16 +466,12 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
     if (res.success) {
       haptic.send()
       const warnings = (res as unknown as { warnings?: string[] }).warnings
-      if (warnings?.length) {
-        setSuccess(`Offerta inviata! ${warnings.join(' ')}`)
-      } else {
-        setSuccess('Offerta inviata!')
-      }
+      toast.success(warnings?.length ? `Offerta inviata! ${warnings.join(' ')}` : 'Offerta inviata!')
       resetCreateForm()
       void loadData()
       setActiveTab('sent')
     } else {
-      setError(res.message || 'Errore durante l\'invio dell\'offerta')
+      toast.error(res.message || 'Errore durante l\'invio dell\'offerta')
     }
 
     setIsSubmitting(false)
@@ -490,7 +480,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
   async function handleAccept(tradeId: string) {
     const res = await tradeApi.accept(tradeId)
     if (res.success) {
-      setSuccess('Scambio accettato! I contratti dei giocatori ricevuti saranno modificabili nella fase di rinnovo contratti.')
+      toast.success('Scambio accettato! I contratti dei giocatori ricevuti saranno modificabili nella fase di rinnovo contratti.')
       void loadData()
     } else {
       toast.error(res.message || 'Errore')
@@ -555,7 +545,8 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
     }
   }
 
-  if (isLoading) {
+  // First load: full-screen spinner. Subsequent Pusher refreshes keep the UI mounted.
+  if (isLoading && !hasLoadedOnce) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -566,88 +557,102 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
     )
   }
 
-  return (
-    <div className="min-h-screen">
-      <Navigation currentPage="trades" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
-
-      {/* === Page Header (aligned with Svincolati) === */}
-      <div className="bg-gradient-to-r from-dark-200 via-surface-200 to-dark-200 border-b border-surface-50/20">
-        <div className="max-w-[1600px] mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-5">
-              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-glow">
-                <span className="text-2xl">🤝</span>
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white">Trattative</h1>
-                  <span className={`w-2 h-2 rounded-full ${pusherConnected ? 'bg-green-400' : 'bg-red-400'} animate-pulse`} title={pusherConnected ? 'Real-time attivo' : 'Real-time disconnesso'} />
-                </div>
-                <p className="text-gray-400 text-sm">
-                  {isInTradePhase ? 'Scambi attivi' : 'Scambi non disponibili'}
-                </p>
-              </div>
-            </div>
-            {/* Ongoing trades indicator (anonymized: count only, no details) */}
-            {ongoingTradesCount > 0 && (
-              <div
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent-500/15 border border-accent-500/30 text-accent-400 text-xs font-medium"
-                title="Altre trattative sono in corso nella lega. I dettagli non sono visibili."
-              >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                </svg>
-                <span>
-                  {ongoingTradesCount} {ongoingTradesCount === 1 ? 'trattativa in corso' : 'trattative in corso'} nella lega
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
+  // ===== Cockpit testata =====
+  const header = (
+    <div className="bg-surface-200 border border-surface-50 rounded-xl px-4 py-3 flex items-center gap-3 flex-wrap min-h-[56px]">
+      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center flex-shrink-0">
+        <span className="text-lg" aria-hidden="true">🤝</span>
+      </div>
+      <div className="flex flex-col min-w-0">
+        <h1 className="font-display font-bold text-sm sm:text-base text-white leading-tight truncate">
+          {myTeamName ? `${myTeamName} · Trattative` : 'Trattative'}
+        </h1>
+        <span className="text-sm text-gray-500 leading-tight truncate">
+          {leagueName ? `${leagueName} · ${totalMembers} squadre` : 'Scambi tra manager'}
+        </span>
       </div>
 
-      <main className="max-w-[1600px] mx-auto px-4 py-4 lg:py-6">
-        {/* === DealFinanceBar - always visible === */}
-        <DealFinanceBar
-          isInTradePhase={isInTradePhase}
-          currentPhase={currentSession?.currentPhase || null}
-          pusherConnected={pusherConnected}
-          myTeam={myTeamData}
-          hasFinancialDetails={hasFinancialDetails}
-          postTradeImpact={
-            activeTab === 'create' && hasTradeSelections
-              ? { budgetDelta: -offeredBudget + requestedBudget, newBudget: myPostTradeBudget, newSalary: myPostTradeSalary, rosterDelta: selectedRequestedPlayers.length - selectedOfferedPlayers.length }
-              : null
-          }
-        />
+      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm font-semibold border ${
+        pusherConnected ? 'bg-secondary-500/10 border-secondary-500/30 text-secondary-400' : 'bg-warning-500/10 border-warning-500/30 text-warning-400 animate-pulse'
+      }`}>
+        <span className={pusherConnected ? 'dot-live bg-secondary-500 shadow-[0_0_8px_theme(colors.secondary.500)]' : 'w-1.5 h-1.5 rounded-full bg-warning-400'} />
+        {pusherConnected ? 'Connesso' : 'Disconnesso'}
+      </span>
 
-        {/* === Tab Bar === */}
-        <Tabs
-          className="mt-3 mb-4"
-          ariaLabel="Sezioni scambi"
-          value={activeTab}
-          onChange={(id) => { setActiveTab(id as typeof activeTab); }}
-          tabs={[
-            {
-              id: 'create',
-              label: 'Nuova Offerta',
-              mobileLabel: 'Nuova',
-              accent: 'primary',
-              icon: (
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-              ),
-            },
-            { id: 'received', label: 'Ricevute', accent: 'accent', badge: receivedOffers.length },
-            { id: 'sent', label: 'Inviate', accent: 'primary', badge: sentOffers.length },
-            { id: 'history', label: 'Concluse', accent: 'gray', badge: tradeHistory.length },
-          ]}
-        />
+      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-mono text-[10.5px] font-bold tracking-[0.06em] border ${
+        isInTradePhase ? 'text-accent-400 bg-accent-500/10 border-accent-500/50' : 'text-gray-400 bg-surface-300 border-surface-50'
+      }`}>
+        <span aria-hidden="true">●</span>
+        {isInTradePhase ? 'Offerte pre-rinnovo' : 'Scambi non disponibili'}
+      </span>
 
-        {/* Load error with retry */}
+      <div className="ml-auto flex items-center gap-4">
+        <div className="text-right">
+          <div className="micro-label text-[9px]">Budget</div>
+          <div className="budget-display text-lg sm:text-xl text-accent-400 leading-tight">{myBudget}<span className="text-xs text-gray-500">M</span></div>
+        </div>
+        <div className="hidden sm:block w-px h-7 bg-surface-50" />
+        <div className="hidden sm:block text-right">
+          <div className="micro-label text-[9px]">Monte ingaggi</div>
+          <div className="budget-display text-lg sm:text-xl text-white leading-tight">{myTotalSalary}<span className="text-xs text-gray-500">M</span></div>
+        </div>
+        <div className="hidden md:block w-px h-7 bg-surface-50" />
+        <div className="hidden md:block text-right">
+          <div className="micro-label text-[9px]">Rosa</div>
+          <div className="budget-display text-lg sm:text-xl text-white leading-tight">{myRoster.length}</div>
+        </div>
+      </div>
+    </div>
+  )
+
+  // ===== Cockpit barra tab + indicatore trattative in corso =====
+  const adminBar = (
+    <div className="mt-2 flex items-center gap-3 flex-wrap">
+      <Tabs
+        className="flex-1 min-w-0"
+        ariaLabel="Sezioni scambi"
+        value={activeTab}
+        onChange={(id) => { setActiveTab(id as typeof activeTab); }}
+        tabs={[
+          {
+            id: 'create',
+            label: 'Nuova Offerta',
+            mobileLabel: 'Nuova',
+            accent: 'primary',
+            icon: (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+            ),
+          },
+          { id: 'received', label: 'Ricevute', accent: 'accent', badge: receivedOffers.length },
+          { id: 'sent', label: 'Inviate', accent: 'primary', badge: sentOffers.length },
+          { id: 'history', label: 'Concluse', accent: 'gray', badge: tradeHistory.length },
+        ]}
+      />
+      {ongoingTradesCount > 0 && (
+        <span
+          className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent-500/[0.12] border border-accent-500/30 text-accent-400 text-xs font-medium flex-shrink-0"
+          title="Altre trattative sono in corso nella lega. I dettagli non sono visibili."
+        >
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+          </svg>
+          {ongoingTradesCount} {ongoingTradesCount === 1 ? 'trattativa in corso' : 'trattative in corso'} nella lega
+        </span>
+      )}
+    </div>
+  )
+
+  const canSubmit = !!(selectedMemberId && (selectedOfferedPlayers.length > 0 || offeredBudget > 0 || selectedRequestedPlayers.length > 0 || requestedBudget > 0))
+
+  return (
+    <div className="min-h-screen lg:h-dvh lg:flex lg:flex-col lg:overflow-hidden">
+      <Navigation currentPage="trades" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
+
+      <main className="w-full max-w-full mx-auto px-3 lg:px-4 py-3 lg:flex-1 lg:min-h-0 lg:flex lg:flex-col lg:overflow-hidden">
         {loadError && (
-          <div className="bg-danger-500/10 border border-danger-500/30 rounded-lg p-4 mb-4 text-center">
+          <div className="bg-danger-500/10 border border-danger-500/30 rounded-lg p-4 mb-3 text-center lg:flex-shrink-0">
             <p className="text-danger-400">{loadError}</p>
             <button
               onClick={() => { setLoadError(''); void loadData(); }}
@@ -658,95 +663,76 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
           </div>
         )}
 
-        {/* Success/Error messages */}
-        <div className="space-y-2 mb-4">
-          {error && activeTab !== 'create' && (
-            <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-3 rounded-lg text-sm">{error}</div>
-          )}
-          {success && (
-            <div className="bg-secondary-500/20 border border-secondary-500/50 text-secondary-400 p-3 rounded-lg text-sm">{success}</div>
-          )}
-        </div>
+        <CockpitShell header={header} adminBar={adminBar}>
+          <div className="mt-3 lg:mt-3 lg:h-full lg:min-h-0">
 
-        {/* ============================= */}
-        {/* === TAB: Nuova Offerta === */}
-        {/* ============================= */}
-        {activeTab === 'create' && (
-          <div className={`space-y-4 ${hasTradeSelections ? 'pb-40 lg:pb-4' : ''}`}>
-            {!isInTradePhase ? (
-              <Card>
-                <CardContent className="py-8 text-center">
-                  <p className="text-accent-400">
-                    Puoi creare offerte solo durante la fase SCAMBI/OFFERTE
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              <>
-                {error && (
-                  <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-3 rounded-lg text-sm">
-                    {error}
-                  </div>
-                )}
-
-                {/* Mobile triggers removed - contextual buttons inside DealTable are sufficient */}
-
-                {/* 3-column grid layout */}
-                <div className="lg:grid lg:grid-cols-12 lg:gap-4">
-                  {/* Left: My Roster (desktop only) */}
-                  <div className="hidden lg:block lg:col-span-4">
-                    <div className="sticky top-4">
+            {/* ===== TAB: Nuova Offerta ===== */}
+            {activeTab === 'create' && (
+              !isInTradePhase ? (
+                <div className="bg-surface-200 border border-surface-50 rounded-xl py-10 text-center">
+                  <p className="text-accent-400">Puoi creare offerte solo durante la fase SCAMBI/OFFERTE</p>
+                </div>
+              ) : (
+                <>
+                  {/* 3-column deal room (desktop). Mobile: arena only + BottomSheets */}
+                  <div className="lg:h-full lg:min-h-0 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.12fr)_minmax(0,1fr)] lg:gap-3">
+                    {/* Sinistra: la mia rosa (desktop) */}
+                    <div className="hidden lg:block lg:min-h-0">
                       <DealRosterPanel
                         side="mine"
                         myRoster={myRoster}
                         selectedOfferedPlayers={selectedOfferedPlayers}
                         onToggleOffered={(id) => { togglePlayer(selectedOfferedPlayers, setSelectedOfferedPlayers, id); }}
                         myBudget={myBudget}
-                        onViewStats={handleViewStats}
+                        onViewStats={handleViewStatsEntry}
                       />
                     </div>
-                  </div>
 
-                  {/* Center: Deal Table */}
-                  <div className="lg:col-span-4">
-                    <DealTable
-                      members={members}
-                      selectedMemberId={selectedMemberId}
-                      targetMember={targetMember}
-                      onMemberChange={(id) => {
-                        if (id !== selectedMemberId) {
-                          setSelectedMemberId(id)
-                          setSelectedRequestedPlayers([])
-                          setFilterManager(id)
-                        }
-                      }}
-                      myBudget={myBudget}
-                      selectedOfferedPlayers={selectedOfferedPlayers}
-                      myRoster={myRoster}
-                      onRemoveOffered={(id) => { togglePlayer(selectedOfferedPlayers, setSelectedOfferedPlayers, id); }}
-                      offeredBudget={offeredBudget}
-                      onOfferedBudgetChange={setOfferedBudget}
-                      selectedRequestedPlayers={selectedRequestedPlayers}
-                      allOtherPlayers={allOtherPlayers}
-                      onRemoveRequested={(id) => { togglePlayer(selectedRequestedPlayers, setSelectedRequestedPlayers, id); }}
-                      requestedBudget={requestedBudget}
-                      onRequestedBudgetChange={setRequestedBudget}
-                      offerDuration={offerDuration}
-                      onDurationChange={setOfferDuration}
-                      message={message}
-                      onMessageChange={setMessage}
-                      isSubmitting={isSubmitting}
-                      canSubmit={!!(selectedMemberId && (selectedOfferedPlayers.length > 0 || offeredBudget > 0 || selectedRequestedPlayers.length > 0 || requestedBudget > 0))}
-                      onSubmit={(e) => { void handleCreateOffer(e) }}
-                      onOpenMyRoster={() => { setShowMyRosterModal(true); }}
-                      onOpenPartnerRoster={() => { setShowPartnerRosterModal(true); }}
-                      onViewStats={handleViewStats}
-                    />
-                  </div>
+                    {/* Centro: tavolo (arena oro) */}
+                    <div className={`lg:min-h-0 ${hasTradeSelections ? 'pb-40 lg:pb-0' : ''}`}>
+                      <DealTable
+                        members={members}
+                        selectedMemberId={selectedMemberId}
+                        targetMember={targetMember}
+                        onMemberChange={(id) => {
+                          if (id !== selectedMemberId) {
+                            setSelectedMemberId(id)
+                            setSelectedRequestedPlayers([])
+                            setFilterManager(id)
+                          }
+                        }}
+                        myBudget={myBudget}
+                        selectedOfferedPlayers={selectedOfferedPlayers}
+                        myRoster={myRoster}
+                        onRemoveOffered={(id) => { togglePlayer(selectedOfferedPlayers, setSelectedOfferedPlayers, id); }}
+                        offeredBudget={offeredBudget}
+                        onOfferedBudgetChange={setOfferedBudget}
+                        selectedRequestedPlayers={selectedRequestedPlayers}
+                        allOtherPlayers={allOtherPlayers}
+                        onRemoveRequested={(id) => { togglePlayer(selectedRequestedPlayers, setSelectedRequestedPlayers, id); }}
+                        requestedBudget={requestedBudget}
+                        onRequestedBudgetChange={setRequestedBudget}
+                        offerDuration={offerDuration}
+                        onDurationChange={setOfferDuration}
+                        message={message}
+                        onMessageChange={setMessage}
+                        budgetNow={myBudget}
+                        budgetNext={myPostTradeBudget}
+                        salaryNow={myTotalSalary}
+                        salaryNext={myPostTradeSalary}
+                        rosterNow={myRoster.length}
+                        rosterNext={myRosterNext}
+                        isSubmitting={isSubmitting}
+                        canSubmit={canSubmit}
+                        onSubmit={(e) => { void handleCreateOffer(e) }}
+                        onOpenMyRoster={() => { setShowMyRosterModal(true); }}
+                        onOpenPartnerRoster={() => { setShowPartnerRosterModal(true); }}
+                        onViewStats={handleViewStatsEntry}
+                      />
+                    </div>
 
-                  {/* Right: Partner Roster (desktop only) */}
-                  <div className="hidden lg:block lg:col-span-4">
-                    <div className="sticky top-4">
+                    {/* Destra: rosa partner (desktop) */}
+                    <div className="hidden lg:block lg:min-h-0">
                       <DealRosterPanel
                         side="partner"
                         filteredPlayers={filteredOtherPlayers}
@@ -756,514 +742,206 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                         onSearchChange={setSearchQuery}
                         filterRole={filterRole}
                         onFilterRoleChange={setFilterRole}
-                        members={members}
-                        selectedMemberId={selectedMemberId || filterManager}
-                        onMemberChange={(id) => {
-                          setFilterManager(id)
-                          if (id !== selectedMemberId) {
-                            setSelectedMemberId(id)
-                            setSelectedRequestedPlayers([])
-                          }
-                        }}
                         targetMember={targetMember}
-                        onViewStats={handleViewStats}
+                        onViewStats={handleViewStatsEntry}
                       />
                     </div>
                   </div>
+
+                  {/* Mobile BottomSheet: La Mia Rosa */}
+                  <BottomSheet
+                    isOpen={showMyRosterModal}
+                    onClose={() => { setShowMyRosterModal(false); }}
+                    title="La Mia Rosa"
+                    maxHeight="85vh"
+                  >
+                    <DealRosterPanel
+                      side="mine"
+                      variant="sheet"
+                      myRoster={myRoster}
+                      selectedOfferedPlayers={selectedOfferedPlayers}
+                      onToggleOffered={(id) => { togglePlayer(selectedOfferedPlayers, setSelectedOfferedPlayers, id); }}
+                      myBudget={myBudget}
+                      onViewStats={handleViewStatsEntry}
+                    />
+                    <div className="sticky bottom-0 px-4 py-3 bg-surface-200 border-t border-surface-50">
+                      <button
+                        onClick={() => { setShowMyRosterModal(false); }}
+                        className="w-full py-3 rounded-xl font-bold text-base bg-danger-500/20 text-danger-400 border border-danger-500/30 active:scale-[0.98] transition-all"
+                      >
+                        Conferma selezione{selectedOfferedPlayers.length > 0 ? ` (${selectedOfferedPlayers.length})` : ''}
+                      </button>
+                    </div>
+                  </BottomSheet>
+
+                  {/* Mobile BottomSheet: Rosa Partner */}
+                  <BottomSheet
+                    isOpen={showPartnerRosterModal}
+                    onClose={() => { setShowPartnerRosterModal(false); }}
+                    title={targetMember ? `Rosa ${targetMember.user.username}` : 'Rosa Partner'}
+                    maxHeight="85vh"
+                  >
+                    <DealRosterPanel
+                      side="partner"
+                      variant="sheet"
+                      filteredPlayers={filteredOtherPlayers}
+                      selectedRequestedPlayers={selectedRequestedPlayers}
+                      onToggleRequested={handleSelectRequestedPlayer}
+                      searchQuery={searchQuery}
+                      onSearchChange={setSearchQuery}
+                      filterRole={filterRole}
+                      onFilterRoleChange={setFilterRole}
+                      members={members}
+                      selectedMemberId={selectedMemberId || filterManager}
+                      onMemberChange={(id) => {
+                        setFilterManager(id)
+                        if (id !== selectedMemberId) {
+                          setSelectedMemberId(id)
+                          setSelectedRequestedPlayers([])
+                        }
+                      }}
+                      targetMember={targetMember}
+                      onViewStats={handleViewStatsEntry}
+                    />
+                    <div className="sticky bottom-0 px-4 py-3 bg-surface-200 border-t border-surface-50">
+                      <button
+                        onClick={() => { setShowPartnerRosterModal(false); }}
+                        className="w-full py-3 rounded-xl font-bold text-base bg-primary-500/20 text-primary-400 border border-primary-500/30 active:scale-[0.98] transition-all"
+                      >
+                        Conferma selezione{selectedRequestedPlayers.length > 0 ? ` (${selectedRequestedPlayers.length})` : ''}
+                      </button>
+                    </div>
+                  </BottomSheet>
+
+                  {/* Mobile sticky footer */}
+                  <DealMobileFooter
+                    offeredCount={selectedOfferedPlayers.length}
+                    requestedCount={selectedRequestedPlayers.length}
+                    isSubmitting={isSubmitting}
+                    onSubmit={() => { void handleCreateOffer({ preventDefault: () => {} } as React.FormEvent) }}
+                    canSubmit={canSubmit}
+                    hasSelections={hasTradeSelections}
+                  />
+                </>
+              )
+            )}
+
+            {/* ===== TAB: Ricevute ===== */}
+            {activeTab === 'received' && (
+              <div className="bg-surface-200 border border-surface-50 rounded-xl overflow-hidden flex flex-col lg:h-full lg:min-h-0">
+                <div className="px-4 py-2.5 border-b border-surface-50 flex items-baseline gap-2 flex-shrink-0">
+                  <span className="micro-label">Offerte ricevute · in attesa di risposta</span>
+                  <span className="ml-auto font-mono text-[10.5px] text-gray-500">{receivedOffers.length} offerte</span>
+                </div>
+                {receivedOffers.length === 0 ? (
+                  <div className="py-8">
+                    <EmptyState icon="📥" title="Nessuna offerta ricevuta" description="Le offerte che riceverai appariranno qui" />
+                  </div>
+                ) : (
+                  <div className="panel-scroll flex-1 min-h-0">
+                    {receivedOffers.map(offer => (
+                      <TradeOfferCard
+                        key={offer.id}
+                        offer={offer}
+                        variant="received"
+                        isInTradePhase={isInTradePhase}
+                        isHighlighted={offer.id === highlightedOfferId}
+                        onAccept={(id) => { void handleAccept(id) }}
+                        onCounter={(o) => { setCounterOffer(o); }}
+                        onReject={(id) => { void handleReject(id) }}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ===== TAB: Inviate ===== */}
+            {activeTab === 'sent' && (
+              <div className="bg-surface-200 border border-surface-50 rounded-xl overflow-hidden flex flex-col lg:h-full lg:min-h-0">
+                <div className="px-4 py-2.5 border-b border-surface-50 flex items-baseline gap-2 flex-shrink-0">
+                  <span className="micro-label">Offerte inviate · in attesa di risposta</span>
+                  <span className="ml-auto font-mono text-[10.5px] text-gray-500">{sentOffers.length} offerte</span>
+                </div>
+                {sentOffers.length === 0 ? (
+                  <div className="py-8">
+                    <EmptyState icon="📤" title="Nessuna offerta inviata" description="Le tue offerte appariranno qui" />
+                  </div>
+                ) : (
+                  <div className="panel-scroll flex-1 min-h-0">
+                    {sentOffers.map(offer => (
+                      <TradeOfferCard
+                        key={offer.id}
+                        offer={offer}
+                        variant="sent"
+                        isInTradePhase={isInTradePhase}
+                        isHighlighted={offer.id === highlightedOfferId}
+                        onCancel={(id) => { void handleCancel(id) }}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ===== TAB: Concluse ===== */}
+            {activeTab === 'history' && (
+              <div className="bg-surface-200 border border-surface-50 rounded-xl overflow-hidden flex flex-col lg:h-full lg:min-h-0">
+                <div className="px-4 py-2.5 border-b border-surface-50 flex items-center gap-2 flex-wrap flex-shrink-0">
+                  <span className="micro-label flex-shrink-0">Trattative concluse</span>
+                  <div className="flex flex-wrap gap-1.5 ml-auto">
+                    {([
+                      { key: 'ALL', label: 'Tutte' },
+                      { key: 'ACCEPTED', label: 'Accettate' },
+                      { key: 'REJECTED', label: 'Rifiutate' },
+                      { key: 'INVALIDATED', label: 'Decadute' },
+                      { key: 'CANCELLED', label: 'Annullate' },
+                    ] as const).map(chip => (
+                      <button
+                        key={chip.key}
+                        type="button"
+                        onClick={() => { setHistoryFilter(chip.key); }}
+                        className={`px-2.5 py-1 rounded-full font-mono text-[9.5px] font-bold border transition-colors ${
+                          historyFilter === chip.key
+                            ? 'bg-accent-400 text-dark-300 border-accent-400'
+                            : 'bg-surface-300 text-gray-400 border-surface-50 hover:text-gray-300'
+                        }`}
+                      >
+                        {chip.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                {/* Mobile BottomSheet: La Mia Rosa */}
-                <BottomSheet
-                  isOpen={showMyRosterModal}
-                  onClose={() => { setShowMyRosterModal(false); }}
-                  title="La Mia Rosa"
-                  maxHeight="85vh"
-                >
-                  <DealRosterPanel
-                    side="mine"
-                    myRoster={myRoster}
-                    selectedOfferedPlayers={selectedOfferedPlayers}
-                    onToggleOffered={(id) => { togglePlayer(selectedOfferedPlayers, setSelectedOfferedPlayers, id); }}
-                    myBudget={myBudget}
-                    onViewStats={handleViewStats}
-                  />
-                  <div className="sticky bottom-0 px-4 py-3 bg-surface-200 border-t border-white/10">
-                    <button
-                      onClick={() => { setShowMyRosterModal(false); }}
-                      className="w-full py-3 rounded-xl font-bold text-base bg-danger-500/20 text-danger-400 border border-danger-500/30 active:scale-[0.98] transition-all"
-                    >
-                      Conferma selezione{selectedOfferedPlayers.length > 0 ? ` (${selectedOfferedPlayers.length})` : ''}
-                    </button>
-                  </div>
-                </BottomSheet>
+                {(() => {
+                  const filtered = historyFilter === 'ALL'
+                    ? tradeHistory
+                    : tradeHistory.filter(o => o.status === historyFilter)
 
-                {/* Mobile BottomSheet: Rosa Partner */}
-                <BottomSheet
-                  isOpen={showPartnerRosterModal}
-                  onClose={() => { setShowPartnerRosterModal(false); }}
-                  title={targetMember ? `Rosa ${targetMember.user.username}` : 'Rosa Partner'}
-                  maxHeight="85vh"
-                >
-                  <DealRosterPanel
-                    side="partner"
-                    filteredPlayers={filteredOtherPlayers}
-                    selectedRequestedPlayers={selectedRequestedPlayers}
-                    onToggleRequested={handleSelectRequestedPlayer}
-                    searchQuery={searchQuery}
-                    onSearchChange={setSearchQuery}
-                    filterRole={filterRole}
-                    onFilterRoleChange={setFilterRole}
-                    members={members}
-                    selectedMemberId={selectedMemberId || filterManager}
-                    onMemberChange={(id) => {
-                      setFilterManager(id)
-                      if (id !== selectedMemberId) {
-                        setSelectedMemberId(id)
-                        setSelectedRequestedPlayers([])
-                      }
-                    }}
-                    targetMember={targetMember}
-                    onViewStats={handleViewStats}
-                  />
-                  <div className="sticky bottom-0 px-4 py-3 bg-surface-200 border-t border-white/10">
-                    <button
-                      onClick={() => { setShowPartnerRosterModal(false); }}
-                      className="w-full py-3 rounded-xl font-bold text-base bg-primary-500/20 text-primary-400 border border-primary-500/30 active:scale-[0.98] transition-all"
-                    >
-                      Conferma selezione{selectedRequestedPlayers.length > 0 ? ` (${selectedRequestedPlayers.length})` : ''}
-                    </button>
-                  </div>
-                </BottomSheet>
+                  if (filtered.length === 0) {
+                    return (
+                      <div className="py-8">
+                        <EmptyState
+                          icon="📋"
+                          title="Nessuna trattativa conclusa"
+                          description={historyFilter === 'ALL' ? 'Le trattative concluse appariranno qui' : 'Nessuna trattativa con questo stato'}
+                        />
+                      </div>
+                    )
+                  }
 
-                {/* Mobile sticky footer */}
-                <DealMobileFooter
-                  offeredCount={selectedOfferedPlayers.length}
-                  requestedCount={selectedRequestedPlayers.length}
-                  isSubmitting={isSubmitting}
-                  onSubmit={() => { void handleCreateOffer({ preventDefault: () => {} } as React.FormEvent) }}
-                  canSubmit={!!(selectedMemberId && (selectedOfferedPlayers.length > 0 || offeredBudget > 0 || selectedRequestedPlayers.length > 0 || requestedBudget > 0))}
-                  hasSelections={hasTradeSelections}
-                />
-              </>
+                  return (
+                    <div className="panel-scroll flex-1 min-h-0">
+                      {filtered.map(offer => (
+                        <TradeOfferCard key={offer.id} offer={offer} variant="history" />
+                      ))}
+                    </div>
+                  )
+                })()}
+              </div>
             )}
           </div>
-        )}
-
-        {/* ============================= */}
-        {/* === TAB: Ricevute === */}
-        {/* ============================= */}
-        {activeTab === 'received' && (
-          <div className="space-y-4">
-            {receivedOffers.length === 0 ? (
-              <EmptyState icon="📥" title="Nessuna offerta ricevuta" description="Le offerte che riceverai appariranno qui" />
-            ) : (
-              receivedOffers.map(offer => {
-                const timeRemaining = getTimeRemaining(offer.expiresAt)
-                const isHighlighted = offer.id === highlightedOfferId
-                return (
-                  <Card
-                    key={offer.id}
-                    id={`offer-${offer.id}`}
-                    className={`overflow-hidden border-l-4 ${isHighlighted ? 'border-l-primary-500 ring-2 ring-primary-500/50 bg-primary-500/5' : 'border-l-accent-500'}`}
-                  >
-                    <div className="bg-gradient-to-r from-surface-200 to-transparent px-5 py-4 flex justify-between items-center">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-accent-500/20 flex items-center justify-center">
-                          <span className="text-accent-400 font-bold text-sm">
-                            {(offer.sender?.username?.[0] || offer.fromMember?.user?.username?.[0] || '?').toUpperCase()}
-                          </span>
-                        </div>
-                        <div>
-                          <p className="font-semibold text-white">{offer.sender?.username || offer.fromMember?.user?.username}</p>
-                          <p className="text-xs text-gray-500">
-                            {new Date(offer.createdAt).toLocaleString('it-IT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${
-                          timeRemaining.isExpired
-                            ? 'bg-danger-500/20 text-danger-400 border border-danger-500/40'
-                            : timeRemaining.isUrgent
-                              ? 'bg-warning-500/20 text-warning-400 border border-warning-500/40'
-                              : 'bg-surface-300 text-gray-400 border border-surface-50/30'
-                        }`}>
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          <span>{timeRemaining.text}</span>
-                        </div>
-                        <span className="px-3 py-1.5 bg-accent-500/20 text-accent-400 text-xs font-semibold rounded-full border border-accent-500/40 uppercase tracking-wide">
-                          In attesa
-                        </span>
-                      </div>
-                    </div>
-
-                    <CardContent className="py-5">
-                      <div className="grid md:grid-cols-2 gap-6">
-                        {/* What you receive */}
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-secondary-500/20 flex items-center justify-center">
-                              <svg className="w-3 h-3 text-secondary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                              </svg>
-                            </div>
-                            <p className="text-sm font-semibold text-secondary-400 uppercase tracking-wide">Riceveresti</p>
-                          </div>
-                          <div className="pl-8">
-                            <PlayersTable players={offer.offeredPlayerDetails || offer.offeredPlayers || []} />
-                            {offer.offeredBudget > 0 && (
-                              <div className="flex items-center gap-2 mt-2 pt-2 border-t border-surface-50/20">
-                                <div className="w-6 h-6 rounded bg-secondary-500/20 flex items-center justify-center">
-                                  <span className="text-secondary-400 font-bold text-xs">€</span>
-                                </div>
-                                <span className="text-sm text-secondary-400 font-medium">+ {offer.offeredBudget} crediti</span>
-                              </div>
-                            )}
-                            {(!offer.offeredPlayerDetails?.length && !offer.offeredPlayers?.length && offer.offeredBudget === 0) && (
-                              <p className="text-gray-400 text-sm italic py-2">Nessun giocatore o credito offerto</p>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* What you give */}
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-danger-500/20 flex items-center justify-center">
-                              <svg className="w-3 h-3 text-danger-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                              </svg>
-                            </div>
-                            <p className="text-sm font-semibold text-danger-400 uppercase tracking-wide">Cederesti</p>
-                          </div>
-                          <div className="pl-8">
-                            <PlayersTable players={offer.requestedPlayerDetails || offer.requestedPlayers || []} />
-                            {offer.requestedBudget > 0 && (
-                              <div className="flex items-center gap-2 mt-2 pt-2 border-t border-surface-50/20">
-                                <div className="w-6 h-6 rounded bg-danger-500/20 flex items-center justify-center">
-                                  <span className="text-danger-400 font-bold text-xs">€</span>
-                                </div>
-                                <span className="text-sm text-danger-400 font-medium">+ {offer.requestedBudget} crediti</span>
-                              </div>
-                            )}
-                            {(!offer.requestedPlayerDetails?.length && !offer.requestedPlayers?.length && offer.requestedBudget === 0) && (
-                              <p className="text-gray-400 text-sm italic py-2">Nessun giocatore o credito richiesto</p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {offer.message && (
-                        <div className="mt-5 p-4 bg-surface-200/50 rounded-lg border-l-2 border-gray-500">
-                          <p className="text-sm text-gray-400 italic">"{offer.message}"</p>
-                        </div>
-                      )}
-
-                      {isInTradePhase && !timeRemaining.isExpired && (
-                        <div className="flex gap-3 mt-6 pt-5 border-t border-surface-50/20">
-                          <Button variant="primary" onClick={() => { void handleAccept(offer.id) }} className="flex-1">
-                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                            Accetta Scambio
-                          </Button>
-                          <Button variant="outline" onClick={() => { setCounterOffer(offer); }} className="flex-1">
-                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                            </svg>
-                            Controfferta
-                          </Button>
-                          <Button variant="outline" onClick={() => { void handleReject(offer.id) }} className="flex-1">
-                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                            Rifiuta
-                          </Button>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                )
-              })
-            )}
-          </div>
-        )}
-
-        {/* ============================= */}
-        {/* === TAB: Inviate === */}
-        {/* ============================= */}
-        {activeTab === 'sent' && (
-          <div className="space-y-4">
-            {sentOffers.length === 0 ? (
-              <EmptyState icon="📤" title="Nessuna offerta inviata" description="Le tue offerte appariranno qui" />
-            ) : (
-              sentOffers.map(offer => {
-                const timeRemaining = getTimeRemaining(offer.expiresAt)
-                const isHighlighted = offer.id === highlightedOfferId
-                return (
-                  <Card
-                    key={offer.id}
-                    id={`offer-${offer.id}`}
-                    className={`overflow-hidden border-l-4 ${isHighlighted ? 'border-l-primary-500 ring-2 ring-primary-500/50 bg-primary-500/5' : 'border-l-primary-500'}`}
-                  >
-                    <div className="bg-gradient-to-r from-surface-200 to-transparent px-5 py-4 flex justify-between items-center">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-primary-500/20 flex items-center justify-center">
-                          <span className="text-primary-400 font-bold text-sm">
-                            {(offer.receiver?.username?.[0] || offer.toMember?.user?.username?.[0] || '?').toUpperCase()}
-                          </span>
-                        </div>
-                        <div>
-                          <p className="font-semibold text-white">A: {offer.receiver?.username || offer.toMember?.user?.username}</p>
-                          <p className="text-xs text-gray-500">
-                            {new Date(offer.createdAt).toLocaleString('it-IT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${
-                          timeRemaining.isExpired
-                            ? 'bg-danger-500/20 text-danger-400 border border-danger-500/40'
-                            : timeRemaining.isUrgent
-                              ? 'bg-warning-500/20 text-warning-400 border border-warning-500/40'
-                              : 'bg-surface-300 text-gray-400 border border-surface-50/30'
-                        }`}>
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          <span>{timeRemaining.text}</span>
-                        </div>
-                        <span className={`px-3 py-1.5 text-xs font-semibold rounded-full uppercase tracking-wide border ${
-                          offer.status === 'PENDING'
-                            ? 'bg-accent-500/20 text-accent-400 border-accent-500/40'
-                            : 'bg-primary-500/20 text-primary-400 border-primary-500/40'
-                        }`}>
-                          {offer.status === 'PENDING' ? 'In attesa' : 'Controfferta'}
-                        </span>
-                      </div>
-                    </div>
-
-                    <CardContent className="py-5">
-                      <div className="grid md:grid-cols-2 gap-6">
-                        {/* What you offer */}
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-danger-500/20 flex items-center justify-center">
-                              <svg className="w-3 h-3 text-danger-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                              </svg>
-                            </div>
-                            <p className="text-sm font-semibold text-danger-400 uppercase tracking-wide">Offri</p>
-                          </div>
-                          <div className="pl-8">
-                            <PlayersTable players={offer.offeredPlayerDetails || offer.offeredPlayers || []} />
-                            {offer.offeredBudget > 0 && (
-                              <div className="flex items-center gap-2 mt-2 pt-2 border-t border-surface-50/20">
-                                <div className="w-6 h-6 rounded bg-danger-500/20 flex items-center justify-center">
-                                  <span className="text-danger-400 font-bold text-xs">€</span>
-                                </div>
-                                <span className="text-sm text-danger-400 font-medium">+ {offer.offeredBudget} crediti</span>
-                              </div>
-                            )}
-                            {(!offer.offeredPlayerDetails?.length && !offer.offeredPlayers?.length && offer.offeredBudget === 0) && (
-                              <p className="text-gray-400 text-sm italic py-2">Nessun giocatore o credito offerto</p>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* What you request */}
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-secondary-500/20 flex items-center justify-center">
-                              <svg className="w-3 h-3 text-secondary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                              </svg>
-                            </div>
-                            <p className="text-sm font-semibold text-secondary-400 uppercase tracking-wide">Richiedi</p>
-                          </div>
-                          <div className="pl-8">
-                            <PlayersTable players={offer.requestedPlayerDetails || offer.requestedPlayers || []} />
-                            {offer.requestedBudget > 0 && (
-                              <div className="flex items-center gap-2 mt-2 pt-2 border-t border-surface-50/20">
-                                <div className="w-6 h-6 rounded bg-secondary-500/20 flex items-center justify-center">
-                                  <span className="text-secondary-400 font-bold text-xs">€</span>
-                                </div>
-                                <span className="text-sm text-secondary-400 font-medium">+ {offer.requestedBudget} crediti</span>
-                              </div>
-                            )}
-                            {(!offer.requestedPlayerDetails?.length && !offer.requestedPlayers?.length && offer.requestedBudget === 0) && (
-                              <p className="text-gray-400 text-sm italic py-2">Nessun giocatore o credito richiesto</p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {offer.status === 'PENDING' && !timeRemaining.isExpired && (
-                        <div className="mt-6 pt-5 border-t border-surface-50/20">
-                          <Button variant="outline" onClick={() => { void handleCancel(offer.id) }} className="text-danger-400 border-danger-500/40 hover:bg-danger-500/10">
-                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                            Annulla Offerta
-                          </Button>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                )
-              })
-            )}
-          </div>
-        )}
-
-        {/* ============================= */}
-        {/* === TAB: Concluse === */}
-        {/* ============================= */}
-        {activeTab === 'history' && (
-          <div className="space-y-4">
-            {/* Filter chips */}
-            <div className="flex flex-wrap gap-2">
-              {([
-                { key: 'ALL', label: 'Tutte' },
-                { key: 'ACCEPTED', label: 'Accettate' },
-                { key: 'REJECTED', label: 'Rifiutate' },
-                { key: 'INVALIDATED', label: 'Decadute' },
-                { key: 'CANCELLED', label: 'Annullate' },
-              ] as const).map(chip => (
-                <button
-                  key={chip.key}
-                  onClick={() => { setHistoryFilter(chip.key); }}
-                  className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors border ${
-                    historyFilter === chip.key
-                      ? 'bg-primary-500/20 text-primary-400 border-primary-500/40'
-                      : 'bg-surface-300 text-gray-400 border-surface-50/30 hover:text-gray-300'
-                  }`}
-                >
-                  {chip.label}
-                </button>
-              ))}
-            </div>
-
-            {(() => {
-              const filtered = historyFilter === 'ALL'
-                ? tradeHistory
-                : tradeHistory.filter(o => o.status === historyFilter)
-
-              if (filtered.length === 0) {
-                return (
-                  <EmptyState
-                    icon="📋"
-                    title="Nessuna trattativa conclusa"
-                    description={historyFilter === 'ALL' ? 'Le trattative concluse appariranno qui' : 'Nessuna trattativa con questo stato'}
-                  />
-                )
-              }
-
-              return filtered.map(offer => {
-                const statusConfig: Record<string, { label: string; bg: string; text: string; border: string; borderLeft: string }> = {
-                  ACCEPTED: { label: 'Accettato', bg: 'bg-secondary-500/20', text: 'text-secondary-400', border: 'border-secondary-500/40', borderLeft: 'border-l-secondary-500' },
-                  REJECTED: { label: 'Rifiutato', bg: 'bg-danger-500/20', text: 'text-danger-400', border: 'border-danger-500/40', borderLeft: 'border-l-danger-500' },
-                  INVALIDATED: { label: 'Decaduta', bg: 'bg-warning-500/20', text: 'text-warning-400', border: 'border-warning-500/40', borderLeft: 'border-l-warning-500' },
-                  CANCELLED: { label: 'Annullato', bg: 'bg-surface-300', text: 'text-gray-400', border: 'border-surface-50/30', borderLeft: 'border-l-gray-500' },
-                  EXPIRED: { label: 'Scaduto', bg: 'bg-surface-300', text: 'text-gray-400', border: 'border-surface-50/30', borderLeft: 'border-l-gray-500' },
-                }
-                const cfg = (statusConfig[offer.status] || statusConfig.CANCELLED)!
-
-                return (
-                  <Card key={offer.id} className={`overflow-hidden border-l-4 ${cfg.borderLeft}`}>
-                    <div className="bg-gradient-to-r from-surface-200 to-transparent px-5 py-4 flex justify-between items-center">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-surface-300 flex items-center justify-center">
-                          <span className="text-gray-400 font-bold text-sm">
-                            {(offer.sender?.username?.[0] || '?').toUpperCase()}
-                          </span>
-                        </div>
-                        <div>
-                          <p className="font-semibold text-white text-sm">
-                            {offer.sender?.username} <span className="text-gray-500 font-normal mx-1">&rarr;</span> {offer.receiver?.username}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {offer.respondedAt
-                              ? new Date(offer.respondedAt).toLocaleString('it-IT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
-                              : new Date(offer.createdAt).toLocaleString('it-IT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
-                            }
-                          </p>
-                        </div>
-                      </div>
-                      <span className={`px-3 py-1.5 text-xs font-semibold rounded-full uppercase tracking-wide border ${cfg.bg} ${cfg.text} ${cfg.border}`}>
-                        {cfg.label}
-                      </span>
-                    </div>
-
-                    <CardContent className="py-5">
-                      <div className="grid md:grid-cols-2 gap-6">
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-danger-500/20 flex items-center justify-center">
-                              <svg className="w-3 h-3 text-danger-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                              </svg>
-                            </div>
-                            <p className="text-sm font-semibold text-danger-400 uppercase tracking-wide">Offerti</p>
-                          </div>
-                          <div className="pl-8">
-                            <PlayersTable players={offer.offeredPlayerDetails || offer.offeredPlayers || []} />
-                            {offer.offeredBudget > 0 && (
-                              <div className="flex items-center gap-2 mt-2 pt-2 border-t border-surface-50/20">
-                                <div className="w-6 h-6 rounded bg-danger-500/20 flex items-center justify-center">
-                                  <span className="text-danger-400 font-bold text-xs">€</span>
-                                </div>
-                                <span className="text-sm text-danger-400 font-medium">+ {offer.offeredBudget} crediti</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-secondary-500/20 flex items-center justify-center">
-                              <svg className="w-3 h-3 text-secondary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                              </svg>
-                            </div>
-                            <p className="text-sm font-semibold text-secondary-400 uppercase tracking-wide">Richiesti</p>
-                          </div>
-                          <div className="pl-8">
-                            <PlayersTable players={offer.requestedPlayerDetails || offer.requestedPlayers || []} />
-                            {offer.requestedBudget > 0 && (
-                              <div className="flex items-center gap-2 mt-2 pt-2 border-t border-surface-50/20">
-                                <div className="w-6 h-6 rounded bg-secondary-500/20 flex items-center justify-center">
-                                  <span className="text-secondary-400 font-bold text-xs">€</span>
-                                </div>
-                                <span className="text-sm text-secondary-400 font-medium">+ {offer.requestedBudget} crediti</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {offer.status === 'INVALIDATED' && (
-                        <div className="mt-4 p-3 bg-warning-500/10 border border-warning-500/30 rounded-lg">
-                          <p className="text-sm text-warning-400">
-                            Un giocatore coinvolto è stato scambiato in un'altra trattativa
-                          </p>
-                        </div>
-                      )}
-
-                      {offer.message && (
-                        <div className="mt-4 p-4 bg-surface-200/50 rounded-lg border-l-2 border-gray-500">
-                          <p className="text-sm text-gray-400 italic">"{offer.message}"</p>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                )
-              })
-            })()}
-          </div>
-        )}
-
+        </CockpitShell>
       </main>
 
       {/* Player Stats Modal */}
@@ -1282,7 +960,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
           myRoster={myRoster}
           allOtherPlayers={allOtherPlayers}
           onCountered={() => {
-            setSuccess('Controfferta inviata!')
+            toast.success('Controfferta inviata!')
             haptic.send()
             void loadData()
             setActiveTab('sent')
