@@ -115,6 +115,25 @@ function RegisterWrapper() {
   return <Register onNavigate={onNavigate} />
 }
 
+function ForgotPasswordWrapper() {
+  const navigate = useNavigate()
+  const onNavigate = useCallback((page: string) => {
+    if (page === 'login') void navigate('/login')
+    else void navigate('/' + page)
+  }, [navigate])
+  return <ForgotPassword onNavigate={onNavigate} />
+}
+
+function ResetPasswordWrapper() {
+  const navigate = useNavigate()
+  const onNavigate = useCallback((page: string) => {
+    if (page === 'login') void navigate('/login')
+    else if (page === 'forgot-password') void navigate('/forgot-password')
+    else void navigate('/' + page)
+  }, [navigate])
+  return <ResetPassword onNavigate={onNavigate} />
+}
+
 function DashboardWrapper() {
   const navigate = useNavigate()
   const onNavigate = useCallback((page: string, params?: Record<string, string>) => {
@@ -434,13 +453,13 @@ function AppRoutes() {
       <Route path="/forgot-password" element={
         <PublicRoute>
           <Suspense fallback={<PageLoader />}>
-            <ForgotPassword />
+            <ForgotPasswordWrapper />
           </Suspense>
         </PublicRoute>
       } />
       <Route path="/reset-password" element={
         <Suspense fallback={<PageLoader />}>
-          <ResetPassword />
+          <ResetPasswordWrapper />
         </Suspense>
       } />
       <Route path="/test-latency" element={

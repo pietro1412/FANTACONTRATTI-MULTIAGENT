@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Mockup — Auth pubblico (AuthShell)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=Oswald:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Auth pubblico — AuthShell condiviso (Login/Register/ForgotPassword/ResetPassword).
+     Una sola shell: bg pitch-overlay, logo brand, card centrata, footer anno dinamico.
+     Stile a token, font-display titoli, micro-label label campi, strength meter a token. */
+  :root{
+    --bg:#0a0a0b; --card:#1a1c20; --elev:#111214; --hover:#252830;
+    --border:#2d3139; --primary:#3b82f6; --secondary:#22c55e;
+    --gold:#f59e0b; --gold2:#fbbf24; --danger:#ef4444; --passion:#ea580c;
+    --t1:#f9fafb; --t2:#9ca3af; --t3:#8b919d;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--t1);font-family:'Inter',sans-serif;padding:40px 0 80px;}
+  h1.page{font-family:'Outfit',sans-serif;font-size:22px;font-weight:700;text-align:center;margin-bottom:6px;}
+  p.sub{text-align:center;color:var(--t3);font-size:13px;margin-bottom:36px;max-width:1000px;margin-left:auto;margin-right:auto;}
+  .row{display:flex;gap:32px;justify-content:center;align-items:flex-start;flex-wrap:wrap;}
+  .frame-label{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--t3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;text-align:center;}
+
+  /* AuthShell */
+  .shell{width:440px;border:1px solid var(--border);border-radius:18px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.55);
+    background:
+      radial-gradient(120% 80% at 50% -10%, rgba(34,197,94,.06), transparent 60%),
+      repeating-linear-gradient(0deg, rgba(255,255,255,.012) 0 2px, transparent 2px 44px),
+      var(--bg);}
+  .shell-inner{padding:34px 34px 22px;}
+  .brand{display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:22px;}
+  .logo{width:54px;height:54px;border-radius:15px;background:linear-gradient(135deg,#15803d,#22c55e);display:flex;align-items:center;justify-content:center;font-size:26px;border:1px solid rgba(34,197,94,.5);box-shadow:0 8px 24px rgba(34,197,94,.2);}
+  .brand .bn{font-family:'Outfit',sans-serif;font-size:17px;font-weight:800;letter-spacing:.01em;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px;}
+  .card-title{font-family:'Outfit',sans-serif;font-size:20px;font-weight:700;text-align:center;}
+  .card-sub{font-size:12.5px;color:var(--t3);text-align:center;margin-top:4px;margin-bottom:20px;}
+
+  .field{margin-bottom:14px;}
+  .lbl{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;color:var(--t3);display:block;margin-bottom:6px;}
+  .inp{width:100%;background:var(--elev);border:1px solid var(--border);border-radius:9px;padding:11px 13px;color:var(--t1);font-size:13.5px;font-family:'Inter',sans-serif;}
+  .inp::placeholder{color:var(--t3);}
+  .inp.focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(59,130,246,.12);}
+  .inp-wrap{position:relative;}
+  .inp-eye{position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--t3);font-size:13px;cursor:pointer;}
+
+  .strength{margin-top:8px;}
+  .str-track{display:flex;gap:4px;}
+  .str-seg{flex:1;height:4px;border-radius:2px;background:var(--border);}
+  .str-seg.s1{background:var(--danger);} .str-seg.s2{background:var(--warning,#f59e0b);} .str-seg.s3{background:var(--gold2);} .str-seg.s4{background:var(--secondary);}
+  .str-lbl{display:flex;justify-content:space-between;margin-top:5px;font-size:10.5px;}
+  .str-lbl .req{color:var(--t3);} .str-lbl .lvl{color:var(--secondary);font-weight:600;font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.05em;}
+
+  .btn{width:100%;font-family:'Outfit',sans-serif;font-size:14.5px;font-weight:800;letter-spacing:.03em;color:#fff;background:linear-gradient(180deg,#4d92f7,var(--primary));border:none;border-radius:10px;padding:12px 0;cursor:pointer;box-shadow:0 6px 20px rgba(59,130,246,.28);margin-top:6px;}
+  .turnstile{margin:14px 0 4px;height:42px;border:1px dashed var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:11px;color:var(--t3);background:var(--elev);}
+  .turnstile .ck{width:16px;height:16px;border-radius:4px;background:var(--secondary);color:#06200f;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;}
+
+  .links{display:flex;flex-direction:column;align-items:center;gap:9px;margin-top:18px;}
+  .links a{font-size:12.5px;color:var(--primary);text-decoration:none;}
+  .links .muted{color:var(--t3);}
+  .links .muted a{font-weight:600;}
+  .hr{height:1px;background:var(--border);margin:16px 0;}
+
+  .err-banner{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4);border-radius:9px;padding:9px 12px;font-size:12px;color:#fca5a5;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+
+  .foot{text-align:center;font-size:10.5px;color:var(--t3);padding:14px 0 4px;}
+  .foot .micro{font-family:'JetBrains Mono',monospace;letter-spacing:.08em;}
+
+  /* invito banner (register ?invite) */
+  .invite-banner{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.4);border-radius:9px;padding:10px 12px;font-size:12px;color:var(--gold2);margin-bottom:16px;display:flex;align-items:center;gap:9px;}
+  .invite-banner .ic{font-size:16px;}
+
+  /* success card */
+  .success{text-align:center;padding:8px 4px;}
+  .succ-ic{width:64px;height:64px;border-radius:50%;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.4);display:flex;align-items:center;justify-content:center;font-size:30px;color:var(--secondary);margin:6px auto 16px;}
+  .succ-t{font-family:'Outfit',sans-serif;font-size:19px;font-weight:700;}
+  .succ-s{font-size:12.5px;color:var(--t2);margin-top:8px;line-height:1.6;}
+  .succ-s b{color:var(--t1);}
+</style>
+</head>
+<body>
+
+<h1 class="page">Auth pubblico — AuthShell condiviso</h1>
+<p class="sub">UNA shell per Login / Register / ForgotPassword / ResetPassword (oggi 4 scaffold divergenti): bg pitch-overlay, logo brand, card, footer ad anno dinamico. Label campi in micro-label, titoli font-display, strength meter a token, banner errore unico. Forgot/Reset migrati al client centralizzato + AuthSuccessCard condivisa.</p>
+
+<div class="row">
+
+  <!-- LOGIN -->
+  <div>
+    <div class="frame-label">Login</div>
+    <div class="shell">
+      <div class="shell-inner">
+        <div class="brand"><div class="logo">⚽</div><div class="bn">FantaContratti</div></div>
+        <div class="card">
+          <div class="card-title">Bentornato</div>
+          <div class="card-sub">Accedi per gestire le tue leghe</div>
+          <div class="field">
+            <span class="lbl">Email o username</span>
+            <input class="inp" placeholder="mario.rossi@email.it">
+          </div>
+          <div class="field">
+            <span class="lbl">Password</span>
+            <div class="inp-wrap"><input class="inp focus" type="password" value="••••••••"><span class="inp-eye">👁</span></div>
+          </div>
+          <button class="btn">Accedi</button>
+          <div class="links">
+            <a href="#">Password dimenticata?</a>
+            <span class="muted">Non hai un account? <a href="#">Registrati</a></span>
+          </div>
+        </div>
+        <div class="foot"><span class="micro">© 2026 FantaContratti</span> · Regolamento</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- REGISTER -->
+  <div>
+    <div class="frame-label">Register (con invito + strength meter)</div>
+    <div class="shell">
+      <div class="shell-inner">
+        <div class="brand"><div class="logo" style="background:linear-gradient(135deg,#b45309,#f59e0b);border-color:rgba(245,158,11,.5);box-shadow:0 8px 24px rgba(245,158,11,.2);">🏆</div><div class="bn">FantaContratti</div></div>
+        <div class="card">
+          <div class="card-title">Crea il tuo account</div>
+          <div class="card-sub">Unisciti alla lega dei tuoi amici</div>
+          <div class="invite-banner"><span class="ic">✉️</span><div>Sei stato invitato a <b>Fantacontratti Test</b></div></div>
+          <div class="field"><span class="lbl">Username</span><input class="inp" placeholder="mariorossi"></div>
+          <div class="field"><span class="lbl">Email</span><input class="inp" placeholder="mario.rossi@email.it"></div>
+          <div class="field">
+            <span class="lbl">Password</span>
+            <div class="inp-wrap"><input class="inp" type="password" value="••••••••••"><span class="inp-eye">👁</span></div>
+            <div class="strength">
+              <div class="str-track"><span class="str-seg s4"></span><span class="str-seg s4"></span><span class="str-seg s4"></span><span class="str-seg"></span></div>
+              <div class="str-lbl"><span class="req">Min 8 caratteri · 1 maiuscola · 1 numero</span><span class="lvl">BUONA</span></div>
+            </div>
+          </div>
+          <div class="turnstile"><span class="ck">✓</span>Verifica completata — non sei un robot</div>
+          <button class="btn" style="background:linear-gradient(180deg,#34d97b,var(--secondary));box-shadow:0 6px 20px rgba(34,197,94,.28);">Registrati</button>
+          <div class="links"><span class="muted">Hai già un account? <a href="#">Accedi</a></span></div>
+        </div>
+        <div class="foot"><span class="micro">© 2026 FantaContratti</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FORGOT / SUCCESS -->
+  <div>
+    <div class="frame-label">ForgotPassword → AuthSuccessCard</div>
+    <div class="shell">
+      <div class="shell-inner">
+        <div class="brand"><div class="logo">⚽</div><div class="bn">FantaContratti</div></div>
+        <div class="card">
+          <div class="success">
+            <div class="succ-ic">✉️</div>
+            <div class="succ-t">Controlla la tua email</div>
+            <div class="succ-s">Se <b>mario.rossi@email.it</b> è registrato, riceverai un link per reimpostare la password. Controlla anche lo spam.</div>
+          </div>
+          <div class="hr"></div>
+          <div class="links"><a href="#">← Torna al login</a></div>
+        </div>
+        <div class="foot"><span class="micro">© 2026 FantaContratti</span></div>
+      </div>
+    </div>
+    <div class="frame-label" style="margin-top:24px;">ResetPassword (form)</div>
+    <div class="shell">
+      <div class="shell-inner">
+        <div class="brand"><div class="logo">⚽</div><div class="bn">FantaContratti</div></div>
+        <div class="card">
+          <div class="card-title">Nuova password</div>
+          <div class="card-sub">Scegli una password sicura per il tuo account</div>
+          <div class="field">
+            <span class="lbl">Nuova password</span>
+            <div class="inp-wrap"><input class="inp" type="password" value="••••••••••"><span class="inp-eye">👁</span></div>
+            <div class="strength">
+              <div class="str-track"><span class="str-seg s4"></span><span class="str-seg s4"></span><span class="str-seg s4"></span><span class="str-seg s4"></span></div>
+              <div class="str-lbl"><span class="req">Min 8 · 1 maiuscola · 1 numero</span><span class="lvl">FORTE</span></div>
+            </div>
+          </div>
+          <div class="field"><span class="lbl">Conferma password</span><div class="inp-wrap"><input class="inp" type="password" value="••••••••••"></div></div>
+          <button class="btn">Reimposta password</button>
+        </div>
+        <div class="foot"><span class="micro">© 2026 FantaContratti</span></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

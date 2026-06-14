@@ -27,8 +27,8 @@ describe('Login Page', () => {
   it('renders without crashing', () => {
     render(<Login onNavigate={mockOnNavigate} />)
 
-    expect(screen.getByText('Fantacontratti')).toBeInTheDocument()
-    expect(screen.getByText('Accedi al tuo account')).toBeInTheDocument()
+    expect(screen.getByText('FantaContratti')).toBeInTheDocument()
+    expect(screen.getByText('Bentornato')).toBeInTheDocument()
   })
 
   it('shows expected UI elements', () => {

@@ -46,8 +46,8 @@ describe('Register Page', () => {
   it('renders without crashing', () => {
     render(<Register onNavigate={mockOnNavigate} />)
 
-    expect(screen.getByText('Unisciti a Fantacontratti')).toBeInTheDocument()
-    expect(screen.getByText('Crea il tuo account e inizia a competere')).toBeInTheDocument()
+    expect(screen.getByText('Crea il tuo account')).toBeInTheDocument()
+    expect(screen.getByText('Unisciti alla lega dei tuoi amici')).toBeInTheDocument()
   })
 
   it('shows expected UI elements', () => {
@@ -65,9 +65,6 @@ describe('Register Page', () => {
 
     // Login link
     expect(screen.getByText('Accedi')).toBeInTheDocument()
-
-    // Password requirements text
-    expect(screen.getByText('La password deve contenere almeno 8 caratteri, una lettera maiuscola e un numero.')).toBeInTheDocument()
   })
 
   it('validates email on blur', async () => {
@@ -336,8 +333,7 @@ describe('Register Page', () => {
     mockSearchParams.set('invite', 'some-invite-token')
     render(<Register onNavigate={mockOnNavigate} />)
 
-    expect(screen.getByText('Sei stato invitato a una lega!')).toBeInTheDocument()
-    expect(screen.getByText("Registrati per accettare l'invito")).toBeInTheDocument()
+    expect(screen.getByText("Sei stato invitato a una lega! Registrati per accettare l'invito.")).toBeInTheDocument()
   })
 
   it('navigates to inviteDetail after registration with invite token', async () => {

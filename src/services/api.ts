@@ -141,6 +141,27 @@ export const authApi = {
 
   me: () =>
     request<{ id: string; email: string; username: string; createdAt: string }>('/api/auth/me'),
+
+  // Request a password-reset link. Backend always returns success (anti-enumeration).
+  forgotPassword: (email: string, turnstileToken?: string) =>
+    request('/api/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email, turnstileToken }),
+    }),
+
+  // Reset the password using the emailed token. Backend returns { success, error? }
+  // on failure → normalize `error` into `message` so callers read ApiResponse uniformly.
+  resetPassword: async (token: string, newPassword: string) => {
+    const res = await request<unknown>('/api/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, newPassword }),
+    })
+    if (!res.success && !res.message) {
+      const legacyError = (res as { error?: string }).error
+      if (legacyError) return { ...res, message: legacyError }
+    }
+    return res
+  },
 }
 
 // User API

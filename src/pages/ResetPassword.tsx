@@ -1,13 +1,22 @@
 import { useState, useEffect } from 'react'
-import { Link, useSearchParams, useNavigate } from 'react-router-dom'
-import { Button } from '../components/ui/Button'
-import { Input } from '../components/ui/Input'
+import { useSearchParams } from 'react-router-dom'
+import { authApi } from '@/services/api'
+import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
+import { AuthShell } from '@/components/auth/AuthShell'
+import { AuthError } from '@/components/auth/AuthError'
+import { AuthSuccessCard } from '@/components/auth/AuthSuccessCard'
+import { PasswordStrengthMeter } from '@/components/auth/PasswordStrengthMeter'
+import { validatePassword } from '@/utils/password-policy'
 
-const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:3003')
+interface ResetPasswordProps {
+  onNavigate: (page: string, params?: Record<string, string>) => void
+}
 
-export function ResetPassword() {
+const REDIRECT_SECONDS = 5
+
+export function ResetPassword({ onNavigate }: ResetPasswordProps) {
   const [searchParams] = useSearchParams()
-  const navigate = useNavigate()
   const token = searchParams.get('token')
 
   const [password, setPassword] = useState('')
@@ -15,6 +24,7 @@ export function ResetPassword() {
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
+  const [countdown, setCountdown] = useState(REDIRECT_SECONDS)
 
   useEffect(() => {
     if (!token) {
@@ -22,172 +32,138 @@ export function ResetPassword() {
     }
   }, [token])
 
+  // Visible countdown on success → auto-redirect to login (cancellable via explicit button).
+  useEffect(() => {
+    if (!success) return
+    if (countdown <= 0) {
+      onNavigate('login')
+      return
+    }
+    const t = setTimeout(() => { setCountdown(c => c - 1) }, 1000)
+    return () => { clearTimeout(t) }
+  }, [success, countdown, onNavigate])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
 
-    // Validation
     if (password !== confirmPassword) {
       setError('Le password non corrispondono')
       return
     }
 
-    if (password.length < 8) {
-      setError('La password deve essere di almeno 8 caratteri')
-      return
-    }
-
-    if (!/[A-Z]/.test(password)) {
-      setError('La password deve contenere almeno una lettera maiuscola')
-      return
-    }
-
-    if (!/[0-9]/.test(password)) {
-      setError('La password deve contenere almeno un numero')
+    const policy = validatePassword(password)
+    if (!policy.valid) {
+      setError(policy.message ?? 'Password non valida')
       return
     }
 
     setLoading(true)
 
-    try {
-      const response = await fetch(`${API_URL}/api/auth/reset-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, newPassword: password })
-      })
+    const result = await authApi.resetPassword(token ?? '', password)
 
-      const data = await response.json()
-
-      if (data.success) {
-        setSuccess(true)
-        // Redirect to login after 3 seconds
-        setTimeout(() => { void navigate('/login') }, 3000)
-      } else {
-        setError(data.error || 'Errore durante il reset della password')
-      }
-    } catch {
-      setError('Errore di connessione al server')
-    } finally {
-      setLoading(false)
+    if (result.success) {
+      setSuccess(true)
+    } else {
+      setError(result.message || 'Errore durante il reset della password')
     }
+
+    setLoading(false)
   }
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <div className="max-w-md w-full bg-surface-200 rounded-2xl p-8 text-center">
-          <div className="w-16 h-16 bg-secondary-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-            <svg className="w-8 h-8 text-secondary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-          <h1 className="text-2xl font-bold text-white mb-4">Password aggiornata!</h1>
-          <p className="text-gray-400 mb-6">
-            La tua password è stata reimpostata con successo. Verrai reindirizzato al login...
-          </p>
-          <Link
-            to="/login"
-            className="text-primary-400 hover:text-primary-300 font-medium"
-          >
-            Vai al login
-          </Link>
-        </div>
-      </div>
+      <AuthShell>
+        <AuthSuccessCard
+          icon="✓"
+          title="Password aggiornata!"
+          message={
+            <>
+              La tua password è stata reimpostata con successo. Verrai reindirizzato al login tra{' '}
+              <b className="text-white">{countdown}s</b>.
+            </>
+          }
+          action={
+            <Button type="button" size="lg" className="w-full" onClick={() => { onNavigate('login'); }}>
+              Vai al login
+            </Button>
+          }
+        />
+      </AuthShell>
     )
   }
 
   if (!token) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <div className="max-w-md w-full bg-surface-200 rounded-2xl p-8 text-center">
-          <div className="w-16 h-16 bg-danger-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-            <svg className="w-8 h-8 text-danger-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-          </div>
-          <h1 className="text-2xl font-bold text-white mb-4">Link non valido</h1>
-          <p className="text-gray-400 mb-6">
-            Il link di reset non è valido o è scaduto. Richiedi un nuovo link.
-          </p>
-          <Link
-            to="/forgot-password"
-            className="inline-block bg-primary-500 hover:bg-primary-600 text-white px-6 py-2 rounded-lg font-medium transition-colors"
-          >
-            Richiedi nuovo link
-          </Link>
-        </div>
-      </div>
+      <AuthShell>
+        <AuthSuccessCard
+          tone="danger"
+          icon="⚠"
+          title="Link non valido"
+          message="Il link di reset non è valido o è scaduto. Richiedi un nuovo link."
+          action={
+            <Button type="button" size="lg" className="w-full" onClick={() => { onNavigate('forgot-password'); }}>
+              Richiedi nuovo link
+            </Button>
+          }
+        />
+      </AuthShell>
     )
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
-      <div className="max-w-md w-full bg-surface-200 rounded-2xl p-8">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-white mb-2">Reimposta password</h1>
-          <p className="text-gray-400">
-            Inserisci la tua nuova password.
-          </p>
+    <AuthShell>
+      <h1 className="font-display text-xl sm:text-2xl font-bold text-white text-center">Nuova password</h1>
+      <p className="text-sm text-gray-400 text-center mt-1 mb-6">
+        Scegli una password sicura per il tuo account.
+      </p>
+
+      <form onSubmit={(e) => { void handleSubmit(e) }} className="space-y-5">
+        {error && <AuthError message={error} />}
+
+        <div>
+          <Input
+            label="Nuova password"
+            type="password"
+            value={password}
+            onChange={(e) => { setPassword(e.target.value); }}
+            placeholder="Almeno 8 caratteri"
+            required
+            autoComplete="new-password"
+          />
+          <PasswordStrengthMeter password={password} />
         </div>
 
-        <form onSubmit={(e) => { void handleSubmit(e) }} className="space-y-6">
-          {error && (
-            <div className="bg-danger-500/20 border border-danger-500/30 text-danger-400 p-3 rounded-lg text-sm">
-              {error}
-            </div>
-          )}
+        <Input
+          label="Conferma password"
+          type="password"
+          value={confirmPassword}
+          onChange={(e) => { setConfirmPassword(e.target.value); }}
+          placeholder="Ripeti la password"
+          required
+          autoComplete="new-password"
+        />
 
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
-              Nuova password
-            </label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => { setPassword(e.target.value); }}
-              placeholder="Almeno 8 caratteri"
-              required
-              autoComplete="new-password"
-            />
-            <p className="text-gray-500 text-xs mt-1">
-              Deve contenere almeno 8 caratteri, una maiuscola e un numero
-            </p>
-          </div>
+        <Button
+          type="submit"
+          size="xl"
+          disabled={loading || !password || !confirmPassword}
+          className="w-full"
+          isLoading={loading}
+        >
+          Reimposta password
+        </Button>
 
-          <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-300 mb-2">
-              Conferma password
-            </label>
-            <Input
-              id="confirmPassword"
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => { setConfirmPassword(e.target.value); }}
-              placeholder="Ripeti la password"
-              required
-              autoComplete="new-password"
-            />
-          </div>
-
-          <Button
-            type="submit"
-            disabled={loading || !password || !confirmPassword}
-            className="w-full"
+        <div className="text-center">
+          <button
+            type="button"
+            onClick={() => { onNavigate('login'); }}
+            className="text-sm text-gray-400 hover:text-white transition-colors"
           >
-            {loading ? 'Aggiornamento...' : 'Reimposta password'}
-          </Button>
-
-          <div className="text-center">
-            <Link
-              to="/login"
-              className="text-gray-400 hover:text-white text-sm"
-            >
-              Torna al login
-            </Link>
-          </div>
-        </form>
-      </div>
-    </div>
+            Torna al login
+          </button>
+        </div>
+      </form>
+    </AuthShell>
   )
 }
