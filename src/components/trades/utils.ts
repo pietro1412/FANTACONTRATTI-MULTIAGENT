@@ -1,26 +1,6 @@
-export function getTimeRemaining(expiresAt: string | undefined): { text: string; isUrgent: boolean; isExpired: boolean } {
-  if (!expiresAt) return { text: 'Nessuna scadenza', isUrgent: false, isExpired: false }
-
-  const now = new Date()
-  const expires = new Date(expiresAt)
-  const diffMs = expires.getTime() - now.getTime()
-
-  if (diffMs <= 0) {
-    return { text: 'Scaduta', isUrgent: true, isExpired: true }
-  }
-
-  const hours = Math.floor(diffMs / (1000 * 60 * 60))
-  const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
-
-  if (hours >= 24) {
-    const days = Math.floor(hours / 24)
-    return { text: `${days}g ${hours % 24}h`, isUrgent: false, isExpired: false }
-  } else if (hours >= 1) {
-    return { text: `${hours}h ${minutes}m`, isUrgent: hours < 6, isExpired: false }
-  } else {
-    return { text: `${minutes}m`, isUrgent: true, isExpired: false }
-  }
-}
+// Re-export dalla fonte condivisa (src/utils/time-remaining.ts) per retrocompatibilità.
+export { getTimeRemaining } from '@/utils/time-remaining'
+export type { TimeRemaining } from '@/utils/time-remaining'
 
 /** Badge ruolo stile cockpit (token semantici: P oro, D blu, C verde, A rosso). */
 export function getRoleStyle(position: string) {

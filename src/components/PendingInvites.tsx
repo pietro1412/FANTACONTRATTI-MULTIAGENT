@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useToast } from '@/components/ui/Toast'
-import { userApi, inviteApi } from '../services/api'
+import { LeagueCrest } from '@/components/ui/LeagueCrest'
+import { getTimeRemaining } from '@/utils/time-remaining'
+import { userApi, inviteApi } from '@/services/api'
 
 interface PendingInvite {
   id: string
@@ -18,28 +20,6 @@ interface PendingInvite {
 
 interface PendingInvitesProps {
   onNavigate: (page: string, params?: Record<string, string>) => void
-}
-
-function getTimeRemaining(expiresAt: string): { text: string; isUrgent: boolean } {
-  const now = new Date()
-  const expires = new Date(expiresAt)
-  const diffMs = expires.getTime() - now.getTime()
-
-  if (diffMs <= 0) {
-    return { text: 'Scaduto', isUrgent: true }
-  }
-
-  const hours = Math.floor(diffMs / (1000 * 60 * 60))
-  const days = Math.floor(hours / 24)
-
-  if (days >= 1) {
-    return { text: `${days}g`, isUrgent: days < 2 }
-  } else if (hours >= 1) {
-    return { text: `${hours}h`, isUrgent: hours < 6 }
-  } else {
-    const minutes = Math.floor(diffMs / (1000 * 60))
-    return { text: `${minutes}m`, isUrgent: true }
-  }
 }
 
 export function PendingInvites({ onNavigate }: PendingInvitesProps) {
@@ -123,26 +103,22 @@ export function PendingInvites({ onNavigate }: PendingInvitesProps) {
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 bg-surface-200 border border-surface-50/30 rounded-xl shadow-2xl shadow-black/40 overflow-hidden z-50">
+        <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-surface-200 border border-surface-50/30 rounded-xl shadow-2xl shadow-black/40 overflow-hidden z-50">
           {/* Header */}
-          <div className="px-4 py-3 bg-gradient-to-r from-surface-300/80 to-surface-300/40 border-b border-surface-50/20">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-secondary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-                <span className="text-sm font-semibold text-white">Inviti Pendenti</span>
-              </div>
-              {count > 0 && (
-                <span className="px-2 py-0.5 text-xs font-semibold bg-secondary-500/20 text-secondary-400 rounded-full">
-                  {count}
-                </span>
-              )}
-            </div>
+          <div className="flex items-center gap-2 px-4 py-3 bg-surface-300 border-b border-surface-50/20">
+            <svg className="w-4 h-4 text-secondary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+            <span className="micro-label">Inviti in sospeso</span>
+            {count > 0 && (
+              <span className="ml-auto px-2 py-0.5 text-[10px] font-mono font-semibold bg-accent-500/10 text-accent-400 border border-accent-500/35 rounded-full">
+                {count} {count === 1 ? 'nuovo' : 'nuovi'}
+              </span>
+            )}
           </div>
 
           {/* Content */}
-          <div className="max-h-80 overflow-y-auto">
+          <div className="max-h-96 overflow-y-auto">
             {isLoading ? (
               <div className="flex items-center justify-center py-8">
                 <div className="w-6 h-6 border-2 border-primary-400/30 border-t-primary-400 rounded-full animate-spin" />
@@ -152,7 +128,7 @@ export function PendingInvites({ onNavigate }: PendingInvitesProps) {
                 Nessun invito pendente
               </div>
             ) : (
-              <div className="py-2">
+              <div>
                 {invites.map(invite => {
                   const timeRemaining = getTimeRemaining(invite.expiresAt)
                   const isProcessing = actionLoading === invite.id
@@ -163,73 +139,42 @@ export function PendingInvites({ onNavigate }: PendingInvitesProps) {
                       className="px-4 py-3 border-b border-surface-50/10 last:border-0 hover:bg-surface-300/30 transition-colors"
                     >
                       {/* League info */}
-                      <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-3 mb-3">
+                        <LeagueCrest name={invite.leagueName} size="sm" />
                         <div className="flex-1 min-w-0">
-                          <h4 className="text-sm font-semibold text-white truncate">
+                          <h4 className="text-sm font-display font-bold text-white truncate">
                             {invite.leagueName}
                           </h4>
-                          <p className="text-xs text-gray-400">
-                            Invitato da <span className="text-primary-300">{invite.invitedBy}</span>
+                          <p className="text-xs text-gray-400 truncate">
+                            da <span className="text-gray-300">{invite.invitedBy}</span> · {invite.currentMembers}/{invite.maxMembers} manager
                           </p>
                         </div>
                         <span
-                          className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
+                          className={`flex-shrink-0 text-[10px] font-mono font-bold px-2 py-1 rounded-md border ${
                             timeRemaining.isUrgent
-                              ? 'bg-danger-500/20 text-danger-400'
-                              : 'bg-surface-300 text-gray-400'
+                              ? 'bg-danger-500/10 text-danger-400 border-danger-500/40'
+                              : 'bg-accent-500/10 text-accent-400 border-accent-500/40'
                           }`}
                         >
                           {timeRemaining.text}
                         </span>
                       </div>
 
-                      {/* League stats */}
-                      <div className="flex items-center gap-3 mb-3 text-xs text-gray-400">
-                        <span className="flex items-center gap-1">
-                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                          </svg>
-                          {invite.currentMembers}/{invite.maxMembers}
-                        </span>
-                        <span className={`px-1.5 py-0.5 rounded text-[10px] ${
-                          invite.leagueStatus === 'DRAFT'
-                            ? 'bg-amber-500/20 text-amber-400'
-                            : 'bg-secondary-500/20 text-secondary-400'
-                        }`}>
-                          {invite.leagueStatus === 'DRAFT' ? 'In preparazione' : invite.leagueStatus}
-                        </span>
-                      </div>
-
-                      {/* Actions */}
-                      <div className="flex flex-col gap-2">
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => { handleAccept(invite) }}
-                            disabled={isProcessing}
-                            className="flex-1 px-3 py-1.5 text-xs font-medium bg-secondary-500 hover:bg-secondary-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            Accetta
-                          </button>
-                          <button
-                            onClick={() => { void handleReject(invite) }}
-                            disabled={isProcessing}
-                            className="flex-1 px-3 py-1.5 text-xs font-medium bg-surface-300 hover:bg-surface-400 text-gray-300 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            Rifiuta
-                          </button>
-                        </div>
+                      {/* Actions (touch target >= 44px) */}
+                      <div className="flex gap-2">
                         <button
-                          onClick={() => {
-                            setIsOpen(false)
-                            onNavigate('inviteDetail', { token: invite.token })
-                          }}
-                          className="w-full px-3 py-1.5 text-xs font-medium text-primary-400 hover:text-primary-300 hover:bg-primary-500/10 rounded-lg transition-colors flex items-center justify-center gap-1.5"
+                          onClick={() => { handleAccept(invite) }}
+                          disabled={isProcessing}
+                          className="flex-1 h-11 text-sm font-display font-bold bg-gradient-to-b from-secondary-500 to-secondary-600 hover:from-secondary-400 hover:to-secondary-500 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
-                          Vedi Dettagli
+                          Accetta
+                        </button>
+                        <button
+                          onClick={() => { void handleReject(invite) }}
+                          disabled={isProcessing}
+                          className="flex-1 h-11 text-sm font-display font-semibold text-danger-400 bg-danger-500/[0.06] border border-danger-500/40 hover:bg-danger-500/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Rifiuta
                         </button>
                       </div>
                     </div>

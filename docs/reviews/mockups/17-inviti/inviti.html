@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Mockup — Inviti</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=Oswald:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Inviti — InviteDetail (pagina accetta invito, gia ben fatta: tocco leggero) +
+     PendingInvites (dropdown in Navigation). Token-ruolo/identita condivisi, getTimeRemaining
+     condiviso, fix touch target bottoni dropdown (>=44px). */
+  :root{
+    --bg:#0a0a0b; --card:#1a1c20; --elev:#111214; --hover:#252830;
+    --border:#2d3139; --primary:#3b82f6; --secondary:#22c55e;
+    --gold:#f59e0b; --gold2:#fbbf24; --danger:#ef4444; --passion:#ea580c;
+    --t1:#f9fafb; --t2:#9ca3af; --t3:#8b919d;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--t1);font-family:'Inter',sans-serif;padding:40px 0 80px;}
+  h1.page{font-family:'Outfit',sans-serif;font-size:22px;font-weight:700;text-align:center;margin-bottom:6px;}
+  p.sub{text-align:center;color:var(--t3);font-size:13px;margin-bottom:36px;max-width:1000px;margin-left:auto;margin-right:auto;}
+  .row{display:flex;gap:32px;justify-content:center;align-items:flex-start;flex-wrap:wrap;}
+  .frame-label{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--t3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;text-align:center;}
+  .micro{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);}
+
+  .frame{border:1px solid var(--border);border-radius:16px;background:var(--bg);overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.55);}
+  .topbar{height:46px;background:var(--elev);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px;}
+  .topbar .logo{width:24px;height:24px;border-radius:6px;background:linear-gradient(135deg,#1e40af,#3b82f6);}
+  .topbar .nav{font-size:12px;color:var(--t3);} .topbar .nav b{color:var(--t1);font-weight:600;}
+  .topbar .bell{margin-left:auto;position:relative;font-size:16px;}
+  .topbar .bell .badge{position:absolute;top:-6px;right:-7px;min-width:15px;height:15px;border-radius:999px;background:var(--danger);color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 3px;font-family:'JetBrains Mono',monospace;}
+  .wrap{padding:22px 26px 28px;}
+
+  /* InviteDetail */
+  .invd{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:18px;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+  .lg-hero{display:flex;align-items:center;gap:14px;padding:18px 20px;background:linear-gradient(120deg,rgba(124,45,18,.16),transparent 60%);border-bottom:1px solid var(--border);}
+  .crest{width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,#b45309,#f59e0b);display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-weight:800;font-size:20px;color:#1a1206;flex-shrink:0;}
+  .lg-hero .nm{font-family:'Outfit',sans-serif;font-size:20px;font-weight:700;}
+  .lg-hero .mt{display:flex;align-items:center;gap:8px;margin-top:4px;}
+  .pill{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;letter-spacing:.05em;border-radius:999px;padding:3px 10px;}
+  .pill.priv{color:var(--primary);background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.35);}
+  .body{padding:18px 20px;}
+  .desc{font-size:13px;color:var(--t2);line-height:1.6;margin-bottom:18px;}
+  .invited-by{display:flex;align-items:center;gap:10px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:11px;padding:11px 13px;margin-bottom:18px;}
+  .invited-by .mono{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#15803d,#22c55e);display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;color:#06200f;}
+  .invited-by .t{font-size:12.5px;color:var(--t2);} .invited-by .t b{color:var(--t1);}
+  .members-h{display:flex;align-items:baseline;gap:8px;margin-bottom:11px;}
+  .members-h .cnt{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--t3);}
+  .member{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);}
+  .member:last-child{border-bottom:none;}
+  .member .mono{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-size:10px;font-weight:700;color:#fff;flex-shrink:0;}
+  .member .mn{flex:1;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;}
+  .tag-pres{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;color:#0a0a0b;background:var(--gold2);border-radius:4px;padding:1px 6px;}
+
+  /* sidebar azioni sticky */
+  .join{background:var(--card);border:1px solid rgba(34,197,94,.35);border-radius:14px;padding:18px;box-shadow:0 0 0 1px rgba(34,197,94,.08);}
+  .join h4{font-family:'Outfit',sans-serif;font-size:15px;font-weight:700;margin-bottom:5px;}
+  .join .jp{font-size:11.5px;color:var(--t3);margin-bottom:15px;}
+  .lbl{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;color:var(--t3);display:block;margin-bottom:6px;}
+  .inp{width:100%;background:var(--elev);border:1px solid var(--border);border-radius:9px;padding:10px 13px;color:var(--t1);font-size:13.5px;margin-bottom:14px;}
+  .btn-accept{width:100%;font-family:'Outfit',sans-serif;font-size:14px;font-weight:800;letter-spacing:.03em;color:#06200f;background:linear-gradient(180deg,#34d97b,var(--secondary));border:none;border-radius:10px;padding:12px 0;cursor:pointer;box-shadow:0 6px 20px rgba(34,197,94,.28);margin-bottom:9px;}
+  .btn-reject{width:100%;font-family:'Inter',sans-serif;font-size:12.5px;font-weight:600;color:var(--danger);background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.4);border-radius:10px;padding:10px 0;cursor:pointer;}
+  .join-stat{display:flex;justify-content:space-between;padding:9px 0;border-top:1px solid var(--border);font-size:12px;color:var(--t3);margin-top:6px;}
+  .join-stat b{font-family:'Oswald',sans-serif;font-size:15px;font-weight:600;color:var(--gold2);}
+
+  /* PendingInvites dropdown */
+  .dropdown{width:360px;background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.6);}
+  .dd-h{display:flex;align-items:center;gap:8px;padding:13px 16px;border-bottom:1px solid var(--border);}
+  .dd-h .cnt{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--gold2);background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.35);border-radius:999px;padding:2px 8px;}
+  .dd-row{padding:13px 16px;border-bottom:1px solid var(--border);}
+  .dd-row:last-child{border-bottom:none;}
+  .dd-top{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+  .dd-top .crest2{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-weight:800;font-size:12px;flex-shrink:0;}
+  .dd-top .di{flex:1;min-width:0;}
+  .dd-top .dn{font-family:'Outfit',sans-serif;font-size:13.5px;font-weight:700;}
+  .dd-top .ds{font-size:11px;color:var(--t3);}
+  .dd-top .exp{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;color:var(--gold2);border:1px solid rgba(245,158,11,.4);border-radius:6px;padding:3px 7px;flex-shrink:0;}
+  .dd-actions{display:flex;gap:8px;}
+  .dda{flex:1;font-family:'Outfit',sans-serif;font-size:12.5px;font-weight:700;border-radius:9px;padding:0;height:44px;cursor:pointer;border:1px solid var(--border);}
+  .dda.acc{color:#06200f;background:linear-gradient(180deg,#34d97b,var(--secondary));border:none;}
+  .dda.rej{color:var(--danger);border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.06);}
+  .dd-empty{padding:30px 16px;text-align:center;color:var(--t3);font-size:12px;}
+</style>
+</head>
+<body>
+
+<h1 class="page">Inviti — InviteDetail + PendingInvites</h1>
+<p class="sub">InviteDetail (pagina accetta invito) è già la meglio fatta del gruppo (loading/error/empty/sticky, usa toast): tocco leggero. PendingInvites = dropdown in Navigation: token-ruolo/identità condivisi (LeagueCrest/RoleTag), getTimeRemaining condiviso, bottoni accept/reject a 44px (erano ~28px).</p>
+
+<div class="row">
+
+  <!-- INVITEDETAIL -->
+  <div style="width:760px;">
+    <div class="frame-label">InviteDetail — accetta invito</div>
+    <div class="frame">
+      <div class="topbar"><span class="logo"></span><span class="nav">FantaContratti · <b>Invito</b></span></div>
+      <div class="wrap">
+        <div class="invd">
+          <div class="card">
+            <div class="lg-hero">
+              <div class="crest">FC</div>
+              <div><div class="nm">Fantacontratti Test</div><div class="mt"><span class="pill priv">🔒 PRIVATA</span><span class="micro" style="letter-spacing:.05em;">Stagione 2025/26</span></div></div>
+            </div>
+            <div class="body">
+              <div class="invited-by"><span class="mono">MK</span><div class="t">Sei stato invitato da <b>Mirko</b> a unirti alla lega</div></div>
+              <p class="desc">La lega dinastica degli amici, giunta alla terza stagione. Contratti pluriennali, rubata e mercato ricorrente. Budget iniziale 500M.</p>
+              <div class="members-h"><span class="micro">Manager nella lega</span><span class="cnt">7 / 8</span></div>
+              <div class="member"><span class="mono" style="background:linear-gradient(135deg,#b45309,#f59e0b);color:#1a1206;">MK</span><span class="mn">Mirko</span><span class="tag-pres">PRES</span></div>
+              <div class="member"><span class="mono" style="background:linear-gradient(135deg,#1e40af,#3b82f6);">ML</span><span class="mn">Marcolino</span></div>
+              <div class="member"><span class="mono" style="background:linear-gradient(135deg,#7c2d12,#ea580c);">EM</span><span class="mn">Emmanuele</span></div>
+              <div class="member"><span class="mono" style="background:linear-gradient(135deg,#6d28d9,#8b5cf6);">EL</span><span class="mn">Emiliano</span></div>
+              <div class="member"><span class="mono" style="background:linear-gradient(135deg,#0e7490,#06b6d4);">MC</span><span class="mn">Michele</span></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="join">
+              <h4>Unisciti alla lega</h4>
+              <p class="jp">Scegli il nome della tua squadra per entrare.</p>
+              <span class="lbl">Nome della tua squadra</span>
+              <input class="inp" placeholder="I Campioni FC">
+              <button class="btn-accept">Accetta e unisciti</button>
+              <button class="btn-reject">Rifiuta invito</button>
+              <div class="join-stat"><span>Posti liberi</span><b>1</b></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PENDINGINVITES -->
+  <div>
+    <div class="frame-label">PendingInvites — dropdown (Navigation)</div>
+    <div class="frame" style="width:420px;">
+      <div class="topbar"><span class="logo"></span><span class="nav">FantaContratti</span><span class="bell">🔔<span class="badge">2</span></span></div>
+      <div class="wrap" style="padding:18px;">
+        <div class="dropdown">
+          <div class="dd-h"><span class="micro">Inviti in sospeso</span><span class="cnt">2 nuovi</span></div>
+          <div class="dd-row">
+            <div class="dd-top">
+              <div class="crest2" style="background:linear-gradient(135deg,#b45309,#f59e0b);color:#1a1206;">FC</div>
+              <div class="di"><div class="dn">Fantacontratti Test</div><div class="ds">da Mirko · 7/8 manager</div></div>
+              <span class="exp">⏱ 5g</span>
+            </div>
+            <div class="dd-actions"><button class="dda acc">Accetta</button><button class="dda rej">Rifiuta</button></div>
+          </div>
+          <div class="dd-row">
+            <div class="dd-top">
+              <div class="crest2" style="background:linear-gradient(135deg,#1e40af,#3b82f6);color:#fff;">LA</div>
+              <div class="di"><div class="dn">Lega Amici 2025</div><div class="ds">da Diego · 9/10 manager</div></div>
+              <span class="exp">⏱ 2g</span>
+            </div>
+            <div class="dd-actions"><button class="dda acc">Accetta</button><button class="dda rej">Rifiuta</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

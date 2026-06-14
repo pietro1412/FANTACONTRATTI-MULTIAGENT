@@ -187,7 +187,7 @@ describe('InviteDetail', () => {
     })
 
     // With empty team name, accept button should be disabled
-    const acceptButton = screen.getByText('Accetta Invito')
+    const acceptButton = screen.getByText('Accetta e unisciti')
     expect(acceptButton).toBeDisabled()
 
     // Type a single character (still too short)
@@ -213,7 +213,7 @@ describe('InviteDetail', () => {
     const teamInput = screen.getByPlaceholderText('Es. FC Campioni, Inter Stars...')
     await user.type(teamInput, 'My Team FC')
 
-    const acceptButton = screen.getByText('Accetta Invito')
+    const acceptButton = screen.getByText('Accetta e unisciti')
     await user.click(acceptButton)
 
     await waitFor(() => {
@@ -236,7 +236,7 @@ describe('InviteDetail', () => {
     const teamInput = screen.getByPlaceholderText('Es. FC Campioni, Inter Stars...')
     await user.type(teamInput, 'My Team FC')
 
-    await user.click(screen.getByText('Accetta Invito'))
+    await user.click(screen.getByText('Accetta e unisciti'))
 
     await waitFor(() => {
       expect(mockToastError).toHaveBeenCalledWith('Lega piena')
@@ -253,7 +253,7 @@ describe('InviteDetail', () => {
       expect(screen.getByText('Sei stato invitato!')).toBeInTheDocument()
     })
 
-    const rejectButton = screen.getByText('Rifiuta Invito')
+    const rejectButton = screen.getByText('Rifiuta invito')
     await user.click(rejectButton)
 
     await waitFor(() => {
@@ -282,7 +282,7 @@ describe('InviteDetail', () => {
     render(<InviteDetail token="abc123" onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Partecipanti (2)')).toBeInTheDocument()
+      expect(screen.getByText('Manager nella lega')).toBeInTheDocument()
     })
 
     expect(screen.getByText('Team Admin')).toBeInTheDocument()
