@@ -39,60 +39,24 @@ export function AdminPhasesTab({
   const [showConfig, setShowConfig] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
 
-  // Status badge
-  const statusLabel = league?.status === 'DRAFT'
-    ? 'ISCRIZIONI'
-    : activeSession
-      ? activeSession.type === 'PRIMO_MERCATO' ? 'PRIMO MERCATO' : 'MERCATO RICORRENTE'
-      : 'CAMPIONATO'
-
-  const statusColor = league?.status === 'DRAFT'
-    ? 'bg-amber-500/20 text-amber-400 border-amber-500/40'
-    : activeSession
-      ? 'bg-secondary-500/20 text-secondary-400 border-secondary-500/40'
-      : 'bg-primary-500/20 text-primary-400 border-primary-500/40'
-
   return (
     <div className="space-y-6">
-      {/* Status Box */}
-      <div className="bg-surface-200 rounded-xl border border-surface-50/20 p-5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500/30 to-accent-500/30 flex items-center justify-center">
-              <span className="text-2xl">🎯</span>
-            </div>
-            <div>
-              <p className="text-sm text-gray-400">Stato attuale</p>
-              <p className="text-lg font-bold text-white">{league?.name}</p>
-            </div>
-          </div>
-          <span className={`px-4 py-2 rounded-full text-sm font-bold border ${statusColor}`}>
-            {statusLabel}
-          </span>
-        </div>
-        {activeSession?.currentPhase && (
-          <div className="mt-3 pl-16">
-            <p className="text-sm text-gray-400">
-              Fase corrente: <span className="text-white font-semibold">{activeSession.currentPhase}</span>
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Box Avvia Lega - shown when DRAFT */}
+      {/* Box Avvia Lega - shown when DRAFT (blocco con azione → resta inline) */}
       {league?.status === 'DRAFT' && (
-        <div className="p-6 bg-gradient-to-r from-primary-500/20 to-accent-500/20 border-2 border-primary-500/50 rounded-2xl">
+        <div className="arena-gold p-5 bg-surface-200 rounded-2xl">
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-14 h-14 rounded-full bg-primary-500/30 flex items-center justify-center">
-              <span className="text-3xl">🚀</span>
+            <div className="w-12 h-12 rounded-xl bg-accent-500/[0.13] border border-accent-500/40 flex items-center justify-center flex-shrink-0">
+              <svg className="w-6 h-6 text-accent-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
             </div>
             <div>
-              <h3 className="text-xl font-bold text-white">Attiva la Lega</h3>
-              <p className="text-gray-300">La lega è in fase di creazione. Attivala per iniziare il Primo Mercato.</p>
+              <h3 className="font-display text-lg font-bold text-white">Attiva la Lega</h3>
+              <p className="text-sm text-gray-400">La lega è in fase di creazione. Attivala per iniziare il Primo Mercato.</p>
             </div>
           </div>
-          <div className="bg-surface-300/50 rounded-lg p-4 mb-4">
-            <p className="text-gray-300">
+          <div className="bg-surface-300 border border-surface-50 rounded-xl p-4 mb-4">
+            <p className="text-sm text-gray-300">
               Partecipanti: <span className="font-bold text-white">{activeMembers.length}</span> / {league?.minParticipants || 6} richiesti
             </p>
           </div>
@@ -101,7 +65,7 @@ export function AdminPhasesTab({
               {isSubmitting ? 'Attivazione...' : 'Attiva Lega e Passa al Primo Mercato'}
             </Button>
           ) : (
-            <p className="text-danger-400 font-medium">
+            <p className="text-danger-400 font-medium text-sm">
               Mancano {(league?.minParticipants || 6) - activeMembers.length} partecipanti per attivare la lega
             </p>
           )}
@@ -135,68 +99,71 @@ export function AdminPhasesTab({
       )}
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-surface-200 rounded-xl border border-surface-50/20 p-5 text-center">
-          <p className="text-3xl md:text-4xl font-bold text-primary-400">{activeMembers.length}/{league?.maxParticipants}</p>
-          <p className="text-sm text-gray-400 mt-1">Partecipanti attivi</p>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="bg-surface-300 rounded-xl border border-surface-50 p-4">
+          <p className="stat-number text-3xl text-primary-400 leading-none">{activeMembers.length}/{league?.maxParticipants}</p>
+          <p className="text-xs text-gray-400 mt-2">Partecipanti attivi</p>
         </div>
-        <div className="bg-surface-200 rounded-xl border border-accent-500/30 p-5 text-center">
-          <p className="text-3xl md:text-4xl font-bold text-accent-400">{pendingMembers.length}</p>
-          <p className="text-sm text-gray-400 mt-1">Richieste in attesa</p>
+        <div className="bg-surface-300 rounded-xl border border-accent-500/30 p-4">
+          <p className="stat-number text-3xl text-accent-400 leading-none">{pendingMembers.length}</p>
+          <p className="text-xs text-gray-400 mt-2">Richieste in attesa</p>
         </div>
-        <div className="bg-surface-200 rounded-xl border border-secondary-500/30 p-5 text-center">
-          <p className="text-3xl md:text-4xl font-bold text-secondary-400">{league?.initialBudget}</p>
-          <p className="text-sm text-gray-400 mt-1">Budget iniziale</p>
+        <div className="bg-surface-300 rounded-xl border border-secondary-500/30 p-4">
+          <p className="stat-number text-3xl text-secondary-400 leading-none">{league?.initialBudget}</p>
+          <p className="text-xs text-gray-400 mt-2">Budget iniziale</p>
         </div>
-        <div className="bg-surface-200 rounded-xl border border-surface-50/20 p-5 text-center">
-          <p className="text-3xl md:text-4xl font-bold text-blue-400">{sessions.length}</p>
-          <p className="text-sm text-gray-400 mt-1">Sessioni totali</p>
+        <div className="bg-surface-300 rounded-xl border border-surface-50 p-4">
+          <p className="stat-number text-3xl text-white leading-none">{sessions.length}</p>
+          <p className="text-xs text-gray-400 mt-2">Sessioni totali</p>
         </div>
       </div>
 
       {/* Config Collapsible */}
-      <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
+      <div className="bg-surface-200 rounded-xl border border-surface-50 overflow-hidden">
         <button
           onClick={() => { setShowConfig(!showConfig); }}
-          className="w-full p-5 flex items-center justify-between hover:bg-surface-300/30 transition-colors"
+          className="w-full px-4 py-3 flex items-center justify-between hover:bg-surface-300/30 transition-colors"
         >
-          <h3 className="text-lg font-bold text-white flex items-center gap-3">
-            <span>📋</span> Configurazione Lega
+          <h3 className="micro-label text-gray-300 flex items-center gap-2">
+            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            Configurazione lega
           </h3>
-          <span className={`text-gray-400 transition-transform ${showConfig ? 'rotate-180' : ''}`}>▼</span>
+          <span className={`text-gray-500 transition-transform ${showConfig ? 'rotate-180' : ''}`}>▾</span>
         </button>
         {showConfig && (
-          <div className="p-5 border-t border-surface-50/20">
-            <div className="grid md:grid-cols-3 gap-4">
-              <div className="bg-surface-300 rounded-lg p-4">
-                <p className="text-sm text-gray-400 mb-1">Nome</p>
-                <p className="font-semibold text-white text-lg">{league?.name}</p>
+          <div className="p-4 border-t border-surface-50">
+            <div className="grid md:grid-cols-3 gap-3">
+              <div className="bg-surface-300 border border-surface-50 rounded-xl p-4">
+                <p className="text-xs text-gray-500 mb-1">Nome</p>
+                <p className="font-display font-bold text-white">{league?.name}</p>
               </div>
-              <div className="bg-surface-300 rounded-lg p-4">
-                <p className="text-sm text-gray-400 mb-1">Stato</p>
-                <p className={`font-semibold text-lg ${league?.status === 'ACTIVE' ? 'text-secondary-400' : 'text-primary-400'}`}>
+              <div className="bg-surface-300 border border-surface-50 rounded-xl p-4">
+                <p className="text-xs text-gray-500 mb-1">Stato</p>
+                <p className={`font-display font-bold ${league?.status === 'ACTIVE' ? 'text-secondary-400' : 'text-primary-400'}`}>
                   {league?.status === 'DRAFT' ? 'Creazione Lega' : league?.status === 'ACTIVE' ? 'Attiva' : league?.status}
                 </p>
               </div>
-              <div className="bg-surface-300 rounded-lg p-4">
-                <p className="text-sm text-gray-400 mb-1">Partecipanti</p>
-                <p className="font-semibold text-white text-lg">{activeMembers.length} / {league?.maxParticipants}</p>
+              <div className="bg-surface-300 border border-surface-50 rounded-xl p-4">
+                <p className="text-xs text-gray-500 mb-1">Partecipanti</p>
+                <p className="font-mono font-bold text-white">{activeMembers.length} / {league?.maxParticipants}</p>
               </div>
-              <div className="bg-surface-300 rounded-lg p-4">
-                <p className="text-sm text-gray-400 mb-1">Minimo Richiesto</p>
-                <p className="font-semibold text-white text-lg">{league?.minParticipants || 6}</p>
+              <div className="bg-surface-300 border border-surface-50 rounded-xl p-4">
+                <p className="text-xs text-gray-500 mb-1">Minimo Richiesto</p>
+                <p className="font-mono font-bold text-white">{league?.minParticipants || 6}</p>
               </div>
-              <div className="bg-surface-300 rounded-lg p-4">
-                <p className="text-sm text-gray-400 mb-1">Budget Iniziale</p>
-                <p className="font-semibold text-accent-400 text-lg">{league?.initialBudget}M</p>
+              <div className="bg-surface-300 border border-surface-50 rounded-xl p-4">
+                <p className="text-xs text-gray-500 mb-1">Budget Iniziale</p>
+                <p className="budget-display text-accent-400 text-lg">{league?.initialBudget}M</p>
               </div>
-              <div className="bg-surface-300 rounded-lg p-4">
-                <p className="text-sm text-gray-400 mb-1">Slot Rosa</p>
-                <p className="font-semibold text-lg">
-                  <span className="text-amber-400">P:{league?.goalkeeperSlots}</span>{' '}
-                  <span className="text-blue-400">D:{league?.defenderSlots}</span>{' '}
-                  <span className="text-emerald-400">C:{league?.midfielderSlots}</span>{' '}
-                  <span className="text-red-400">A:{league?.forwardSlots}</span>
+              <div className="bg-surface-300 border border-surface-50 rounded-xl p-4">
+                <p className="text-xs text-gray-500 mb-1">Slot Rosa</p>
+                <p className="font-mono font-bold flex gap-2">
+                  <span className="text-amber-400">P:{league?.goalkeeperSlots}</span>
+                  <span className="text-primary-400">D:{league?.defenderSlots}</span>
+                  <span className="text-secondary-400">C:{league?.midfielderSlots}</span>
+                  <span className="text-danger-400">A:{league?.forwardSlots}</span>
                 </p>
               </div>
             </div>
@@ -205,58 +172,58 @@ export function AdminPhasesTab({
       </div>
 
       {/* Sessions History Collapsible */}
-      <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
+      <div className="bg-surface-200 rounded-xl border border-surface-50 overflow-hidden">
         <button
           onClick={() => { setShowHistory(!showHistory); }}
-          className="w-full p-5 flex items-center justify-between hover:bg-surface-300/30 transition-colors"
+          className="w-full px-4 py-3 flex items-center justify-between hover:bg-surface-300/30 transition-colors"
         >
-          <h3 className="text-lg font-bold text-white flex items-center gap-3">
-            <span>📅</span> Storico Sessioni
+          <h3 className="micro-label text-gray-300 flex items-center gap-2">
+            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            Storico sessioni
             {sessions.length > 0 && (
-              <span className="bg-surface-300 px-2 py-0.5 rounded-full text-xs text-gray-400">{sessions.length}</span>
+              <span className="font-mono text-[10px] font-bold text-gray-400 bg-surface-300 border border-surface-50 px-1.5 py-0.5 rounded-full">{sessions.length}</span>
             )}
           </h3>
-          <span className={`text-gray-400 transition-transform ${showHistory ? 'rotate-180' : ''}`}>▼</span>
+          <span className={`text-gray-500 transition-transform ${showHistory ? 'rotate-180' : ''}`}>▾</span>
         </button>
         {showHistory && (
-          <div className="border-t border-surface-50/20">
+          <div className="border-t border-surface-50">
             {sessions.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="text-4xl mb-3 opacity-50">📭</div>
-                <p className="text-gray-500">Nessuna sessione creata</p>
-              </div>
+              <p className="text-center text-sm text-gray-500 py-10">Nessuna sessione creata</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-surface-300">
                     <tr>
-                      <th className="px-5 py-4 text-left text-sm text-gray-400 font-semibold">Tipo</th>
-                      <th className="px-5 py-4 text-center text-sm text-gray-400 font-semibold">Stagione</th>
-                      <th className="px-5 py-4 text-center text-sm text-gray-400 font-semibold">Semestre</th>
-                      <th className="px-5 py-4 text-center text-sm text-gray-400 font-semibold">Fase</th>
-                      <th className="px-5 py-4 text-center text-sm text-gray-400 font-semibold">Stato</th>
-                      <th className="px-5 py-4 text-right text-sm text-gray-400 font-semibold">Data</th>
+                      <th className="px-5 py-3 text-left micro-label text-gray-400">Tipo</th>
+                      <th className="px-5 py-3 text-center micro-label text-gray-400">Stagione</th>
+                      <th className="px-5 py-3 text-center micro-label text-gray-400">Semestre</th>
+                      <th className="px-5 py-3 text-center micro-label text-gray-400">Fase</th>
+                      <th className="px-5 py-3 text-center micro-label text-gray-400">Stato</th>
+                      <th className="px-5 py-3 text-right micro-label text-gray-400">Data</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-surface-50/10">
                     {sessions.map(session => (
                       <tr key={session.id} className="hover:bg-surface-300/50 transition-colors">
-                        <td className="px-5 py-4 font-semibold text-white">
+                        <td className="px-5 py-3 font-display font-bold text-white">
                           {session.type === 'PRIMO_MERCATO' ? 'Primo Mercato' : 'Mercato Ricorrente'}
                         </td>
-                        <td className="px-5 py-4 text-center text-gray-300">{session.season}</td>
-                        <td className="px-5 py-4 text-center text-gray-300">{session.semester}</td>
-                        <td className="px-5 py-4 text-center text-gray-300">{session.currentPhase || '-'}</td>
-                        <td className="px-5 py-4 text-center">
-                          <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                            session.status === 'ACTIVE' ? 'bg-secondary-500/20 text-secondary-400' :
-                            session.status === 'COMPLETED' ? 'bg-gray-500/20 text-gray-400' :
-                            'bg-accent-500/20 text-accent-400'
+                        <td className="px-5 py-3 text-center text-gray-300 font-mono">{session.season}</td>
+                        <td className="px-5 py-3 text-center text-gray-300 font-mono">{session.semester}</td>
+                        <td className="px-5 py-3 text-center text-gray-300">{session.currentPhase || '-'}</td>
+                        <td className="px-5 py-3 text-center">
+                          <span className={`font-mono text-[10px] font-bold tracking-[0.06em] px-2.5 py-1 rounded-md border ${
+                            session.status === 'ACTIVE' ? 'bg-secondary-500/20 text-secondary-400 border-secondary-500/40' :
+                            session.status === 'COMPLETED' ? 'bg-surface-300 text-gray-400 border-surface-50' :
+                            'bg-accent-500/20 text-accent-400 border-accent-500/40'
                           }`}>
                             {session.status}
                           </span>
                         </td>
-                        <td className="px-5 py-4 text-right text-gray-400">
+                        <td className="px-5 py-3 text-right text-gray-400 font-mono">
                           {new Date(session.createdAt).toLocaleDateString('it-IT')}
                         </td>
                       </tr>

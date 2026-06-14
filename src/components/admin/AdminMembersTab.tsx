@@ -17,16 +17,20 @@ export function AdminMembersTab({
   return (
     <div className="space-y-6">
       {/* Active Members */}
-      <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
-        <div className="p-5 border-b border-surface-50/20 flex items-center justify-between">
-          <h3 className="text-xl font-bold text-white">Membri Attivi ({activeMembers.length})</h3>
+      <div className="bg-surface-200 rounded-xl border border-surface-50 overflow-hidden">
+        <div className="px-4 py-3 border-b border-surface-50 flex items-center justify-between gap-3">
+          <h3 className="micro-label text-gray-300 flex items-center gap-2">
+            Membri attivi
+            <span className="font-mono text-[10px] font-bold text-gray-400 bg-surface-300 border border-surface-50 px-1.5 py-0.5 rounded-full">
+              {activeMembers.length}
+            </span>
+          </h3>
           {activeMembers.length < 8 && (
             <Button
               variant="outline"
               size="sm"
               onClick={handleCompleteWithTestUsers}
               disabled={isSubmitting}
-              className="border-purple-500/50 text-purple-400"
             >
               {isSubmitting ? 'Aggiungendo...' : `Completa a 8 manager (+${8 - activeMembers.length} test)`}
             </Button>
@@ -65,32 +69,39 @@ export function AdminMembersTab({
           <table className="w-full">
             <thead className="bg-surface-300">
               <tr>
-                <th className="px-5 py-4 text-left text-sm text-gray-400 font-semibold">Username</th>
-                <th className="px-5 py-4 text-left text-sm text-gray-400 font-semibold">Team</th>
-                <th className="px-5 py-4 text-center text-sm text-gray-400 font-semibold">Ruolo</th>
-                <th className="px-5 py-4 text-right text-sm text-gray-400 font-semibold">Budget</th>
-                <th className="px-5 py-4 text-right text-sm text-gray-400 font-semibold">Azioni</th>
+                <th className="px-5 py-3 text-left micro-label text-gray-400">Manager</th>
+                <th className="px-5 py-3 text-left micro-label text-gray-400">Team</th>
+                <th className="px-5 py-3 text-center micro-label text-gray-400">Ruolo</th>
+                <th className="px-5 py-3 text-right micro-label text-gray-400">Budget</th>
+                <th className="px-5 py-3 text-right micro-label text-gray-400">Azioni</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-50/10">
               {activeMembers.map(member => (
                 <tr key={member.id} className="hover:bg-surface-300/50 transition-colors">
-                  <td className="px-5 py-4">
-                    <p className="font-semibold text-white">{member.user.username}</p>
-                    <p className="text-xs text-gray-500">{member.user.email}</p>
+                  <td className="px-5 py-3">
+                    <div className="flex items-center gap-3">
+                      <span className="w-8 h-8 rounded-full bg-surface-300 border border-surface-50 flex items-center justify-center font-display text-[11px] font-bold text-white flex-shrink-0">
+                        {member.user.username.slice(0, 2).toUpperCase()}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="font-display font-bold text-white truncate">{member.user.username}</p>
+                        <p className="text-xs text-gray-500 truncate">{member.user.email}</p>
+                      </div>
+                    </div>
                   </td>
-                  <td className="px-5 py-4 text-gray-300">{member.teamName || '-'}</td>
-                  <td className="px-5 py-4 text-center">
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                  <td className="px-5 py-3 text-gray-400">{member.teamName || '-'}</td>
+                  <td className="px-5 py-3 text-center">
+                    <span className={`font-mono text-[10px] font-bold tracking-[0.06em] px-2.5 py-1 rounded-md border ${
                       member.role === 'ADMIN'
-                        ? 'bg-accent-500/20 text-accent-400 border border-accent-500/40'
-                        : 'bg-surface-50/20 text-gray-400 border border-surface-50/30'
+                        ? 'bg-accent-500/[0.13] text-accent-400 border-accent-500/40'
+                        : 'bg-surface-300 text-gray-400 border-surface-50'
                     }`}>
                       {member.role === 'ADMIN' ? 'Presidente' : 'DG'}
                     </span>
                   </td>
-                  <td className="px-5 py-4 text-right font-mono text-accent-400 text-lg">{member.currentBudget}</td>
-                  <td className="px-5 py-4 text-right">
+                  <td className="px-5 py-3 text-right budget-display text-accent-400 text-lg">{member.currentBudget}</td>
+                  <td className="px-5 py-3 text-right">
                     {member.role !== 'ADMIN' && (
                       <Button size="sm" variant="outline" className="border-danger-500/50 text-danger-400" onClick={() => { confirmKick(member.id, member.user.username); }} disabled={isSubmitting}>
                         Espelli

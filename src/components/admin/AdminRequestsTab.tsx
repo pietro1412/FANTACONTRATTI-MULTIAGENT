@@ -44,36 +44,41 @@ export function AdminRequestsTab({
   return (
     <div className="space-y-6">
       {/* Pending Members */}
-      <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
-        <div className="p-5 border-b border-surface-50/20">
-          <h3 className="text-xl font-bold text-white flex items-center gap-3">
-            <span>👤</span> Richieste di Adesione
+      <div className="bg-surface-200 rounded-xl border border-surface-50 overflow-hidden">
+        <div className="px-4 py-3 border-b border-surface-50">
+          <h3 className="micro-label text-gray-300 flex items-center gap-2">
+            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            Richieste di adesione
             {pendingMembers.length > 0 && (
-              <span className="bg-accent-500/20 text-accent-400 px-2.5 py-0.5 rounded-full text-sm font-bold border border-accent-500/40">
+              <span className="font-mono text-[10px] font-bold text-accent-400 bg-accent-500/20 border border-accent-500/40 px-1.5 py-0.5 rounded-full">
                 {pendingMembers.length}
               </span>
             )}
           </h3>
         </div>
-        <div className="p-5">
+        <div className="p-4">
           {pendingMembers.length === 0 ? (
-            <div className="text-center py-8">
-              <div className="text-4xl mb-3 opacity-50">✅</div>
-              <p className="text-gray-500">Nessuna richiesta in attesa</p>
-            </div>
+            <p className="text-center text-sm text-gray-500 py-6">Nessuna richiesta in attesa</p>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {pendingMembers.map(member => (
-                <div key={member.id} className="flex justify-between items-center p-4 bg-surface-300 rounded-lg">
-                  <div>
-                    <p className="font-semibold text-white text-lg">{member.user.username}</p>
-                    <p className="text-sm text-gray-400">{member.user.email}</p>
+                <div key={member.id} className="flex justify-between items-center gap-3 p-3 bg-surface-300 border border-surface-50 rounded-xl">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="w-8 h-8 rounded-full bg-surface-200 border border-surface-50 flex items-center justify-center font-display text-[11px] font-bold text-white flex-shrink-0">
+                      {member.user.username.slice(0, 2).toUpperCase()}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="font-display font-bold text-white truncate">{member.user.username}</p>
+                      <p className="text-xs text-gray-500 truncate">{member.user.email}</p>
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Button onClick={() => { handleMemberAction(member.id, 'accept'); }} disabled={isSubmitting}>
+                  <div className="flex gap-2 flex-shrink-0">
+                    <Button size="sm" variant="secondary" onClick={() => { handleMemberAction(member.id, 'accept'); }} disabled={isSubmitting}>
                       Accetta
                     </Button>
-                    <Button variant="outline" onClick={() => { handleMemberAction(member.id, 'reject'); }} disabled={isSubmitting}>
+                    <Button size="sm" variant="outline" onClick={() => { handleMemberAction(member.id, 'reject'); }} disabled={isSubmitting}>
                       Rifiuta
                     </Button>
                   </div>
@@ -85,13 +90,16 @@ export function AdminRequestsTab({
       </div>
 
       {/* Invite Form */}
-      <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
-        <div className="p-5 border-b border-surface-50/20">
-          <h3 className="text-xl font-bold text-white flex items-center gap-3">
-            <span>✉️</span> Invia Nuovo Invito
+      <div className="bg-surface-200 rounded-xl border border-surface-50 overflow-hidden">
+        <div className="px-4 py-3 border-b border-surface-50">
+          <h3 className="micro-label text-gray-300 flex items-center gap-2">
+            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+            Invia nuovo invito
           </h3>
         </div>
-        <div className="p-5">
+        <div className="p-4">
           <div className="flex flex-col gap-5">
             <div>
               <label className="block text-sm font-semibold text-gray-300 mb-2">
@@ -141,32 +149,35 @@ export function AdminRequestsTab({
       </div>
 
       {/* Pending Invites */}
-      <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
-        <div className="p-5 border-b border-surface-50/20">
-          <h3 className="text-xl font-bold text-white flex items-center gap-3">
-            <span>📨</span> Inviti in Attesa
+      <div className="bg-surface-200 rounded-xl border border-surface-50 overflow-hidden">
+        <div className="px-4 py-3 border-b border-surface-50">
+          <h3 className="micro-label text-gray-300 flex items-center gap-2">
+            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+            Inviti in attesa
             {invites.length > 0 && (
-              <span className="bg-surface-300 px-2.5 py-0.5 rounded-full text-sm text-gray-400">
+              <span className="font-mono text-[10px] font-bold text-gray-400 bg-surface-300 border border-surface-50 px-1.5 py-0.5 rounded-full">
                 {invites.length}
               </span>
             )}
           </h3>
         </div>
-        <div className="p-5">
+        <div className="p-4">
           {invites.length === 0 ? (
-            <div className="text-center py-8">
-              <div className="text-4xl mb-3 opacity-50">📭</div>
-              <p className="text-gray-500">Nessun invito in attesa</p>
-            </div>
+            <p className="text-center text-sm text-gray-500 py-6">Nessun invito in attesa</p>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {invites.map(invite => (
-                <div key={invite.id} className="flex justify-between items-center p-4 bg-surface-300 rounded-lg">
-                  <div>
-                    <p className="font-semibold text-white">{invite.email}</p>
-                    <p className="text-xs text-gray-500">
-                      Inviato: {new Date(invite.createdAt).toLocaleDateString('it-IT')} - Scade: {new Date(invite.expiresAt).toLocaleDateString('it-IT')}
-                    </p>
+                <div key={invite.id} className="flex justify-between items-center gap-3 p-3 bg-surface-300 border border-surface-50 rounded-xl">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="w-8 h-8 rounded-full bg-surface-200 border border-surface-50 flex items-center justify-center text-gray-400 flex-shrink-0">@</span>
+                    <div className="min-w-0">
+                      <p className="font-display font-bold text-white truncate">{invite.email}</p>
+                      <p className="text-xs text-gray-500">
+                        Inviato {new Date(invite.createdAt).toLocaleDateString('it-IT')} · Scade {new Date(invite.expiresAt).toLocaleDateString('it-IT')}
+                      </p>
+                    </div>
                   </div>
                   <Button size="sm" variant="outline" onClick={() => { handleCancelInvite(invite.id); }} disabled={isSubmitting}>
                     Annulla
