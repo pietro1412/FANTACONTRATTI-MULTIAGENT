@@ -36,9 +36,9 @@ interface FeedbackDetailProps {
 }
 
 const statusConfig: Record<string, { label: string; color: string; bgColor: string }> = {
-  APERTA: { label: 'Aperta', color: 'text-amber-400', bgColor: 'bg-amber-500/20' },
-  IN_LAVORAZIONE: { label: 'In Lavorazione', color: 'text-blue-400', bgColor: 'bg-blue-500/20' },
-  RISOLTA: { label: 'Risolta', color: 'text-emerald-400', bgColor: 'bg-emerald-500/20' },
+  APERTA: { label: 'Aperta', color: 'text-accent-400', bgColor: 'bg-accent-500/20' },
+  IN_LAVORAZIONE: { label: 'In Lavorazione', color: 'text-primary-300', bgColor: 'bg-primary-500/20' },
+  RISOLTA: { label: 'Risolta', color: 'text-secondary-300', bgColor: 'bg-secondary-500/20' },
 }
 
 const categoryConfig: Record<string, { label: string; icon: string }> = {
@@ -130,7 +130,7 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-primary-400/30 border-t-primary-400 rounded-full animate-spin" />
       </div>
     )
   }
@@ -154,7 +154,7 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
     )
   }
 
-  const defaultStatus = { label: 'Aperta', color: 'text-amber-400', bgColor: 'bg-amber-500/20' }
+  const defaultStatus = { label: 'Aperta', color: 'text-accent-400', bgColor: 'bg-accent-500/20' }
   const defaultCategory = { label: 'Altro', icon: 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z' }
   const statusCfg = statusConfig[feedback.status] ?? defaultStatus
   const categoryCfg = categoryConfig[feedback.category] ?? defaultCategory
@@ -175,7 +175,7 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
       )}
 
       {/* Header */}
-      <div className="bg-surface-300/30 rounded-xl p-6 border border-surface-50/20">
+      <div className="bg-surface-200 rounded-2xl p-6 border border-surface-50">
         <div className="flex items-start justify-between gap-4 mb-4">
           <div className="flex items-center gap-3">
             <div className={`w-10 h-10 rounded-xl ${statusCfg.bgColor} flex items-center justify-center`}>
@@ -185,10 +185,10 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
             </div>
             <div>
               <span className="text-xs text-gray-500">{categoryCfg.label}</span>
-              <h2 className="text-lg font-bold text-white">{feedback.title}</h2>
+              <h2 className="font-display text-lg font-bold text-white">{feedback.title}</h2>
             </div>
           </div>
-          <span className={`px-3 py-1 text-sm font-medium rounded-lg ${statusCfg.bgColor} ${statusCfg.color}`}>
+          <span className={`px-3 py-1 text-sm font-semibold rounded-lg ${statusCfg.bgColor} ${statusCfg.color}`}>
             {statusCfg.label}
           </span>
         </div>
@@ -201,20 +201,20 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
             <span>Da: <span className="text-white">{feedback.user.username}</span></span>
           )}
           {feedback.league && (
-            <span>Lega: <span className="text-primary-400">{feedback.league.name}</span></span>
+            <span>Lega: <span className="text-primary-300">{feedback.league.name}</span></span>
           )}
           {feedback.pageContext && (
             <span>Pagina: <span className="text-gray-400">{feedback.pageContext}</span></span>
           )}
           {feedback.resolvedAt && (
-            <span className="text-emerald-400">Risolta il {formatDate(feedback.resolvedAt)}</span>
+            <span className="text-secondary-300">Risolta il {formatDate(feedback.resolvedAt)}</span>
           )}
         </div>
 
         {/* Admin status controls */}
         {isAdmin && feedback.status !== 'RISOLTA' && (
-          <div className="mt-4 pt-4 border-t border-surface-50/20">
-            <span className="text-xs text-gray-500 mb-2 block">Cambia stato:</span>
+          <div className="mt-4 pt-4 border-t border-surface-50">
+            <span className="micro-label mb-2 block">Cambia stato:</span>
             <div className="flex gap-2">
               {['APERTA', 'IN_LAVORAZIONE', 'RISOLTA'].map(status => {
                 if (status === feedback.status) return null
@@ -236,7 +236,7 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
 
       {/* Responses Timeline */}
       <div>
-        <h3 className="text-sm font-semibold text-gray-400 mb-4 flex items-center gap-2">
+        <h3 className="micro-label mb-4 flex items-center gap-2">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
           </svg>
@@ -244,7 +244,7 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
         </h3>
 
         {feedback.responses.length === 0 ? (
-          <div className="py-8 text-center text-gray-500 text-sm bg-surface-300/20 rounded-xl">
+          <div className="py-8 text-center text-gray-500 text-sm bg-surface-300 border border-surface-50 rounded-xl">
             Nessuna risposta ancora
           </div>
         ) : (
@@ -253,26 +253,26 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
               <div key={response.id} className="relative">
                 {/* Timeline line */}
                 {index < feedback.responses.length - 1 && (
-                  <div className="absolute left-5 top-12 bottom-0 w-0.5 bg-surface-50/20" />
+                  <div className="absolute left-5 top-12 bottom-0 w-0.5 bg-surface-50" />
                 )}
 
                 <div className="flex gap-4">
                   {/* Avatar */}
-                  <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center flex-shrink-0">
-                    <svg className="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div className="w-10 h-10 rounded-full bg-primary-500/20 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-5 h-5 text-primary-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                     </svg>
                   </div>
 
                   {/* Content */}
-                  <div className="flex-1 bg-surface-300/30 rounded-xl p-4 border border-surface-50/20">
+                  <div className="flex-1 bg-surface-300 rounded-xl p-4 border border-surface-50">
                     <div className="flex items-center justify-between gap-2 mb-2">
-                      <span className="text-sm font-medium text-purple-400">{response.adminUsername}</span>
+                      <span className="font-display text-sm font-semibold text-primary-300">{response.adminUsername}</span>
                       <span className="text-xs text-gray-500">{formatDate(response.createdAt)}</span>
                     </div>
                     <p className="text-sm text-gray-300 whitespace-pre-wrap">{response.content}</p>
                     {response.statusChange && (
-                      <div className="mt-2 pt-2 border-t border-surface-50/20">
+                      <div className="mt-2 pt-2 border-t border-surface-50">
                         <span className={`text-xs px-2 py-0.5 rounded ${statusConfig[response.statusChange]?.bgColor ?? ''} ${statusConfig[response.statusChange]?.color ?? ''}`}>
                           Stato cambiato a: {statusConfig[response.statusChange]?.label}
                         </span>
@@ -288,8 +288,8 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
 
       {/* Admin Response Form */}
       {isAdmin && (
-        <div className="bg-surface-300/30 rounded-xl p-4 border border-surface-50/20">
-          <h4 className="text-sm font-semibold text-white mb-3">Aggiungi Risposta</h4>
+        <div className="bg-surface-200 rounded-2xl p-4 border border-surface-50">
+          <h4 className="font-display text-sm font-bold text-white mb-3">Aggiungi Risposta</h4>
           <Textarea
             value={responseContent}
             onChange={e => { setResponseContent(e.target.value); }}
@@ -299,11 +299,11 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
           />
           <div className="flex items-center gap-4">
             <div className="flex-1">
-              <label className="text-xs text-gray-500 mb-1 block">Cambia stato (opzionale):</label>
+              <label className="micro-label mb-1 block">Cambia stato (opzionale):</label>
               <select
                 value={responseStatus}
                 onChange={e => { setResponseStatus(e.target.value); }}
-                className="w-full px-3 py-2 bg-surface-300/50 border border-surface-50/20 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                className="w-full px-3 py-2 bg-surface-300 border border-surface-50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/50"
               >
                 <option value="">Nessun cambio</option>
                 <option value="IN_LAVORAZIONE">In Lavorazione</option>
@@ -313,7 +313,7 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
             <button
               onClick={() => void handleSubmitResponse()}
               disabled={isSubmitting || !responseContent.trim()}
-              className="px-6 py-2 bg-purple-500 hover:bg-purple-600 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="font-display px-6 py-2 bg-primary-500 hover:bg-primary-600 text-white font-bold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-glow"
             >
               {isSubmitting ? (
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />

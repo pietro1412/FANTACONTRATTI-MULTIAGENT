@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Mockup — Rules (Regolamento)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=Oswald:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Rules — pagina di CONSULTAZIONE (regolamento). Flusso normale + scroll lungo,
+     TOC laterale sticky. NIENTE cockpit. Token tema Stadium Nights: niente slate/gray
+     crudi (sostituiti coi token), niente glassmorphism sulle card, niente emoji nei
+     titoli H1 (sostituite da monogrammi/icone pulite). SectionHeader/SubsectionHeader
+     in Outfit; header TOC "Indice" in .micro-label; Example/InfoBox come Card con
+     bordo accento semantico. */
+  :root{
+    --bg:#0a0a0b;        /* surface-400 body */
+    --card:#1a1c20;      /* surface-200 card */
+    --elev:#111214;      /* surface-300 elevated */
+    --hover:#252830;     /* surface-100 hover */
+    --border:#2d3139;    /* surface-50 border */
+    --primary:#3b82f6; --primary-d:#1e40af; --primary-l:#93c5fd;
+    --secondary:#22c55e; --secondary-l:#86efac;
+    --gold:#f59e0b; --gold2:#fbbf24; --gold-d:#b45309;
+    --danger:#ef4444; --danger-l:#fca5a5;
+    --warning:#fbbf24;
+    --t1:#f9fafb; --t2:#d1d5db; --t3:#9ca3af; --t4:#8b919d;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--t1);font-family:'Inter',sans-serif;}
+  .micro-label{font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:700;
+    letter-spacing:.14em;text-transform:uppercase;color:var(--t4);}
+  .font-display{font-family:'Outfit',sans-serif;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+  a{text-decoration:none;color:inherit;}
+
+  /* ===== Header sticky (token: surface-200, bordo surface-50, niente backdrop-blur) ===== */
+  header.app{position:sticky;top:0;z-index:40;background:var(--card);
+    border-bottom:1px solid var(--border);box-shadow:0 4px 20px rgba(0,0,0,.4);}
+  .hdr-in{max-width:1100px;margin:0 auto;padding:14px 24px;display:flex;
+    align-items:center;justify-content:space-between;}
+  .hdr-l{display:flex;align-items:center;gap:14px;}
+  .back{width:36px;height:36px;border-radius:10px;border:1px solid var(--border);
+    background:var(--elev);color:var(--t3);display:flex;align-items:center;justify-content:center;}
+  .logo{width:40px;height:40px;border-radius:12px;
+    background:linear-gradient(135deg,var(--primary-d),var(--primary));
+    display:flex;align-items:center;justify-content:center;}
+  .logo svg{width:20px;height:20px;color:#fff;}
+  .hdr-title{font-family:'Outfit',sans-serif;font-size:17px;font-weight:700;}
+  .hdr-sub{font-size:11.5px;color:var(--t3);}
+  .btn-login{font-size:13px;font-weight:600;color:var(--primary-l);
+    border:1px solid rgba(59,130,246,.35);background:rgba(59,130,246,.1);
+    border-radius:9px;padding:8px 16px;}
+
+  /* ===== Layout ===== */
+  .shell{max-width:1100px;margin:0 auto;padding:32px 24px 60px;}
+  .grid{display:grid;grid-template-columns:248px minmax(0,1fr);gap:36px;align-items:start;}
+
+  /* ===== TOC sidebar sticky (card surface-200) ===== */
+  aside{position:sticky;top:96px;background:var(--card);border:1px solid var(--border);
+    border-radius:14px;padding:18px 16px;}
+  aside .idx{margin-bottom:14px;display:block;}
+  aside ul{list-style:none;display:flex;flex-direction:column;gap:2px;}
+  aside a.toc{display:block;padding:8px 11px;border-radius:9px;font-size:13.5px;
+    color:var(--t2);transition:.15s;}
+  aside a.toc:hover{background:var(--elev);color:var(--t1);}
+  aside a.toc.active{background:rgba(59,130,246,.12);color:#fff;
+    box-shadow:inset 2px 0 0 var(--primary);}
+  aside ul.sub{margin:4px 0 4px 12px;gap:1px;border-left:1px solid var(--border);padding-left:8px;}
+  aside a.sub{display:block;padding:5px 9px;border-radius:7px;font-size:12px;color:var(--t3);}
+  aside a.sub:hover{color:var(--t1);background:var(--elev);}
+
+  /* ===== Main ===== */
+  main{min-width:0;}
+  /* Hero */
+  .hero{background:linear-gradient(120deg,rgba(59,130,246,.16),rgba(245,158,11,.12) 90%);
+    border:1px solid rgba(59,130,246,.3);border-radius:20px;padding:30px 34px;margin-bottom:44px;
+    display:flex;align-items:center;gap:22px;}
+  .hero .crest{width:64px;height:64px;border-radius:16px;flex-shrink:0;
+    background:linear-gradient(135deg,var(--primary-d),var(--primary));
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Outfit',sans-serif;font-weight:800;font-size:24px;color:#fff;
+    box-shadow:0 0 20px rgba(59,130,246,.3);}
+  .hero h1{font-family:'Outfit',sans-serif;font-size:32px;font-weight:800;line-height:1.1;margin-bottom:8px;}
+  .hero p{font-size:15px;color:var(--t2);}
+
+  section.doc{margin-bottom:56px;}
+  /* SectionHeader */
+  .sec-h{display:flex;align-items:center;gap:14px;margin-bottom:22px;
+    padding-bottom:14px;border-bottom:1px solid var(--border);}
+  .sec-h .ico{width:42px;height:42px;border-radius:12px;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Outfit',sans-serif;font-weight:800;font-size:15px;}
+  .ico.primary{background:rgba(59,130,246,.14);color:var(--primary-l);border:1px solid rgba(59,130,246,.3);}
+  .ico.gold{background:rgba(245,158,11,.14);color:var(--gold2);border:1px solid rgba(245,158,11,.3);}
+  .ico.secondary{background:rgba(34,197,94,.14);color:var(--secondary-l);border:1px solid rgba(34,197,94,.3);}
+  .ico.danger{background:rgba(239,68,68,.14);color:var(--danger-l);border:1px solid rgba(239,68,68,.3);}
+  .ico.neutral{background:var(--elev);color:var(--t2);border:1px solid var(--border);}
+  .ico svg{width:20px;height:20px;}
+  .sec-h h2{font-family:'Outfit',sans-serif;font-size:26px;font-weight:700;}
+
+  h3.sub-h{font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;color:var(--primary-l);margin:26px 0 14px;}
+  h4.min-h{font-family:'Outfit',sans-serif;font-size:15px;font-weight:700;color:var(--t1);margin:18px 0 10px;}
+  p.body{font-size:14.5px;color:var(--t2);line-height:1.7;margin-bottom:14px;}
+  p.body strong{color:var(--t1);font-weight:700;}
+  p.body strong.acc{color:var(--primary-l);}
+  ul.bul,ol.ord{margin:0 0 14px 20px;color:var(--t2);font-size:14px;line-height:1.65;
+    display:flex;flex-direction:column;gap:7px;}
+  ul.bul{list-style:disc;} ol.ord{list-style:decimal;}
+  ol.ord li strong,ul.bul li strong{color:var(--t1);}
+
+  /* InfoBox as Card with semantic border */
+  .box{border-radius:12px;padding:15px 18px;margin:18px 0;font-size:14px;line-height:1.6;border:1px solid;}
+  .box.info{background:rgba(59,130,246,.08);border-color:rgba(59,130,246,.32);color:var(--primary-l);}
+  .box.warn{background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.32);color:var(--gold2);}
+  .box.ok{background:rgba(34,197,94,.08);border-color:rgba(34,197,94,.32);color:var(--secondary-l);}
+  .box strong{color:#fff;} .box ul{list-style:disc;margin:8px 0 0 18px;display:flex;flex-direction:column;gap:4px;}
+
+  /* Example as Card primary accent */
+  .ex{background:var(--elev);border:1px solid rgba(59,130,246,.28);border-radius:12px;
+    padding:14px 16px;margin:16px 0;}
+  .ex .ex-t{display:flex;align-items:center;gap:8px;margin-bottom:8px;
+    font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;
+    letter-spacing:.1em;text-transform:uppercase;color:var(--primary-l);}
+  .ex .ex-t svg{width:14px;height:14px;}
+  .ex p{font-size:13.5px;color:var(--t2);line-height:1.6;}
+  .ex p+p{margin-top:6px;}
+  .ex .calc{font-family:'JetBrains Mono',monospace;color:var(--primary-l);}
+
+  /* Role cards (Admin/Manager) */
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .role{background:var(--elev);border:1px solid var(--border);border-radius:12px;padding:16px 18px;border-left:4px solid;}
+  .role.gold{border-left-color:var(--gold);} .role.blue{border-left-color:var(--primary);}
+  .role h4{font-family:'Outfit',sans-serif;font-size:15px;font-weight:700;margin-bottom:6px;}
+  .role.gold h4{color:var(--gold2);} .role.blue h4{color:var(--primary-l);}
+  .role p{font-size:13px;color:var(--t3);line-height:1.55;}
+
+  /* Phase sequence chips */
+  .seq{background:var(--elev);border:1px solid var(--border);border-radius:14px;padding:20px;margin:18px 0 28px;}
+  .seq .chips{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px;}
+  .chip{font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;border-radius:999px;padding:6px 14px;}
+  .chip.primary{background:rgba(59,130,246,.16);color:var(--primary-l);}
+  .chip.warn{background:rgba(245,158,11,.16);color:var(--gold2);}
+  .chip.secondary{background:rgba(34,197,94,.16);color:var(--secondary-l);}
+  .chip.danger{background:rgba(239,68,68,.16);color:var(--danger-l);}
+  .chip.gold{background:rgba(245,158,11,.2);color:var(--gold2);}
+  .arrow{color:var(--t4);font-size:13px;}
+
+  /* Phase blocks with left accent rail */
+  .phase{padding-left:18px;border-left:4px solid;margin-bottom:34px;}
+  .phase.primary{border-left-color:var(--primary);}
+  .phase.warn{border-left-color:var(--warning);}
+  .phase.secondary{border-left-color:var(--secondary);}
+  .phase.danger{border-left-color:var(--danger);}
+  .phase.gold{border-left-color:var(--gold);}
+  .phase h3{font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;margin-bottom:12px;}
+  .phase.primary h3{color:var(--primary-l);} .phase.warn h3{color:var(--gold2);}
+  .phase.secondary h3{color:var(--secondary-l);} .phase.danger h3{color:var(--danger-l);}
+  .phase.gold h3{color:var(--gold2);}
+
+  /* Renewal option cards */
+  .opt{border-radius:12px;padding:14px 16px;margin-bottom:12px;border:1px solid;}
+  .opt.secondary{background:rgba(34,197,94,.08);border-color:rgba(34,197,94,.3);}
+  .opt.warn{background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.3);}
+  .opt.danger{background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.3);}
+  .opt h5{font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;margin-bottom:8px;}
+  .opt.secondary h5{color:var(--secondary-l);} .opt.warn h5{color:var(--gold2);} .opt.danger h5{color:var(--danger-l);}
+  .opt ul{list-style:disc;margin-left:18px;font-size:13px;color:var(--t2);display:flex;flex-direction:column;gap:5px;}
+  .opt ul li strong{color:var(--t1);}
+
+  /* Stat grid (slots / multipliers) */
+  .stats4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:14px 0 20px;}
+  .stat{border-radius:12px;padding:16px 8px;text-align:center;border:1px solid;}
+  .stat .num{font-family:'Oswald',sans-serif;font-weight:700;font-size:30px;line-height:1;}
+  .stat .lbl{font-size:12px;color:var(--t3);margin-top:6px;}
+  .stat.warn{background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.28);} .stat.warn .num{color:var(--gold2);}
+  .stat.primary{background:rgba(59,130,246,.1);border-color:rgba(59,130,246,.28);} .stat.primary .num{color:var(--primary-l);}
+  .stat.secondary{background:rgba(34,197,94,.1);border-color:rgba(34,197,94,.28);} .stat.secondary .num{color:var(--secondary-l);}
+  .stat.danger{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.28);} .stat.danger .num{color:var(--danger-l);}
+  .stat.plain{background:var(--elev);border-color:var(--border);} .stat.plain .num{color:var(--primary-l);}
+
+  /* Table */
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0 8px;}
+  th{text-align:left;padding:11px 14px;color:var(--t3);font-weight:600;border-bottom:1px solid var(--border);
+    font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;}
+  td{padding:11px 14px;color:var(--t2);border-bottom:1px solid rgba(45,49,57,.5);}
+  td.k{font-weight:700;color:var(--t1);}
+
+  /* Glossary */
+  .gl{display:flex;gap:18px;padding:11px 0;border-bottom:1px solid rgba(45,49,57,.5);}
+  .gl dt{width:140px;flex-shrink:0;font-family:'Outfit',sans-serif;font-weight:700;color:var(--primary-l);font-size:14px;}
+  .gl dd{font-size:13.5px;color:var(--t2);line-height:1.55;}
+
+  /* FAQ */
+  .faq{background:var(--elev);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden;}
+  .faq .q{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;
+    font-family:'Outfit',sans-serif;font-weight:600;font-size:14.5px;color:#fff;}
+  .faq .q svg{width:18px;height:18px;color:var(--t3);flex-shrink:0;}
+  .faq.open .q svg{transform:rotate(180deg);}
+  .faq .a{padding:0 18px 16px;font-size:13.5px;color:var(--t2);line-height:1.6;border-top:1px solid var(--border);padding-top:14px;}
+  .faq:not(.open) .a{display:none;}
+
+  /* Footer CTA */
+  .cta{background:linear-gradient(120deg,rgba(59,130,246,.18),rgba(245,158,11,.12));
+    border:1px solid rgba(59,130,246,.3);border-radius:20px;padding:34px;text-align:center;margin-top:20px;}
+  .cta h2{font-family:'Outfit',sans-serif;font-size:24px;font-weight:800;margin-bottom:10px;}
+  .cta p{font-size:14px;color:var(--t2);margin-bottom:20px;}
+  .cta button{font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;color:#fff;
+    background:var(--primary);border:none;border-radius:12px;padding:13px 30px;cursor:pointer;
+    box-shadow:0 6px 20px rgba(59,130,246,.3);}
+
+  footer.app{border-top:1px solid var(--border);margin-top:48px;padding:28px 0;
+    text-align:center;font-size:12.5px;color:var(--t4);}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="app">
+  <div class="hdr-in">
+    <div class="hdr-l">
+      <span class="back"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg></span>
+      <span class="logo"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7l3.5 2.5-1.3 4h-4.4l-1.3-4z"/></svg></span>
+      <div><div class="hdr-title">Fantacontratti</div><div class="hdr-sub">Regole del Gioco</div></div>
+    </div>
+    <button class="btn-login">Accedi</button>
+  </div>
+</header>
+
+<div class="shell">
+  <div class="grid">
+
+    <!-- TOC -->
+    <aside>
+      <span class="micro-label idx">Indice</span>
+      <ul>
+        <li><a class="toc active" href="#introduzione">Introduzione</a></li>
+        <li><a class="toc" href="#primo-mercato">Primo Mercato Assoluto</a></li>
+        <li>
+          <a class="toc" href="#mercato-ricorrente">Mercato Ricorrente</a>
+          <ul class="sub">
+            <li><a class="sub" href="#fase-scambi-pre">Fase Scambi Pre-Rinnovo</a></li>
+            <li><a class="sub" href="#fase-premi">Fase Premi</a></li>
+            <li><a class="sub" href="#fase-contratti">Fase Contratti</a></li>
+            <li><a class="sub" href="#fase-rubata">Fase Rubata</a></li>
+            <li><a class="sub" href="#fase-svincolati">Fase Svincolati</a></li>
+            <li><a class="sub" href="#fase-scambi-post">Fase Scambi Post-Svincolati</a></li>
+          </ul>
+        </li>
+        <li><a class="toc" href="#sistema-contratti">Sistema Contratti</a></li>
+        <li><a class="toc" href="#glossario">Glossario</a></li>
+        <li><a class="toc" href="#faq">FAQ</a></li>
+      </ul>
+    </aside>
+
+    <!-- MAIN -->
+    <main>
+      <!-- HERO -->
+      <div class="hero">
+        <div class="crest">FC</div>
+        <div>
+          <h1>Regole di Fantacontratti</h1>
+          <p>Guida completa al fantacalcio dinastico con sistema contratti</p>
+        </div>
+      </div>
+
+      <!-- INTRODUZIONE -->
+      <section class="doc" id="introduzione">
+        <div class="sec-h">
+          <span class="ico primary"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg></span>
+          <h2>Introduzione</h2>
+        </div>
+        <p class="body"><strong>Fantacontratti</strong> è una piattaforma per il fantacalcio in formato <strong class="acc">dynasty</strong> (o dinastico). A differenza del fantacalcio tradizionale dove le rose vengono azzerate ogni anno, nel formato dynasty i giocatori vengono mantenuti attraverso un sistema di <strong class="acc">contratti</strong> con durata variabile.</p>
+        <div class="box info">
+          <strong>Caratteristiche principali:</strong>
+          <ul>
+            <li>Contratti a durata (1-4 semestri)</li>
+            <li>Clausola rescissoria calcolata automaticamente</li>
+            <li>Mercati strutturati con fasi definite</li>
+            <li>Aste in tempo reale</li>
+            <li>Sistema di premi e indennizzi</li>
+          </ul>
+        </div>
+        <h3 class="sub-h">Ruoli nella Lega</h3>
+        <div class="two">
+          <div class="role gold"><h4>Admin (Presidente)</h4><p>Gestisce la lega, controlla le fasi di mercato, assegna i premi e risolve eventuali dispute.</p></div>
+          <div class="role blue"><h4>Manager (DG)</h4><p>Gestisce la propria squadra, partecipa alle aste, propone scambi e rinnova i contratti.</p></div>
+        </div>
+      </section>
+
+      <!-- PRIMO MERCATO -->
+      <section class="doc" id="primo-mercato">
+        <div class="sec-h">
+          <span class="ico gold"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg></span>
+          <h2>Primo Mercato Assoluto</h2>
+        </div>
+        <div class="box ok">Il <strong>Primo Mercato</strong> è l'asta iniziale per formare le rose. Si svolge <strong>una sola volta</strong> quando la lega viene avviata. Tutti i manager partono con lo stesso budget e rose vuote.</div>
+        <h3 class="sub-h">Come funziona</h3>
+        <ol class="ord">
+          <li><strong>L'Admin imposta l'ordine dei turni</strong> — Definisce la sequenza in cui i manager nominano i giocatori</li>
+          <li><strong>L'Admin seleziona il ruolo</strong> — Si parte con i Portieri (P), poi Difensori (D), Centrocampisti (C) e infine Attaccanti (A)</li>
+          <li><strong>Il manager di turno nomina un giocatore</strong> — Sceglie un giocatore disponibile del ruolo selezionato</li>
+          <li><strong>Tutti confermano "SONO PRONTO"</strong> — Ready check prima dell'asta</li>
+          <li><strong>Parte l'asta a tempo</strong> — I manager rilanciano (minimo +1), il timer si resetta ad ogni offerta</li>
+          <li><strong>Alla scadenza del timer</strong> — L'Admin chiude l'asta e il vincitore paga il prezzo</li>
+          <li><strong>Il vincitore assegna il contratto</strong> — Sceglie ingaggio e durata (vedi sezione Contratti)</li>
+          <li><strong>Conferme e profezie</strong> — I manager confermano e possono lasciare commenti</li>
+        </ol>
+        <div class="ex">
+          <div class="ex-t"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg> Esempio di asta</div>
+          <p>Mario nomina Vlahovic. L'asta parte da 1 credito.</p>
+          <p>Luigi offre 10, Peach offre 15, Mario rilancia a 20.</p>
+          <p>Il timer scade, Mario vince Vlahovic per 20 crediti e gli assegna un contratto 20x3 (ingaggio 20, durata 3 semestri).</p>
+        </div>
+        <h3 class="sub-h">Vincoli Rosa</h3>
+        <p class="body">La composizione della rosa è vincolata per ruolo. I parametri standard sono:</p>
+        <div class="stats4">
+          <div class="stat warn"><div class="num">3</div><div class="lbl">Portieri</div></div>
+          <div class="stat primary"><div class="num">8</div><div class="lbl">Difensori</div></div>
+          <div class="stat secondary"><div class="num">8</div><div class="lbl">Centrocampisti</div></div>
+          <div class="stat danger"><div class="num">6</div><div class="lbl">Attaccanti</div></div>
+        </div>
+      </section>
+
+      <!-- MERCATO RICORRENTE -->
+      <section class="doc" id="mercato-ricorrente">
+        <div class="sec-h">
+          <span class="ico secondary"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg></span>
+          <h2>Mercato Ricorrente</h2>
+        </div>
+        <p class="body">Dopo il Primo Mercato, la lega entra nel ciclo dei <strong>mercati ricorrenti</strong> (semestrali). Ogni sessione di mercato ricorrente segue un ordine preciso di fasi.</p>
+        <div class="seq">
+          <span class="micro-label">Sequenza delle Fasi</span>
+          <div class="chips">
+            <span class="chip primary">Scambi Pre</span><span class="arrow">→</span>
+            <span class="chip warn">Premi</span><span class="arrow">→</span>
+            <span class="chip secondary">Contratti</span><span class="arrow">→</span>
+            <span class="chip danger">Rubata</span><span class="arrow">→</span>
+            <span class="chip gold">Svincolati</span><span class="arrow">→</span>
+            <span class="chip primary">Scambi Post</span>
+          </div>
+        </div>
+
+        <div class="phase primary" id="fase-scambi-pre">
+          <h3>1. Fase Scambi Pre-Rinnovo</h3>
+          <p class="body">Prima fase del mercato ricorrente. I manager possono proporre e concludere scambi tra loro.</p>
+          <ul class="bul">
+            <li>Puoi proporre scambi di giocatori + budget</li>
+            <li>Il destinatario può accettare, rifiutare o controproporre</li>
+            <li>Le offerte scadono dopo 24 ore se non gestite</li>
+            <li>Vincolo anti-ritroso: un giocatore scambiato non può tornare allo stesso manager nella stessa sessione</li>
+          </ul>
+          <div class="ex"><div class="ex-t">Esempio di scambio</div><p>Mario propone a Luigi: Vlahovic + 10M per Osimhen + 5M</p><p>Luigi accetta. I giocatori e il budget vengono trasferiti automaticamente.</p></div>
+        </div>
+
+        <div class="phase warn" id="fase-premi">
+          <h3>2. Fase Premi</h3>
+          <p class="body">L'Admin assegna i premi in base ai risultati della stagione.</p>
+          <h4 class="min-h">Tipologie di premio:</h4>
+          <ul class="bul">
+            <li><strong>Re-incremento base</strong> — Importo fisso uguale per tutti</li>
+            <li><strong>Premi categoria</strong> — Es. "Miglior difesa", "Capocannoniere", ecc.</li>
+            <li><strong>Indennizzo partenza</strong> — Automatico per giocatori usciti dalla Serie A</li>
+          </ul>
+          <div class="ex"><div class="ex-t">Esempio di premi</div><p>Re-incremento base: +50M a tutti</p><p>1° classificato: +30M, 2° classificato: +20M, 3° classificato: +10M</p></div>
+        </div>
+
+        <div class="phase secondary" id="fase-contratti">
+          <h3>3. Fase Contratti (Rinnovi)</h3>
+          <p class="body">I manager decidono il futuro dei propri giocatori: rinnovare, tagliare o lasciar scadere.</p>
+          <div class="box warn"><strong>Importante:</strong> All'inizio di ogni mercato ricorrente, tutti i contratti perdono automaticamente 1 semestre di durata.</div>
+          <h4 class="min-h">Opzioni disponibili:</h4>
+          <div class="opt secondary"><h5>Rinnovo Standard</h5><ul><li>Puoi aumentare o mantenere l'ingaggio</li><li>Puoi aumentare o mantenere la durata (max 4 semestri)</li><li>La clausola viene ricalcolata automaticamente</li></ul></div>
+          <div class="opt warn"><h5>Spalma (solo contratti 1 semestre)</h5><ul><li>Permette di diminuire l'ingaggio allungando la durata</li><li><strong>Regola:</strong> Nuovo Ingaggio × Nuova Durata ≥ Ingaggio Iniziale</li><li>Esempio: 10M×1s → 5M×2s (5×2=10 ≥ 10) ✓</li></ul></div>
+          <div class="opt danger"><h5>Taglia (Rilascio)</h5><ul><li>Puoi liberare un giocatore pagando una penale</li><li><strong>Costo taglio:</strong> (Ingaggio × Durata residua) / 2</li><li>Esempio: 8M×2s → costo = (8×2)/2 = 8M</li><li>Il giocatore va agli svincolati</li></ul></div>
+        </div>
+
+        <div class="phase danger" id="fase-rubata">
+          <h3>4. Fase Rubata</h3>
+          <p class="body">La fase più caratteristica di Fantacontratti! I manager possono "rubare" giocatori agli avversari pagando la clausola rescissoria.</p>
+          <h4 class="min-h">Come funziona:</h4>
+          <ol class="ord">
+            <li>L'Admin imposta l'ordine della rubata (tipicamente basato sulla classifica)</li>
+            <li>Per ogni manager, i giocatori sono ordinati per clausola (dalla più alta)</li>
+            <li>Per ogni giocatore nel tabellone, parte un'asta</li>
+            <li>Chiunque (tranne il proprietario) può fare un'offerta</li>
+            <li>Il prezzo base è: <strong>Clausola + Ingaggio</strong></li>
+            <li>Se c'è un vincitore, il giocatore viene trasferito</li>
+            <li>Il cedente incassa il prezzo di vendita</li>
+          </ol>
+          <div class="box warn"><strong>Il proprietario NON può rifiutare!</strong> La rubata è un meccanismo forzato per favorire il riequilibrio competitivo.</div>
+          <div class="ex"><div class="ex-t">Esempio di rubata</div><p>Vlahovic ha clausola 220M e ingaggio 20M. Prezzo base asta: 240M.</p><p>Luigi offre 240M, Peach rilancia a 250M. Nessun altro rilancio.</p><p>Peach vince Vlahovic per 250M. Mario (cedente) incassa 250M.</p></div>
+        </div>
+
+        <div class="phase gold" id="fase-svincolati">
+          <h3>5. Fase Svincolati</h3>
+          <p class="body">Asta a turni per acquistare giocatori liberi: quelli tagliati, con contratto scaduto, o mai acquisiti.</p>
+          <h4 class="min-h">Come funziona:</h4>
+          <ol class="ord">
+            <li>L'Admin imposta l'ordine dei turni</li>
+            <li>Il manager di turno può: <strong>Nominare</strong> uno svincolato (parte l'asta), <strong>Passare</strong> il turno (può tornare dopo), o <strong>Dichiarare "Ho finito"</strong> (esce dalla rotazione)</li>
+            <li>Il vincitore dell'asta deve assegnare un contratto</li>
+            <li>La fase termina quando tutti hanno finito o passato</li>
+          </ol>
+          <div class="ex"><div class="ex-t">Esempio</div><p>Mario nomina Retegui (quotazione 15M). L'asta parte da 15M.</p><p>Mario vince per 18M e gli assegna un contratto 18×2.</p></div>
+        </div>
+
+        <div class="phase primary" id="fase-scambi-post" style="margin-bottom:0;">
+          <h3>6. Fase Scambi Post-Svincolati</h3>
+          <p class="body">Ultima fase del mercato ricorrente. Funziona esattamente come la fase Scambi Pre-Rinnovo. È l'ultima occasione per completare trattative prima della chiusura del mercato.</p>
+        </div>
+      </section>
+
+      <!-- SISTEMA CONTRATTI -->
+      <section class="doc" id="sistema-contratti">
+        <div class="sec-h">
+          <span class="ico neutral"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></span>
+          <h2>Sistema Contratti</h2>
+        </div>
+        <p class="body">Il cuore di Fantacontratti è il sistema di contratti. Ogni giocatore ha un contratto con parametri specifici.</p>
+        <h3 class="sub-h">Parametri del Contratto</h3>
+        <table>
+          <thead><tr><th>Parametro</th><th>Descrizione</th></tr></thead>
+          <tbody>
+            <tr><td class="k">Ingaggio</td><td>Costo semestrale del giocatore (minimo = prezzo d'acquisto)</td></tr>
+            <tr><td class="k">Durata</td><td>Semestri rimanenti (da 1 a 4)</td></tr>
+            <tr><td class="k">Clausola</td><td>Prezzo minimo per la rubata = Ingaggio × Moltiplicatore</td></tr>
+          </tbody>
+        </table>
+        <h3 class="sub-h">Moltiplicatori Clausola</h3>
+        <p class="body">La clausola rescissoria viene calcolata automaticamente in base alla durata:</p>
+        <div class="stats4">
+          <div class="stat plain"><div class="num">×11</div><div class="lbl">4 semestri</div></div>
+          <div class="stat plain"><div class="num">×9</div><div class="lbl">3 semestri</div></div>
+          <div class="stat plain"><div class="num">×7</div><div class="lbl">2 semestri</div></div>
+          <div class="stat plain"><div class="num">×4</div><div class="lbl">1 semestre</div></div>
+        </div>
+        <div class="ex"><div class="ex-t">Calcolo clausola</div><p>Giocatore con ingaggio 20M e durata 3 semestri:</p><p class="calc">Clausola = 20 × 9 = 180M</p><p>Prezzo base per la rubata: 180M + 20M = <strong style="color:#fff;">200M</strong></p></div>
+        <h3 class="sub-h">Strategia Contratti</h3>
+        <div class="two">
+          <div class="role" style="border-left-color:var(--secondary);"><h4 style="color:var(--secondary-l);">Contratti lunghi (3-4s)</h4><p>Clausola alta = difficile rubare. Ideale per i top player che vuoi proteggere.</p></div>
+          <div class="role" style="border-left-color:var(--warning);"><h4 style="color:var(--gold2);">Contratti corti (1-2s)</h4><p>Clausola bassa = più flessibilità. Ideale per giocatori che potresti voler vendere.</p></div>
+        </div>
+      </section>
+
+      <!-- GLOSSARIO -->
+      <section class="doc" id="glossario">
+        <div class="sec-h">
+          <span class="ico primary"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg></span>
+          <h2>Glossario</h2>
+        </div>
+        <dl>
+          <div class="gl"><dt>DG</dt><dd>Direttore Generale — il manager di una squadra</dd></div>
+          <div class="gl"><dt>Rosa</dt><dd>Insieme di giocatori posseduti da un manager</dd></div>
+          <div class="gl"><dt>Slot</dt><dd>Posizione disponibile in rosa per un determinato ruolo</dd></div>
+          <div class="gl"><dt>Clausola</dt><dd>Clausola rescissoria — importo minimo per rubare un giocatore</dd></div>
+          <div class="gl"><dt>Rubata</dt><dd>Fase di mercato dove si possono acquistare giocatori avversari</dd></div>
+          <div class="gl"><dt>Svincolato</dt><dd>Giocatore senza contratto, libero di essere acquisito</dd></div>
+          <div class="gl"><dt>Spalma</dt><dd>Tecnica per ridurre l'ingaggio allungando la durata</dd></div>
+          <div class="gl"><dt>Taglia</dt><dd>Rilasciare un giocatore pagando una penale</dd></div>
+          <div class="gl"><dt>Consolidamento</dt><dd>Conferma definitiva delle modifiche ai contratti</dd></div>
+          <div class="gl"><dt>Nomination</dt><dd>Proposta di un giocatore per l'asta</dd></div>
+          <div class="gl"><dt>Ready Check</dt><dd>Verifica che tutti i manager siano pronti prima dell'asta</dd></div>
+          <div class="gl"><dt>Profezia</dt><dd>Commento/previsione lasciato dopo un acquisto</dd></div>
+          <div class="gl"><dt>Indennizzo</dt><dd>Compensazione per giocatori usciti dalla Serie A</dd></div>
+        </dl>
+      </section>
+
+      <!-- FAQ -->
+      <section class="doc" id="faq">
+        <div class="sec-h">
+          <span class="ico neutral"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></span>
+          <h2>FAQ</h2>
+        </div>
+        <div class="faq open"><div class="q">Posso rifiutare un'offerta durante la rubata?<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg></div><div class="a">No. La rubata è un meccanismo forzato. Se qualcuno paga il prezzo richiesto (clausola + ingaggio), il giocatore viene trasferito automaticamente.</div></div>
+        <div class="faq"><div class="q">Cosa succede se un giocatore lascia la Serie A?<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg></div><div class="a">Il giocatore viene rimosso dalla rosa e il manager riceve un indennizzo automatico calcolato in base al contratto residuo.</div></div>
+        <div class="faq"><div class="q">Posso avere più giocatori dello stesso ruolo del limite massimo?<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg></div><div class="a">No. Ogni ruolo ha un numero massimo di slot. Non puoi acquistare giocatori se hai già raggiunto il limite per quel ruolo.</div></div>
+        <div class="faq"><div class="q">Come funziona lo spalma?<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg></div><div class="a">Lo spalma è disponibile solo per contratti di 1 semestre. Puoi ridurre l'ingaggio allungando la durata, purché il prodotto (nuovo ingaggio × nuova durata) sia maggiore o uguale all'ingaggio iniziale.</div></div>
+        <div class="faq"><div class="q">Quanto costa tagliare un giocatore?<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg></div><div class="a">Il costo del taglio è pari alla metà del valore contrattuale residuo: (Ingaggio × Durata residua) / 2.</div></div>
+        <div class="faq"><div class="q">Posso scambiare un giocatore appena ricevuto in scambio?<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg></div><div class="a">Non nella stessa sessione di mercato con lo stesso manager (vincolo anti-ritroso). Puoi però scambiarlo con altri manager.</div></div>
+      </section>
+
+      <!-- CTA -->
+      <div class="cta">
+        <h2>Pronto a giocare?</h2>
+        <p>Registrati ora e inizia la tua avventura nel fantacalcio dinastico!</p>
+        <button>Accedi o Registrati</button>
+      </div>
+    </main>
+  </div>
+</div>
+
+<footer class="app">© 2024 Fantacontratti. Tutti i diritti riservati.</footer>
+</body>
+</html>

@@ -25,6 +25,13 @@ vi.mock('../components/Navigation', () => ({
   ),
 }))
 
+// Mock Toast (AdminPanel uses useToast for action feedback; provider lives in App)
+vi.mock('@/components/ui/Toast', () => ({
+  useToast: () => ({
+    toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() },
+  }),
+}))
+
 // Mock Button
 vi.mock('../components/ui/Button', () => ({
   Button: ({ children, onClick, ...props }: React.ComponentProps<'button'>) => (
@@ -258,11 +265,12 @@ describe('AdminPanel', () => {
     render(<AdminPanel leagueId="league1" onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Pannello Amministratore')).toBeInTheDocument()
+      expect(screen.getByText('Admin di Lega')).toBeInTheDocument()
     })
 
+    // The cockpit header shows the league name as the title + the "Console amministratore" subtitle
     expect(screen.getByText('Lega Test')).toBeInTheDocument()
-    expect(screen.getByText('Admin di Lega')).toBeInTheDocument()
+    expect(screen.getByText('Console amministratore')).toBeInTheDocument()
   })
 
   it('shows access denied when user is not admin', async () => {
@@ -370,7 +378,7 @@ describe('AdminPanel', () => {
     render(<AdminPanel leagueId="league1" onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Pannello Amministratore')).toBeInTheDocument()
+      expect(screen.getByText('Admin di Lega')).toBeInTheDocument()
     })
 
     // 2 active members badge + 2 requests badge = two elements with text '2'
@@ -386,7 +394,7 @@ describe('AdminPanel', () => {
     render(<AdminPanel leagueId="league1" onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Pannello Amministratore')).toBeInTheDocument()
+      expect(screen.getByText('Admin di Lega')).toBeInTheDocument()
     })
 
     // requestsBadge = pendingMembers.length + invites.length = 1 + 1 = 2, shown as accent badge on the members tab
@@ -817,7 +825,7 @@ describe('AdminPanel', () => {
     render(<AdminPanel leagueId="league1" onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Pannello Amministratore')).toBeInTheDocument()
+      expect(screen.getByText('Admin di Lega')).toBeInTheDocument()
     })
 
     // Members tab button should not have an accent (requests) badge since requestsBadge = 0

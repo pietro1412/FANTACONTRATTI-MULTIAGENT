@@ -1,7 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import type { ComponentProps } from 'react'
 import { SuperAdmin } from '../pages/SuperAdmin'
+import { ToastProvider } from '../components/ui/Toast'
+import { ConfirmDialogProvider } from '../components/ui/ConfirmDialog'
+
+// Render SuperAdmin inside the global providers (toast for action feedback,
+// confirm dialog for destructive actions), mirroring how App.tsx wraps it.
+function renderSA(props: ComponentProps<typeof SuperAdmin>) {
+  return render(
+    <ToastProvider>
+      <ConfirmDialogProvider>
+        <SuperAdmin {...props} />
+      </ConfirmDialogProvider>
+    </ToastProvider>
+  )
+}
 
 // Mock Navigation
 vi.mock('../components/Navigation', () => ({
@@ -206,7 +221,7 @@ describe('SuperAdmin', () => {
   it('renders loading state while checking permissions', () => {
     mockGetStatus.mockReturnValue(new Promise(() => {}))
 
-    render(<SuperAdmin onNavigate={mockOnNavigate} />)
+    renderSA({ onNavigate: mockOnNavigate })
 
     expect(screen.getByText('Verifica permessi...')).toBeInTheDocument()
   })
@@ -217,7 +232,7 @@ describe('SuperAdmin', () => {
       data: { isSuperAdmin: false },
     })
 
-    render(<SuperAdmin onNavigate={mockOnNavigate} />)
+    renderSA({ onNavigate: mockOnNavigate })
 
     await waitFor(() => {
       expect(screen.getByText('Accesso Negato')).toBeInTheDocument()
@@ -233,7 +248,7 @@ describe('SuperAdmin', () => {
     })
 
     const user = userEvent.setup()
-    render(<SuperAdmin onNavigate={mockOnNavigate} />)
+    renderSA({ onNavigate: mockOnNavigate })
 
     await waitFor(() => {
       expect(screen.getByText('Torna alla Dashboard')).toBeInTheDocument()
@@ -244,7 +259,7 @@ describe('SuperAdmin', () => {
   })
 
   it('renders the super admin panel header after authentication', async () => {
-    render(<SuperAdmin onNavigate={mockOnNavigate} />)
+    renderSA({ onNavigate: mockOnNavigate })
 
     await waitFor(() => {
       expect(screen.getByText('Pannello Super Admin')).toBeInTheDocument()
@@ -254,7 +269,7 @@ describe('SuperAdmin', () => {
   })
 
   it('renders Navigation component with correct props', async () => {
-    render(<SuperAdmin onNavigate={mockOnNavigate} />)
+    renderSA({ onNavigate: mockOnNavigate })
 
     await waitFor(() => {
       const nav = screen.getByTestId('navigation')
@@ -264,7 +279,7 @@ describe('SuperAdmin', () => {
   })
 
   it('defaults to upload tab', async () => {
-    render(<SuperAdmin onNavigate={mockOnNavigate} />)
+    renderSA({ onNavigate: mockOnNavigate })
 
     await waitFor(() => {
       expect(screen.getByText('Pannello Super Admin')).toBeInTheDocument()
@@ -275,7 +290,7 @@ describe('SuperAdmin', () => {
   })
 
   it('uses initialTab prop to set starting tab', async () => {
-    render(<SuperAdmin onNavigate={mockOnNavigate} initialTab="leagues" />)
+    renderSA({ onNavigate: mockOnNavigate, initialTab: "leagues" })
 
     await waitFor(() => {
       expect(screen.getByText('Pannello Super Admin')).toBeInTheDocument()
@@ -290,7 +305,7 @@ describe('SuperAdmin', () => {
   })
 
   it('loads players stats on mount', async () => {
-    render(<SuperAdmin onNavigate={mockOnNavigate} />)
+    renderSA({ onNavigate: mockOnNavigate })
 
     await waitFor(() => {
       expect(mockGetPlayersStats).toHaveBeenCalled()
@@ -298,7 +313,7 @@ describe('SuperAdmin', () => {
   })
 
   it('calls getStatus on mount to verify superadmin', async () => {
-    render(<SuperAdmin onNavigate={mockOnNavigate} />)
+    renderSA({ onNavigate: mockOnNavigate })
 
     await waitFor(() => {
       expect(mockGetStatus).toHaveBeenCalled()
@@ -306,7 +321,7 @@ describe('SuperAdmin', () => {
   })
 
   it('loads upload history when on upload tab', async () => {
-    render(<SuperAdmin onNavigate={mockOnNavigate} />)
+    renderSA({ onNavigate: mockOnNavigate })
 
     await waitFor(() => {
       expect(mockGetUploadHistory).toHaveBeenCalled()
@@ -314,7 +329,7 @@ describe('SuperAdmin', () => {
   })
 
   it('loads users when switching to users tab', async () => {
-    render(<SuperAdmin onNavigate={mockOnNavigate} initialTab="users" />)
+    renderSA({ onNavigate: mockOnNavigate, initialTab: "users" })
 
     await waitFor(() => {
       expect(mockGetUsers).toHaveBeenCalled()
@@ -322,7 +337,7 @@ describe('SuperAdmin', () => {
   })
 
   it('loads leagues when switching to leagues tab', async () => {
-    render(<SuperAdmin onNavigate={mockOnNavigate} initialTab="leagues" />)
+    renderSA({ onNavigate: mockOnNavigate, initialTab: "leagues" })
 
     await waitFor(() => {
       expect(mockGetLeagues).toHaveBeenCalled()
@@ -330,7 +345,7 @@ describe('SuperAdmin', () => {
   })
 
   it('loads players when switching to players tab', async () => {
-    render(<SuperAdmin onNavigate={mockOnNavigate} initialTab="players" />)
+    renderSA({ onNavigate: mockOnNavigate, initialTab: "players" })
 
     await waitFor(() => {
       expect(mockGetPlayers).toHaveBeenCalled()
@@ -338,7 +353,7 @@ describe('SuperAdmin', () => {
   })
 
   it('loads API Football status when switching to stats tab', async () => {
-    render(<SuperAdmin onNavigate={mockOnNavigate} initialTab="stats" />)
+    renderSA({ onNavigate: mockOnNavigate, initialTab: "stats" })
 
     await waitFor(() => {
       expect(mockGetApiFootballStatus).toHaveBeenCalled()
@@ -346,7 +361,7 @@ describe('SuperAdmin', () => {
   })
 
   it('loads players needing classification on upload tab', async () => {
-    render(<SuperAdmin onNavigate={mockOnNavigate} />)
+    renderSA({ onNavigate: mockOnNavigate })
 
     await waitFor(() => {
       expect(mockGetPlayersNeedingClassification).toHaveBeenCalled()
@@ -356,15 +371,15 @@ describe('SuperAdmin', () => {
   // ---- NEW TESTS: Upload tab content ----
 
   it('displays player stats cards on the upload tab', async () => {
-    render(<SuperAdmin onNavigate={mockOnNavigate} />)
+    renderSA({ onNavigate: mockOnNavigate })
 
     await waitFor(() => {
       expect(screen.getByText('Pannello Super Admin')).toBeInTheDocument()
     })
 
-    // Stats should render the total players
+    // Stats should render the total players (also shown in the Anagrafica tab badge)
     await waitFor(() => {
-      expect(screen.getByText('500')).toBeInTheDocument()
+      expect(screen.getAllByText('500').length).toBeGreaterThanOrEqual(1)
     })
     expect(screen.getByText('Totale Giocatori')).toBeInTheDocument()
     expect(screen.getByText('450')).toBeInTheDocument()
@@ -376,7 +391,7 @@ describe('SuperAdmin', () => {
   })
 
   it('displays position breakdown in upload tab', async () => {
-    render(<SuperAdmin onNavigate={mockOnNavigate} />)
+    renderSA({ onNavigate: mockOnNavigate })
 
     await waitFor(() => {
       expect(screen.getByText('Giocatori per Ruolo')).toBeInTheDocument()
@@ -393,7 +408,7 @@ describe('SuperAdmin', () => {
   })
 
   it('displays the upload form with sheet name input', async () => {
-    render(<SuperAdmin onNavigate={mockOnNavigate} />)
+    renderSA({ onNavigate: mockOnNavigate })
 
     await waitFor(() => {
       expect(screen.getByText('Carica Quotazioni')).toBeInTheDocument()
@@ -405,7 +420,7 @@ describe('SuperAdmin', () => {
   })
 
   it('displays upload history with entries', async () => {
-    render(<SuperAdmin onNavigate={mockOnNavigate} />)
+    renderSA({ onNavigate: mockOnNavigate })
 
     // Wait until upload history is rendered (async data loading)
     await waitFor(() => {
@@ -425,7 +440,7 @@ describe('SuperAdmin', () => {
       data: { uploads: [] },
     })
 
-    render(<SuperAdmin onNavigate={mockOnNavigate} />)
+    renderSA({ onNavigate: mockOnNavigate })
 
     await waitFor(() => {
       expect(screen.getByText('Nessun caricamento effettuato')).toBeInTheDocument()
@@ -433,7 +448,7 @@ describe('SuperAdmin', () => {
   })
 
   it('displays "no players to classify" when there are none', async () => {
-    render(<SuperAdmin onNavigate={mockOnNavigate} />)
+    renderSA({ onNavigate: mockOnNavigate })
 
     await waitFor(() => {
       expect(screen.getByText('Nessun giocatore da classificare')).toBeInTheDocument()
@@ -442,7 +457,7 @@ describe('SuperAdmin', () => {
 
   it('shows delete confirmation modal when delete button is clicked', async () => {
     const user = userEvent.setup()
-    render(<SuperAdmin onNavigate={mockOnNavigate} />)
+    renderSA({ onNavigate: mockOnNavigate })
 
     await waitFor(() => {
       expect(screen.getByText('Cancella Tutti i Giocatori')).toBeInTheDocument()
@@ -460,7 +475,7 @@ describe('SuperAdmin', () => {
 
   it('closes delete confirmation when Annulla is clicked', async () => {
     const user = userEvent.setup()
-    render(<SuperAdmin onNavigate={mockOnNavigate} />)
+    renderSA({ onNavigate: mockOnNavigate })
 
     await waitFor(() => {
       expect(screen.getByText('Cancella Tutti i Giocatori')).toBeInTheDocument()
@@ -482,7 +497,7 @@ describe('SuperAdmin', () => {
   // ---- NEW TESTS: Players tab content ----
 
   it('renders player filters on the players tab', async () => {
-    render(<SuperAdmin onNavigate={mockOnNavigate} initialTab="players" />)
+    renderSA({ onNavigate: mockOnNavigate, initialTab: "players" })
 
     await waitFor(() => {
       expect(screen.getByText('Pannello Super Admin')).toBeInTheDocument()
@@ -507,7 +522,7 @@ describe('SuperAdmin', () => {
       },
     })
 
-    render(<SuperAdmin onNavigate={mockOnNavigate} initialTab="players" />)
+    renderSA({ onNavigate: mockOnNavigate, initialTab: "players" })
 
     await waitFor(() => {
       expect(screen.getByText('Mario Rossi')).toBeInTheDocument()
@@ -521,7 +536,7 @@ describe('SuperAdmin', () => {
   })
 
   it('displays "no players found" message when players list is empty', async () => {
-    render(<SuperAdmin onNavigate={mockOnNavigate} initialTab="players" />)
+    renderSA({ onNavigate: mockOnNavigate, initialTab: "players" })
 
     await waitFor(() => {
       expect(screen.getByText('Nessun giocatore trovato')).toBeInTheDocument()
@@ -542,7 +557,7 @@ describe('SuperAdmin', () => {
       },
     })
 
-    render(<SuperAdmin onNavigate={mockOnNavigate} initialTab="players" />)
+    renderSA({ onNavigate: mockOnNavigate, initialTab: "players" })
 
     await waitFor(() => {
       expect(screen.getByText('100 giocatori totali')).toBeInTheDocument()
@@ -556,17 +571,18 @@ describe('SuperAdmin', () => {
   // ---- NEW TESTS: Leagues tab content ----
 
   it('renders leagues list on leagues tab', async () => {
-    render(<SuperAdmin onNavigate={mockOnNavigate} initialTab="leagues" />)
+    renderSA({ onNavigate: mockOnNavigate, initialTab: "leagues" })
 
     await waitFor(() => {
       expect(screen.getByText('Lega Alfa')).toBeInTheDocument()
     })
 
-    expect(screen.getByText('500')).toBeInTheDocument() // initialBudget
+    // initialBudget (the value 500 also appears in the Anagrafica tab badge)
+    expect(screen.getAllByText('500').length).toBeGreaterThanOrEqual(1)
   })
 
   it('renders league search input on leagues tab', async () => {
-    render(<SuperAdmin onNavigate={mockOnNavigate} initialTab="leagues" />)
+    renderSA({ onNavigate: mockOnNavigate, initialTab: "leagues" })
 
     await waitFor(() => {
       expect(screen.getByPlaceholderText('Nome lega o username...')).toBeInTheDocument()
@@ -577,7 +593,7 @@ describe('SuperAdmin', () => {
 
   it('expands league to show members when clicked', async () => {
     const user = userEvent.setup()
-    render(<SuperAdmin onNavigate={mockOnNavigate} initialTab="leagues" />)
+    renderSA({ onNavigate: mockOnNavigate, initialTab: "leagues" })
 
     await waitFor(() => {
       expect(screen.getByText('Lega Alfa')).toBeInTheDocument()
@@ -598,7 +614,7 @@ describe('SuperAdmin', () => {
 
   it('collapses expanded league when clicked again', async () => {
     const user = userEvent.setup()
-    render(<SuperAdmin onNavigate={mockOnNavigate} initialTab="leagues" />)
+    renderSA({ onNavigate: mockOnNavigate, initialTab: "leagues" })
 
     await waitFor(() => {
       expect(screen.getByText('Lega Alfa')).toBeInTheDocument()
@@ -623,7 +639,7 @@ describe('SuperAdmin', () => {
       data: { leagues: [] },
     })
 
-    render(<SuperAdmin onNavigate={mockOnNavigate} initialTab="leagues" />)
+    renderSA({ onNavigate: mockOnNavigate, initialTab: "leagues" })
 
     await waitFor(() => {
       expect(screen.getByText('Nessuna lega trovata')).toBeInTheDocument()
@@ -633,7 +649,7 @@ describe('SuperAdmin', () => {
   // ---- NEW TESTS: Users tab content ----
 
   it('renders users table on users tab', async () => {
-    render(<SuperAdmin onNavigate={mockOnNavigate} initialTab="users" />)
+    renderSA({ onNavigate: mockOnNavigate, initialTab: "users" })
 
     await waitFor(() => {
       expect(screen.getByText('Admin1')).toBeInTheDocument()
@@ -652,7 +668,7 @@ describe('SuperAdmin', () => {
       data: { users: [] },
     })
 
-    render(<SuperAdmin onNavigate={mockOnNavigate} initialTab="users" />)
+    renderSA({ onNavigate: mockOnNavigate, initialTab: "users" })
 
     await waitFor(() => {
       expect(screen.getByText('Nessun utente trovato')).toBeInTheDocument()
@@ -669,7 +685,7 @@ describe('SuperAdmin', () => {
       },
     })
 
-    render(<SuperAdmin onNavigate={mockOnNavigate} initialTab="users" />)
+    renderSA({ onNavigate: mockOnNavigate, initialTab: "users" })
 
     await waitFor(() => {
       expect(screen.getByText('SuperAdmin')).toBeInTheDocument()
@@ -679,7 +695,7 @@ describe('SuperAdmin', () => {
   // ---- NEW TESTS: Stats tab content ----
 
   it('renders API Football status cards on stats tab', async () => {
-    render(<SuperAdmin onNavigate={mockOnNavigate} initialTab="stats" />)
+    renderSA({ onNavigate: mockOnNavigate, initialTab: "stats" })
 
     await waitFor(() => {
       expect(screen.getByText('Stato Sync API-Football')).toBeInTheDocument()
@@ -699,7 +715,7 @@ describe('SuperAdmin', () => {
   })
 
   it('renders match and sync action cards on stats tab', async () => {
-    render(<SuperAdmin onNavigate={mockOnNavigate} initialTab="stats" />)
+    renderSA({ onNavigate: mockOnNavigate, initialTab: "stats" })
 
     await waitFor(() => {
       expect(screen.getByText('1. Match Giocatori')).toBeInTheDocument()
@@ -710,7 +726,7 @@ describe('SuperAdmin', () => {
   })
 
   it('renders matching assistito section on stats tab', async () => {
-    render(<SuperAdmin onNavigate={mockOnNavigate} initialTab="stats" />)
+    renderSA({ onNavigate: mockOnNavigate, initialTab: "stats" })
 
     await waitFor(() => {
       expect(screen.getByText('Matching Assistito')).toBeInTheDocument()
@@ -721,7 +737,7 @@ describe('SuperAdmin', () => {
   })
 
   it('renders existing matches section on stats tab', async () => {
-    render(<SuperAdmin onNavigate={mockOnNavigate} initialTab="stats" />)
+    renderSA({ onNavigate: mockOnNavigate, initialTab: "stats" })
 
     await waitFor(() => {
       expect(screen.getByText('Associazioni Esistenti')).toBeInTheDocument()
@@ -731,7 +747,7 @@ describe('SuperAdmin', () => {
   })
 
   it('shows "all players associated" when no proposals exist', async () => {
-    render(<SuperAdmin onNavigate={mockOnNavigate} initialTab="stats" />)
+    renderSA({ onNavigate: mockOnNavigate, initialTab: "stats" })
 
     await waitFor(() => {
       expect(screen.getByText('Tutti i giocatori sono stati associati')).toBeInTheDocument()
@@ -739,7 +755,7 @@ describe('SuperAdmin', () => {
   })
 
   it('loads teams when on players tab', async () => {
-    render(<SuperAdmin onNavigate={mockOnNavigate} initialTab="players" />)
+    renderSA({ onNavigate: mockOnNavigate, initialTab: "players" })
 
     await waitFor(() => {
       expect(mockGetTeams).toHaveBeenCalled()
@@ -747,7 +763,7 @@ describe('SuperAdmin', () => {
   })
 
   it('loads match proposals on stats tab', async () => {
-    render(<SuperAdmin onNavigate={mockOnNavigate} initialTab="stats" />)
+    renderSA({ onNavigate: mockOnNavigate, initialTab: "stats" })
 
     await waitFor(() => {
       expect(mockGetMatchProposals).toHaveBeenCalled()
@@ -755,7 +771,7 @@ describe('SuperAdmin', () => {
   })
 
   it('loads matched players on stats tab', async () => {
-    render(<SuperAdmin onNavigate={mockOnNavigate} initialTab="stats" />)
+    renderSA({ onNavigate: mockOnNavigate, initialTab: "stats" })
 
     await waitFor(() => {
       expect(mockGetMatchedPlayers).toHaveBeenCalled()
@@ -783,7 +799,7 @@ describe('SuperAdmin', () => {
       },
     })
 
-    render(<SuperAdmin onNavigate={mockOnNavigate} />)
+    renderSA({ onNavigate: mockOnNavigate })
 
     await waitFor(() => {
       expect(screen.getByText('Carlo Verdi')).toBeInTheDocument()
@@ -797,7 +813,7 @@ describe('SuperAdmin', () => {
 
   it('executes delete all players when Conferma is clicked', async () => {
     const user = userEvent.setup()
-    render(<SuperAdmin onNavigate={mockOnNavigate} />)
+    renderSA({ onNavigate: mockOnNavigate })
 
     await waitFor(() => {
       expect(screen.getByText('Cancella Tutti i Giocatori')).toBeInTheDocument()
@@ -828,7 +844,7 @@ describe('SuperAdmin', () => {
       },
     })
 
-    render(<SuperAdmin onNavigate={mockOnNavigate} initialTab="stats" />)
+    renderSA({ onNavigate: mockOnNavigate, initialTab: "stats" })
 
     await waitFor(() => {
       expect(screen.getByText('Matched Player')).toBeInTheDocument()
@@ -861,7 +877,7 @@ describe('SuperAdmin', () => {
       },
     })
 
-    render(<SuperAdmin onNavigate={mockOnNavigate} initialTab="stats" />)
+    renderSA({ onNavigate: mockOnNavigate, initialTab: "stats" })
 
     await waitFor(() => {
       expect(screen.getByText('DB Player 1')).toBeInTheDocument()
@@ -891,7 +907,7 @@ describe('SuperAdmin', () => {
       },
     })
 
-    render(<SuperAdmin onNavigate={mockOnNavigate} initialTab="stats" />)
+    renderSA({ onNavigate: mockOnNavigate, initialTab: "stats" })
 
     await waitFor(() => {
       expect(screen.getByText('P1')).toBeInTheDocument()
@@ -929,7 +945,7 @@ describe('SuperAdmin', () => {
       },
     })
 
-    render(<SuperAdmin onNavigate={mockOnNavigate} initialTab="leagues" />)
+    renderSA({ onNavigate: mockOnNavigate, initialTab: "leagues" })
 
     await waitFor(() => {
       expect(screen.getByText('Lega Alfa')).toBeInTheDocument()
@@ -974,7 +990,7 @@ describe('SuperAdmin', () => {
       },
     })
 
-    render(<SuperAdmin onNavigate={mockOnNavigate} initialTab="leagues" />)
+    renderSA({ onNavigate: mockOnNavigate, initialTab: "leagues" })
 
     await waitFor(() => {
       expect(screen.getByText('Lega Alfa')).toBeInTheDocument()
@@ -1013,7 +1029,7 @@ describe('SuperAdmin', () => {
       },
     })
 
-    render(<SuperAdmin onNavigate={mockOnNavigate} initialTab="stats" />)
+    renderSA({ onNavigate: mockOnNavigate, initialTab: "stats" })
 
     await waitFor(() => {
       expect(screen.getByText(/Ultimo sync/)).toBeInTheDocument()
@@ -1042,7 +1058,7 @@ describe('SuperAdmin', () => {
       },
     })
 
-    render(<SuperAdmin onNavigate={mockOnNavigate} />)
+    renderSA({ onNavigate: mockOnNavigate })
 
     // Wait for the "Classifica" button to appear
     await waitFor(() => {
@@ -1082,7 +1098,7 @@ describe('SuperAdmin', () => {
       },
     })
 
-    render(<SuperAdmin onNavigate={mockOnNavigate} />)
+    renderSA({ onNavigate: mockOnNavigate })
 
     await waitFor(() => {
       expect(screen.getByText('Classifica (1)')).toBeInTheDocument()
@@ -1127,7 +1143,7 @@ describe('SuperAdmin', () => {
       data: { players: classificationPlayers },
     })
 
-    render(<SuperAdmin onNavigate={mockOnNavigate} />)
+    renderSA({ onNavigate: mockOnNavigate })
 
     await waitFor(() => {
       expect(screen.getByText('Classifica (1)')).toBeInTheDocument()
@@ -1172,7 +1188,7 @@ describe('SuperAdmin', () => {
       },
     })
 
-    render(<SuperAdmin onNavigate={mockOnNavigate} />)
+    renderSA({ onNavigate: mockOnNavigate })
 
     await waitFor(() => {
       expect(screen.getByText('Classifica (1)')).toBeInTheDocument()
@@ -1204,7 +1220,7 @@ describe('SuperAdmin', () => {
       message: 'Errore nel caricamento delle proposte',
     })
 
-    render(<SuperAdmin onNavigate={mockOnNavigate} initialTab="stats" />)
+    renderSA({ onNavigate: mockOnNavigate, initialTab: "stats" })
 
     await waitFor(() => {
       expect(screen.getByText('Errore nel caricamento delle proposte')).toBeInTheDocument()
@@ -1232,7 +1248,7 @@ describe('SuperAdmin', () => {
       },
     })
 
-    render(<SuperAdmin onNavigate={mockOnNavigate} />)
+    renderSA({ onNavigate: mockOnNavigate })
 
     await waitFor(() => {
       expect(screen.getByText('errored.xlsx')).toBeInTheDocument()
@@ -1249,7 +1265,7 @@ describe('SuperAdmin', () => {
       data: { totalPlayers: 0, inList: 0, notInList: 0, byPosition: [] },
     })
 
-    render(<SuperAdmin onNavigate={mockOnNavigate} />)
+    renderSA({ onNavigate: mockOnNavigate })
 
     await waitFor(() => {
       expect(screen.getByText('Totale Giocatori')).toBeInTheDocument()

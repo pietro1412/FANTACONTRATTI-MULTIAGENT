@@ -1,5 +1,6 @@
 import { Button } from '../ui/Button'
 import { Textarea } from '@/components/ui/Textarea'
+import { PositionBadge } from '@/components/ui/PositionBadge'
 import type { Appeal } from './types'
 
 export interface AdminAppealsTabProps {
@@ -33,44 +34,47 @@ export function AdminAppealsTab({
 
   return (
     <div className="space-y-6">
-      <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
+      <div className="bg-surface-200 rounded-xl border border-surface-50 overflow-hidden">
         {/* Header */}
-        <div className="p-5 border-b border-surface-50/20 flex items-center justify-between">
-          <h3 className="text-xl font-bold text-white flex items-center gap-3">
-            <span>⚖️</span> Gestione Ricorsi
+        <div className="px-4 py-3 border-b border-surface-50 flex items-center justify-between">
+          <h3 className="micro-label text-gray-300 flex items-center gap-2">
+            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 6l9-2 9 2M12 4v16m-7-4l-2-6h4l-2 6zm14 0l-2-6h4l-2 6z" />
+            </svg>
+            Gestione ricorsi
             {pendingAppealsCount > 0 && (
-              <span className="bg-amber-500/20 text-amber-400 px-2.5 py-0.5 rounded-full text-sm font-bold border border-amber-500/40">
+              <span className="font-mono text-[10px] font-bold text-amber-400 bg-amber-500/20 border border-amber-500/40 px-1.5 py-0.5 rounded-full">
                 {pendingAppealsCount}
               </span>
             )}
           </h3>
         </div>
 
-        <div className="p-5">
+        <div className="p-4">
           {/* Filter + Simulate */}
           <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
             <div className="flex gap-2">
               <button
                 onClick={() => { setAppealFilter(''); }}
-                className={`px-3 py-1 rounded-lg text-sm ${appealFilter === '' ? 'bg-primary-500 text-white' : 'bg-surface-300 text-gray-400 hover:bg-surface-400'}`}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium border min-h-[40px] ${appealFilter === '' ? 'bg-primary-500 text-white border-primary-500' : 'bg-surface-300 text-gray-400 border-surface-50 hover:text-gray-200'}`}
               >
                 Tutti
               </button>
               <button
                 onClick={() => { setAppealFilter('PENDING'); }}
-                className={`px-3 py-1 rounded-lg text-sm ${appealFilter === 'PENDING' ? 'bg-amber-500 text-white' : 'bg-surface-300 text-gray-400 hover:bg-surface-400'}`}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium border min-h-[40px] ${appealFilter === 'PENDING' ? 'bg-warning-500 text-white border-warning-500' : 'bg-surface-300 text-gray-400 border-surface-50 hover:text-gray-200'}`}
               >
                 In Attesa
               </button>
               <button
                 onClick={() => { setAppealFilter('ACCEPTED'); }}
-                className={`px-3 py-1 rounded-lg text-sm ${appealFilter === 'ACCEPTED' ? 'bg-green-500 text-white' : 'bg-surface-300 text-gray-400 hover:bg-surface-400'}`}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium border min-h-[40px] ${appealFilter === 'ACCEPTED' ? 'bg-secondary-500 text-white border-secondary-500' : 'bg-surface-300 text-gray-400 border-surface-50 hover:text-gray-200'}`}
               >
                 Accettati
               </button>
               <button
                 onClick={() => { setAppealFilter('REJECTED'); }}
-                className={`px-3 py-1 rounded-lg text-sm ${appealFilter === 'REJECTED' ? 'bg-red-500 text-white' : 'bg-surface-300 text-gray-400 hover:bg-surface-400'}`}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium border min-h-[40px] ${appealFilter === 'REJECTED' ? 'bg-danger-500 text-white border-danger-500' : 'bg-surface-300 text-gray-400 border-surface-50 hover:text-gray-200'}`}
               >
                 Respinti
               </button>
@@ -78,7 +82,7 @@ export function AdminAppealsTab({
             <button
               onClick={handleSimulateAppeal}
               disabled={isSubmitting}
-              className="px-3 py-1 rounded-lg text-sm bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50 flex items-center gap-1"
+              className="px-3 py-1.5 rounded-lg text-sm font-medium border min-h-[40px] bg-primary-500/[0.1] text-primary-400 border-primary-500/40 hover:bg-primary-500/20 disabled:opacity-50 flex items-center gap-1"
             >
               {isSubmitting ? '...' : 'Simula Ricorso'}
             </button>
@@ -97,16 +101,16 @@ export function AdminAppealsTab({
             <div className="space-y-4">
               {appeals.map(appeal => (
                 <div key={appeal.id} className={`border rounded-xl p-4 ${
-                  appeal.status === 'PENDING' ? 'border-amber-500/50 bg-amber-500/10' :
-                  appeal.status === 'ACCEPTED' ? 'border-green-500/50 bg-green-500/10' :
-                  'border-red-500/50 bg-red-500/10'
+                  appeal.status === 'PENDING' ? 'border-warning-500/50 bg-warning-500/[0.08]' :
+                  appeal.status === 'ACCEPTED' ? 'border-secondary-500/50 bg-secondary-500/[0.08]' :
+                  'border-danger-500/50 bg-danger-500/[0.08]'
                 }`}>
                   <div className="flex items-start justify-between mb-3">
                     <div>
-                      <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${
-                        appeal.status === 'PENDING' ? 'bg-amber-500 text-white' :
-                        appeal.status === 'ACCEPTED' ? 'bg-green-500 text-white' :
-                        'bg-red-500 text-white'
+                      <span className={`inline-block font-mono text-[10px] font-bold tracking-[0.06em] px-2 py-0.5 rounded-md ${
+                        appeal.status === 'PENDING' ? 'bg-warning-500 text-white' :
+                        appeal.status === 'ACCEPTED' ? 'bg-secondary-500 text-white' :
+                        'bg-danger-500 text-white'
                       }`}>
                         {appeal.status === 'PENDING' ? 'IN ATTESA' : appeal.status === 'ACCEPTED' ? 'ACCETTATO' : 'RESPINTO'}
                       </span>
@@ -122,17 +126,13 @@ export function AdminAppealsTab({
                   {/* Auction details */}
                   <div className="bg-surface-300 rounded-lg p-3 mb-3">
                     <div className="flex items-center gap-3 mb-2">
-                      <span className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${
-                        appeal.auction.player.position === 'P' ? 'bg-amber-500' :
-                        appeal.auction.player.position === 'D' ? 'bg-blue-500' :
-                        appeal.auction.player.position === 'C' ? 'bg-green-500' : 'bg-red-500'
-                      }`}>{appeal.auction.player.position}</span>
+                      <PositionBadge position={appeal.auction.player.position} size="md" showIcon={false} />
                       <div>
-                        <p className="font-bold text-white">{appeal.auction.player.name}</p>
+                        <p className="font-display font-bold text-white">{appeal.auction.player.name}</p>
                         <p className="text-sm text-gray-400">{appeal.auction.player.team}</p>
                       </div>
                       <div className="ml-auto text-right">
-                        <p className="text-accent-400 font-bold">{appeal.auction.currentPrice}M</p>
+                        <p className="budget-display text-accent-400 text-lg">{appeal.auction.currentPrice}<span className="text-xs text-gray-500">M</span></p>
                         {appeal.auction.winner && (
                           <p className="text-sm text-gray-400">Vinta da: {appeal.auction.winner.user.username}</p>
                         )}

@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Mockup — FeedbackHub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=Oswald:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* FeedbackHub — pagina di CONSULTAZIONE. Flusso normale, max-width contenuta (max-w-4xl).
+     NIENTE cockpit pieno. Tab in stile PanelTabs (sottolineatura oro) al posto dei
+     bottoni-tab pieni attuali. Box info/patch come Card (surface-200, bordo surface-50,
+     niente glassmorphism). RIMAPPATO il colore `purple` (fuori palette) -> due varianti:
+       A = accento `primary` (blu)   B = accento `accent` (oro)
+     Il resto identico, cosi l'utente sceglie. Type badge dei patch-note restano semantici
+     (feature=verde, fix=rosso, improvement=blu). */
+  :root{
+    --bg:#0a0a0b; --card:#1a1c20; --elev:#111214; --hover:#252830; --border:#2d3139;
+    --primary:#3b82f6; --primary-d:#1e40af; --primary-l:#93c5fd;
+    --secondary:#22c55e; --secondary-l:#86efac;
+    --gold:#f59e0b; --gold2:#fbbf24; --gold-d:#b45309;
+    --danger:#ef4444; --danger-l:#fca5a5;
+    --amber:#f59e0b; --amber-l:#fbbf24;
+    --t1:#f9fafb; --t2:#d1d5db; --t3:#9ca3af; --t4:#8b919d;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--t1);font-family:'Inter',sans-serif;padding:36px 0 70px;}
+  .micro-label{font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:700;
+    letter-spacing:.14em;text-transform:uppercase;color:var(--t4);}
+  .mono{font-family:'JetBrains Mono',monospace;}
+  h1.page{font-family:'Outfit',sans-serif;font-size:22px;font-weight:700;text-align:center;margin-bottom:6px;}
+  p.psub{text-align:center;color:var(--t4);font-size:13px;margin:0 auto 30px;max-width:760px;line-height:1.5;}
+  .frame-label{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--t3);
+    letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px;text-align:center;}
+  .frame-label b{color:var(--t1);}
+  .row{display:flex;gap:34px;justify-content:center;align-items:flex-start;flex-wrap:wrap;}
+
+  /* Variant accent vars — set per column */
+  .va{ --acc:var(--primary); --acc-d:var(--primary-d); --acc-l:var(--primary-l); --acc-rgb:59,130,246; --acc-on:#fff; }
+  .vb{ --acc:var(--gold); --acc-d:var(--gold-d); --acc-l:var(--gold2); --acc-rgb:245,158,11; --acc-on:#1a1206; }
+
+  .col{width:560px;}
+
+  /* Header */
+  .hub-head{margin-bottom:18px;}
+  .hub-top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:12px;}
+  .hub-l{display:flex;align-items:center;gap:12px;}
+  .hub-icon{width:42px;height:42px;border-radius:12px;flex-shrink:0;
+    background:linear-gradient(135deg,var(--acc-d),var(--acc));
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 0 18px rgba(var(--acc-rgb),.3);}
+  .hub-icon svg{width:21px;height:21px;color:#fff;}
+  .hub-title{font-family:'Outfit',sans-serif;font-size:21px;font-weight:700;line-height:1.1;}
+  .hub-sub{font-size:13px;color:var(--t3);margin-top:2px;}
+  .btn-new{display:inline-flex;align-items:center;gap:7px;font-family:'Outfit',sans-serif;
+    font-size:13.5px;font-weight:700;color:var(--acc-on);background:var(--acc);
+    border:none;border-radius:11px;padding:10px 16px;cursor:pointer;
+    box-shadow:0 6px 18px rgba(var(--acc-rgb),.28);flex-shrink:0;}
+  .btn-new svg{width:16px;height:16px;}
+
+  /* Alpha test badge (amber, invariato dal tema) */
+  .alpha{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;
+    background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:9px;}
+  .alpha .dot{width:8px;height:8px;border-radius:999px;background:var(--amber);
+    box-shadow:0 0 8px var(--amber);}
+  .alpha .lab{font-size:11.5px;color:var(--amber-l);font-weight:600;}
+  .alpha .hint{font-size:11.5px;color:var(--t4);}
+
+  /* PanelTabs — sottolineatura oro (sempre oro, indipendente dalla variante: e' la
+     convenzione PanelTabs del tema). La variante cambia solo header/CTA/accenti. */
+  .tabs{display:flex;gap:24px;border-bottom:1px solid var(--border);margin-bottom:22px;padding:0 2px;}
+  .tab{position:relative;padding:11px 2px 13px;font-family:'Outfit',sans-serif;
+    font-size:13.5px;font-weight:600;color:var(--t3);cursor:pointer;background:none;border:none;}
+  .tab:hover{color:var(--t1);}
+  .tab.active{color:#fff;}
+  .tab.active::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;
+    background:var(--gold);border-radius:2px;box-shadow:0 0 8px rgba(245,158,11,.5);}
+
+  /* Patch note card (Card surface-200) */
+  .patch{background:var(--card);border:1px solid var(--border);border-radius:14px;
+    overflow:hidden;margin-bottom:14px;transition:.15s;}
+  .patch:hover{border-color:rgba(var(--acc-rgb),.35);}
+  .patch-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+    padding:11px 16px;background:var(--elev);border-bottom:1px solid var(--border);}
+  .ph-l{display:flex;align-items:center;gap:10px;}
+  .ver{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;
+    color:var(--acc-l);background:rgba(var(--acc-rgb),.16);border:1px solid rgba(var(--acc-rgb),.32);
+    border-radius:8px;padding:3px 9px;}
+  .tbadge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;
+    border-radius:8px;padding:3px 9px;border:1px solid;}
+  .tbadge svg{width:13px;height:13px;}
+  .tbadge.feature{background:rgba(34,197,94,.16);color:var(--secondary-l);border-color:rgba(34,197,94,.3);}
+  .tbadge.fix{background:rgba(239,68,68,.16);color:var(--danger-l);border-color:rgba(239,68,68,.3);}
+  .tbadge.improvement{background:rgba(59,130,246,.16);color:var(--primary-l);border-color:rgba(59,130,246,.3);}
+  .issue{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--t4);}
+  .pdate{font-size:11.5px;color:var(--t3);}
+  .patch-body{padding:14px 16px;}
+  .patch-body h3{font-family:'Outfit',sans-serif;font-size:15.5px;font-weight:700;margin-bottom:6px;}
+  .patch-body p{font-size:13px;color:var(--t3);line-height:1.6;}
+
+  .hub-foot{text-align:center;margin-top:24px;font-size:11.5px;color:var(--t4);}
+
+  /* ===== Secondary frames row: "Le mie Segnalazioni" + Form modal ===== */
+  .row2{display:flex;gap:34px;justify-content:center;align-items:flex-start;flex-wrap:wrap;margin-top:54px;}
+
+  /* Status filter pills (in lista) — usano accento PRIMARY come stato attivo neutro condiviso */
+  .filters{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:16px;}
+  .filters .fl{font-size:12.5px;color:var(--t3);margin-right:2px;}
+  .fpill{font-size:11.5px;font-weight:600;border-radius:8px;padding:6px 12px;cursor:pointer;
+    color:var(--t3);background:var(--elev);border:1px solid var(--border);}
+  .fpill.active{color:#fff;background:var(--primary);border-color:var(--primary);}
+
+  /* Feedback list item */
+  .fitem{width:100%;text-align:left;background:var(--elev);border:1px solid var(--border);
+    border-radius:12px;padding:14px 16px;margin-bottom:8px;}
+  .fitem.sel{background:rgba(59,130,246,.1);border-color:rgba(59,130,246,.5);}
+  .fi-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:8px;}
+  .fi-tl{display:flex;align-items:center;gap:8px;min-width:0;}
+  .fi-tl svg{width:16px;height:16px;color:var(--t3);flex-shrink:0;}
+  .fi-tl h4{font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;color:#fff;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .st{flex-shrink:0;font-size:10px;font-weight:600;border-radius:6px;padding:2px 8px;}
+  .st.aperta{background:rgba(245,158,11,.2);color:var(--amber-l);}
+  .st.lavoraz{background:rgba(59,130,246,.2);color:var(--primary-l);}
+  .st.risolta{background:rgba(34,197,94,.2);color:var(--secondary-l);}
+  .fi-meta{display:flex;align-items:center;flex-wrap:wrap;gap:4px 16px;font-size:11.5px;color:var(--t4);}
+  .fi-meta .m{display:flex;align-items:center;gap:5px;}
+  .fi-meta .m svg{width:12px;height:12px;}
+  .fi-meta .resp{color:var(--primary-l);}
+
+  /* Form modal */
+  .modal{width:480px;background:var(--card);border:1px solid var(--border);border-radius:16px;
+    overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.6);}
+  .modal-h{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;
+    border-bottom:1px solid var(--border);}
+  .modal-h h2{font-family:'Outfit',sans-serif;font-size:16px;font-weight:700;}
+  .modal-h .x{width:32px;height:32px;border-radius:8px;border:1px solid var(--border);
+    background:var(--elev);color:var(--t3);display:flex;align-items:center;justify-content:center;}
+  .modal-h .x svg{width:16px;height:16px;}
+  .modal-b{padding:20px;}
+  .field{margin-bottom:16px;}
+  .field label{display:block;margin-bottom:7px;}
+  .field .inp,.field .sel,.field .ta{width:100%;background:var(--elev);border:1px solid var(--border);
+    border-radius:10px;padding:11px 14px;color:var(--t1);font-size:14px;font-family:'Inter',sans-serif;}
+  .field .ta{resize:none;height:96px;line-height:1.5;}
+  .field .ph{color:var(--t4);}
+  .cat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+  .cat{display:flex;flex-direction:column;align-items:center;gap:6px;padding:11px 4px;
+    border-radius:10px;border:1px solid var(--border);background:var(--elev);font-size:11px;color:var(--t3);}
+  .cat svg{width:18px;height:18px;}
+  .cat.on{border-color:var(--primary);background:rgba(59,130,246,.12);color:var(--primary-l);}
+  .form-actions{display:flex;gap:10px;margin-top:6px;}
+  .fa-cancel{flex:1;font-family:'Outfit',sans-serif;font-size:13.5px;font-weight:600;color:var(--t2);
+    background:var(--elev);border:1px solid var(--border);border-radius:10px;padding:11px 0;cursor:pointer;}
+  .fa-submit{flex:1;font-family:'Outfit',sans-serif;font-size:13.5px;font-weight:700;color:#fff;
+    background:var(--primary);border:none;border-radius:10px;padding:11px 0;cursor:pointer;
+    box-shadow:0 6px 18px rgba(59,130,246,.28);}
+</style>
+</head>
+<body>
+
+<h1 class="page">FeedbackHub — rework consultazione</h1>
+<p class="psub">Header + tab PanelTabs (sottolineatura oro) + card patch-note + lista "Le mie Segnalazioni" + form modale. Il colore <b style="color:#a78bfa">purple</b> (fuori palette) è rimappato: due varianti dell'header/tab — A con accento <b style="color:#93c5fd">primary blu</b>, B con accento <b style="color:#fbbf24">accent oro</b>. I badge-tipo dei patch-note restano semantici (verde/rosso/blu).</p>
+
+<!-- VARIANTI HEADER/TAB -->
+<div class="row">
+
+  <!-- VARIANTE A — PRIMARY BLU -->
+  <div class="col va">
+    <div class="frame-label">Variante A — accento <b style="color:#93c5fd">primary (blu)</b></div>
+    <div class="hub-head">
+      <div class="hub-top">
+        <div class="hub-l">
+          <span class="hub-icon"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg></span>
+          <div><div class="hub-title">Feedback Hub</div><div class="hub-sub">Novità, segnalazioni e suggerimenti</div></div>
+        </div>
+        <button class="btn-new"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>Nuova Segnalazione</button>
+      </div>
+      <div class="alpha"><span class="dot"></span><span class="lab">Alpha Test</span><span class="hint">Aiutaci a migliorare segnalando problemi!</span></div>
+    </div>
+    <div class="tabs">
+      <button class="tab active">Novità</button>
+      <button class="tab">Le mie Segnalazioni</button>
+      <button class="tab">Tutte le Segnalazioni</button>
+    </div>
+    <div class="patch">
+      <div class="patch-head">
+        <div class="ph-l">
+          <span class="ver">1.x</span>
+          <span class="tbadge feature"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>Nuova Funzionalità</span>
+        </div>
+        <span class="pdate">3 febbraio 2026</span>
+      </div>
+      <div class="patch-body"><h3>Sistema di backup automatico pre-deploy</h3><p>Implementato sistema di backup automatico che salva i dati critici (statistiche giocatori, rose, contratti, membri lega) prima di ogni deploy in produzione. Include script di recovery per ripristino rapido in caso di problemi.</p></div>
+    </div>
+    <div class="patch">
+      <div class="patch-head">
+        <div class="ph-l">
+          <span class="ver">1.x</span>
+          <span class="tbadge fix"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>Bug Fix</span>
+        </div>
+        <span class="pdate">3 febbraio 2026</span>
+      </div>
+      <div class="patch-body"><h3>Statistiche giocatori accurate</h3><p>Corretta la fonte dati per le statistiche dei giocatori. Ora presenze, minuti, gol e assist vengono calcolati dalla tabella PlayerMatchRating (dati partita per partita da API-Football).</p></div>
+    </div>
+    <div class="patch">
+      <div class="patch-head">
+        <div class="ph-l">
+          <span class="ver">1.x</span>
+          <span class="tbadge fix"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>Bug Fix</span>
+          <span class="issue">#217</span>
+        </div>
+        <span class="pdate">30 gennaio 2026</span>
+      </div>
+      <div class="patch-body"><h3>Rimossa voce Indennizzi dalla formula budget</h3><p>La formula nella pagina Contratti ora mostra correttamente: Budget Iniziale − Ingaggi − Tagli = Residuo. La voce "+Indennizzi" è stata rimossa perché già inclusa nel budget.</p></div>
+    </div>
+    <div class="hub-foot">Grazie per il tuo contributo nel migliorare l'app!</div>
+  </div>
+
+  <!-- VARIANTE B — ACCENT ORO -->
+  <div class="col vb">
+    <div class="frame-label">Variante B — accento <b style="color:#fbbf24">accent (oro)</b></div>
+    <div class="hub-head">
+      <div class="hub-top">
+        <div class="hub-l">
+          <span class="hub-icon"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg></span>
+          <div><div class="hub-title">Feedback Hub</div><div class="hub-sub">Novità, segnalazioni e suggerimenti</div></div>
+        </div>
+        <button class="btn-new"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>Nuova Segnalazione</button>
+      </div>
+      <div class="alpha"><span class="dot"></span><span class="lab">Alpha Test</span><span class="hint">Aiutaci a migliorare segnalando problemi!</span></div>
+    </div>
+    <div class="tabs">
+      <button class="tab active">Novità</button>
+      <button class="tab">Le mie Segnalazioni</button>
+      <button class="tab">Tutte le Segnalazioni</button>
+    </div>
+    <div class="patch">
+      <div class="patch-head">
+        <div class="ph-l">
+          <span class="ver">1.x</span>
+          <span class="tbadge feature"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>Nuova Funzionalità</span>
+        </div>
+        <span class="pdate">3 febbraio 2026</span>
+      </div>
+      <div class="patch-body"><h3>Sistema di backup automatico pre-deploy</h3><p>Implementato sistema di backup automatico che salva i dati critici (statistiche giocatori, rose, contratti, membri lega) prima di ogni deploy in produzione. Include script di recovery per ripristino rapido in caso di problemi.</p></div>
+    </div>
+    <div class="patch">
+      <div class="patch-head">
+        <div class="ph-l">
+          <span class="ver">1.x</span>
+          <span class="tbadge fix"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>Bug Fix</span>
+        </div>
+        <span class="pdate">3 febbraio 2026</span>
+      </div>
+      <div class="patch-body"><h3>Statistiche giocatori accurate</h3><p>Corretta la fonte dati per le statistiche dei giocatori. Ora presenze, minuti, gol e assist vengono calcolati dalla tabella PlayerMatchRating (dati partita per partita da API-Football).</p></div>
+    </div>
+    <div class="patch">
+      <div class="patch-head">
+        <div class="ph-l">
+          <span class="ver">1.x</span>
+          <span class="tbadge fix"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>Bug Fix</span>
+          <span class="issue">#217</span>
+        </div>
+        <span class="pdate">30 gennaio 2026</span>
+      </div>
+      <div class="patch-body"><h3>Rimossa voce Indennizzi dalla formula budget</h3><p>La formula nella pagina Contratti ora mostra correttamente: Budget Iniziale − Ingaggi − Tagli = Residuo. La voce "+Indennizzi" è stata rimossa perché già inclusa nel budget.</p></div>
+    </div>
+    <div class="hub-foot">Grazie per il tuo contributo nel migliorare l'app!</div>
+  </div>
+
+</div>
+
+<!-- TAB "LE MIE SEGNALAZIONI" + FORM MODALE (accento neutro primary, condiviso) -->
+<div class="row2 va">
+
+  <div class="col">
+    <div class="frame-label">Tab <b>Le mie Segnalazioni</b> — lista + filtri stato</div>
+    <div class="filters">
+      <span class="fl">Filtra per stato:</span>
+      <button class="fpill active">Tutte</button>
+      <button class="fpill">Aperta</button>
+      <button class="fpill">In Lavorazione</button>
+      <button class="fpill">Risolta</button>
+    </div>
+    <div class="fitem sel">
+      <div class="fi-top">
+        <div class="fi-tl"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg><h4>Il timer dell'asta non si resetta su mobile</h4></div>
+        <span class="st aperta">Aperta</span>
+      </div>
+      <div class="fi-meta"><span class="m">12 giu 2026</span><span class="m"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2M5 21H3m6-14h1m-1 4h1m4-4h1m-1 4h1"/></svg>Fantacontratti Test</span></div>
+    </div>
+    <div class="fitem">
+      <div class="fi-top">
+        <div class="fi-tl"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg><h4>Aggiungere filtro per ruolo nella pagina Giocatori</h4></div>
+        <span class="st lavoraz">In Lavorazione</span>
+      </div>
+      <div class="fi-meta"><span class="m">9 giu 2026</span><span class="m"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2M5 21H3m6-14h1m-1 4h1m4-4h1m-1 4h1"/></svg>Fantacontratti Test</span><span class="m resp"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>2 risposte</span></div>
+    </div>
+    <div class="fitem">
+      <div class="fi-top">
+        <div class="fi-tl"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><h4>Come si calcola il costo del taglio?</h4></div>
+        <span class="st risolta">Risolta</span>
+      </div>
+      <div class="fi-meta"><span class="m">2 giu 2026</span><span class="m"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2M5 21H3m6-14h1m-1 4h1m4-4h1m-1 4h1"/></svg>Fantacontratti Test</span><span class="m resp"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>1 risposta</span></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="frame-label">Modale <b>Nuova Segnalazione</b></div>
+    <div class="modal">
+      <div class="modal-h"><h2>Nuova Segnalazione</h2><span class="x"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></span></div>
+      <div class="modal-b">
+        <div class="field">
+          <label class="micro-label">Categoria</label>
+          <div class="cat-row">
+            <div class="cat on"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>Bug</div>
+            <div class="cat"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>Suggerimento</div>
+            <div class="cat"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Domanda</div>
+            <div class="cat"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>Altro</div>
+          </div>
+        </div>
+        <div class="field"><label class="micro-label">Titolo</label><div class="inp ph">Descrivi brevemente il problema…</div></div>
+        <div class="field"><label class="micro-label">Descrizione</label><div class="ta ph">Spiega in dettaglio cosa è successo, come riprodurlo e cosa ti aspettavi…</div></div>
+        <div class="form-actions"><button class="fa-cancel">Annulla</button><button class="fa-submit">Invia Segnalazione</button></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

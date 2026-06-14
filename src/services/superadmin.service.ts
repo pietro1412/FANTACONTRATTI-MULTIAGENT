@@ -783,6 +783,114 @@ export async function getAllUsers(userId: string): Promise<ServiceResult> {
   }
 }
 
+// ==================== DELETE LEAGUE (CASCADE) ====================
+
+/**
+ * Cancella completamente una lega e TUTTI i suoi dati dipendenti.
+ *
+ * AZIONE DISTRUTTIVA E IRREVERSIBILE. Solo super admin.
+ *
+ * Lo schema NON ha onDelete: Cascade sulle relazioni dirette verso League
+ * (sono Restrict di default), quindi prisma.league.delete() fallirebbe per
+ * vincoli FK. La cancellazione avviene esplicitamente dentro una transazione,
+ * eliminando i dipendenti foglie→radice. Se manca un dipendente, l'intera
+ * transazione fa rollback (nessuna cancellazione parziale).
+ *
+ * AuditLog (leagueId opzionale → SetNull) e UserFeedback (onDelete: SetNull)
+ * si scollegano automaticamente: NON vanno cancellati qui.
+ */
+export async function deleteLeague(leagueId: string): Promise<ServiceResult> {
+  const league = await prisma.league.findUnique({
+    where: { id: leagueId },
+    select: { id: true, name: true },
+  })
+  if (!league) {
+    return { success: false, message: 'Lega non trovata' }
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      // Raccogli gli id necessari per i deleteMany transitivi (no leagueId diretto)
+      const members = await tx.leagueMember.findMany({
+        where: { leagueId },
+        select: { id: true },
+      })
+      const memberIds = members.map((m) => m.id)
+
+      const sessions = await tx.marketSession.findMany({
+        where: { leagueId },
+        select: { id: true },
+      })
+      const sessionIds = sessions.map((s) => s.id)
+
+      const auctions = await tx.auction.findMany({
+        where: { leagueId },
+        select: { id: true },
+      })
+      const auctionIds = auctions.map((a) => a.id)
+
+      const rosters = await tx.playerRoster.findMany({
+        where: { leagueMemberId: { in: memberIds } },
+        select: { id: true },
+      })
+      const rosterIds = rosters.map((r) => r.id)
+
+      // ---- Livello foglie ----
+
+      // Via Auction
+      await tx.auctionBid.deleteMany({ where: { auctionId: { in: auctionIds } } })
+      await tx.auctionAcknowledgment.deleteMany({ where: { auctionId: { in: auctionIds } } })
+      await tx.auctionAppeal.deleteMany({ where: { auctionId: { in: auctionIds } } })
+
+      // Profezie: dipendono da PlayerMovement (FK movementId, Restrict) e da League
+      await tx.prophecy.deleteMany({ where: { leagueId } })
+      await tx.playerMovement.deleteMany({ where: { leagueId } })
+
+      // Via roster (contratti e bozze)
+      await tx.playerContract.deleteMany({ where: { rosterId: { in: rosterIds } } })
+      await tx.draftContract.deleteMany({ where: { rosterId: { in: rosterIds } } })
+      await tx.playerRoster.deleteMany({ where: { leagueMemberId: { in: memberIds } } })
+
+      // Via MarketSession (alcuni hanno Cascade dal genitore, ma li cancelliamo
+      // esplicitamente per chiarezza e per non dipendere dall'ordine FK)
+      await tx.sessionPrize.deleteMany({ where: { leagueMemberId: { in: memberIds } } })
+      await tx.prizeCategory.deleteMany({ where: { marketSessionId: { in: sessionIds } } })
+      await tx.prizePhaseConfig.deleteMany({ where: { marketSessionId: { in: sessionIds } } })
+      await tx.contractConsolidation.deleteMany({ where: { sessionId: { in: sessionIds } } })
+      await tx.indemnityDecision.deleteMany({ where: { sessionId: { in: sessionIds } } })
+      await tx.tradeOffer.deleteMany({ where: { marketSessionId: { in: sessionIds } } })
+      await tx.chatMessage.deleteMany({ where: { marketSessionId: { in: sessionIds } } })
+      await tx.rubataPreference.deleteMany({ where: { sessionId: { in: sessionIds } } })
+      await tx.auctionObjective.deleteMany({ where: { sessionId: { in: sessionIds } } })
+      await tx.contractHistory.deleteMany({ where: { marketSessionId: { in: sessionIds } } })
+      await tx.managerSessionSnapshot.deleteMany({ where: { marketSessionId: { in: sessionIds } } })
+
+      // Premi legacy (diretti su lega + member)
+      await tx.prize.deleteMany({ where: { leagueId } })
+
+      // ---- Livello intermedio ----
+      await tx.auction.deleteMany({ where: { leagueId } })
+      await tx.marketSession.deleteMany({ where: { leagueId } })
+      await tx.leagueInvite.deleteMany({ where: { leagueId } })
+      await tx.leagueMember.deleteMany({ where: { leagueId } })
+
+      // ---- Radice ----
+      await tx.league.delete({ where: { id: leagueId } })
+    })
+
+    return {
+      success: true,
+      message: `Lega "${league.name}" eliminata con tutti i suoi dati`,
+      data: { deletedLeagueId: leagueId },
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: `Errore durante l'eliminazione della lega: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`,
+    }
+  }
+}
+
 // ==================== DELETE ALL PLAYERS ====================
 
 export async function deleteAllPlayers(userId: string): Promise<ServiceResult> {

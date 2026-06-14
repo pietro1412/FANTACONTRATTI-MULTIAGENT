@@ -69,12 +69,12 @@ export function FeedbackForm({ leagueId, pageContext, onSuccess, onCancel }: Fee
   if (success) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
-        <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mb-4">
-          <svg className="w-8 h-8 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="w-16 h-16 bg-secondary-500/[0.16] rounded-full flex items-center justify-center mb-4">
+          <svg className="w-8 h-8 text-secondary-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h3 className="text-lg font-semibold text-white mb-2">Segnalazione Inviata!</h3>
+        <h3 className="font-display text-lg font-bold text-white mb-2">Segnalazione Inviata!</h3>
         <p className="text-sm text-gray-400">Grazie per il tuo feedback. Ti notificheremo quando ci saranno aggiornamenti.</p>
       </div>
     )
@@ -84,24 +84,24 @@ export function FeedbackForm({ leagueId, pageContext, onSuccess, onCancel }: Fee
     <form onSubmit={(e) => { void handleSubmit(e) }} className="space-y-6">
       {/* Category Selection */}
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-3">Tipo di segnalazione</label>
+        <label className="micro-label block mb-3">Tipo di segnalazione</label>
         <div className="grid grid-cols-2 gap-3">
           {categoryOptions.map(opt => (
             <button
               key={opt.value}
               type="button"
               onClick={() => { setCategory(opt.value); }}
-              className={`p-3 rounded-xl border-2 transition-all text-left ${
+              className={`p-3 rounded-xl border transition-all text-left ${
                 category === opt.value
-                  ? 'border-purple-500 bg-purple-500/10'
-                  : 'border-surface-50/20 bg-surface-300/30 hover:border-surface-50/40'
+                  ? 'border-primary-500 bg-primary-500/[0.12]'
+                  : 'border-surface-50 bg-surface-300 hover:border-surface-50'
               }`}
             >
               <div className="flex items-center gap-2 mb-1">
-                <svg className={`w-4 h-4 ${category === opt.value ? 'text-purple-400' : 'text-gray-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className={`w-4 h-4 ${category === opt.value ? 'text-primary-300' : 'text-gray-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={opt.icon} />
                 </svg>
-                <span className={`text-sm font-medium ${category === opt.value ? 'text-white' : 'text-gray-300'}`}>
+                <span className={`text-sm font-semibold ${category === opt.value ? 'text-white' : 'text-gray-300'}`}>
                   {opt.label}
                 </span>
               </div>
@@ -113,7 +113,7 @@ export function FeedbackForm({ leagueId, pageContext, onSuccess, onCancel }: Fee
 
       {/* Title */}
       <div>
-        <label htmlFor="feedback-title" className="block text-sm font-medium text-gray-300 mb-2">
+        <label htmlFor="feedback-title" className="micro-label block mb-2">
           Titolo <span className="text-danger-400">*</span>
         </label>
         <input
@@ -123,14 +123,14 @@ export function FeedbackForm({ leagueId, pageContext, onSuccess, onCancel }: Fee
           onChange={e => { setTitle(e.target.value); }}
           placeholder="Descrivi brevemente il problema o suggerimento"
           maxLength={200}
-          className="w-full px-4 py-3 bg-surface-300/50 border border-surface-50/20 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50"
+          className="w-full px-4 py-3 bg-surface-300 border border-surface-50 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500/50"
         />
         <p className="text-xs text-gray-500 mt-1 text-right">{title.length}/200</p>
       </div>
 
       {/* Description */}
       <div>
-        <label htmlFor="feedback-description" className="block text-sm font-medium text-gray-300 mb-2">
+        <label htmlFor="feedback-description" className="micro-label block mb-2">
           Descrizione <span className="text-danger-400">*</span>
         </label>
         <Textarea
@@ -166,7 +166,7 @@ export function FeedbackForm({ leagueId, pageContext, onSuccess, onCancel }: Fee
         <button
           type="submit"
           disabled={isSubmitting || !title.trim() || !description.trim()}
-          className="flex-1 px-4 py-3 bg-purple-500 hover:bg-purple-600 text-white font-medium rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="font-display flex-1 px-4 py-3 bg-primary-500 hover:bg-primary-600 text-white font-bold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-glow"
         >
           {isSubmitting ? (
             <>

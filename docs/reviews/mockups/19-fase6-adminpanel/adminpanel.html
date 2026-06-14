@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Mockup — Console Admin di Lega (Cockpit) 1440×860</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=Oswald:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     CONSOLE ADMIN DI LEGA — pattern COCKPIT (shell riusabile per SuperAdmin).
+     Derivata da 05-allineamento-asta-rubata/cockpit.html + 06-svincolati/cockpit.html.
+
+     SHELL: griglia [testata 56][barra tab admin 44][main 1fr] — testata e barra
+     tab SEMPRE visibili; lo scroll vive SOLO dentro i pannelli via .scrollbody
+     (scrollbar 6px + fade in basso). Su mobile la pagina tornerebbe a flusso normale.
+
+     RIMAPPATURA dai colori attuali (fuori-token) → token tema:
+       - header `from-dark-200 via-surface-200 to-dark-200` (gradient)  → testata `--elev` piatta
+       - tab attivo `from-primary-500 to-primary-600` (gradient pieno)  → PanelTabs (sottolineatura oro)
+       - badge "Admin di Lega" `accent-500/20`                          → invariato (oro = Presidente)
+       - logo lega gradient+emoji 🏆                                     → LeagueCrest (monogramma su superficie)
+       - icone-emoji nei titoli (🎯👥⚖️📤📋📅🚀)                       → micro-label + SVG sobri
+       - `purple` "Simula Tutti"/"Completa a 8" (fuori palette)         → primary (blu) come azione neutra dev
+     BANNER → TOAST: i banner {success}/{error} appesi diventano un toast
+       in alto a destra (auto-dismiss). Inline resta solo per blocchi con recovery.
+     ============================================================ */
+  :root{
+    --bg:#0a0a0b; --card:#1a1c20; --elev:#111214; --hover:#252830; --border:#2d3139;
+    --primary:#3b82f6; --primary-l:#93c5fd; --primary-d:#1e40af;
+    --secondary:#22c55e; --secondary-l:#86efac;
+    --gold:#f59e0b; --gold2:#fbbf24; --gold-d:#b45309;
+    --danger:#ef4444; --danger-l:#fca5a5;
+    --amber:#f59e0b; --amber-l:#fbbf24;
+    --t1:#f9fafb; --t2:#d1d5db; --t3:#9ca3af; --t4:#8b919d;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--t1);font-family:'Inter',sans-serif;padding:40px 0 80px;}
+  button{font:inherit;}
+  h1.page{font-family:'Outfit',sans-serif;font-size:22px;font-weight:700;text-align:center;margin-bottom:6px;}
+  p.sub{text-align:center;color:var(--t3);font-size:13px;margin:0 auto 36px;max-width:980px;line-height:1.55;}
+  p.sub b{color:var(--t2);}
+  .frames{display:flex;flex-direction:column;align-items:center;gap:56px;}
+  .frame-label{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--t3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;text-align:center;}
+  .frame-label b{color:var(--t1);}
+
+  .frame{width:1440px;height:860px;border:1px solid var(--border);border-radius:16px;background:var(--bg);overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.55);display:grid;grid-template-rows:56px 44px minmax(0,1fr);position:relative;}
+  .frame>*{min-width:0;min-height:0;}
+
+  .micro{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--t4);}
+  .micro.gold{color:var(--gold2);}
+  .mono{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums;}
+
+  /* scroll dentro i pannelli */
+  .scrollwrap{position:relative;flex:1;min-height:0;}
+  .scrollbody{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:#3a3f49 transparent;padding:16px;}
+  .scrollbody::-webkit-scrollbar{width:6px;}
+  .scrollbody::-webkit-scrollbar-thumb{background:#3a3f49;border-radius:3px;}
+  .fadeb{position:absolute;left:1px;right:7px;bottom:0;height:40px;background:linear-gradient(180deg,rgba(10,10,11,0),var(--bg) 90%);pointer-events:none;}
+
+  /* ===== TESTATA (crest + nome lega + badge admin + fase) ===== */
+  .head{display:flex;align-items:center;gap:13px;padding:0 22px;background:var(--elev);border-bottom:1px solid var(--border);}
+  .crest{width:38px;height:38px;border-radius:11px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+    font-family:'Outfit',sans-serif;font-weight:800;font-size:15px;letter-spacing:.02em;
+    background:var(--hover);color:var(--gold2);border:1px solid rgba(245,158,11,.45);position:relative;}
+  .crest .cam{position:absolute;right:-5px;bottom:-5px;width:18px;height:18px;border-radius:50%;background:var(--primary);
+    border:2px solid var(--elev);display:flex;align-items:center;justify-content:center;}
+  .crest .cam svg{width:10px;height:10px;color:#fff;}
+  .head-id .nm{font-family:'Outfit',sans-serif;font-size:16px;font-weight:700;line-height:1.15;display:flex;align-items:center;gap:9px;}
+  .head-id .sb{font-size:11.5px;color:var(--t3);margin-top:2px;display:flex;align-items:center;gap:10px;}
+  .head-id .sb a{color:var(--primary-l);text-decoration:none;}
+  .phase-pill{display:inline-flex;align-items:center;gap:7px;font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:700;
+    letter-spacing:.08em;color:var(--secondary);background:rgba(34,197,94,.10);border:1px solid rgba(34,197,94,.45);border-radius:999px;padding:4px 12px;}
+  .phase-pill .d{width:7px;height:7px;border-radius:50%;background:var(--secondary);box-shadow:0 0 7px var(--secondary);}
+  .head-right{margin-left:auto;display:flex;align-items:center;gap:12px;}
+  .badge-admin{display:inline-flex;align-items:center;gap:7px;font-family:'Outfit',sans-serif;font-size:12.5px;font-weight:700;
+    color:var(--gold2);background:rgba(245,158,11,.13);border:1px solid rgba(245,158,11,.42);border-radius:999px;padding:6px 14px;}
+  .badge-admin svg{width:14px;height:14px;}
+
+  /* ===== BARRA TAB ADMIN (PanelTabs — sottolineatura oro) ===== */
+  .tabbar{display:flex;align-items:stretch;gap:26px;padding:0 22px;background:var(--elev);border-bottom:1px solid var(--border);}
+  .tab{position:relative;display:flex;align-items:center;gap:8px;padding:0 2px;font-family:'Outfit',sans-serif;font-size:13.5px;font-weight:600;
+    color:var(--t3);cursor:pointer;background:none;border:none;}
+  .tab svg{width:15px;height:15px;opacity:.8;}
+  .tab:hover{color:var(--t1);}
+  .tab.active{color:#fff;}
+  .tab.active::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--gold);border-radius:2px;box-shadow:0 0 8px rgba(245,158,11,.5);}
+  .tcount{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:var(--t4);background:var(--hover);border:1px solid var(--border);border-radius:999px;padding:1px 7px;}
+  .tbadge{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;border-radius:999px;padding:1px 7px;}
+  .tbadge.gold{color:var(--gold2);background:rgba(245,158,11,.16);border:1px solid rgba(245,158,11,.4);}
+  .tbadge.amber{color:var(--amber-l);background:rgba(245,158,11,.16);border:1px solid rgba(245,158,11,.4);}
+
+  /* ===== MAIN (un'unica colonna, scroll interno) ===== */
+  .panel{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;min-height:0;margin:12px 22px 14px;}
+  .panel-h{display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--border);flex-shrink:0;}
+  .panel-h .count{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--t4);}
+
+  .grid2{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:14px;}
+  .stack{display:flex;flex-direction:column;gap:14px;min-width:0;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+  .card-h{display:flex;align-items:center;gap:9px;padding:11px 16px;border-bottom:1px solid var(--border);}
+  .card-h svg{width:14px;height:14px;color:var(--t4);}
+  .card-b{padding:16px;}
+
+  /* status row */
+  .status-row{display:flex;align-items:center;gap:14px;}
+  .status-icn{width:46px;height:46px;border-radius:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+    background:var(--hover);border:1px solid var(--border);}
+  .status-icn svg{width:22px;height:22px;color:var(--gold2);}
+  .status-tx .l{font-size:11.5px;color:var(--t3);}
+  .status-tx .v{font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;line-height:1.15;margin-top:1px;}
+  .status-chip{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.08em;
+    color:var(--secondary-l);background:rgba(34,197,94,.14);border:1px solid rgba(34,197,94,.4);border-radius:999px;padding:5px 14px;text-transform:uppercase;}
+
+  /* phase timeline */
+  .tl{position:relative;padding-left:0;}
+  .tl-line{position:absolute;left:18px;top:18px;bottom:18px;width:2px;background:var(--border);}
+  .tl-item{position:relative;display:flex;gap:14px;padding:11px 13px;border-radius:12px;margin-bottom:8px;border:1px solid transparent;}
+  .tl-item:last-child{margin-bottom:0;}
+  .tl-item.past{background:rgba(34,197,94,.06);border-color:rgba(34,197,94,.22);}
+  .tl-item.cur{background:rgba(245,158,11,.06);border:1px solid var(--gold);box-shadow:0 0 0 1px rgba(245,158,11,.15);}
+  .tl-item.future{opacity:.6;}
+  .tl-dot{position:relative;z-index:2;width:36px;height:36px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+    font-family:'Outfit',sans-serif;font-weight:800;font-size:14px;}
+  .tl-item.past .tl-dot{background:var(--secondary);color:#06200f;}
+  .tl-item.cur .tl-dot{background:var(--gold2);color:#1a1206;box-shadow:0 0 0 4px rgba(245,158,11,.16);}
+  .tl-item.future .tl-dot{background:var(--hover);color:var(--t4);border:1px solid var(--border);}
+  .tl-body{flex:1;min-width:0;}
+  .tl-top{display:flex;align-items:center;gap:9px;}
+  .tl-name{font-family:'Outfit',sans-serif;font-size:14.5px;font-weight:700;}
+  .tl-item.future .tl-name{color:var(--t3);}
+  .tl-tag{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.06em;border-radius:5px;padding:2px 7px;text-transform:uppercase;}
+  .tl-tag.cur{color:#1a1206;background:var(--gold2);}
+  .tl-tag.done{color:var(--secondary-l);border:1px solid rgba(34,197,94,.4);}
+  .tl-desc{font-size:12px;color:var(--t3);line-height:1.5;margin-top:4px;}
+  .tl-exit{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;margin-top:9px;color:var(--secondary-l);}
+  .tl-exit svg{width:13px;height:13px;}
+
+  /* advance controls */
+  .phase-ctrl{display:flex;align-items:center;flex-wrap:wrap;gap:10px;}
+  .btn{font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;border-radius:10px;padding:10px 16px;cursor:pointer;border:1px solid var(--border);background:var(--card);color:var(--t2);display:inline-flex;align-items:center;gap:8px;}
+  .btn svg{width:15px;height:15px;}
+  .btn-primary{color:#fff;background:var(--primary);border-color:var(--primary);box-shadow:0 6px 18px rgba(59,130,246,.26);}
+  .btn-danger{color:var(--danger-l);background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.42);}
+  .btn-ghost-gold{color:var(--gold2);background:rgba(245,158,11,.07);border-color:rgba(245,158,11,.4);}
+  .confirm{display:inline-flex;align-items:center;gap:9px;background:rgba(239,68,68,.10);border:1px solid rgba(239,68,68,.4);border-radius:10px;padding:6px 8px 6px 14px;}
+  .confirm .q{font-size:12.5px;color:var(--danger-l);font-weight:600;}
+  .confirm .yes{font-family:'Outfit',sans-serif;font-size:12px;font-weight:700;color:#fff;background:var(--danger);border:none;border-radius:8px;padding:7px 13px;cursor:pointer;}
+  .confirm .no{font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;color:var(--t2);background:var(--card);border:1px solid var(--border);border-radius:8px;padding:7px 13px;cursor:pointer;}
+
+  /* warning inline (blocco con recovery → resta inline) */
+  .warn{display:flex;gap:11px;align-items:flex-start;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.35);border-radius:11px;padding:13px 15px;margin-top:13px;}
+  .warn svg{width:18px;height:18px;color:var(--gold2);flex-shrink:0;margin-top:1px;}
+  .warn .wt{font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:var(--gold2);}
+  .warn .wd{font-size:12px;color:var(--t3);margin-top:2px;line-height:1.45;}
+
+  /* consolidation grid */
+  .cons-h{display:flex;align-items:center;gap:9px;margin-bottom:10px;}
+  .cons-h .micro{margin:0;}
+  .cons-h .sim{margin-left:auto;font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;color:var(--primary-l);background:rgba(59,130,246,.10);border:1px solid rgba(59,130,246,.4);border-radius:8px;padding:4px 11px;cursor:pointer;}
+  .cons-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px 16px;}
+  .cons-i{display:flex;align-items:center;gap:8px;font-size:12.5px;}
+  .cons-i .ck{width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;flex-shrink:0;}
+  .cons-i.on .ck{background:var(--secondary);color:#06200f;} .cons-i.on{color:var(--secondary-l);}
+  .cons-i.off .ck{background:var(--hover);color:var(--t4);border:1px solid var(--border);} .cons-i.off{color:var(--t3);}
+
+  /* stat tiles (sidebar) */
+  .stat{background:var(--elev);border:1px solid var(--border);border-radius:12px;padding:14px 15px;}
+  .stat.gold{border-color:rgba(245,158,11,.3);}
+  .stat.green{border-color:rgba(34,197,94,.28);}
+  .stat .sv{font-family:'Oswald',sans-serif;font-size:30px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;}
+  .stat .sl{font-size:11px;color:var(--t3);margin-top:5px;}
+  .stat.primary .sv{color:var(--primary-l);} .stat.gold .sv{color:var(--gold2);} .stat.green .sv{color:var(--secondary-l);}
+  .stat .sv{color:var(--t1);}
+  .grid-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+  /* config rows */
+  .cfg{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);}
+  .cfg:last-child{border-bottom:none;}
+  .cfg .ck{font-size:12px;color:var(--t3);}
+  .cfg .cv{font-family:'Outfit',sans-serif;font-size:13.5px;font-weight:700;}
+  .cfg .cv.gold{color:var(--gold2);} .cfg .cv.mono{font-family:'JetBrains Mono',monospace;}
+  .slot{display:inline-flex;gap:8px;font-family:'JetBrains Mono',monospace;font-size:12.5px;font-weight:700;}
+  .slot .p{color:var(--gold2);} .slot .d{color:var(--primary-l);} .slot .c{color:var(--secondary-l);} .slot .a{color:var(--danger-l);}
+
+  /* collapsible head */
+  .coll-h{display:flex;align-items:center;gap:9px;padding:11px 16px;cursor:pointer;}
+  .coll-h svg.ic{width:14px;height:14px;color:var(--t4);}
+  .coll-h .ti{font-family:'Outfit',sans-serif;font-size:13.5px;font-weight:700;}
+  .coll-h .chev{margin-left:auto;color:var(--t4);}
+
+  /* ===== members table (tab 2) ===== */
+  .tbl{width:100%;border-collapse:collapse;}
+  .tbl thead th{position:sticky;top:0;background:var(--elev);z-index:1;}
+  .tbl th{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t4);padding:10px 16px;text-align:left;border-bottom:1px solid var(--border);}
+  .tbl th.r{text-align:right;} .tbl th.c{text-align:center;}
+  .tbl td{padding:11px 16px;border-bottom:1px solid var(--border);font-size:13px;}
+  .tbl tr:hover td{background:var(--hover);}
+  .m-name{display:flex;align-items:center;gap:11px;}
+  .m-mono{width:30px;height:30px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;background:var(--hover);border:1px solid var(--border);color:var(--t1);flex-shrink:0;}
+  .m-name .nm{font-family:'Outfit',sans-serif;font-size:13.5px;font-weight:700;}
+  .m-name .em{font-size:11px;color:var(--t4);margin-top:1px;}
+  .role-pill{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;letter-spacing:.06em;border-radius:6px;padding:3px 9px;}
+  .role-pill.pres{color:var(--gold2);background:rgba(245,158,11,.13);border:1px solid rgba(245,158,11,.4);}
+  .role-pill.dg{color:var(--t3);background:var(--hover);border:1px solid var(--border);}
+  .budget{font-family:'Oswald',sans-serif;font-size:19px;font-weight:600;color:var(--gold2);font-variant-numeric:tabular-nums;text-align:right;}
+  .kick{font-family:'Outfit',sans-serif;font-size:11.5px;font-weight:700;color:var(--danger-l);background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.4);border-radius:8px;padding:5px 12px;cursor:pointer;}
+  .you{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:var(--gold2);border:1px solid rgba(245,158,11,.5);border-radius:4px;padding:1px 6px;margin-left:6px;}
+
+  /* requests + invites sub-panel */
+  .req-row{display:flex;align-items:center;gap:12px;padding:11px 14px;background:var(--elev);border:1px solid var(--border);border-radius:11px;margin-bottom:8px;}
+  .req-row:last-child{margin-bottom:0;}
+  .req-row .info{flex:1;min-width:0;}
+  .req-row .nm{font-family:'Outfit',sans-serif;font-size:13.5px;font-weight:700;}
+  .req-row .meta{font-size:11px;color:var(--t4);margin-top:2px;}
+  .acc{font-family:'Outfit',sans-serif;font-size:12px;font-weight:700;color:#fff;background:var(--secondary);border:none;border-radius:8px;padding:7px 14px;cursor:pointer;}
+  .rej{font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;color:var(--t2);background:var(--card);border:1px solid var(--border);border-radius:8px;padding:7px 14px;cursor:pointer;}
+  .canc{font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;color:var(--t3);background:var(--card);border:1px solid var(--border);border-radius:8px;padding:7px 13px;cursor:pointer;}
+  .inv-form{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;}
+  .ff{flex:1;min-width:220px;}
+  .ff label{display:block;}
+  .ff .inp{width:100%;background:var(--elev);border:1px solid var(--border);border-radius:10px;padding:10px 13px;color:var(--t4);font-size:13px;margin-top:7px;}
+  .stp{display:inline-flex;align-items:stretch;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--elev);margin-top:7px;}
+  .stp button{width:38px;background:var(--card);border:none;color:var(--t1);font-family:'Oswald',sans-serif;font-size:18px;cursor:pointer;}
+  .stp .vv{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:64px;}
+  .stp .vv .v{font-family:'Oswald',sans-serif;font-size:18px;font-weight:700;}
+  .stp .vv .l{font-size:8.5px;color:var(--t4);text-transform:uppercase;letter-spacing:.08em;}
+
+  /* ===== TOAST (banner → toast) ===== */
+  .toast{position:absolute;top:14px;right:16px;z-index:30;display:flex;align-items:center;gap:11px;
+    background:var(--card);border:1px solid rgba(34,197,94,.45);border-left:3px solid var(--secondary);border-radius:12px;
+    padding:12px 15px;box-shadow:0 16px 40px rgba(0,0,0,.5);max-width:340px;}
+  .toast .ti{width:30px;height:30px;border-radius:9px;background:rgba(34,197,94,.14);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .toast .ti svg{width:16px;height:16px;color:var(--secondary-l);}
+  .toast .tt{font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;}
+  .toast .td{font-size:11.5px;color:var(--t3);margin-top:1px;}
+  .toast .x{margin-left:6px;color:var(--t4);background:none;border:none;cursor:pointer;}
+  .toast .x svg{width:14px;height:14px;}
+</style>
+</head>
+<body>
+
+<h1 class="page">Console Admin di Lega — Cockpit</h1>
+<p class="sub">Shell admin riusabile (servirà anche per SuperAdmin): <b>testata</b> (crest + nome lega + badge "Admin di Lega" oro + fase corrente) e <b>barra tab admin</b> (PanelTabs sottolineatura oro, con i badge contatori) SEMPRE visibili; lo scroll vive solo dentro il pannello. Gradient header/tab → superfici piatte; logo→LeagueCrest; emoji-titoli→micro-label+SVG; banner {success}/{error} → <b>toast</b> in alto a destra.</p>
+
+<div class="frames">
+
+<!-- ============ FRAME 1 — TAB FASI & STATO ============ -->
+<div>
+  <div class="frame-label">Tab <b>Fasi &amp; Stato</b> — indicatore fase + avanza fase (conferma inline) + stato lega</div>
+  <div class="frame">
+
+    <!-- TOAST (esito azione: banner → toast) -->
+    <div class="toast">
+      <span class="ti"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></span>
+      <div><div class="tt">Fase impostata: Rubata</div><div class="td">La lega è avanzata alla fase successiva.</div></div>
+      <button class="x"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
+    </div>
+
+    <!-- TESTATA -->
+    <div class="head">
+      <span class="crest">FT<span class="cam"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><circle cx="12" cy="13" r="3"/></svg></span></span>
+      <div class="head-id">
+        <div class="nm">Fantacontratti Test <span class="phase-pill"><span class="d"></span>MERCATO RICORRENTE</span></div>
+        <div class="sb"><span>Console amministratore</span><span>·</span><span>8 manager attivi</span><span>·</span><a>Cambia logo</a></div>
+      </div>
+      <div class="head-right">
+        <span class="badge-admin">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.196-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+          Admin di Lega
+        </span>
+      </div>
+    </div>
+
+    <!-- BARRA TAB -->
+    <div class="tabbar">
+      <button class="tab active">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+        Fasi &amp; Stato
+      </button>
+      <button class="tab">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a3 3 0 10-3-3"/></svg>
+        Gestione Membri <span class="tcount">8</span><span class="tbadge gold">2</span>
+      </button>
+      <button class="tab">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 6l9-2 9 2M12 4v16m-7-4l-2-6h4l-2 6zm14 0l-2-6h4l-2 6z"/></svg>
+        Ricorsi <span class="tbadge amber">1</span>
+      </button>
+      <button class="tab">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+        Export
+      </button>
+    </div>
+
+    <!-- MAIN: pannello scrollabile -->
+    <div class="panel">
+      <div class="panel-h"><span class="micro">Fasi &amp; stato lega</span><span class="count">Sessione attiva · Mercato Ricorrente · S2 / Sem 1</span></div>
+      <div class="scrollwrap">
+        <div class="scrollbody">
+
+          <!-- Status box -->
+          <div class="card" style="margin-bottom:14px;">
+            <div class="card-b">
+              <div class="status-row">
+                <span class="status-icn"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg></span>
+                <div class="status-tx"><div class="l">Stato attuale</div><div class="v">Fantacontratti Test</div></div>
+                <span class="status-chip">Mercato Ricorrente</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Layout a 2 colonne: timeline fasi (sinistra) + stato/stat (destra) -->
+          <div class="grid2">
+
+            <!-- COLONNA SINISTRA: flusso fasi + gestione fase -->
+            <div class="stack">
+
+              <div class="card">
+                <div class="card-h"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg><span class="micro" style="color:var(--t2);">Flusso delle fasi · Mercato Ricorrente</span></div>
+                <div class="card-b">
+                  <div class="tl">
+                    <div class="tl-line"></div>
+                    <div class="tl-item past">
+                      <span class="tl-dot">✓</span>
+                      <div class="tl-body"><div class="tl-top"><span class="tl-name">1. Scambi Pre-Rinnovo</span><span class="tl-tag done">Completata</span></div></div>
+                    </div>
+                    <div class="tl-item past">
+                      <span class="tl-dot">✓</span>
+                      <div class="tl-body"><div class="tl-top"><span class="tl-name">2. Premi Budget</span><span class="tl-tag done">Completata</span></div></div>
+                    </div>
+                    <div class="tl-item past">
+                      <span class="tl-dot">✓</span>
+                      <div class="tl-body"><div class="tl-top"><span class="tl-name">3. Rinnovo Contratti</span><span class="tl-tag done">Completata</span></div></div>
+                    </div>
+                    <div class="tl-item cur">
+                      <span class="tl-dot">4</span>
+                      <div class="tl-body">
+                        <div class="tl-top"><span class="tl-name">4. Rubata</span><span class="tl-tag cur">Fase attuale</span></div>
+                        <div class="tl-desc">Aste forzate. A turno, ogni manager mette all'asta un proprio giocatore che gli altri possono "rubare" pagando la clausola rescissoria.</div>
+                        <div class="tl-exit"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>Nessun blocco di uscita · pronta ad avanzare</div>
+                      </div>
+                    </div>
+                    <div class="tl-item future">
+                      <span class="tl-dot">5</span>
+                      <div class="tl-body"><div class="tl-top"><span class="tl-name">5. Asta Svincolati</span></div></div>
+                    </div>
+                    <div class="tl-item future">
+                      <span class="tl-dot">6</span>
+                      <div class="tl-body"><div class="tl-top"><span class="tl-name">6. Scambi Finali</span></div></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Gestione fase: avanza / torna / conferma chiudi -->
+              <div class="card">
+                <div class="card-h"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg><span class="micro" style="color:var(--t2);">Gestione fase</span></div>
+                <div class="card-b">
+                  <div class="phase-ctrl">
+                    <button class="btn"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>Torna a Rinnovo Contratti</button>
+                    <button class="btn btn-primary">Avanza ad Asta Svincolati<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg></button>
+                    <!-- conferma inline per la chiusura sessione (azione distruttiva) -->
+                    <div class="confirm">
+                      <span class="q">Chiudere la sessione?</span>
+                      <button class="yes">Sì, chiudi</button>
+                      <button class="no">Annulla</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Selezione rapida (avanzato) — collapsed -->
+              <div class="card">
+                <div class="coll-h"><svg class="ic" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg><span class="ti">Selezione rapida fasi (avanzato)</span><span class="chev">▾</span></div>
+              </div>
+
+            </div>
+
+            <!-- COLONNA DESTRA: stat + consolidamento + config -->
+            <div class="stack">
+
+              <div class="grid-stats">
+                <div class="stat primary"><div class="sv">8/8</div><div class="sl">Partecipanti attivi</div></div>
+                <div class="stat gold"><div class="sv">2</div><div class="sl">Richieste in attesa</div></div>
+                <div class="stat green"><div class="sv mono">300</div><div class="sl">Budget iniziale</div></div>
+                <div class="stat"><div class="sv">4</div><div class="sl">Sessioni totali</div></div>
+              </div>
+
+              <!-- Stato consolidamento (esempio dalla fase Contratti, per mostrare la lista) -->
+              <div class="card">
+                <div class="card-b">
+                  <div class="cons-h">
+                    <span class="micro" style="color:var(--t2);">Stato consolidamento · 6/8</span>
+                    <button class="sim">Simula tutti</button>
+                  </div>
+                  <div class="cons-grid">
+                    <span class="cons-i on"><span class="ck">✓</span>Pietro</span>
+                    <span class="cons-i on"><span class="ck">✓</span>Michele</span>
+                    <span class="cons-i on"><span class="ck">✓</span>Mirko</span>
+                    <span class="cons-i on"><span class="ck">✓</span>Diego</span>
+                    <span class="cons-i on"><span class="ck">✓</span>Marco</span>
+                    <span class="cons-i on"><span class="ck">✓</span>Emiliano</span>
+                    <span class="cons-i off"><span class="ck">○</span>Emmanuele</span>
+                    <span class="cons-i off"><span class="ck">○</span>Marcolino</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Config lega -->
+              <div class="card">
+                <div class="card-h"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg><span class="micro" style="color:var(--t2);">Configurazione lega</span></div>
+                <div class="card-b" style="padding-top:4px;padding-bottom:4px;">
+                  <div class="cfg"><span class="ck">Stato</span><span class="cv" style="color:var(--secondary-l);">Attiva</span></div>
+                  <div class="cfg"><span class="ck">Partecipanti</span><span class="cv mono">8 / 8</span></div>
+                  <div class="cfg"><span class="ck">Minimo richiesto</span><span class="cv mono">6</span></div>
+                  <div class="cfg"><span class="ck">Budget iniziale</span><span class="cv gold mono">300M</span></div>
+                  <div class="cfg"><span class="ck">Slot rosa</span><span class="slot"><span class="p">P:3</span><span class="d">D:8</span><span class="c">C:8</span><span class="a">A:6</span></span></div>
+                </div>
+              </div>
+
+              <!-- Storico sessioni collapsed -->
+              <div class="card">
+                <div class="coll-h"><svg class="ic" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg><span class="ti">Storico sessioni</span><span class="tcount" style="margin-left:8px;">4</span><span class="chev">▾</span></div>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+        <div class="fadeb"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ FRAME 2 — TAB GESTIONE MEMBRI ============ -->
+<div>
+  <div class="frame-label">Tab <b>Gestione Membri</b> — tabella membri (scroll nel pannello) + richieste/inviti</div>
+  <div class="frame">
+
+    <!-- TESTATA (identica — shell condivisa) -->
+    <div class="head">
+      <span class="crest">FT<span class="cam"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><circle cx="12" cy="13" r="3"/></svg></span></span>
+      <div class="head-id">
+        <div class="nm">Fantacontratti Test <span class="phase-pill"><span class="d"></span>MERCATO RICORRENTE</span></div>
+        <div class="sb"><span>Console amministratore</span><span>·</span><span>8 manager attivi</span><span>·</span><a>Cambia logo</a></div>
+      </div>
+      <div class="head-right">
+        <span class="badge-admin">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.196-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+          Admin di Lega
+        </span>
+      </div>
+    </div>
+
+    <!-- BARRA TAB (Gestione Membri attivo) -->
+    <div class="tabbar">
+      <button class="tab">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+        Fasi &amp; Stato
+      </button>
+      <button class="tab active">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a3 3 0 10-3-3"/></svg>
+        Gestione Membri <span class="tcount">8</span><span class="tbadge gold">2</span>
+      </button>
+      <button class="tab">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 6l9-2 9 2M12 4v16m-7-4l-2-6h4l-2 6zm14 0l-2-6h4l-2 6z"/></svg>
+        Ricorsi <span class="tbadge amber">1</span>
+      </button>
+      <button class="tab">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+        Export
+      </button>
+    </div>
+
+    <!-- MAIN: due colonne — tabella membri (scroll) + richieste/inviti -->
+    <div class="panel">
+      <div class="panel-h"><span class="micro">Gestione membri · inviti · richieste</span><span class="count">8 attivi · 1 richiesta · 1 invito</span></div>
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:0;flex:1;min-height:0;">
+
+        <!-- Colonna tabella membri (scroll dedicato) -->
+        <div style="display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--border);">
+          <div style="display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--border);flex-shrink:0;">
+            <span class="micro" style="color:var(--t2);">Membri attivi</span>
+            <span class="tcount">8</span>
+            <button class="rej" style="margin-left:auto;color:var(--primary-l);border-color:rgba(59,130,246,.4);background:rgba(59,130,246,.08);">Completa a 8 manager (test)</button>
+          </div>
+          <div class="scrollwrap">
+            <div class="scrollbody" style="padding:0;">
+              <table class="tbl">
+                <thead><tr><th>Manager</th><th>Team</th><th class="c">Ruolo</th><th class="r">Budget</th><th class="r">Azioni</th></tr></thead>
+                <tbody>
+                  <tr><td><div class="m-name"><span class="m-mono">PI</span><div><div class="nm">pietro <span class="you">TU</span></div><div class="em">pietro@test.it</div></div></div></td><td style="color:var(--t3);">Pietro FC</td><td class="c"><span class="role-pill pres">Presidente</span></td><td><div class="budget">142</div></td><td></td></tr>
+                  <tr><td><div class="m-name"><span class="m-mono">MI</span><div><div class="nm">michele</div><div class="em">michele@test.it</div></div></div></td><td style="color:var(--t3);">Michele United</td><td class="c"><span class="role-pill dg">DG</span></td><td><div class="budget">98</div></td><td style="text-align:right;"><button class="kick">Espelli</button></td></tr>
+                  <tr><td><div class="m-name"><span class="m-mono">MK</span><div><div class="nm">mirko</div><div class="em">mirko@test.it</div></div></div></td><td style="color:var(--t3);">Mirko City</td><td class="c"><span class="role-pill dg">DG</span></td><td><div class="budget">201</div></td><td style="text-align:right;"><button class="kick">Espelli</button></td></tr>
+                  <tr><td><div class="m-name"><span class="m-mono">EM</span><div><div class="nm">emmanuele</div><div class="em">emmanuele@test.it</div></div></div></td><td style="color:var(--t3);">Emmanuele FC</td><td class="c"><span class="role-pill dg">DG</span></td><td><div class="budget">64</div></td><td style="text-align:right;"><button class="kick">Espelli</button></td></tr>
+                  <tr><td><div class="m-name"><span class="m-mono">DI</span><div><div class="nm">diego</div><div class="em">diego@test.it</div></div></div></td><td style="color:var(--t3);">Diego FC</td><td class="c"><span class="role-pill dg">DG</span></td><td><div class="budget">187</div></td><td style="text-align:right;"><button class="kick">Espelli</button></td></tr>
+                  <tr><td><div class="m-name"><span class="m-mono">MA</span><div><div class="nm">marco</div><div class="em">marco@test.it</div></div></div></td><td style="color:var(--t3);">Marco Calcio</td><td class="c"><span class="role-pill dg">DG</span></td><td><div class="budget">176</div></td><td style="text-align:right;"><button class="kick">Espelli</button></td></tr>
+                  <tr><td><div class="m-name"><span class="m-mono">ML</span><div><div class="nm">marcolino</div><div class="em">marcolino@test.it</div></div></div></td><td style="color:var(--t3);">Marcolino SC</td><td class="c"><span class="role-pill dg">DG</span></td><td><div class="budget">188</div></td><td style="text-align:right;"><button class="kick">Espelli</button></td></tr>
+                  <tr><td><div class="m-name"><span class="m-mono">EL</span><div><div class="nm">emiliano</div><div class="em">emiliano@test.it</div></div></div></td><td style="color:var(--t3);">Emiliano FC</td><td class="c"><span class="role-pill dg">DG</span></td><td><div class="budget">140</div></td><td style="text-align:right;"><button class="kick">Espelli</button></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="fadeb"></div>
+          </div>
+        </div>
+
+        <!-- Colonna richieste + invito + inviti pendenti (scroll dedicato) -->
+        <div style="display:flex;flex-direction:column;min-height:0;">
+          <div class="scrollwrap">
+            <div class="scrollbody">
+
+              <div class="card" style="margin-bottom:14px;">
+                <div class="card-h"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg><span class="micro" style="color:var(--t2);">Richieste di adesione</span><span class="tbadge gold" style="margin-left:6px;">1</span></div>
+                <div class="card-b">
+                  <div class="req-row">
+                    <span class="m-mono">LU</span>
+                    <div class="info"><div class="nm">luca99</div><div class="meta">luca99@gmail.com</div></div>
+                    <button class="acc">Accetta</button>
+                    <button class="rej">Rifiuta</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card" style="margin-bottom:14px;">
+                <div class="card-h"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg><span class="micro" style="color:var(--t2);">Invia nuovo invito</span></div>
+                <div class="card-b">
+                  <div class="inv-form">
+                    <div class="ff" style="flex-basis:100%;"><label class="micro" style="color:var(--t3);">Email o username</label><div class="inp">Email o username…</div></div>
+                    <div><label class="micro" style="color:var(--t3);">Validità</label><div class="stp"><button>−</button><div class="vv"><span class="v">7</span><span class="l">giorni</span></div><button>+</button></div></div>
+                    <button class="acc" style="background:var(--primary);margin-left:auto;">Invia invito</button>
+                  </div>
+                  <div style="font-size:11px;color:var(--t4);margin-top:10px;display:flex;align-items:center;gap:6px;">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" style="width:13px;height:13px;"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    Scade lunedì 23 giugno 2026
+                  </div>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-h"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg><span class="micro" style="color:var(--t2);">Inviti in attesa</span><span class="tcount" style="margin-left:6px;">1</span></div>
+                <div class="card-b">
+                  <div class="req-row">
+                    <span class="m-mono" style="font-size:9px;">@</span>
+                    <div class="info"><div class="nm" style="font-size:12.5px;">andrea@gmail.com</div><div class="meta">Inviato 16 giu · Scade 23 giu 2026</div></div>
+                    <button class="canc">Annulla</button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+            <div class="fadeb"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</div>
+</body>
+</html>

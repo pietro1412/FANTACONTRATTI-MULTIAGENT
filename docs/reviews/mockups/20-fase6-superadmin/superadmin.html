@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Mockup — Console SuperAdmin (Cockpit) 1440×860</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=Oswald:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     CONSOLE SUPERADMIN — pattern COCKPIT, riusa la SHELL ADMIN approvata
+     (19-fase6-adminpanel/adminpanel.html). Stessa griglia
+     [testata 56][barra tab 44][main 1fr]: testata e barra tab SEMPRE
+     visibili, scroll SOLO nei pannelli (.scrollbody, 6px + fade).
+
+     DIFFERENZA vs Admin di Lega: la testata è di PIATTAFORMA, non di una
+     lega → niente crest/fase lega; al suo posto monogramma piattaforma
+     "FC" + titolo "Console SuperAdmin" + badge "Super Admin" (oro). 5 tab
+     reali: Import · Anagrafica · Leghe · Utenti · Statistiche.
+
+     RIMAPPATURA dai colori attuali (fuori-token) → token tema:
+       - header `from-dark-200 via-surface-200 to-dark-200` (gradient) → testata --elev piatta
+       - logo gradient accent + emoji 👑                              → monogramma piattaforma (oro su superficie)
+       - tab "tab pill" piene                                          → PanelTabs (sottolineatura oro) + badge contatori
+       - emoji nei titoli (👑🏟️⚠️✅🔒)                                → micro-label + SVG sobri
+       - i 121 `gray-*` (th/testi/bordi)                              → --t3/--t4 + bordi --border
+       - i 14 `bg-gradient-*` (header, logo lega, modali, position)   → superfici piatte / accenti token
+       - logo lega `from-primary-500 to-primary-700 + 🏟️`            → LeagueCrest (monogramma su superficie)
+       - position pill gradient (POSITION_GRADIENTS)                  → chip ruolo a token (P oro · D blu · C verde · A rosso)
+     BANNER → TOAST: i banner {importResult}/{classificationResult} appesi
+       diventano un toast in alto a destra (auto-dismiss). Conferme distruttive
+       (Cancella tutti i giocatori, Elimina lega) → ConfirmDialog inline danger.
+     ============================================================ */
+  :root{
+    --bg:#0a0a0b; --card:#1a1c20; --elev:#111214; --hover:#252830; --border:#2d3139;
+    --primary:#3b82f6; --primary-l:#93c5fd; --primary-d:#1e40af;
+    --secondary:#22c55e; --secondary-l:#86efac;
+    --gold:#f59e0b; --gold2:#fbbf24; --gold-d:#b45309;
+    --danger:#ef4444; --danger-l:#fca5a5;
+    --amber:#f59e0b; --amber-l:#fbbf24;
+    --t1:#f9fafb; --t2:#d1d5db; --t3:#9ca3af; --t4:#8b919d;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--t1);font-family:'Inter',sans-serif;padding:40px 0 80px;}
+  button{font:inherit;}
+  h1.page{font-family:'Outfit',sans-serif;font-size:22px;font-weight:700;text-align:center;margin-bottom:6px;}
+  p.sub{text-align:center;color:var(--t3);font-size:13px;margin:0 auto 36px;max-width:1000px;line-height:1.55;}
+  p.sub b{color:var(--t2);}
+  .frames{display:flex;flex-direction:column;align-items:center;gap:56px;}
+  .frame-label{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--t3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;text-align:center;}
+  .frame-label b{color:var(--t1);}
+
+  .frame{width:1440px;height:860px;border:1px solid var(--border);border-radius:16px;background:var(--bg);overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.55);display:grid;grid-template-rows:56px 44px minmax(0,1fr);position:relative;}
+  .frame>*{min-width:0;min-height:0;}
+
+  .micro{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--t4);}
+  .micro.gold{color:var(--gold2);}
+  .mono{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums;}
+
+  /* scroll dentro i pannelli */
+  .scrollwrap{position:relative;flex:1;min-height:0;}
+  .scrollbody{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:#3a3f49 transparent;padding:16px;}
+  .scrollbody::-webkit-scrollbar{width:6px;}
+  .scrollbody::-webkit-scrollbar-thumb{background:#3a3f49;border-radius:3px;}
+  .fadeb{position:absolute;left:1px;right:7px;bottom:0;height:40px;background:linear-gradient(180deg,rgba(10,10,11,0),var(--bg) 90%);pointer-events:none;}
+
+  /* ===== TESTATA (piattaforma: monogramma + titolo console + badge super admin) ===== */
+  .head{display:flex;align-items:center;gap:13px;padding:0 22px;background:var(--elev);border-bottom:1px solid var(--border);}
+  .plogo{width:38px;height:38px;border-radius:11px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+    font-family:'Outfit',sans-serif;font-weight:800;font-size:15px;letter-spacing:.02em;
+    background:var(--hover);color:var(--gold2);border:1px solid rgba(245,158,11,.45);}
+  .head-id .nm{font-family:'Outfit',sans-serif;font-size:16px;font-weight:700;line-height:1.15;display:flex;align-items:center;gap:9px;}
+  .head-id .sb{font-size:11.5px;color:var(--t3);margin-top:2px;display:flex;align-items:center;gap:9px;}
+  .scope-pill{display:inline-flex;align-items:center;gap:7px;font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:700;
+    letter-spacing:.08em;color:var(--gold2);background:rgba(245,158,11,.10);border:1px solid rgba(245,158,11,.4);border-radius:999px;padding:4px 12px;}
+  .scope-pill .d{width:7px;height:7px;border-radius:50%;background:var(--gold2);box-shadow:0 0 7px var(--gold2);}
+  .head-right{margin-left:auto;display:flex;align-items:center;gap:12px;}
+  .head-right .glob{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--t4);display:flex;align-items:center;gap:7px;}
+  .head-right .glob b{color:var(--t2);font-family:'Oswald',sans-serif;font-size:13px;}
+  .badge-sa{display:inline-flex;align-items:center;gap:7px;font-family:'Outfit',sans-serif;font-size:12.5px;font-weight:700;
+    color:var(--gold2);background:rgba(245,158,11,.13);border:1px solid rgba(245,158,11,.42);border-radius:999px;padding:6px 14px;}
+  .badge-sa svg{width:14px;height:14px;}
+
+  /* ===== BARRA TAB (PanelTabs — sottolineatura oro) ===== */
+  .tabbar{display:flex;align-items:stretch;gap:26px;padding:0 22px;background:var(--elev);border-bottom:1px solid var(--border);}
+  .tab{position:relative;display:flex;align-items:center;gap:8px;padding:0 2px;font-family:'Outfit',sans-serif;font-size:13.5px;font-weight:600;
+    color:var(--t3);cursor:pointer;background:none;border:none;}
+  .tab svg{width:15px;height:15px;opacity:.8;}
+  .tab:hover{color:var(--t1);}
+  .tab.active{color:#fff;}
+  .tab.active::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--gold);border-radius:2px;box-shadow:0 0 8px rgba(245,158,11,.5);}
+  .tcount{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:var(--t4);background:var(--hover);border:1px solid var(--border);border-radius:999px;padding:1px 7px;}
+  .tbadge{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;border-radius:999px;padding:1px 7px;}
+  .tbadge.gold{color:var(--gold2);background:rgba(245,158,11,.16);border:1px solid rgba(245,158,11,.4);}
+  .tbadge.amber{color:var(--amber-l);background:rgba(245,158,11,.16);border:1px solid rgba(245,158,11,.4);}
+
+  /* ===== MAIN panel ===== */
+  .panel{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;min-height:0;margin:12px 22px 14px;}
+  .panel-h{display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--border);flex-shrink:0;}
+  .panel-h .count{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--t4);}
+
+  /* ===== FILTER BAR (toolbar tabella) ===== */
+  .filterbar{display:flex;align-items:flex-end;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap;}
+  .fld label{display:block;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t4);margin-bottom:6px;}
+  .inp{background:var(--elev);border:1px solid var(--border);border-radius:9px;padding:8px 12px;color:var(--t2);font-size:13px;display:flex;align-items:center;gap:8px;}
+  .inp svg{width:14px;height:14px;color:var(--t4);}
+  .inp.ph{color:var(--t4);}
+  .sel{background:var(--elev);border:1px solid var(--border);border-radius:9px;padding:8px 12px;color:var(--t2);font-size:13px;display:flex;align-items:center;gap:18px;}
+  .sel svg{width:13px;height:13px;color:var(--t4);}
+  .teamsel{background:var(--elev);border:1px solid var(--border);border-radius:9px;padding:7px 11px;color:var(--t2);font-size:13px;display:flex;align-items:center;gap:9px;min-width:150px;justify-content:space-between;}
+  .teamsel .lg{width:20px;height:20px;border-radius:5px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#222;}
+  .btn-reset{margin-left:auto;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;color:var(--t3);background:var(--card);border:1px solid var(--border);border-radius:9px;padding:8px 14px;cursor:pointer;}
+
+  /* ===== TABLE ===== */
+  .tbl{width:100%;border-collapse:collapse;}
+  .tbl thead th{position:sticky;top:0;background:var(--elev);z-index:1;}
+  .tbl th{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t4);padding:10px 16px;text-align:left;border-bottom:1px solid var(--border);}
+  .tbl th.r{text-align:right;} .tbl th.c{text-align:center;}
+  .tbl td{padding:10px 16px;border-bottom:1px solid var(--border);font-size:13px;}
+  .tbl td.r{text-align:right;} .tbl td.c{text-align:center;}
+  .tbl tr:hover td{background:var(--hover);}
+  .tbl tr.dim td{opacity:.45;}
+
+  /* chip ruolo (P/D/C/A) — POSITION_GRADIENTS → token */
+  .pos{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-size:11px;font-weight:800;flex-shrink:0;}
+  .pos.P{background:rgba(245,158,11,.16);color:var(--gold2);border:1px solid rgba(245,158,11,.4);}
+  .pos.D{background:rgba(59,130,246,.16);color:var(--primary-l);border:1px solid rgba(59,130,246,.4);}
+  .pos.C{background:rgba(34,197,94,.16);color:var(--secondary-l);border:1px solid rgba(34,197,94,.4);}
+  .pos.A{background:rgba(239,68,68,.16);color:var(--danger-l);border:1px solid rgba(239,68,68,.4);}
+  .p-name{font-family:'Outfit',sans-serif;font-size:13.5px;font-weight:700;}
+  .p-name.strike{color:var(--t4);text-decoration:line-through;}
+  .teamcell{display:flex;align-items:center;gap:9px;color:var(--t3);}
+  .teamcell .lg{width:24px;height:24px;border-radius:6px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#222;flex-shrink:0;}
+  .teamcell .lg.gray{filter:grayscale(1);opacity:.6;}
+  .quot{font-family:'Oswald',sans-serif;font-size:17px;font-weight:600;color:var(--gold2);font-variant-numeric:tabular-nums;}
+  .quot.off{color:var(--t4);}
+  .st-pill{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;letter-spacing:.05em;border-radius:6px;padding:3px 9px;}
+  .st-pill.in{color:var(--secondary-l);background:rgba(34,197,94,.13);border:1px solid rgba(34,197,94,.4);}
+  .st-pill.out{color:var(--danger-l);background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4);}
+  .st-pill.ver{color:var(--secondary-l);background:rgba(34,197,94,.13);border:1px solid rgba(34,197,94,.4);}
+  .st-pill.unver{color:var(--amber-l);background:rgba(245,158,11,.13);border:1px solid rgba(245,158,11,.4);}
+  .st-pill.sa{color:var(--gold2);background:rgba(245,158,11,.13);border:1px solid rgba(245,158,11,.4);}
+  .st-pill.active{color:var(--secondary-l);background:rgba(34,197,94,.13);border:1px solid rgba(34,197,94,.4);}
+  .st-pill.draft{color:var(--primary-l);background:rgba(59,130,246,.13);border:1px solid rgba(59,130,246,.4);}
+  .st-pill.done{color:var(--t3);background:var(--hover);border:1px solid var(--border);}
+
+  /* riga azioni edit/elimina */
+  .iact{display:inline-flex;align-items:center;gap:6px;}
+  .ibtn{width:30px;height:30px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;background:var(--card);border:1px solid var(--border);color:var(--t3);}
+  .ibtn svg{width:15px;height:15px;}
+  .ibtn:hover{color:var(--t1);}
+  .ibtn.del{color:var(--danger-l);background:rgba(239,68,68,.07);border-color:rgba(239,68,68,.4);}
+  .lnk{font-family:'Outfit',sans-serif;font-size:11.5px;font-weight:700;color:var(--primary-l);background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.4);border-radius:8px;padding:5px 12px;cursor:pointer;}
+
+  /* pager */
+  .pager{display:flex;align-items:center;justify-content:space-between;padding:11px 16px;border-top:1px solid var(--border);flex-shrink:0;}
+  .pager .tot{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--t4);}
+  .pager .nav{display:flex;align-items:center;gap:8px;}
+  .pbtn{font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;color:var(--t2);background:var(--card);border:1px solid var(--border);border-radius:8px;padding:7px 13px;cursor:pointer;}
+  .pbtn:disabled{opacity:.4;}
+  .pinfo{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--t3);padding:0 4px;}
+
+  /* lega crest + nome (tab leghe) */
+  .lname{display:flex;align-items:center;gap:12px;}
+  .lcrest{width:38px;height:38px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-size:13px;font-weight:800;background:var(--hover);border:1px solid var(--border);color:var(--primary-l);}
+  .lname .nm{font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;}
+  .lname .id{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--t4);margin-top:2px;}
+  .mono-cell{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums;color:var(--t2);}
+  .budget{font-family:'Oswald',sans-serif;font-size:17px;font-weight:600;color:var(--gold2);font-variant-numeric:tabular-nums;}
+
+  /* monogramma utente (tab utenti / membri) */
+  .umono{width:30px;height:30px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;background:var(--hover);border:1px solid var(--border);color:var(--t1);flex-shrink:0;}
+
+  /* ===== CONFIRM DIALOG (azione distruttiva: elimina lega) ===== */
+  .overlay{position:absolute;inset:0;background:rgba(5,6,8,.66);z-index:25;display:flex;align-items:center;justify-content:center;}
+  .dialog{width:430px;background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:0 30px 70px rgba(0,0,0,.6);}
+  .dialog .dh{display:flex;gap:13px;align-items:flex-start;padding:20px 20px 14px;}
+  .dialog .dicn{width:46px;height:46px;border-radius:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:rgba(239,68,68,.13);border:1px solid rgba(239,68,68,.4);}
+  .dialog .dicn svg{width:23px;height:23px;color:var(--danger-l);}
+  .dialog .dt{font-family:'Outfit',sans-serif;font-size:16px;font-weight:700;}
+  .dialog .dd{font-size:12.5px;color:var(--t3);line-height:1.5;margin-top:4px;}
+  .dialog .dd b{color:var(--t1);}
+  .dialog .dd .warn{color:var(--danger-l);}
+  .dialog .dbody{padding:0 20px 6px;}
+  .dialog .confirmfield{background:var(--elev);border:1px solid var(--border);border-radius:9px;padding:9px 12px;color:var(--t4);font-size:12.5px;font-family:'JetBrains Mono',monospace;}
+  .dialog .df{display:flex;gap:10px;justify-content:flex-end;padding:16px 20px 20px;}
+  .dbtn{font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;border-radius:10px;padding:9px 16px;cursor:pointer;}
+  .dbtn.cancel{color:var(--t2);background:var(--card);border:1px solid var(--border);}
+  .dbtn.danger{color:#fff;background:var(--danger);border:1px solid var(--danger);box-shadow:0 6px 18px rgba(239,68,68,.3);}
+
+  /* ===== TOAST (banner → toast) ===== */
+  .toast{position:absolute;top:14px;right:16px;z-index:30;display:flex;align-items:center;gap:11px;
+    background:var(--card);border:1px solid rgba(34,197,94,.45);border-left:3px solid var(--secondary);border-radius:12px;
+    padding:12px 15px;box-shadow:0 16px 40px rgba(0,0,0,.5);max-width:360px;}
+  .toast .ti{width:30px;height:30px;border-radius:9px;background:rgba(34,197,94,.14);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .toast .ti svg{width:16px;height:16px;color:var(--secondary-l);}
+  .toast .tt{font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;}
+  .toast .td{font-size:11.5px;color:var(--t3);margin-top:1px;}
+  .toast .x{margin-left:6px;color:var(--t4);background:none;border:none;cursor:pointer;}
+  .toast .x svg{width:14px;height:14px;}
+
+  /* ===== STAT TILES (tab stats, accenno) ===== */
+  .stat-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;}
+  .stat{background:var(--elev);border:1px solid var(--border);border-radius:13px;padding:16px 16px;}
+  .stat.green{border-color:rgba(34,197,94,.3);} .stat.amber{border-color:rgba(245,158,11,.3);}
+  .stat.blue{border-color:rgba(59,130,246,.3);} .stat.red{border-color:rgba(239,68,68,.3);}
+  .stat .sv{font-family:'Oswald',sans-serif;font-size:34px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;color:var(--t1);}
+  .stat.green .sv{color:var(--secondary-l);} .stat.amber .sv{color:var(--gold2);}
+  .stat.blue .sv{color:var(--primary-l);} .stat.red .sv{color:var(--danger-l);}
+  .stat .sl{font-size:11px;color:var(--t3);margin-top:7px;}
+  .secthead{display:flex;align-items:center;gap:10px;margin:0 0 14px;}
+  .secthead .lastsync{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--t4);}
+</style>
+</head>
+<body>
+
+<h1 class="page">Console SuperAdmin — Cockpit</h1>
+<p class="sub">Riusa la <b>shell admin</b> (testata + barra tab PanelTabs + scroll nei pannelli) approvata per AdminPanel, ma a livello <b>piattaforma</b>: monogramma piattaforma + "Console SuperAdmin" + badge <b>Super Admin</b> oro al posto di crest/fase di lega. Le 2 tabelle dense (Anagrafica giocatori, Leghe) sono rese in stile DataTable: header <b>.micro-label</b>, cifre <b>Oswald/font-mono</b>, ruoli a chip-token, azioni distruttive in danger con <b>ConfirmDialog</b>. 121 gray-* → t3/t4/border; 14 gradient → superfici piatte/accenti token; banner esito → <b>toast</b>.</p>
+
+<div class="frames">
+
+<!-- ============ FRAME 1 — TAB ANAGRAFICA (players) ============ -->
+<div>
+  <div class="frame-label">Tab <b>Anagrafica</b> — tabella densa giocatori + filtri/ricerca/squadra + editing riga · esito import come <b>toast</b></div>
+  <div class="frame">
+
+    <!-- TOAST (importResult → toast) -->
+    <div class="toast">
+      <span class="ti"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></span>
+      <div><div class="tt">Quotazioni importate</div><div class="td">+18 nuovi · 602 aggiornati · 14 non in lista</div></div>
+      <button class="x"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
+    </div>
+
+    <!-- TESTATA piattaforma -->
+    <div class="head">
+      <span class="plogo">FC</span>
+      <div class="head-id">
+        <div class="nm">Console SuperAdmin <span class="scope-pill"><span class="d"></span>PIATTAFORMA</span></div>
+        <div class="sb"><span>Gestione globale Fantacontratti</span><span>·</span><span>620 giocatori · 12 leghe · 47 utenti</span></div>
+      </div>
+      <div class="head-right">
+        <span class="badge-sa">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 3l2.5 14h9L19 3l-4.5 5L12 3 9.5 8 5 3z"/></svg>
+          Super Admin
+        </span>
+      </div>
+    </div>
+
+    <!-- BARRA TAB -->
+    <div class="tabbar">
+      <button class="tab">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+        Import
+      </button>
+      <button class="tab active">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+        Anagrafica <span class="tcount">620</span>
+      </button>
+      <button class="tab">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-3M9 9v.01M9 12v.01M9 15v.01M9 18v.01"/></svg>
+        Leghe <span class="tcount">12</span>
+      </button>
+      <button class="tab">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a3 3 0 10-3-3"/></svg>
+        Utenti <span class="tcount">47</span><span class="tbadge amber">3</span>
+      </button>
+      <button class="tab">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        Statistiche
+      </button>
+    </div>
+
+    <!-- MAIN: filtri + tabella scroll + pager -->
+    <div class="panel">
+      <div class="panel-h"><span class="micro">Anagrafica giocatori · quotazioni</span><span class="count">620 totali · 568 in lista · 52 non in lista</span></div>
+
+      <!-- toolbar filtri -->
+      <div class="filterbar">
+        <div class="fld"><label>Cerca</label><div class="inp ph"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"/></svg>Nome giocatore…</div></div>
+        <div class="fld"><label>Ruolo</label><div class="sel">Tutti<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg></div></div>
+        <div class="fld"><label>Stato</label><div class="sel">In Lista<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg></div></div>
+        <div class="fld"><label>Squadra</label><div class="teamsel"><span style="display:flex;align-items:center;gap:8px;"><span class="lg">INT</span>Inter</span><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" style="width:13px;height:13px;color:var(--t4);"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg></div></div>
+        <button class="btn-reset">Reset filtri</button>
+      </div>
+
+      <!-- tabella scroll -->
+      <div class="scrollwrap">
+        <div class="scrollbody" style="padding:0;">
+          <table class="tbl">
+            <thead><tr><th style="width:60px;">Ruolo</th><th>Nome</th><th>Squadra</th><th class="c">Quot.</th><th class="c">Stato</th><th class="r">Azioni</th></tr></thead>
+            <tbody>
+              <tr><td><span class="pos A">A</span></td><td><span class="p-name">Lautaro Martínez</span></td><td><div class="teamcell"><span class="lg">INT</span>Inter</div></td><td class="c"><span class="quot">38</span></td><td class="c"><span class="st-pill in">IN LISTA</span></td><td class="r"><div class="iact"><button class="ibtn"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button><button class="ibtn del"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></div></td></tr>
+              <tr><td><span class="pos C">C</span></td><td><span class="p-name">Nicolò Barella</span></td><td><div class="teamcell"><span class="lg">INT</span>Inter</div></td><td class="c"><span class="quot">28</span></td><td class="c"><span class="st-pill in">IN LISTA</span></td><td class="r"><div class="iact"><button class="ibtn"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button><button class="ibtn del"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></div></td></tr>
+              <tr><td><span class="pos D">D</span></td><td><span class="p-name">Alessandro Bastoni</span></td><td><div class="teamcell"><span class="lg">INT</span>Inter</div></td><td class="c"><span class="quot">19</span></td><td class="c"><span class="st-pill in">IN LISTA</span></td><td class="r"><div class="iact"><button class="ibtn"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button><button class="ibtn del"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></div></td></tr>
+              <tr><td><span class="pos P">P</span></td><td><span class="p-name">Yann Sommer</span></td><td><div class="teamcell"><span class="lg">INT</span>Inter</div></td><td class="c"><span class="quot">14</span></td><td class="c"><span class="st-pill in">IN LISTA</span></td><td class="r"><div class="iact"><button class="ibtn"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button><button class="ibtn del"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></div></td></tr>
+              <tr><td><span class="pos A">A</span></td><td><span class="p-name">Marcus Thuram</span></td><td><div class="teamcell"><span class="lg">INT</span>Inter</div></td><td class="c"><span class="quot">31</span></td><td class="c"><span class="st-pill in">IN LISTA</span></td><td class="r"><div class="iact"><button class="ibtn"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button><button class="ibtn del"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></div></td></tr>
+              <tr><td><span class="pos C">C</span></td><td><span class="p-name">Hakan Çalhanoğlu</span></td><td><div class="teamcell"><span class="lg">INT</span>Inter</div></td><td class="c"><span class="quot">24</span></td><td class="c"><span class="st-pill in">IN LISTA</span></td><td class="r"><div class="iact"><button class="ibtn"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button><button class="ibtn del"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></div></td></tr>
+              <tr class="dim"><td><span class="pos D">D</span></td><td><span class="p-name strike">Stefan de Vrij</span></td><td><div class="teamcell"><span class="lg gray">INT</span>Inter</div></td><td class="c"><span class="quot off">11</span></td><td class="c"><span class="st-pill out">NON IN LISTA</span></td><td class="r"><div class="iact"><button class="ibtn"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button><button class="ibtn del"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></div></td></tr>
+              <tr><td><span class="pos A">A</span></td><td><span class="p-name">Dušan Vlahović</span></td><td><div class="teamcell"><span class="lg">JUV</span>Juventus</div></td><td class="c"><span class="quot">33</span></td><td class="c"><span class="st-pill in">IN LISTA</span></td><td class="r"><div class="iact"><button class="ibtn"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button><button class="ibtn del"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></div></td></tr>
+              <tr><td><span class="pos C">C</span></td><td><span class="p-name">Manuel Locatelli</span></td><td><div class="teamcell"><span class="lg">JUV</span>Juventus</div></td><td class="c"><span class="quot">20</span></td><td class="c"><span class="st-pill in">IN LISTA</span></td><td class="r"><div class="iact"><button class="ibtn"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button><button class="ibtn del"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></div></td></tr>
+              <tr><td><span class="pos D">D</span></td><td><span class="p-name">Gleison Bremer</span></td><td><div class="teamcell"><span class="lg">JUV</span>Juventus</div></td><td class="c"><span class="quot">22</span></td><td class="c"><span class="st-pill in">IN LISTA</span></td><td class="r"><div class="iact"><button class="ibtn"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button><button class="ibtn del"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></div></td></tr>
+              <tr><td><span class="pos A">A</span></td><td><span class="p-name">Victor Osimhen</span></td><td><div class="teamcell"><span class="lg">NAP</span>Napoli</div></td><td class="c"><span class="quot">37</span></td><td class="c"><span class="st-pill in">IN LISTA</span></td><td class="r"><div class="iact"><button class="ibtn"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button><button class="ibtn del"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="fadeb"></div>
+      </div>
+
+      <!-- pager -->
+      <div class="pager">
+        <span class="tot">620 giocatori totali · 50 per pagina</span>
+        <div class="nav"><button class="pbtn" disabled>Prec.</button><span class="pinfo">1 / 13</span><button class="pbtn">Succ.</button></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ FRAME 2 — TAB LEGHE (leagues) ============ -->
+<div>
+  <div class="frame-label">Tab <b>Leghe</b> — tabella leghe con LeagueCrest + apri rosa + <b>elimina (ConfirmDialog danger)</b> · STESSA testata+barra (shell riusata)</div>
+  <div class="frame">
+
+    <!-- TESTATA (identica — shell condivisa) -->
+    <div class="head">
+      <span class="plogo">FC</span>
+      <div class="head-id">
+        <div class="nm">Console SuperAdmin <span class="scope-pill"><span class="d"></span>PIATTAFORMA</span></div>
+        <div class="sb"><span>Gestione globale Fantacontratti</span><span>·</span><span>620 giocatori · 12 leghe · 47 utenti</span></div>
+      </div>
+      <div class="head-right">
+        <span class="badge-sa">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 3l2.5 14h9L19 3l-4.5 5L12 3 9.5 8 5 3z"/></svg>
+          Super Admin
+        </span>
+      </div>
+    </div>
+
+    <!-- BARRA TAB (Leghe attivo) -->
+    <div class="tabbar">
+      <button class="tab">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+        Import
+      </button>
+      <button class="tab">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+        Anagrafica <span class="tcount">620</span>
+      </button>
+      <button class="tab active">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-3M9 9v.01M9 12v.01M9 15v.01M9 18v.01"/></svg>
+        Leghe <span class="tcount">12</span>
+      </button>
+      <button class="tab">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a3 3 0 10-3-3"/></svg>
+        Utenti <span class="tcount">47</span><span class="tbadge amber">3</span>
+      </button>
+      <button class="tab">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        Statistiche
+      </button>
+    </div>
+
+    <!-- MAIN: ricerca + tabella leghe + pager -->
+    <div class="panel">
+      <div class="panel-h"><span class="micro">Gestione leghe · membri · budget</span><span class="count">12 leghe · 9 attive · 3 in preparazione</span></div>
+
+      <div class="filterbar">
+        <div class="fld" style="flex:1;min-width:280px;"><label>Cerca lega o utente</label><div class="inp ph" style="width:100%;"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"/></svg>Nome lega o username…</div></div>
+        <button class="lnk" style="padding:8px 16px;">Cerca</button>
+        <button class="btn-reset">Reset</button>
+      </div>
+
+      <div class="scrollwrap">
+        <div class="scrollbody" style="padding:0;">
+          <table class="tbl">
+            <thead><tr><th>Lega</th><th class="c">Stato</th><th class="c">Membri</th><th class="c">Sessioni</th><th class="r">Budget iniz.</th><th>Creata</th><th class="r">Azioni</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><div class="lname"><span class="lcrest">FT</span><div><div class="nm">Fantacontratti Test</div><div class="id">cmq7txskk02az…</div></div></div></td>
+                <td class="c"><span class="st-pill active">ATTIVA</span></td>
+                <td class="c"><span class="mono-cell">8 / 8</span></td>
+                <td class="c"><span class="mono-cell">4</span></td>
+                <td class="r"><span class="budget">300</span></td>
+                <td><span class="mono-cell">07 giu 2026</span></td>
+                <td class="r"><div class="iact"><button class="lnk">Apri rosa</button><button class="ibtn del"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></div></td>
+              </tr>
+              <tr>
+                <td><div class="lname"><span class="lcrest">LS</span><div><div class="nm">Lega Serie Amici</div><div class="id">cmq4a8d1p07kx…</div></div></div></td>
+                <td class="c"><span class="st-pill active">ATTIVA</span></td>
+                <td class="c"><span class="mono-cell">10 / 10</span></td>
+                <td class="c"><span class="mono-cell">7</span></td>
+                <td class="r"><span class="budget">500</span></td>
+                <td><span class="mono-cell">21 mag 2026</span></td>
+                <td class="r"><div class="iact"><button class="lnk">Apri rosa</button><button class="ibtn del"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></div></td>
+              </tr>
+              <tr>
+                <td><div class="lname"><span class="lcrest">DY</span><div><div class="nm">Dynasty Pro League</div><div class="id">cmq2k9v0x01ab…</div></div></div></td>
+                <td class="c"><span class="st-pill active">ATTIVA</span></td>
+                <td class="c"><span class="mono-cell">12 / 12</span></td>
+                <td class="c"><span class="mono-cell">11</span></td>
+                <td class="r"><span class="budget">400</span></td>
+                <td><span class="mono-cell">02 mar 2026</span></td>
+                <td class="r"><div class="iact"><button class="lnk">Apri rosa</button><button class="ibtn del"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></div></td>
+              </tr>
+              <tr>
+                <td><div class="lname"><span class="lcrest">NB</span><div><div class="nm">Nuova Bocciofila FC</div><div class="id">cmr1x4t0c09mn…</div></div></div></td>
+                <td class="c"><span class="st-pill draft">IN PREPARAZIONE</span></td>
+                <td class="c"><span class="mono-cell">3 / 8</span></td>
+                <td class="c"><span class="mono-cell">0</span></td>
+                <td class="r"><span class="budget">300</span></td>
+                <td><span class="mono-cell">12 giu 2026</span></td>
+                <td class="r"><div class="iact"><button class="lnk">Apri rosa</button><button class="ibtn del"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></div></td>
+              </tr>
+              <tr>
+                <td><div class="lname"><span class="lcrest">VC</span><div><div class="nm">Vecchia Guardia</div><div class="id">cmp9w2e0a05gh…</div></div></div></td>
+                <td class="c"><span class="st-pill done">COMPLETATA</span></td>
+                <td class="c"><span class="mono-cell">8 / 8</span></td>
+                <td class="c"><span class="mono-cell">14</span></td>
+                <td class="r"><span class="budget">350</span></td>
+                <td><span class="mono-cell">14 gen 2026</span></td>
+                <td class="r"><div class="iact"><button class="lnk">Apri rosa</button><button class="ibtn del"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></div></td>
+              </tr>
+              <tr>
+                <td><div class="lname"><span class="lcrest">CL</span><div><div class="nm">Champions Locale</div><div class="id">cmq0p1n0b03cd…</div></div></div></td>
+                <td class="c"><span class="st-pill active">ATTIVA</span></td>
+                <td class="c"><span class="mono-cell">6 / 8</span></td>
+                <td class="c"><span class="mono-cell">2</span></td>
+                <td class="r"><span class="budget">300</span></td>
+                <td><span class="mono-cell">29 apr 2026</span></td>
+                <td class="r"><div class="iact"><button class="lnk">Apri rosa</button><button class="ibtn del"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></div></td>
+              </tr>
+              <tr>
+                <td><div class="lname"><span class="lcrest">TF</span><div><div class="nm">Tifosi del Sud</div><div class="id">cmp7m5q0d02ef…</div></div></div></td>
+                <td class="c"><span class="st-pill draft">IN PREPARAZIONE</span></td>
+                <td class="c"><span class="mono-cell">1 / 12</span></td>
+                <td class="c"><span class="mono-cell">0</span></td>
+                <td class="r"><span class="budget">450</span></td>
+                <td><span class="mono-cell">13 giu 2026</span></td>
+                <td class="r"><div class="iact"><button class="lnk">Apri rosa</button><button class="ibtn del"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="fadeb"></div>
+      </div>
+
+      <div class="pager">
+        <span class="tot">12 leghe totali</span>
+        <div class="nav"><button class="pbtn" disabled>Prec.</button><span class="pinfo">1 / 2</span><button class="pbtn">Succ.</button></div>
+      </div>
+    </div>
+
+    <!-- ConfirmDialog (elimina lega — azione distruttiva) -->
+    <div class="overlay">
+      <div class="dialog">
+        <div class="dh">
+          <span class="dicn"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4a2 2 0 00-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"/></svg></span>
+          <div>
+            <div class="dt">Eliminare la lega?</div>
+            <div class="dd">Stai per eliminare <b>Nuova Bocciofila FC</b> con i suoi <b>3 membri</b>, rose, contratti e sessioni di mercato. <span class="warn">Questa azione non può essere annullata.</span></div>
+          </div>
+        </div>
+        <div class="dbody"><div class="confirmfield">Digita <b style="color:var(--t2);">ELIMINA</b> per confermare…</div></div>
+        <div class="df">
+          <button class="dbtn cancel">Annulla</button>
+          <button class="dbtn danger">Elimina lega</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ FRAME 3 — TAB STATISTICHE (accenno: stat tiles Oswald) ============ -->
+<div>
+  <div class="frame-label">Tab <b>Statistiche</b> (accenno) — stat tiles in <b>Oswald</b> + tabella associazioni · stessa shell</div>
+  <div class="frame">
+
+    <div class="head">
+      <span class="plogo">FC</span>
+      <div class="head-id">
+        <div class="nm">Console SuperAdmin <span class="scope-pill"><span class="d"></span>PIATTAFORMA</span></div>
+        <div class="sb"><span>Gestione globale Fantacontratti</span><span>·</span><span>620 giocatori · 12 leghe · 47 utenti</span></div>
+      </div>
+      <div class="head-right">
+        <span class="badge-sa"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 3l2.5 14h9L19 3l-4.5 5L12 3 9.5 8 5 3z"/></svg>Super Admin</span>
+      </div>
+    </div>
+
+    <div class="tabbar">
+      <button class="tab"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>Import</button>
+      <button class="tab"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>Anagrafica <span class="tcount">620</span></button>
+      <button class="tab"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-3M9 9v.01M9 12v.01M9 15v.01M9 18v.01"/></svg>Leghe <span class="tcount">12</span></button>
+      <button class="tab"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a3 3 0 10-3-3"/></svg>Utenti <span class="tcount">47</span><span class="tbadge amber">3</span></button>
+      <button class="tab active"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>Statistiche</button>
+    </div>
+
+    <div class="panel">
+      <div class="panel-h"><span class="micro">Statistiche piattaforma · sync API-Football</span><span class="count">Ultimo sync: 14 giu 2026 · 09:42</span></div>
+      <div class="scrollwrap">
+        <div class="scrollbody">
+          <div class="secthead"><span class="micro" style="color:var(--t2);">Stato sync API-Football v3</span><span class="lastsync">Ultimo sync 14 giu 2026 · 09:42</span></div>
+          <div class="stat-grid">
+            <div class="stat"><div class="sv">620</div><div class="sl">Giocatori totali</div></div>
+            <div class="stat green"><div class="sv">541</div><div class="sl">Matchati</div></div>
+            <div class="stat amber"><div class="sv">79</div><div class="sl">Non matchati</div></div>
+            <div class="stat blue"><div class="sv">498</div><div class="sl">Con statistiche</div></div>
+            <div class="stat red"><div class="sv">43</div><div class="sl">Senza statistiche</div></div>
+          </div>
+          <div style="height:14px;"></div>
+          <div class="secthead" style="margin-top:6px;"><span class="micro" style="color:var(--t2);">Associazioni esistenti</span><span class="lastsync">541 confermate</span></div>
+          <table class="tbl" style="border:1px solid var(--border);border-radius:12px;overflow:hidden;">
+            <thead><tr><th style="width:60px;">Ruolo</th><th>Giocatore DB</th><th>API-Football</th><th class="r">API ID</th><th class="r">Azioni</th></tr></thead>
+            <tbody>
+              <tr><td><span class="pos A">A</span></td><td><span class="p-name">Lautaro Martínez</span></td><td style="color:var(--secondary-l);font-weight:600;">L. Martínez</td><td class="r mono-cell">217</td><td class="r"><button class="ibtn del" style="margin-left:auto;"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></td></tr>
+              <tr><td><span class="pos C">C</span></td><td><span class="p-name">Nicolò Barella</span></td><td style="color:var(--secondary-l);font-weight:600;">N. Barella</td><td class="r mono-cell">2467</td><td class="r"><button class="ibtn del" style="margin-left:auto;"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></td></tr>
+              <tr><td><span class="pos A">A</span></td><td><span class="p-name">Victor Osimhen</span></td><td style="color:var(--secondary-l);font-weight:600;">V. Osimhen</td><td class="r mono-cell">1485</td><td class="r"><button class="ibtn del" style="margin-left:auto;"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="fadeb"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</div>
+</body>
+</html>

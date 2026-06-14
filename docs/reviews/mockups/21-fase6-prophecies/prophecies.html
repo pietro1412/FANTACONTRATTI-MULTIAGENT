@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Mockup — Profezie (Cockpit) 1440×860</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=Oswald:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     PROFEZIE — pattern COCKPIT (ultima pagina rework Fase 6).
+     Derivata da 19-fase6-adminpanel/cockpit + 06-svincolati/cockpit.
+
+     SHELL: griglia [testata 56][barra filtri 52][main 1fr] — testata e barra
+     filtri SEMPRE visibili; lo scroll vive SOLO dentro i pannelli via .scrollbody
+     (scrollbar 6px + fade in basso). Su mobile la pagina tornerebbe a flusso normale.
+
+     MAIN a 2 colonne: [lista profezie 1fr (scroll)] + [stats sidebar 340px (scroll)].
+     La sidebar (Top Profeti podio + Top Giocatori) è SEMPRE visibile; scrolla a parte.
+
+     RIMAPPATURA dai colori attuali (fuori-token) → token tema:
+       - `purple` (9 occorrenze) accento tematico "profezie" (fuori palette)  → primary (blu)
+         (coerente con la scelta già fatta per FeedbackHub)
+       - badge ranking raw yellow-500/gray-400/amber-600                      → ECCEZIONE semantica:
+         podio Top Profeti = oro (1°), argento/bronzo a token neutri
+       - emoji-titolo H1 🔮 / EmptyState 🔮                                    → micro-label + SVG sobrio
+       - chip ruolo BUYER/SELLER green/gray crudo                             → secondary (BUYER=Acquirente)
+         / primary (SELLER=Osservatore), token semantici leggibili
+       - movementType tags pink/cyan/orange... fuori palette                  → token (primary/secondary/gold/danger)
+       - position colors amber/blue/emerald/red crudi                         → mantenuti come accenti ruolo P/D/C/A
+                                                                                 ma su token tema (gold/primary/secondary/danger)
+     CONTATORI in Oswald (.stat-number); nomi in Outfit; header pannello micro-label.
+     ============================================================ */
+  :root{
+    --bg:#0a0a0b; --card:#1a1c20; --elev:#111214; --hover:#252830; --border:#2d3139;
+    --primary:#3b82f6; --primary-l:#93c5fd; --primary-d:#1e40af;
+    --secondary:#22c55e; --secondary-l:#86efac;
+    --gold:#f59e0b; --gold2:#fbbf24; --gold-d:#b45309;
+    --danger:#ef4444; --danger-l:#fca5a5;
+    --amber:#f59e0b; --amber-l:#fbbf24;
+    --t1:#f9fafb; --t2:#d1d5db; --t3:#9ca3af; --t4:#8b919d;
+    --silver:#cbd5e1; --bronze:#d8a36b;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--t1);font-family:'Inter',sans-serif;padding:40px 0 80px;}
+  button{font:inherit;}
+  h1.page{font-family:'Outfit',sans-serif;font-size:22px;font-weight:700;text-align:center;margin-bottom:6px;}
+  p.sub{text-align:center;color:var(--t3);font-size:13px;margin:0 auto 36px;max-width:1000px;line-height:1.55;}
+  p.sub b{color:var(--t2);}
+  .frames{display:flex;flex-direction:column;align-items:center;gap:56px;}
+  .frame-label{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--t3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;text-align:center;}
+  .frame-label b{color:var(--t1);}
+
+  .frame{width:1440px;height:860px;border:1px solid var(--border);border-radius:16px;background:var(--bg);overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.55);display:grid;grid-template-rows:56px 52px minmax(0,1fr);position:relative;}
+  .frame>*{min-width:0;min-height:0;}
+
+  .micro{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--t4);}
+  .micro.gold{color:var(--gold2);}
+  .mono{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums;}
+  .num{font-family:'Oswald',sans-serif;font-variant-numeric:tabular-nums;}
+
+  /* scroll dentro i pannelli */
+  .scrollwrap{position:relative;flex:1;min-height:0;}
+  .scrollbody{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:#3a3f49 transparent;padding:14px 16px;}
+  .scrollbody::-webkit-scrollbar{width:6px;}
+  .scrollbody::-webkit-scrollbar-thumb{background:#3a3f49;border-radius:3px;}
+  .fadeb{position:absolute;left:1px;right:7px;bottom:0;height:40px;background:linear-gradient(180deg,rgba(10,10,11,0),var(--bg) 90%);pointer-events:none;}
+
+  /* ===== TESTATA (titolo Profezie + conteggio + toggle vista) ===== */
+  .head{display:flex;align-items:center;gap:13px;padding:0 22px;background:var(--elev);border-bottom:1px solid var(--border);}
+  .head-icn{width:38px;height:38px;border-radius:11px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+    background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.4);}
+  .head-icn svg{width:20px;height:20px;color:var(--primary-l);}
+  .head-id .nm{font-family:'Outfit',sans-serif;font-size:17px;font-weight:700;line-height:1.15;display:flex;align-items:center;gap:11px;}
+  .head-id .cnt{font-family:'Oswald',sans-serif;font-size:19px;font-weight:600;color:var(--primary-l);font-variant-numeric:tabular-nums;}
+  .head-id .sb{font-size:11.5px;color:var(--t3);margin-top:2px;}
+  .head-right{margin-left:auto;display:flex;align-items:center;gap:14px;}
+  /* toggle vista compatta/espansa (segmented) */
+  .seg{display:inline-flex;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--elev);}
+  .seg button{display:flex;align-items:center;gap:7px;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;color:var(--t3);background:none;border:none;padding:8px 13px;cursor:pointer;}
+  .seg button svg{width:14px;height:14px;}
+  .seg button.on{background:var(--primary);color:#fff;}
+  .seg .div{width:1px;background:var(--border);}
+  /* toggle stats */
+  .stats-tgl{display:inline-flex;align-items:center;gap:7px;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;color:var(--primary-l);background:rgba(59,130,246,.10);border:1px solid rgba(59,130,246,.4);border-radius:10px;padding:8px 13px;cursor:pointer;}
+  .stats-tgl svg{width:14px;height:14px;}
+
+  /* ===== BARRA FILTRI (ricerca + filtri attivi + conteggio) ===== */
+  .filterbar{display:flex;align-items:center;gap:12px;padding:0 22px;background:var(--elev);border-bottom:1px solid var(--border);}
+  .srch{position:relative;flex:1;max-width:520px;}
+  .srch svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--t4);}
+  .srch .inp{width:100%;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:9px 13px 9px 36px;color:var(--t4);font-size:13px;}
+  .fchip{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--primary-l);background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.4);border-radius:999px;padding:5px 6px 5px 12px;}
+  .fchip .pos{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;border-radius:4px;padding:1px 5px;}
+  .fchip .x{display:flex;color:var(--primary-l);background:none;border:none;cursor:pointer;padding:2px;}
+  .fchip .x svg{width:12px;height:12px;}
+  .fchip.author .av{width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-size:8.5px;font-weight:700;background:var(--hover);border:1px solid var(--border);color:var(--t1);}
+  .reset{font-size:12px;color:var(--t4);background:none;border:none;cursor:pointer;}
+  .reset:hover{color:var(--t1);}
+  .results{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--t4);white-space:nowrap;}
+  .results b{color:var(--primary-l);}
+
+  /* ===== MAIN: lista (scroll) + sidebar stats (scroll) ===== */
+  .main{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:0;min-height:0;}
+  .col{display:flex;flex-direction:column;min-height:0;}
+  .col.list{border-right:1px solid var(--border);}
+  .col-h{display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--border);flex-shrink:0;}
+  .col-h .count{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--t4);}
+
+  /* ----- LISTA COMPATTA (tabella) ----- */
+  .tbl{width:100%;border-collapse:collapse;}
+  .tbl thead th{position:sticky;top:0;background:var(--elev);z-index:1;}
+  .tbl th{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t4);padding:9px 16px;text-align:left;border-bottom:1px solid var(--border);}
+  .tbl th.r{text-align:right;}
+  .tbl td{padding:10px 16px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle;}
+  .tbl tr:hover td{background:var(--hover);}
+  /* player cell */
+  .pl{display:inline-flex;align-items:center;gap:9px;cursor:pointer;}
+  .pos{width:24px;height:24px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;flex-shrink:0;}
+  .pos.P{color:var(--gold2);background:rgba(245,158,11,.16);} .pos.D{color:var(--primary-l);background:rgba(59,130,246,.16);}
+  .pos.C{color:var(--secondary-l);background:rgba(34,197,94,.16);} .pos.A{color:var(--danger-l);background:rgba(239,68,68,.16);}
+  .pl .pn{font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;}
+  .pl .pt{font-size:10.5px;color:var(--t4);margin-top:1px;}
+  /* prophecy text cell */
+  .ptxt{color:var(--t2);font-style:italic;font-size:12.5px;max-width:380px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  /* author cell */
+  .au{display:inline-flex;align-items:center;gap:8px;cursor:pointer;}
+  .av{width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-size:10px;font-weight:700;background:var(--hover);border:1px solid var(--border);color:var(--t1);flex-shrink:0;}
+  .au .an{font-family:'Outfit',sans-serif;font-size:12.5px;font-weight:600;color:var(--primary-l);}
+  /* role chip BUYER/SELLER */
+  .role{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.06em;border-radius:6px;padding:2px 8px;text-transform:uppercase;white-space:nowrap;}
+  .role.buyer{color:var(--secondary-l);background:rgba(34,197,94,.14);border:1px solid rgba(34,197,94,.4);}
+  .role.seller{color:var(--primary-l);background:rgba(59,130,246,.14);border:1px solid rgba(59,130,246,.4);}
+  /* event tag */
+  .ev{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.04em;border-radius:5px;padding:2px 8px;text-transform:uppercase;white-space:nowrap;}
+  .ev.market{color:var(--primary-l);background:rgba(59,130,246,.12);}
+  .ev.rubata{color:var(--gold2);background:rgba(245,158,11,.13);}
+  .ev.svinc{color:var(--secondary-l);background:rgba(34,197,94,.12);}
+  .ev.trade{color:var(--primary-l);background:rgba(59,130,246,.12);}
+  .ev.renew{color:var(--secondary-l);background:rgba(34,197,94,.12);}
+  .ev.release{color:var(--danger-l);background:rgba(239,68,68,.12);}
+  .price{font-family:'Oswald',sans-serif;font-size:14px;font-weight:600;color:var(--gold2);font-variant-numeric:tabular-nums;}
+  .date{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--t4);white-space:nowrap;}
+
+  /* ----- LISTA ESPANSA (card) ----- */
+  .pcard{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:13px 15px;margin-bottom:11px;display:flex;gap:14px;}
+  .pcard:hover{border-color:rgba(59,130,246,.4);}
+  .pcard:last-child{margin-bottom:0;}
+  .pcard .pos{width:40px;height:40px;border-radius:11px;font-size:15px;flex-shrink:0;}
+  .pcard .pbody{flex:1;min-width:0;}
+  .pcard .ptop{display:flex;align-items:baseline;gap:9px;margin-bottom:7px;}
+  .pcard .ptop .pn{font-family:'Outfit',sans-serif;font-size:15px;font-weight:700;}
+  .pcard .ptop .pt{font-size:11px;color:var(--t4);}
+  .pcard .quote{color:var(--t1);font-style:italic;font-size:14px;line-height:1.5;position:relative;padding-left:14px;}
+  .pcard .quote::before{content:"\201C";position:absolute;left:-2px;top:-4px;font-family:'Outfit',sans-serif;font-size:30px;color:var(--primary);opacity:.55;line-height:1;}
+  .pcard .pmeta{display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin-top:11px;}
+  .pcard .pdate{flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:6px;}
+
+  /* ===== SIDEBAR STATS ===== */
+  .sb-card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:14px;}
+  .sb-h{display:flex;align-items:center;gap:9px;padding:11px 14px;border-bottom:1px solid var(--border);}
+  .sb-h svg{width:14px;height:14px;color:var(--t4);}
+  .sb-h .micro{color:var(--t2);}
+  .sb-b{padding:8px 14px 12px;}
+
+  /* podio Top Profeti */
+  .podium{display:flex;align-items:flex-end;justify-content:center;gap:10px;padding:10px 0 14px;}
+  .pod{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;}
+  .pod .rk{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:var(--t4);}
+  .pod .pav{border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-weight:700;position:relative;}
+  .pod.first .pav{width:58px;height:58px;font-size:18px;background:rgba(245,158,11,.16);color:var(--gold2);border:2px solid var(--gold);box-shadow:0 0 0 4px rgba(245,158,11,.10),0 0 18px rgba(245,158,11,.25);}
+  .pod.second .pav{width:48px;height:48px;font-size:15px;background:var(--hover);color:var(--silver);border:2px solid var(--silver);}
+  .pod.third .pav{width:48px;height:48px;font-size:15px;background:var(--hover);color:var(--bronze);border:2px solid var(--bronze);}
+  .pod .crown{position:absolute;top:-13px;left:50%;transform:translateX(-50%);width:18px;height:18px;color:var(--gold2);}
+  .pod .pn{font-family:'Outfit',sans-serif;font-size:11.5px;font-weight:700;max-width:78px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .pod .pc{font-family:'Oswald',sans-serif;font-size:22px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;}
+  .pod.first .pc{color:var(--gold2);} .pod.second .pc{color:var(--silver);} .pod.third .pc{color:var(--bronze);}
+  .pod .pcl{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--t4);text-transform:uppercase;letter-spacing:.08em;}
+
+  /* rest of prophets (rows) */
+  .prow{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--border);cursor:pointer;}
+  .prow:hover{opacity:.85;}
+  .prow .rnk{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:var(--t4);width:18px;text-align:center;flex-shrink:0;}
+  .prow .av{width:24px;height:24px;font-size:9px;}
+  .prow .nm{font-family:'Outfit',sans-serif;font-size:12.5px;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .prow .ct{font-family:'Oswald',sans-serif;font-size:15px;font-weight:600;color:var(--primary-l);font-variant-numeric:tabular-nums;}
+  .prow.active{background:rgba(59,130,246,.08);margin:0 -14px;padding:7px 14px;border-radius:0;}
+
+  /* Top Giocatori rows */
+  .gr{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--border);cursor:pointer;}
+  .gr:first-child{border-top:none;}
+  .gr:hover{opacity:.85;}
+  .gr .nm{font-family:'Outfit',sans-serif;font-size:12.5px;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .gr .tm{font-size:10px;color:var(--t4);font-weight:400;}
+  .gr .bar{flex:1;max-width:64px;height:5px;border-radius:3px;background:var(--hover);overflow:hidden;}
+  .gr .bar i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,var(--primary),var(--gold2));}
+  .gr .ct{font-family:'Oswald',sans-serif;font-size:15px;font-weight:600;color:var(--primary-l);font-variant-numeric:tabular-nums;width:22px;text-align:right;}
+
+  /* mini stat tiles */
+  .mini{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+  .mtile{background:var(--elev);border:1px solid var(--border);border-radius:12px;padding:12px 14px;}
+  .mtile .mv{font-family:'Oswald',sans-serif;font-size:26px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;}
+  .mtile.primary .mv{color:var(--primary-l);} .mtile.gold .mv{color:var(--gold2);}
+  .mtile .ml{font-size:10.5px;color:var(--t3);margin-top:5px;}
+
+  /* empty state (frame 3) */
+  .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;height:100%;gap:14px;padding:40px;}
+  .empty .ei{width:64px;height:64px;border-radius:18px;display:flex;align-items:center;justify-content:center;background:rgba(59,130,246,.10);border:1px solid rgba(59,130,246,.3);}
+  .empty .ei svg{width:30px;height:30px;color:var(--primary-l);}
+  .empty .et{font-family:'Outfit',sans-serif;font-size:17px;font-weight:700;}
+  .empty .ed{font-size:13px;color:var(--t3);max-width:360px;line-height:1.5;}
+  .empty .eb{font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#fff;background:var(--primary);border:none;border-radius:10px;padding:9px 18px;cursor:pointer;}
+</style>
+</head>
+<body>
+
+<h1 class="page">Profezie — Cockpit</h1>
+<p class="sub">Ultima pagina del rework Fase 6. Pattern cockpit: <b>testata</b> (icona + titolo + conteggio totale Oswald + toggle vista compatta/espansa + toggle stats) e <b>barra filtri</b> (ricerca debounced + chip filtri attivi autore/giocatore) SEMPRE visibili; il main è a 2 colonne — <b>lista profezie</b> (scroll) + <b>sidebar stats</b> Top Profeti (podio) / Top Giocatori (scroll a parte). Rimappatura <b>purple → primary</b> (come FeedbackHub); <b>oro semantico</b> solo sul 1° del podio. Chip <b>BUYER=Acquirente</b> verde / <b>SELLER=Osservatore</b> blu.</p>
+
+<div class="frames">
+
+<!-- ============ FRAME 1 — VISTA COMPATTA (tabella) ============ -->
+<div>
+  <div class="frame-label">Vista <b>Compatta</b> (tabella) — lista densa scrollabile + sidebar stats. Filtro autore attivo (Mirko City).</div>
+  <div class="frame">
+
+    <!-- TESTATA -->
+    <div class="head">
+      <span class="head-icn"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3c-3.866 0-7 3.134-7 7 0 2.345 1.153 4.42 2.924 5.7.41.296.576.81.576 1.31V18a1 1 0 001 1h5a1 1 0 001-1v-.99c0-.5.166-1.014.576-1.31A6.997 6.997 0 0019 10c0-3.866-3.134-7-7-7z"/></svg></span>
+      <div class="head-id">
+        <div class="nm">Profezie <span class="cnt">247</span></div>
+        <div class="sb">Archivio commenti dei manager su ogni movimento di mercato</div>
+      </div>
+      <div class="head-right">
+        <button class="stats-tgl"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>Statistiche</button>
+        <div class="seg">
+          <button class="on"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>Compatta</button>
+          <span class="div"></span>
+          <button><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h7"/></svg>Espansa</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- BARRA FILTRI -->
+    <div class="filterbar">
+      <div class="srch">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        <div class="inp">Cerca giocatore, manager o testo…</div>
+      </div>
+      <span class="fchip author">
+        <span class="av">MK</span>
+        Mirko City
+        <button class="x"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
+      </span>
+      <button class="reset">Reset</button>
+      <span class="results"><b>18</b> risultati</span>
+    </div>
+
+    <!-- MAIN -->
+    <div class="main">
+
+      <!-- COLONNA LISTA (compatta) -->
+      <div class="col list">
+        <div class="col-h"><span class="micro">Profezie · vista compatta</span><span class="count">filtrate per autore</span></div>
+        <div class="scrollwrap">
+          <div class="scrollbody" style="padding:0;">
+            <table class="tbl">
+              <thead><tr><th>Giocatore</th><th>Profezia</th><th>Autore</th><th>Tipo</th><th>Evento</th><th class="r">Prezzo</th><th class="r">Data</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td><span class="pl"><span class="pos A">A</span><span><span class="pn">Lautaro Martinez</span><span class="pt">Inter</span></span></span></td>
+                  <td><span class="ptxt">"A questa cifra è un furto, lo prendo e non me ne pento."</span></td>
+                  <td><span class="au"><span class="av">MK</span><span class="an">Mirko City</span></span></td>
+                  <td><span class="role buyer">Acquirente</span></td>
+                  <td><span class="ev market">Primo Mercato</span></td>
+                  <td class="r"><span class="price">87M</span></td>
+                  <td class="r"><span class="date">12 giu</span></td>
+                </tr>
+                <tr>
+                  <td><span class="pl"><span class="pos C">C</span><span><span class="pn">Barella</span><span class="pt">Inter</span></span></span></td>
+                  <td><span class="ptxt">"Me lo rubano e piango per una settimana, garantito."</span></td>
+                  <td><span class="au"><span class="av">MK</span><span class="an">Mirko City</span></span></td>
+                  <td><span class="role seller">Osservatore</span></td>
+                  <td><span class="ev rubata">Rubata</span></td>
+                  <td class="r"><span class="price">54M</span></td>
+                  <td class="r"><span class="date">11 giu</span></td>
+                </tr>
+                <tr>
+                  <td><span class="pl"><span class="pos P">P</span><span><span class="pn">Sommer</span><span class="pt">Inter</span></span></span></td>
+                  <td><span class="ptxt">"Portiere sottovalutato, vale ogni milione speso."</span></td>
+                  <td><span class="au"><span class="av">MK</span><span class="an">Mirko City</span></span></td>
+                  <td><span class="role buyer">Acquirente</span></td>
+                  <td><span class="ev svinc">Svincolati</span></td>
+                  <td class="r"><span class="price">12M</span></td>
+                  <td class="r"><span class="date">09 giu</span></td>
+                </tr>
+                <tr>
+                  <td><span class="pl"><span class="pos D">D</span><span><span class="pn">Bastoni</span><span class="pt">Inter</span></span></span></td>
+                  <td><span class="ptxt">"Lo scambio solo se mi danno un attaccante vero in cambio."</span></td>
+                  <td><span class="au"><span class="av">MK</span><span class="an">Mirko City</span></span></td>
+                  <td><span class="role seller">Osservatore</span></td>
+                  <td><span class="ev trade">Scambio</span></td>
+                  <td class="r"><span class="price">—</span></td>
+                  <td class="r"><span class="date">08 giu</span></td>
+                </tr>
+                <tr>
+                  <td><span class="pl"><span class="pos A">A</span><span><span class="pn">Thuram</span><span class="pt">Inter</span></span></span></td>
+                  <td><span class="ptxt">"Rinnovato a vita, è il futuro del mio reparto offensivo."</span></td>
+                  <td><span class="au"><span class="av">MK</span><span class="an">Mirko City</span></span></td>
+                  <td><span class="role buyer">Acquirente</span></td>
+                  <td><span class="ev renew">Rinnovo</span></td>
+                  <td class="r"><span class="price">—</span></td>
+                  <td class="r"><span class="date">07 giu</span></td>
+                </tr>
+                <tr>
+                  <td><span class="pl"><span class="pos C">C</span><span><span class="pn">Calhanoglu</span><span class="pt">Inter</span></span></span></td>
+                  <td><span class="ptxt">"Profezia: farà 10 gol su rigore, segnatevelo."</span></td>
+                  <td><span class="au"><span class="av">MK</span><span class="an">Mirko City</span></span></td>
+                  <td><span class="role buyer">Acquirente</span></td>
+                  <td><span class="ev market">Primo Mercato</span></td>
+                  <td class="r"><span class="price">62M</span></td>
+                  <td class="r"><span class="date">06 giu</span></td>
+                </tr>
+                <tr>
+                  <td><span class="pl"><span class="pos D">D</span><span><span class="pn">Dimarco</span><span class="pt">Inter</span></span></span></td>
+                  <td><span class="ptxt">"Lo svincolo a malincuore, budget alle stelle quest'anno."</span></td>
+                  <td><span class="au"><span class="av">MK</span><span class="an">Mirko City</span></span></td>
+                  <td><span class="role seller">Osservatore</span></td>
+                  <td><span class="ev release">Svincolo</span></td>
+                  <td class="r"><span class="price">—</span></td>
+                  <td class="r"><span class="date">05 giu</span></td>
+                </tr>
+                <tr>
+                  <td><span class="pl"><span class="pos A">A</span><span><span class="pn">Arnautovic</span><span class="pt">Inter</span></span></span></td>
+                  <td><span class="ptxt">"Scommessa rischiosa ma a quel prezzo non potevo dire no."</span></td>
+                  <td><span class="au"><span class="av">MK</span><span class="an">Mirko City</span></span></td>
+                  <td><span class="role buyer">Acquirente</span></td>
+                  <td><span class="ev svinc">Svincolati</span></td>
+                  <td class="r"><span class="price">8M</span></td>
+                  <td class="r"><span class="date">04 giu</span></td>
+                </tr>
+                <tr>
+                  <td><span class="pl"><span class="pos C">C</span><span><span class="pn">Mkhitaryan</span><span class="pt">Inter</span></span></span></td>
+                  <td><span class="ptxt">"Veterano affidabile, lo tengo finché regge il fisico."</span></td>
+                  <td><span class="au"><span class="av">MK</span><span class="an">Mirko City</span></span></td>
+                  <td><span class="role seller">Osservatore</span></td>
+                  <td><span class="ev renew">Rinnovo</span></td>
+                  <td class="r"><span class="price">—</span></td>
+                  <td class="r"><span class="date">03 giu</span></td>
+                </tr>
+                <tr>
+                  <td><span class="pl"><span class="pos P">P</span><span><span class="pn">Audero</span><span class="pt">Inter</span></span></span></td>
+                  <td><span class="ptxt">"Secondo portiere, presa di sicurezza per le rotazioni."</span></td>
+                  <td><span class="au"><span class="av">MK</span><span class="an">Mirko City</span></span></td>
+                  <td><span class="role buyer">Acquirente</span></td>
+                  <td><span class="ev market">Primo Mercato</span></td>
+                  <td class="r"><span class="price">3M</span></td>
+                  <td class="r"><span class="date">02 giu</span></td>
+                </tr>
+                <tr>
+                  <td><span class="pl"><span class="pos A">A</span><span><span class="pn">Correa</span><span class="pt">Inter</span></span></span></td>
+                  <td><span class="ptxt">"Lo do via, troppi infortuni per il mio gusto."</span></td>
+                  <td><span class="au"><span class="av">MK</span><span class="an">Mirko City</span></span></td>
+                  <td><span class="role seller">Osservatore</span></td>
+                  <td><span class="ev trade">Scambio</span></td>
+                  <td class="r"><span class="price">—</span></td>
+                  <td class="r"><span class="date">01 giu</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="fadeb"></div>
+        </div>
+      </div>
+
+      <!-- SIDEBAR STATS -->
+      <div class="col">
+        <div class="col-h"><span class="micro">Statistiche</span></div>
+        <div class="scrollwrap">
+          <div class="scrollbody">
+
+            <!-- mini stat tiles -->
+            <div class="mini">
+              <div class="mtile primary"><div class="mv">247</div><div class="ml">Profezie totali</div></div>
+              <div class="mtile gold"><div class="mv">8</div><div class="ml">Profeti attivi</div></div>
+            </div>
+
+            <!-- TOP PROFETI (podio + lista) -->
+            <div class="sb-card">
+              <div class="sb-h">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
+                <span class="micro">Top Profeti</span>
+              </div>
+              <div class="sb-b">
+                <!-- podio -->
+                <div class="podium">
+                  <div class="pod second">
+                    <span class="rk">2°</span>
+                    <span class="pav">PI</span>
+                    <span class="pn">Pietro FC</span>
+                    <span class="pc">42</span>
+                    <span class="pcl">profezie</span>
+                  </div>
+                  <div class="pod first">
+                    <span class="rk">1°</span>
+                    <span class="pav"><svg class="crown" fill="currentColor" viewBox="0 0 24 24"><path d="M5 16L3 6l5.5 4L12 4l3.5 6L21 6l-2 10H5zm0 2h14v2H5v-2z"/></svg>MK</span>
+                    <span class="pn">Mirko City</span>
+                    <span class="pc">58</span>
+                    <span class="pcl">profezie</span>
+                  </div>
+                  <div class="pod third">
+                    <span class="rk">3°</span>
+                    <span class="pav">DI</span>
+                    <span class="pn">Diego FC</span>
+                    <span class="pc">37</span>
+                    <span class="pcl">profezie</span>
+                  </div>
+                </div>
+                <!-- resto classifica -->
+                <div class="prow"><span class="rnk">4</span><span class="av">MA</span><span class="nm">Marco Calcio</span><span class="ct">29</span></div>
+                <div class="prow"><span class="rnk">5</span><span class="av">EL</span><span class="nm">Emiliano FC</span><span class="ct">24</span></div>
+                <div class="prow"><span class="rnk">6</span><span class="av">ML</span><span class="nm">Marcolino SC</span><span class="ct">21</span></div>
+              </div>
+            </div>
+
+            <!-- TOP GIOCATORI -->
+            <div class="sb-card" style="margin-bottom:0;">
+              <div class="sb-h">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4z"/></svg>
+                <span class="micro">Top Giocatori</span>
+                <span class="count" style="margin-left:auto;">più profetizzati</span>
+              </div>
+              <div class="sb-b">
+                <div class="gr"><span class="pos A">A</span><span class="nm">Lautaro Martinez <span class="tm">· Inter</span></span><span class="bar"><i style="width:100%"></i></span><span class="ct">19</span></div>
+                <div class="gr"><span class="pos C">C</span><span class="nm">Barella <span class="tm">· Inter</span></span><span class="bar"><i style="width:84%"></i></span><span class="ct">16</span></div>
+                <div class="gr"><span class="pos A">A</span><span class="nm">Vlahovic <span class="tm">· Juventus</span></span><span class="bar"><i style="width:68%"></i></span><span class="ct">13</span></div>
+                <div class="gr"><span class="pos C">C</span><span class="nm">Pulisic <span class="tm">· Milan</span></span><span class="bar"><i style="width:58%"></i></span><span class="ct">11</span></div>
+                <div class="gr"><span class="pos D">D</span><span class="nm">Bastoni <span class="tm">· Inter</span></span><span class="bar"><i style="width:47%"></i></span><span class="ct">9</span></div>
+                <div class="gr"><span class="pos P">P</span><span class="nm">Maignan <span class="tm">· Milan</span></span><span class="bar"><i style="width:37%"></i></span><span class="ct">7</span></div>
+              </div>
+            </div>
+
+          </div>
+          <div class="fadeb"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ============ FRAME 2 — VISTA ESPANSA (card) ============ -->
+<div>
+  <div class="frame-label">Vista <b>Espansa</b> (card) — citazione in evidenza + chip BUYER/SELLER + evento + prezzo. Nessun filtro attivo.</div>
+  <div class="frame">
+
+    <!-- TESTATA -->
+    <div class="head">
+      <span class="head-icn"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3c-3.866 0-7 3.134-7 7 0 2.345 1.153 4.42 2.924 5.7.41.296.576.81.576 1.31V18a1 1 0 001 1h5a1 1 0 001-1v-.99c0-.5.166-1.014.576-1.31A6.997 6.997 0 0019 10c0-3.866-3.134-7-7-7z"/></svg></span>
+      <div class="head-id">
+        <div class="nm">Profezie <span class="cnt">247</span></div>
+        <div class="sb">Archivio commenti dei manager su ogni movimento di mercato</div>
+      </div>
+      <div class="head-right">
+        <button class="stats-tgl"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>Statistiche</button>
+        <div class="seg">
+          <button><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>Compatta</button>
+          <span class="div"></span>
+          <button class="on"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h7"/></svg>Espansa</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- BARRA FILTRI -->
+    <div class="filterbar">
+      <div class="srch">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        <div class="inp">Cerca giocatore, manager o testo…</div>
+      </div>
+      <span class="results"><b>247</b> risultati</span>
+    </div>
+
+    <!-- MAIN -->
+    <div class="main">
+
+      <!-- COLONNA LISTA (espansa) -->
+      <div class="col list">
+        <div class="col-h"><span class="micro">Profezie · vista espansa</span><span class="count">più recenti</span></div>
+        <div class="scrollwrap">
+          <div class="scrollbody">
+
+            <div class="pcard">
+              <span class="pos A">A</span>
+              <div class="pbody">
+                <div class="ptop"><span class="pn">Lautaro Martinez</span><span class="pt">Inter</span></div>
+                <p class="quote">A questa cifra è un furto, lo prendo e non me ne pento. Capocannoniere assicurato per la mia rosa.</p>
+                <div class="pmeta">
+                  <span class="au"><span class="av">MK</span><span class="an">Mirko City</span></span>
+                  <span class="role buyer">Acquirente</span>
+                  <span class="ev market">Primo Mercato</span>
+                  <span class="price">87M</span>
+                </div>
+              </div>
+              <span class="pdate"><span class="date">12 giu 2026</span></span>
+            </div>
+
+            <div class="pcard">
+              <span class="pos C">C</span>
+              <div class="pbody">
+                <div class="ptop"><span class="pn">Tonali</span><span class="pt">Newcastle</span></div>
+                <p class="quote">Me lo rubano e mi rovinano la stagione. Spero nessuno si accorga di quanto vale davvero.</p>
+                <div class="pmeta">
+                  <span class="au"><span class="av">PI</span><span class="an">Pietro FC</span></span>
+                  <span class="role seller">Osservatore</span>
+                  <span class="ev rubata">Rubata</span>
+                  <span class="price">54M</span>
+                </div>
+              </div>
+              <span class="pdate"><span class="date">11 giu 2026</span></span>
+            </div>
+
+            <div class="pcard">
+              <span class="pos A">A</span>
+              <div class="pbody">
+                <div class="ptop"><span class="pn">Vlahovic</span><span class="pt">Juventus</span></div>
+                <p class="quote">Scommessa da svincolati che pagherà: a questo prezzo è regalato, fidatevi del profeta.</p>
+                <div class="pmeta">
+                  <span class="au"><span class="av">DI</span><span class="an">Diego FC</span></span>
+                  <span class="role buyer">Acquirente</span>
+                  <span class="ev svinc">Svincolati</span>
+                  <span class="price">19M</span>
+                </div>
+              </div>
+              <span class="pdate"><span class="date">10 giu 2026</span></span>
+            </div>
+
+            <div class="pcard">
+              <span class="pos D">D</span>
+              <div class="pbody">
+                <div class="ptop"><span class="pn">Bastoni</span><span class="pt">Inter</span></div>
+                <p class="quote">Lo cedo nello scambio solo perché mi serve un centrocampista titolare. Difensore top, addio a malincuore.</p>
+                <div class="pmeta">
+                  <span class="au"><span class="av">MA</span><span class="an">Marco Calcio</span></span>
+                  <span class="role seller">Osservatore</span>
+                  <span class="ev trade">Scambio</span>
+                </div>
+              </div>
+              <span class="pdate"><span class="date">09 giu 2026</span></span>
+            </div>
+
+            <div class="pcard">
+              <span class="pos P">P</span>
+              <div class="pbody">
+                <div class="ptop"><span class="pn">Maignan</span><span class="pt">Milan</span></div>
+                <p class="quote">Rinnovo pluriennale: il miglior portiere della lega resta mio. Pareva grande dal primo giorno.</p>
+                <div class="pmeta">
+                  <span class="au"><span class="av">EL</span><span class="an">Emiliano FC</span></span>
+                  <span class="role buyer">Acquirente</span>
+                  <span class="ev renew">Rinnovo</span>
+                </div>
+              </div>
+              <span class="pdate"><span class="date">08 giu 2026</span></span>
+            </div>
+
+          </div>
+          <div class="fadeb"></div>
+        </div>
+      </div>
+
+      <!-- SIDEBAR STATS (identica — shell condivisa) -->
+      <div class="col">
+        <div class="col-h"><span class="micro">Statistiche</span></div>
+        <div class="scrollwrap">
+          <div class="scrollbody">
+            <div class="mini">
+              <div class="mtile primary"><div class="mv">247</div><div class="ml">Profezie totali</div></div>
+              <div class="mtile gold"><div class="mv">8</div><div class="ml">Profeti attivi</div></div>
+            </div>
+            <div class="sb-card">
+              <div class="sb-h">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
+                <span class="micro">Top Profeti</span>
+              </div>
+              <div class="sb-b">
+                <div class="podium">
+                  <div class="pod second"><span class="rk">2°</span><span class="pav">PI</span><span class="pn">Pietro FC</span><span class="pc">42</span><span class="pcl">profezie</span></div>
+                  <div class="pod first"><span class="rk">1°</span><span class="pav"><svg class="crown" fill="currentColor" viewBox="0 0 24 24"><path d="M5 16L3 6l5.5 4L12 4l3.5 6L21 6l-2 10H5zm0 2h14v2H5v-2z"/></svg>MK</span><span class="pn">Mirko City</span><span class="pc">58</span><span class="pcl">profezie</span></div>
+                  <div class="pod third"><span class="rk">3°</span><span class="pav">DI</span><span class="pn">Diego FC</span><span class="pc">37</span><span class="pcl">profezie</span></div>
+                </div>
+                <div class="prow"><span class="rnk">4</span><span class="av">MA</span><span class="nm">Marco Calcio</span><span class="ct">29</span></div>
+                <div class="prow"><span class="rnk">5</span><span class="av">EL</span><span class="nm">Emiliano FC</span><span class="ct">24</span></div>
+                <div class="prow"><span class="rnk">6</span><span class="av">ML</span><span class="nm">Marcolino SC</span><span class="ct">21</span></div>
+              </div>
+            </div>
+            <div class="sb-card" style="margin-bottom:0;">
+              <div class="sb-h">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4z"/></svg>
+                <span class="micro">Top Giocatori</span>
+                <span class="count" style="margin-left:auto;">più profetizzati</span>
+              </div>
+              <div class="sb-b">
+                <div class="gr"><span class="pos A">A</span><span class="nm">Lautaro Martinez <span class="tm">· Inter</span></span><span class="bar"><i style="width:100%"></i></span><span class="ct">19</span></div>
+                <div class="gr"><span class="pos C">C</span><span class="nm">Barella <span class="tm">· Inter</span></span><span class="bar"><i style="width:84%"></i></span><span class="ct">16</span></div>
+                <div class="gr"><span class="pos A">A</span><span class="nm">Vlahovic <span class="tm">· Juventus</span></span><span class="bar"><i style="width:68%"></i></span><span class="ct">13</span></div>
+                <div class="gr"><span class="pos C">C</span><span class="nm">Pulisic <span class="tm">· Milan</span></span><span class="bar"><i style="width:58%"></i></span><span class="ct">11</span></div>
+                <div class="gr"><span class="pos D">D</span><span class="nm">Bastoni <span class="tm">· Inter</span></span><span class="bar"><i style="width:47%"></i></span><span class="ct">9</span></div>
+                <div class="gr"><span class="pos P">P</span><span class="nm">Maignan <span class="tm">· Milan</span></span><span class="bar"><i style="width:37%"></i></span><span class="ct">7</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="fadeb"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ============ FRAME 3 — STATO VUOTO (filtri senza risultati) ============ -->
+<div>
+  <div class="frame-label">Stato <b>Vuoto</b> — EmptyState (icona pulita, niente emoji) con azione "Resetta filtri".</div>
+  <div class="frame">
+
+    <div class="head">
+      <span class="head-icn"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3c-3.866 0-7 3.134-7 7 0 2.345 1.153 4.42 2.924 5.7.41.296.576.81.576 1.31V18a1 1 0 001 1h5a1 1 0 001-1v-.99c0-.5.166-1.014.576-1.31A6.997 6.997 0 0019 10c0-3.866-3.134-7-7-7z"/></svg></span>
+      <div class="head-id">
+        <div class="nm">Profezie <span class="cnt">247</span></div>
+        <div class="sb">Archivio commenti dei manager su ogni movimento di mercato</div>
+      </div>
+      <div class="head-right">
+        <button class="stats-tgl"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>Statistiche</button>
+        <div class="seg">
+          <button class="on"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>Compatta</button>
+          <span class="div"></span>
+          <button><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h7"/></svg>Espansa</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="filterbar">
+      <div class="srch">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        <div class="inp" style="color:var(--t1);">portiere fantastico</div>
+      </div>
+      <span class="fchip">
+        <span class="pos A" style="width:18px;height:18px;font-size:9px;">A</span>
+        Haaland
+        <button class="x"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
+      </span>
+      <button class="reset">Reset</button>
+      <span class="results"><b>0</b> risultati</span>
+    </div>
+
+    <div class="main">
+      <div class="col list">
+        <div class="col-h"><span class="micro">Profezie · vista compatta</span><span class="count">nessun risultato</span></div>
+        <div class="empty">
+          <span class="ei"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3c-3.866 0-7 3.134-7 7 0 2.345 1.153 4.42 2.924 5.7.41.296.576.81.576 1.31V18a1 1 0 001 1h5a1 1 0 001-1v-.99c0-.5.166-1.014.576-1.31A6.997 6.997 0 0019 10c0-3.866-3.134-7-7-7z"/></svg></span>
+          <div class="et">Nessuna profezia trovata</div>
+          <div class="ed">Nessun manager ha profetizzato su questo giocatore con quel testo. Prova a cambiare i filtri di ricerca.</div>
+          <button class="eb">Resetta filtri</button>
+        </div>
+      </div>
+      <div class="col">
+        <div class="col-h"><span class="micro">Statistiche</span></div>
+        <div class="scrollwrap">
+          <div class="scrollbody">
+            <div class="mini">
+              <div class="mtile primary"><div class="mv">247</div><div class="ml">Profezie totali</div></div>
+              <div class="mtile gold"><div class="mv">8</div><div class="ml">Profeti attivi</div></div>
+            </div>
+            <div class="sb-card" style="margin-bottom:0;">
+              <div class="sb-h">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
+                <span class="micro">Top Profeti</span>
+              </div>
+              <div class="sb-b">
+                <div class="podium">
+                  <div class="pod second"><span class="rk">2°</span><span class="pav">PI</span><span class="pn">Pietro FC</span><span class="pc">42</span><span class="pcl">profezie</span></div>
+                  <div class="pod first"><span class="rk">1°</span><span class="pav"><svg class="crown" fill="currentColor" viewBox="0 0 24 24"><path d="M5 16L3 6l5.5 4L12 4l3.5 6L21 6l-2 10H5zm0 2h14v2H5v-2z"/></svg>MK</span><span class="pn">Mirko City</span><span class="pc">58</span><span class="pcl">profezie</span></div>
+                  <div class="pod third"><span class="rk">3°</span><span class="pav">DI</span><span class="pn">Diego FC</span><span class="pc">37</span><span class="pcl">profezie</span></div>
+                </div>
+                <div class="prow"><span class="rnk">4</span><span class="av">MA</span><span class="nm">Marco Calcio</span><span class="ct">29</span></div>
+                <div class="prow"><span class="rnk">5</span><span class="av">EL</span><span class="nm">Emiliano FC</span><span class="ct">24</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="fadeb"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>
