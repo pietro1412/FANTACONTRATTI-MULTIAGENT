@@ -1,19 +1,26 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Home, Zap, Users, CircleDollarSign, Menu, ArrowLeftRight, Target } from 'lucide-react'
+import { Home, Users, CircleDollarSign, Menu, Zap, ArrowLeftRight, Target, FileSignature, UserPlus } from 'lucide-react'
+import { getPhaseNavItem } from '../lib/navItems'
 
 /**
  * Mobile bottom navigation bar — visible only <768px.
- * 5 tabs: Home, Asta, Rosa, Finanze, Menu.
- * Hides on scroll-down, shows on scroll-up.
- * Only renders inside a league context (/leagues/:leagueId/...).
+ * 5 tab: Home, [voce-di-fase], Giocatori, Finanze, Menu.
+ * La voce centrale è derivata dalla FASE CORRENTE della lega (stessa logica
+ * di Navigation, via getPhaseNavItem). Quando non c'è una fase con sezione
+ * dedicata, la voce centrale ricade su "Rosa".
+ * Si nasconde scrollando in giù, riappare scrollando in su.
+ * Renderizza solo dentro una lega (/leagues/:leagueId/...).
  */
 interface BottomNavBarProps {
   onMenuOpen: () => void
-  leaguePhase?: string
+  /** currentPhase della sessione attiva (enum MarketPhase) — fornita da App. */
+  leaguePhase?: string | null
+  /** id sessione attiva: serve per aprire l'asta (route /auction/:sessionId). */
+  activeSessionId?: string | null
 }
 
-export function BottomNavBar({ onMenuOpen, leaguePhase }: BottomNavBarProps) {
+export function BottomNavBar({ onMenuOpen, leaguePhase, activeSessionId }: BottomNavBarProps) {
   const location = useLocation()
   const navigate = useNavigate()
   const [visible, setVisible] = useState(true)
@@ -26,9 +33,6 @@ export function BottomNavBar({ onMenuOpen, leaguePhase }: BottomNavBarProps) {
   // Detect current page from URL
   const pathAfterLeague = leagueMatch ? location.pathname.slice(leagueMatch[0].length) : ''
   const currentTab = getActiveTab(pathAfterLeague)
-
-  // Detect auction
-  const isInAuction = pathAfterLeague.startsWith('/auction')
 
   // Scroll hide/show
   const handleScroll = useCallback(() => {
@@ -54,13 +58,13 @@ export function BottomNavBar({ onMenuOpen, leaguePhase }: BottomNavBarProps) {
   // Only show inside league context
   if (!leagueId) return null
 
-  // Dynamic middle tab based on league phase
-  const phaseTab = getPhaseTab(leaguePhase, leagueId)
+  // Voce centrale derivata dalla fase (stessa sorgente di Navigation)
+  const phaseTab = getPhaseTab(leaguePhase, leagueId, activeSessionId)
 
   const tabs: TabDef[] = [
     { key: 'home', label: 'Home', icon: Home, path: `/leagues/${leagueId}` },
-    { key: 'asta', label: 'Asta', icon: Zap, path: `/leagues/${leagueId}/auction`, badge: isInAuction ? 'LIVE' : undefined },
     phaseTab,
+    { key: 'giocatori', label: 'Giocatori', icon: UserPlus, path: `/leagues/${leagueId}/players` },
     { key: 'finanze', label: 'Finanze', icon: CircleDollarSign, path: `/leagues/${leagueId}/financials` },
     { key: 'menu', label: 'Menu', icon: Menu, path: '' },
   ]
@@ -121,25 +125,72 @@ interface TabDef {
   badge?: string
 }
 
-/** Dynamic middle tab based on current league phase */
-function getPhaseTab(phase: string | undefined, leagueId: string): TabDef {
-  switch (phase) {
-    case 'SCAMBI':
-      return { key: 'phase', label: 'Scambi', icon: ArrowLeftRight, path: `/leagues/${leagueId}/trades` }
-    case 'RUBATA':
-      return { key: 'phase', label: 'Rubata', icon: Target, path: `/leagues/${leagueId}/rubata` }
-    default:
-      return { key: 'rosa', label: 'Rosa', icon: Users, path: `/leagues/${leagueId}/strategie-rubata` }
+// Icone per le voci di fase (coerenti con MenuIcons di Navigation)
+const PHASE_TAB_ICONS: Record<string, React.ComponentType<{ size: number }>> = {
+  auction: Zap,
+  trades: ArrowLeftRight,
+  contracts: FileSignature,
+  rubata: Target,
+  svincolati: UserPlus,
+}
+
+/**
+ * Voce centrale derivata dalla fase corrente. Usa getPhaseNavItem (sorgente unica).
+ * Nessuna fase con sezione dedicata (es. PREMI / nessuna sessione) → "Rosa".
+ */
+function getPhaseTab(
+  phase: string | null | undefined,
+  leagueId: string,
+  activeSessionId: string | null | undefined,
+): TabDef {
+  const item = getPhaseNavItem(phase)
+  if (!item) {
+    return { key: 'rosa', label: 'Rosa', icon: Users, path: `/leagues/${leagueId}/rose` }
+  }
+
+  const icon = PHASE_TAB_ICONS[item.key] ?? Users
+
+  // Mappa la chiave della voce sul path reale della sezione
+  const pathByKey: Record<string, string> = {
+    auction: `/leagues/${leagueId}/auction/${activeSessionId ?? ''}`,
+    trades: `/leagues/${leagueId}/trades`,
+    contracts: `/leagues/${leagueId}/contracts`,
+    rubata: `/leagues/${leagueId}/rubata`,
+    svincolati: `/leagues/${leagueId}/svincolati`,
+  }
+
+  const isAuctionLive =
+    (item.key === 'auction' || item.key === 'svincolati' || item.key === 'rubata')
+
+  return {
+    key: 'phase',
+    label: item.label,
+    icon,
+    path: pathByKey[item.key] ?? `/leagues/${leagueId}`,
+    badge: isAuctionLive ? 'LIVE' : undefined,
   }
 }
 
 /** Map URL path segment to active tab key */
 function getActiveTab(pathAfterLeague: string): string {
   if (!pathAfterLeague || pathAfterLeague === '/') return 'home'
-  if (pathAfterLeague.startsWith('/auction') || pathAfterLeague.startsWith('/svincolati')) return 'asta'
-  if (pathAfterLeague.startsWith('/trades') || pathAfterLeague.startsWith('/rubata')) return 'phase'
-  if (pathAfterLeague.startsWith('/strategie-rubata') || pathAfterLeague.startsWith('/rose') || pathAfterLeague.startsWith('/all-players')) return 'rosa'
-  if (pathAfterLeague.startsWith('/financials') || pathAfterLeague.startsWith('/contracts') || pathAfterLeague.startsWith('/movements') || pathAfterLeague.startsWith('/history')) return 'finanze'
+  if (
+    pathAfterLeague.startsWith('/auction') ||
+    pathAfterLeague.startsWith('/svincolati') ||
+    pathAfterLeague.startsWith('/trades') ||
+    pathAfterLeague.startsWith('/rubata') ||
+    pathAfterLeague.startsWith('/contracts')
+  ) return 'phase'
+  if (pathAfterLeague.startsWith('/rose')) return 'rosa'
+  if (
+    pathAfterLeague.startsWith('/players') ||
+    pathAfterLeague.startsWith('/strategie-rubata')
+  ) return 'giocatori'
+  if (
+    pathAfterLeague.startsWith('/financials') ||
+    pathAfterLeague.startsWith('/movements') ||
+    pathAfterLeague.startsWith('/history')
+  ) return 'finanze'
   return 'home' // default
 }
 

@@ -7,11 +7,14 @@ import { Notifications } from './Notifications'
 import { PendingInvites } from './PendingInvites'
 import { FeedbackBadge } from './FeedbackBadge'
 import { pusherClient } from '../services/pusher.client'
+import { useLeaguePhase } from '../hooks/useLeaguePhase'
+import { getVisibleNavItems } from '../lib/navItems'
 import {
   Home, Settings, User, Users, UserPlus, Clock, Lightbulb,
   ArrowLeft, Trophy, CircleUserRound, BookOpen, CloudUpload,
   CircleDollarSign, ChevronRight, ChevronDown, ShieldCheck,
   BarChart3, FileText, MessageSquare, Menu, X, Star, LogOut,
+  Zap, ArrowLeftRight, Target, FileSignature,
 } from 'lucide-react'
 
 interface NavigationProps {
@@ -21,7 +24,6 @@ interface NavigationProps {
   teamName?: string
   isLeagueAdmin?: boolean
   activeTab?: string
-  isInAuction?: boolean
   onNavigate: (page: string, params?: Record<string, string>) => void
 }
 
@@ -49,20 +51,15 @@ const MenuIcons = {
   stats: <BarChart3 size={ICON_SIZE} />,
   patchNotes: <FileText size={ICON_SIZE} />,
   feedbackHub: <MessageSquare size={ICON_SIZE} />,
+  // Phase-specific items
+  auction: <Zap size={ICON_SIZE} />,
+  trades: <ArrowLeftRight size={ICON_SIZE} />,
+  contracts: <FileSignature size={ICON_SIZE} />,
+  rubata: <Target size={ICON_SIZE} />,
 }
 
-// League menu items configuration
-// Note: Contratti, Scambi, Rubata are phase-specific and accessible from Rose or Dashboard when active
-// Note: Rose e Svincolati sono ora integrati nella pagina Strategie (renamed to Giocatori)
-const LEAGUE_MENU_ITEMS = [
-  { key: 'leagueDetail', label: 'Dashboard', adminOnly: false, icon: 'dashboard' },
-  { key: 'adminPanel', label: 'Admin', adminOnly: true, icon: 'admin' },
-  { key: 'allPlayers', label: 'Giocatori', adminOnly: false, icon: 'allRosters' },
-  { key: 'financials', label: 'Finanze', adminOnly: false, icon: 'financials' },
-  { key: 'history', label: 'Storico', adminOnly: false, icon: 'history' },
-  { key: 'prophecies', label: 'Profezie', adminOnly: false, icon: 'prophecy' },
-  { key: 'feedbackHub', label: 'Feedback', adminOnly: false, icon: 'feedbackHub' },
-]
+// Le voci del menu lega derivano dalla fase corrente tramite getVisibleNavItems
+// (src/lib/navItems.ts) — sorgente di verità unica condivisa con BottomNavBar.
 
 // Get page display name for breadcrumbs (should match menu labels)
 function getPageDisplayName(page: string): string {
@@ -98,8 +95,10 @@ function NavLeagueCrest({ imageUrl, name }: { imageUrl?: string | null; name?: s
   return <LeagueCrest name={name || 'Lega'} imageUrl={imageUrl} size="sm" />
 }
 
-export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeagueAdmin, activeTab, isInAuction, onNavigate }: NavigationProps) {
+export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeagueAdmin, activeTab, onNavigate }: NavigationProps) {
   const { user, logout } = useAuth()
+  // Fase corrente della lega → voci di menu derivate (coerenti desktop/mobile)
+  const { currentPhase, activeSessionId } = useLeaguePhase(leagueId)
   const [isSuperAdmin, setIsSuperAdmin] = useState(false)
   // League identity (name + logo) for the header, shown in every league section
   const [leagueIdentity, setLeagueIdentity] = useState<LeagueIdentity | null>(
@@ -238,8 +237,21 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
 
   const isActive = (page: string) => currentPage === page
 
-  // Filter menu items based on admin status
-  const visibleMenuItems = LEAGUE_MENU_ITEMS.filter(item => !item.adminOnly || isLeagueAdmin)
+  // Voci di menu derivate dalla fase corrente (sorgente unica condivisa con BottomNavBar)
+  const visibleMenuItems = getVisibleNavItems(currentPhase, null, Boolean(isLeagueAdmin))
+
+  // Fasi "live" (aste): mostrano il badge Live nell'header
+  const isLivePhase =
+    currentPhase === 'ASTA_LIBERA' ||
+    currentPhase === 'ASTA_SVINCOLATI' ||
+    currentPhase === 'RUBATA'
+
+  // L'asta richiede il sessionId della sessione attiva (route /auction/:sessionId)
+  const navParamsFor = (key: string): Record<string, string> => {
+    const params: Record<string, string> = leagueId ? { leagueId } : {}
+    if (key === 'auction' && activeSessionId) params.sessionId = activeSessionId
+    return params
+  }
 
   return (
     <>
@@ -322,8 +334,8 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
                 </div>
               )}
 
-              {/* Live badge - shown when in auction room */}
-              {isInAuction && pusherConnected && (
+              {/* Live badge - shown during live auction-style phases */}
+              {isLivePhase && pusherConnected && (
                 <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-danger-500/20 to-danger-600/10 border border-danger-500/30 rounded-lg shadow-sm animate-pulse" data-testid="live-badge">
                   <div className="w-2 h-2 bg-danger-500 rounded-full" />
                   <span className="text-[10px] font-semibold text-danger-400 uppercase tracking-wider">Live</span>
@@ -382,7 +394,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
                   key={item.key}
                   label={item.label}
                   active={isActive(item.key)}
-                  onClick={() => { onNavigate(item.key, { leagueId }); }}
+                  onClick={() => { onNavigate(item.key, navParamsFor(item.key)); }}
                   highlight={item.key === 'adminPanel'}
                   isAdmin={item.adminOnly}
                   iconKey={item.icon}
@@ -710,7 +722,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
                     key={item.key}
                     label={item.label}
                     active={isActive(item.key)}
-                    onClick={() => { onNavigate(item.key, { leagueId }); setMobileMenuOpen(false) }}
+                    onClick={() => { onNavigate(item.key, navParamsFor(item.key)); setMobileMenuOpen(false) }}
                     highlight={item.key === 'adminPanel'}
                     isAdmin={item.adminOnly}
                     iconElement={MenuIcons[item.icon as keyof typeof MenuIcons]}

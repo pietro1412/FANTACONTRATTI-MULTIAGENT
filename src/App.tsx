@@ -8,6 +8,7 @@ import { ConfirmDialogProvider } from './components/ui/ConfirmDialog'
 import { ScrollToTop } from './components/ui/ScrollToTop'
 import { BottomNavBar } from './components/BottomNavBar'
 import { CommandPalette } from './components/CommandPalette'
+import { useLeaguePhase } from './hooks/useLeaguePhase'
 
 // Pagine critiche - import statico (usate al primo caricamento)
 import { Login } from './pages/Login'
@@ -661,11 +662,30 @@ function BottomNavSpacer() {
   return <div className="md:hidden h-16" />
 }
 
-function App() {
+/**
+ * Bottom-nav mobile con fase corrente: legge il leagueId dall'URL, deriva la fase
+ * con useLeaguePhase (stessa sorgente di Navigation) e la passa a BottomNavBar
+ * così la voce centrale è coerente con il menu desktop.
+ */
+function BottomNavBarContainer() {
+  const location = useLocation()
+  const leagueId = location.pathname.match(/^\/leagues\/([^/]+)/)?.[1]
+  const { currentPhase, activeSessionId } = useLeaguePhase(leagueId)
+
   const handleMobileMenuOpen = useCallback(() => {
     window.dispatchEvent(new CustomEvent('open-mobile-menu'))
   }, [])
 
+  return (
+    <BottomNavBar
+      onMenuOpen={handleMobileMenuOpen}
+      leaguePhase={currentPhase}
+      activeSessionId={activeSessionId}
+    />
+  )
+}
+
+function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
@@ -673,7 +693,7 @@ function App() {
           <ConfirmDialogProvider>
             <AppRoutes />
             <BottomNavSpacer />
-            <BottomNavBar onMenuOpen={handleMobileMenuOpen} />
+            <BottomNavBarContainer />
             <CommandPalette />
             <ScrollToTop />
             <SpeedInsights />
