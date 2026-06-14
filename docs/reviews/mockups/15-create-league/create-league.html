@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Mockup — CreateLeague</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=Oswald:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* CreateLeague — onboarding nuova lega (post-login, flusso normale, con Navigation).
+     Form a sezioni a tema + success page con AuthSuccessCard + Invita manager.
+     Slot ruolo a token (via amber/blue/emerald/red grezzi), totale slot in Oswald. */
+  :root{
+    --bg:#0a0a0b; --card:#1a1c20; --elev:#111214; --hover:#252830;
+    --border:#2d3139; --primary:#3b82f6; --secondary:#22c55e;
+    --gold:#f59e0b; --gold2:#fbbf24; --danger:#ef4444; --passion:#ea580c;
+    --t1:#f9fafb; --t2:#9ca3af; --t3:#8b919d;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--t1);font-family:'Inter',sans-serif;padding:40px 0 80px;}
+  h1.page{font-family:'Outfit',sans-serif;font-size:22px;font-weight:700;text-align:center;margin-bottom:6px;}
+  p.sub{text-align:center;color:var(--t3);font-size:13px;margin-bottom:36px;max-width:1000px;margin-left:auto;margin-right:auto;}
+  .row{display:flex;gap:32px;justify-content:center;align-items:flex-start;flex-wrap:wrap;}
+  .frame-label{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--t3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;text-align:center;}
+  .micro{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);}
+
+  .frame{width:680px;border:1px solid var(--border);border-radius:16px;background:var(--bg);overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.55);}
+  .topbar{height:46px;background:var(--elev);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px;}
+  .topbar .logo{width:24px;height:24px;border-radius:6px;background:linear-gradient(135deg,#1e40af,#3b82f6);}
+  .topbar .nav{font-size:12px;color:var(--t3);}
+  .topbar .nav b{color:var(--t1);font-weight:600;}
+  .wrap{padding:22px 26px 28px;}
+
+  .htitle{margin-bottom:18px;}
+  .htitle h2{font-family:'Outfit',sans-serif;font-size:21px;font-weight:700;}
+  .htitle p{font-size:12.5px;color:var(--t3);margin-top:3px;}
+
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:16px;}
+  .sec-h{display:flex;align-items:center;gap:8px;margin-bottom:15px;}
+  .sec-h .ic{width:26px;height:26px;border-radius:7px;background:var(--elev);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:13px;}
+  .sec-h h3{font-family:'Outfit',sans-serif;font-size:15px;font-weight:700;}
+
+  .field{margin-bottom:13px;}
+  .lbl{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;color:var(--t3);display:block;margin-bottom:6px;}
+  .lbl .opt{color:var(--t3);font-weight:400;text-transform:none;letter-spacing:0;}
+  .inp{width:100%;background:var(--elev);border:1px solid var(--border);border-radius:9px;padding:10px 13px;color:var(--t1);font-size:13.5px;}
+  .inp::placeholder{color:var(--t3);}
+  textarea.inp{resize:none;}
+  .logo-up{display:flex;align-items:center;gap:14px;margin-bottom:13px;}
+  .logo-box{width:56px;height:56px;border-radius:13px;background:linear-gradient(135deg,#15803d,#22c55e);display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-weight:800;font-size:20px;color:#06200f;flex-shrink:0;}
+  .logo-act .a{font-size:12px;color:var(--primary);font-weight:600;cursor:pointer;}
+  .logo-act .hint{font-size:10.5px;color:var(--t3);margin-top:3px;}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .stepper-box{background:var(--elev);border:1px solid var(--border);border-radius:11px;padding:13px 15px;}
+  .stepper-box .sl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-bottom:9px;}
+  .stepper{display:flex;align-items:center;gap:10px;}
+  .step-btn{width:38px;height:38px;border:1px solid var(--border);background:var(--card);color:var(--t1);border-radius:9px;font-family:'Oswald',sans-serif;font-size:18px;cursor:pointer;}
+  .step-val{flex:1;text-align:center;font-family:'Oswald',sans-serif;font-size:22px;font-weight:700;color:var(--t1);font-variant-numeric:tabular-nums;}
+
+  /* visibilità */
+  .vis-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .vis{text-align:left;border:2px solid var(--border);background:var(--elev);border-radius:12px;padding:14px;cursor:pointer;}
+  .vis.sel-p{border-color:var(--primary);background:rgba(59,130,246,.08);}
+  .vis.sel-s{border-color:var(--secondary);background:rgba(34,197,94,.08);}
+  .vis .vt{display:flex;align-items:center;gap:7px;font-family:'Outfit',sans-serif;font-weight:700;font-size:14px;margin-bottom:5px;}
+  .vis .vt .pick{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:8.5px;font-weight:700;border-radius:4px;padding:2px 6px;}
+  .vis.sel-p .vt .pick{color:var(--primary);border:1px solid rgba(59,130,246,.4);}
+  .vis.sel-s .vt .pick{color:var(--secondary);border:1px solid rgba(34,197,94,.4);}
+  .vis p{font-size:11px;color:var(--t3);line-height:1.5;}
+
+  /* slot rosa */
+  .slots{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;}
+  .slot{background:var(--elev);border:1px solid var(--border);border-radius:12px;padding:13px 10px;text-align:center;}
+  .slot .rb{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-weight:800;font-size:16px;margin:0 auto 9px;}
+  .slot.P{border-color:rgba(245,158,11,.3);} .slot.P .rb{background:rgba(245,158,11,.16);color:var(--gold2);border:1px solid rgba(245,158,11,.4);}
+  .slot.D{border-color:rgba(59,130,246,.3);} .slot.D .rb{background:rgba(59,130,246,.16);color:var(--primary);border:1px solid rgba(59,130,246,.4);}
+  .slot.C{border-color:rgba(34,197,94,.3);} .slot.C .rb{background:rgba(34,197,94,.16);color:var(--secondary);border:1px solid rgba(34,197,94,.4);}
+  .slot.A{border-color:rgba(239,68,68,.3);} .slot.A .rb{background:rgba(239,68,68,.16);color:var(--danger);border:1px solid rgba(239,68,68,.4);}
+  .slot .sst{display:flex;align-items:center;justify-content:center;gap:8px;}
+  .slot .sb{width:26px;height:26px;border:1px solid var(--border);background:var(--card);color:var(--t1);border-radius:7px;font-family:'Oswald',sans-serif;font-size:14px;cursor:pointer;}
+  .slot .sv{font-family:'Oswald',sans-serif;font-size:20px;font-weight:700;min-width:24px;font-variant-numeric:tabular-nums;}
+  .slot-tot{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:13px;padding-top:13px;border-top:1px solid var(--border);}
+  .slot-tot .l{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);}
+  .slot-tot .v{font-family:'Oswald',sans-serif;font-size:24px;font-weight:700;color:var(--gold2);}
+
+  .btn{width:100%;font-family:'Outfit',sans-serif;font-size:15px;font-weight:800;letter-spacing:.03em;color:#06200f;background:linear-gradient(180deg,#34d97b,var(--secondary));border:none;border-radius:11px;padding:13px 0;cursor:pointer;box-shadow:0 6px 20px rgba(34,197,94,.28);}
+
+  /* success */
+  .success{text-align:center;padding:10px 4px 4px;}
+  .succ-ic{width:66px;height:66px;border-radius:50%;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.4);display:flex;align-items:center;justify-content:center;font-size:32px;color:var(--secondary);margin:6px auto 16px;}
+  .succ-t{font-family:'Outfit',sans-serif;font-size:21px;font-weight:700;}
+  .succ-s{font-size:12.5px;color:var(--t2);margin-top:8px;}
+  .invite-box{background:var(--elev);border:1px dashed var(--border);border-radius:12px;padding:16px;margin:20px 0 14px;}
+  .invite-box .il{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-bottom:8px;}
+  .invite-code{display:flex;align-items:center;gap:10px;}
+  .invite-code .code{flex:1;font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;color:var(--primary);letter-spacing:.08em;}
+  .invite-code button{font-size:11.5px;font-weight:600;color:var(--t1);background:var(--card);border:1px solid var(--border);border-radius:8px;padding:7px 14px;cursor:pointer;}
+  .succ-actions{display:flex;gap:10px;}
+  .succ-actions .b2{flex:1;font-family:'Outfit',sans-serif;font-size:13.5px;font-weight:700;border-radius:10px;padding:11px 0;cursor:pointer;}
+  .succ-actions .ghost{color:var(--t1);background:var(--card);border:1px solid var(--border);}
+  .succ-actions .go{color:#fff;background:linear-gradient(180deg,#4d92f7,var(--primary));border:none;box-shadow:0 6px 18px rgba(59,130,246,.28);}
+</style>
+</head>
+<body>
+
+<h1 class="page">CreateLeague — onboarding nuova lega</h1>
+<p class="sub">Form a sezioni (post-login, flusso normale). Slot ruolo a token (via amber/blue/emerald/red grezzi), totale slot in Oswald, NumberStepper condiviso, useApiFieldErrors. Success page con AuthSuccessCard condivisa + blocco "Invita manager" (conservato).</p>
+
+<div class="row">
+
+  <!-- FORM -->
+  <div>
+    <div class="frame-label">CreateLeague — form</div>
+    <div class="frame">
+      <div class="topbar"><span class="logo"></span><span class="nav">FantaContratti · <b>Nuova Lega</b></span></div>
+      <div class="wrap">
+        <div class="htitle"><h2>Crea una nuova lega</h2><p>Configura la tua lega dinastica e invita i manager.</p></div>
+
+        <!-- Info -->
+        <div class="card">
+          <div class="sec-h"><span class="ic">📋</span><h3>Informazioni</h3></div>
+          <div class="logo-up">
+            <div class="logo-box">LA</div>
+            <div class="logo-act"><span class="a">📷 Carica logo</span><div class="hint">PNG/JPG, max 500KB · modificabile dopo</div></div>
+          </div>
+          <div class="field"><span class="lbl">Nome Lega</span><input class="inp" placeholder="Lega Amici 2025"></div>
+          <div class="field"><span class="lbl">Nome della tua squadra</span><input class="inp" placeholder="I Campioni FC"></div>
+          <div class="field"><span class="lbl">Descrizione <span class="opt">(opzionale)</span></span><textarea class="inp" rows="2" placeholder="Una breve descrizione della lega…"></textarea></div>
+        </div>
+
+        <!-- Configurazione -->
+        <div class="card">
+          <div class="sec-h"><span class="ic">⚙️</span><h3>Configurazione</h3></div>
+          <div class="grid2">
+            <div class="stepper-box"><div class="sl">Max partecipanti</div><div class="stepper"><button class="step-btn">−</button><span class="step-val">8</span><button class="step-btn">+</button></div></div>
+            <div class="stepper-box"><div class="sl">Budget iniziale</div><div class="stepper"><button class="step-btn">−</button><span class="step-val">500</span><button class="step-btn">+</button></div></div>
+          </div>
+        </div>
+
+        <!-- Visibilità -->
+        <div class="card">
+          <div class="sec-h"><span class="ic">🔒</span><h3>Visibilità</h3></div>
+          <div class="vis-grid">
+            <div class="vis sel-p"><div class="vt">🔒 Privata <span class="pick">SCELTA</span></div><p>Accessibile solo su invito tramite codice. Non compare nella ricerca pubblica.</p></div>
+            <div class="vis"><div class="vt">🌐 Pubblica</div><p>Ricercabile da tutti: chiunque può trovarla e richiedere di unirsi.</p></div>
+          </div>
+        </div>
+
+        <!-- Slot rosa -->
+        <div class="card">
+          <div class="sec-h"><span class="ic">👥</span><h3>Slot Rosa</h3></div>
+          <div class="slots">
+            <div class="slot P"><div class="rb">P</div><div class="sst"><button class="sb">−</button><span class="sv">3</span><button class="sb">+</button></div></div>
+            <div class="slot D"><div class="rb">D</div><div class="sst"><button class="sb">−</button><span class="sv">8</span><button class="sb">+</button></div></div>
+            <div class="slot C"><div class="rb">C</div><div class="sst"><button class="sb">−</button><span class="sv">8</span><button class="sb">+</button></div></div>
+            <div class="slot A"><div class="rb">A</div><div class="sst"><button class="sb">−</button><span class="sv">6</span><button class="sb">+</button></div></div>
+          </div>
+          <div class="slot-tot"><span class="l">Totale slot rosa</span><span class="v">25</span></div>
+        </div>
+
+        <button class="btn">Crea lega</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUCCESS -->
+  <div>
+    <div class="frame-label">CreateLeague — lega creata (success + invito)</div>
+    <div class="frame">
+      <div class="topbar"><span class="logo"></span><span class="nav">FantaContratti · <b>Nuova Lega</b></span></div>
+      <div class="wrap">
+        <div class="card" style="margin-top:8px;">
+          <div class="success">
+            <div class="succ-ic">✓</div>
+            <div class="succ-t">Lega creata!</div>
+            <div class="succ-s"><b style="color:var(--t1);">Lega Amici 2025</b> è pronta. Invita i manager per iniziare.</div>
+          </div>
+          <div class="invite-box">
+            <div class="il">Codice invito</div>
+            <div class="invite-code"><span class="code">cmq1a61z</span><button>📋 Copia</button><button>✉️ Condividi</button></div>
+          </div>
+          <div class="succ-actions">
+            <button class="b2 ghost">Invita altri manager</button>
+            <button class="b2 go">Vai alla lega →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
