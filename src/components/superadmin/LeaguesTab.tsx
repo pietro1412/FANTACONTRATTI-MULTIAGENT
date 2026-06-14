@@ -1,7 +1,12 @@
+import { useState } from 'react'
+import { createPortal } from 'react-dom'
+import { AlertTriangle, Trash2 } from 'lucide-react'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { LeagueCrest } from '../ui/LeagueCrest'
 import { STATUS_LABELS, type League } from './types'
+
+const CONFIRM_WORD = 'ELIMINA'
 
 export interface LeaguesTabProps {
   leagueSearch: string
@@ -14,6 +19,8 @@ export interface LeaguesTabProps {
   expandedLeague: string | null
   setExpandedLeague: (id: string | null) => void
   onViewRoster: (memberId: string) => void
+  /** Conferma eliminazione lega. Risolve a true se l'eliminazione e riuscita. */
+  onDeleteLeague: (leagueId: string) => Promise<boolean>
 }
 
 export function LeaguesTab({
@@ -27,7 +34,36 @@ export function LeaguesTab({
   expandedLeague,
   setExpandedLeague,
   onViewRoster,
+  onDeleteLeague,
 }: LeaguesTabProps) {
+  const [leagueToDelete, setLeagueToDelete] = useState<League | null>(null)
+  const [confirmInput, setConfirmInput] = useState('')
+  const [deleting, setDeleting] = useState(false)
+
+  function openDeleteDialog(league: League) {
+    setLeagueToDelete(league)
+    setConfirmInput('')
+  }
+
+  function closeDeleteDialog() {
+    if (deleting) return
+    setLeagueToDelete(null)
+    setConfirmInput('')
+  }
+
+  async function handleConfirmDelete() {
+    if (!leagueToDelete || confirmInput.trim().toUpperCase() !== CONFIRM_WORD) return
+    setDeleting(true)
+    const ok = await onDeleteLeague(leagueToDelete.id)
+    setDeleting(false)
+    if (ok) {
+      setLeagueToDelete(null)
+      setConfirmInput('')
+    }
+  }
+
+  const canConfirm = confirmInput.trim().toUpperCase() === CONFIRM_WORD
+
   return (
     <div className="space-y-4">
       {/* Search */}
@@ -67,11 +103,11 @@ export function LeaguesTab({
           <div className="divide-y divide-surface-50/10">
             {leagues.map((league) => (
               <div key={league.id}>
-                <button
-                  onClick={() => { setExpandedLeague(expandedLeague === league.id ? null : league.id); }}
-                  className="w-full px-4 sm:px-6 py-4 flex items-center justify-between hover:bg-surface-300/50 transition-colors text-left"
-                >
-                  <div className="flex items-center gap-4 min-w-0">
+                <div className="w-full px-4 sm:px-6 py-4 flex items-center justify-between gap-3 hover:bg-surface-300/50 transition-colors">
+                  <button
+                    onClick={() => { setExpandedLeague(expandedLeague === league.id ? null : league.id); }}
+                    className="flex items-center gap-4 min-w-0 flex-1 text-left"
+                  >
                     <LeagueCrest name={league.name} size="md" />
                     <div className="min-w-0">
                       <h3 className="font-display font-bold text-white truncate">{league.name}</h3>
@@ -79,17 +115,29 @@ export function LeaguesTab({
                         {league._count.members} membri · {STATUS_LABELS[league.status] || league.status}
                       </p>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-4 flex-shrink-0">
+                  </button>
+                  <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
                     <div className="text-right">
                       <p className="text-xs text-gray-400">Budget iniziale</p>
                       <p className="stat-number text-accent-400 text-lg">{league.initialBudget}</p>
                     </div>
-                    <span className={`text-gray-400 transition-transform ${expandedLeague === league.id ? 'rotate-180' : ''}`}>
+                    <button
+                      onClick={() => { openDeleteDialog(league); }}
+                      className="p-2 rounded-lg text-gray-400 hover:text-danger-400 hover:bg-danger-500/10 transition-colors"
+                      aria-label={`Elimina lega ${league.name}`}
+                      title="Elimina lega"
+                    >
+                      <Trash2 size={18} aria-hidden="true" />
+                    </button>
+                    <button
+                      onClick={() => { setExpandedLeague(expandedLeague === league.id ? null : league.id); }}
+                      className={`text-gray-400 transition-transform ${expandedLeague === league.id ? 'rotate-180' : ''}`}
+                      aria-label="Espandi membri"
+                    >
                       ▼
-                    </span>
+                    </button>
                   </div>
-                </button>
+                </div>
 
                 {expandedLeague === league.id && (
                   <div className="px-4 sm:px-6 pb-4 bg-surface-300/30">
@@ -139,6 +187,70 @@ export function LeaguesTab({
           </div>
         )}
       </div>
+
+      {/* Dialog eliminazione lega (azione distruttiva: typed-confirm "ELIMINA") */}
+      {leagueToDelete &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[110] flex items-center justify-center p-4"
+            onClick={closeDeleteDialog}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-league-title"
+          >
+            <div className="absolute inset-0 bg-dark-900/80 backdrop-blur-sm" aria-hidden="true" />
+            <div
+              className="relative bg-surface-200 border border-surface-50/20 rounded-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] max-w-md w-full p-6 animate-modal-in"
+              onClick={(e) => { e.stopPropagation(); }}
+            >
+              <div className="flex items-start gap-3 mb-4">
+                <div className="w-11 h-11 rounded-xl bg-danger-500/[0.13] border border-danger-500/40 flex items-center justify-center flex-shrink-0">
+                  <AlertTriangle className="text-danger-400" size={22} aria-hidden="true" />
+                </div>
+                <div className="min-w-0">
+                  <h2 id="delete-league-title" className="font-display text-lg font-bold text-white">
+                    Eliminare la lega?
+                  </h2>
+                  <p className="text-sm text-gray-400 mt-1 leading-relaxed">
+                    Stai per eliminare <span className="text-white font-semibold">{leagueToDelete.name}</span> con i suoi{' '}
+                    <span className="text-white font-semibold">{leagueToDelete._count.members} membri</span>, rose, contratti e sessioni di mercato.{' '}
+                    <span className="text-danger-400">Questa azione non può essere annullata.</span>
+                  </p>
+                </div>
+              </div>
+
+              <label className="block micro-label text-gray-400 mb-1">
+                Digita <span className="text-white">{CONFIRM_WORD}</span> per confermare
+              </label>
+              <Input
+                value={confirmInput}
+                onChange={(e) => { setConfirmInput(e.target.value); }}
+                placeholder={CONFIRM_WORD}
+                autoFocus
+                disabled={deleting}
+                onKeyDown={(e) => { if (e.key === 'Enter' && canConfirm) void handleConfirmDelete(); }}
+              />
+
+              <div className="flex gap-3 mt-6">
+                <Button variant="ghost" size="sm" fullWidth onClick={closeDeleteDialog} disabled={deleting}>
+                  Annulla
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  fullWidth
+                  disabled={!canConfirm || deleting}
+                  isLoading={deleting}
+                  loadingText="Eliminazione..."
+                  onClick={() => void handleConfirmDelete()}
+                >
+                  Elimina lega
+                </Button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   )
 }

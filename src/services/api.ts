@@ -1579,6 +1579,10 @@ export const superadminApi = {
   getMemberRoster: (memberId: string) =>
     request(`/api/superadmin/roster/${memberId}`),
 
+  // Delete a league and ALL its data (destructive, irreversible)
+  deleteLeague: (leagueId: string) =>
+    request(`/api/superadmin/leagues/${leagueId}`, { method: 'DELETE' }),
+
   // Get all users
   getUsers: () =>
     request('/api/superadmin/users'),

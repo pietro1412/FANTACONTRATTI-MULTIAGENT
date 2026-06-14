@@ -254,6 +254,23 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
     setLeaguesLoading(false)
   }
 
+  async function handleDeleteLeague(leagueId: string): Promise<boolean> {
+    try {
+      const result = await superadminApi.deleteLeague(leagueId)
+      if (result.success) {
+        toast.success(result.message || 'Lega eliminata')
+        setExpandedLeague(null)
+        void loadLeagues()
+        return true
+      }
+      toast.error(result.message || 'Errore durante l\'eliminazione')
+      return false
+    } catch {
+      toast.error('Errore durante l\'eliminazione della lega')
+      return false
+    }
+  }
+
   async function loadMemberRoster(memberId: string) {
     setSelectedMember(memberId)
     setRosterLoading(true)
@@ -611,6 +628,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                   expandedLeague={expandedLeague}
                   setExpandedLeague={setExpandedLeague}
                   onViewRoster={(memberId) => void loadMemberRoster(memberId)}
+                  onDeleteLeague={handleDeleteLeague}
                 />
               )}
 

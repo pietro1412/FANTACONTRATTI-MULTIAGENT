@@ -12,6 +12,8 @@ import {
   getMemberRoster,
   getUploadHistory,
   deleteAllPlayers,
+  deleteLeague,
+  verifySuperAdmin,
   getPlayersNeedingClassification,
   classifyExitedPlayers,
 } from '../../services/superadmin.service'
@@ -176,6 +178,36 @@ router.get('/superadmin/leagues', authMiddleware, async (req: Request, res: Resp
     res.json(result)
   } catch (error) {
     console.error('Get all leagues error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// ==================== DELETE LEAGUE ====================
+
+// DELETE /api/superadmin/leagues/:leagueId - Delete a league and ALL its data (super admin only)
+router.delete('/superadmin/leagues/:leagueId', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    if (!(await verifySuperAdmin(req.user!.userId))) {
+      res.status(403).json({ success: false, message: 'Non autorizzato: solo super admin' })
+      return
+    }
+
+    const leagueId = req.params.leagueId as string
+    if (!leagueId) {
+      res.status(400).json({ success: false, message: 'leagueId mancante' })
+      return
+    }
+
+    const result = await deleteLeague(leagueId)
+
+    if (!result.success) {
+      res.status(result.message === 'Lega non trovata' ? 404 : 400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Delete league error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })
