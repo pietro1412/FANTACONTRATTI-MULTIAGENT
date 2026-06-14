@@ -6,6 +6,14 @@ import { Profile } from '../pages/Profile'
 // Import mocked APIs so we can control them
 import { userApi } from '../services/api'
 
+// Shared toast mock so assertions can inspect calls
+const toastMock = {
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+  info: vi.fn(),
+}
+
 // Mock useAuth hook
 vi.mock('../hooks/useAuth', () => ({
   useAuth: () => ({
@@ -49,16 +57,9 @@ vi.mock('../services/api', () => ({
   },
 }))
 
-// Mock Toast
+// Mock Toast (shared instance so we can assert on toast calls)
 vi.mock('../components/ui/Toast', () => ({
-  useToast: () => ({
-    toast: {
-      success: vi.fn(),
-      error: vi.fn(),
-      warning: vi.fn(),
-      info: vi.fn(),
-    },
-  }),
+  useToast: () => ({ toast: toastMock }),
 }))
 
 // Mock ConfirmDialog
@@ -108,25 +109,25 @@ describe('Profile Page', () => {
     expect(document.querySelector('.animate-spin')).toBeInTheDocument()
   })
 
-  it('renders profile page after loading', async () => {
+  it('renders profile header after loading', async () => {
     render(<Profile onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Il tuo Profilo')).toBeInTheDocument()
+      expect(screen.getByText('Email verificata', { exact: false })).toBeInTheDocument()
     })
 
-    expect(screen.getByText('Gestisci le impostazioni del tuo account')).toBeInTheDocument()
+    // Username + email appear in the header (and possibly Navigation)
+    expect(screen.getAllByText('TestUser').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('test@test.com').length).toBeGreaterThanOrEqual(1)
   })
 
-  it('displays user account information', async () => {
+  it('displays user account information section', async () => {
     render(<Profile onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Informazioni Account')).toBeInTheDocument()
+      expect(screen.getByText('Informazioni account')).toBeInTheDocument()
     })
 
-    // Username and email appear in both Navigation and Profile sections
-    // Use getAllByText to verify they are present
     const usernames = screen.getAllByText('TestUser')
     expect(usernames.length).toBeGreaterThanOrEqual(1)
 
@@ -138,20 +139,33 @@ describe('Profile Page', () => {
     render(<Profile onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Le tue Squadre')).toBeInTheDocument()
+      expect(screen.getByText('Le mie squadre')).toBeInTheDocument()
     })
 
     expect(screen.getByText('FC Test')).toBeInTheDocument()
+    // League name appears in the team row
     expect(screen.getByText('Serie A Fantasy')).toBeInTheDocument()
-    expect(screen.getByText('150')).toBeInTheDocument()
-    expect(screen.getByText('crediti')).toBeInTheDocument()
+    expect(screen.getByText('Apri →')).toBeInTheDocument()
+  })
+
+  it('navigates to league detail when a team is clicked', async () => {
+    const user = userEvent.setup()
+    render(<Profile onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('FC Test')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByText('Apri →'))
+
+    expect(mockOnNavigate).toHaveBeenCalledWith('leagueDetail', { leagueId: 'league-1' })
   })
 
   it('shows user initial when no profile photo', async () => {
     render(<Profile onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      // 'T' appears in the profile photo avatar area and possibly in Navigation
+      // 'T' appears in the header avatar / photo section / possibly Navigation
       const initials = screen.getAllByText('T')
       expect(initials.length).toBeGreaterThanOrEqual(1)
     })
@@ -167,9 +181,8 @@ describe('Profile Page', () => {
 
     await user.click(screen.getByText('Cambia Password'))
 
-    // Password form should now be visible
     expect(screen.getByPlaceholderText('Inserisci la password attuale')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('Minimo 6 caratteri')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Nuova password')).toBeInTheDocument()
     expect(screen.getByPlaceholderText('Ripeti la nuova password')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Salva Password' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Annulla' })).toBeInTheDocument()
@@ -191,7 +204,7 @@ describe('Profile Page', () => {
     })
   })
 
-  it('validates minimum password length', async () => {
+  it('enforces the unified password policy (min 8)', async () => {
     const user = userEvent.setup()
     render(<Profile onNavigate={mockOnNavigate} />)
 
@@ -202,14 +215,15 @@ describe('Profile Page', () => {
     await user.click(screen.getByText('Cambia Password'))
 
     await user.type(screen.getByPlaceholderText('Inserisci la password attuale'), 'OldPass1!')
-    await user.type(screen.getByPlaceholderText('Minimo 6 caratteri'), '12345')
-    await user.type(screen.getByPlaceholderText('Ripeti la nuova password'), '12345')
+    await user.type(screen.getByPlaceholderText('Nuova password'), 'Ab1')
+    await user.type(screen.getByPlaceholderText('Ripeti la nuova password'), 'Ab1')
 
     await user.click(screen.getByRole('button', { name: 'Salva Password' }))
 
     await waitFor(() => {
-      expect(screen.getByText('La nuova password deve essere di almeno 6 caratteri')).toBeInTheDocument()
+      expect(screen.getByText('Minimo 8 caratteri')).toBeInTheDocument()
     })
+    expect(userApi.changePassword).not.toHaveBeenCalled()
   })
 
   it('validates password confirmation match', { timeout: 15000 }, async () => {
@@ -223,7 +237,7 @@ describe('Profile Page', () => {
     await user.click(screen.getByText('Cambia Password'))
 
     await user.type(screen.getByPlaceholderText('Inserisci la password attuale'), 'OldPass1!')
-    await user.type(screen.getByPlaceholderText('Minimo 6 caratteri'), 'NewPass1!')
+    await user.type(screen.getByPlaceholderText('Nuova password'), 'NewPass1!')
     await user.type(screen.getByPlaceholderText('Ripeti la nuova password'), 'DifferentPass1!')
 
     await user.click(screen.getByRole('button', { name: 'Salva Password' }))
@@ -248,7 +262,7 @@ describe('Profile Page', () => {
     await user.click(screen.getByText('Cambia Password'))
 
     await user.type(screen.getByPlaceholderText('Inserisci la password attuale'), 'OldPass1!')
-    await user.type(screen.getByPlaceholderText('Minimo 6 caratteri'), 'NewPass1!')
+    await user.type(screen.getByPlaceholderText('Nuova password'), 'NewPass1!')
     await user.type(screen.getByPlaceholderText('Ripeti la nuova password'), 'NewPass1!')
 
     await user.click(screen.getByRole('button', { name: 'Salva Password' }))
@@ -262,7 +276,7 @@ describe('Profile Page', () => {
     })
   })
 
-  it('shows success message after password change', async () => {
+  it('shows success toast after password change', async () => {
     vi.mocked(userApi.changePassword).mockResolvedValueOnce({
       success: true,
       message: 'Password aggiornata',
@@ -277,13 +291,13 @@ describe('Profile Page', () => {
     await user.click(screen.getByText('Cambia Password'))
 
     await user.type(screen.getByPlaceholderText('Inserisci la password attuale'), 'OldPass1!')
-    await user.type(screen.getByPlaceholderText('Minimo 6 caratteri'), 'NewPass1!')
+    await user.type(screen.getByPlaceholderText('Nuova password'), 'NewPass1!')
     await user.type(screen.getByPlaceholderText('Ripeti la nuova password'), 'NewPass1!')
 
     await user.click(screen.getByRole('button', { name: 'Salva Password' }))
 
     await waitFor(() => {
-      expect(screen.getByText('Password modificata con successo!')).toBeInTheDocument()
+      expect(toastMock.success).toHaveBeenCalledWith('Password modificata con successo!')
     })
   })
 
@@ -301,8 +315,8 @@ describe('Profile Page', () => {
 
     await user.click(screen.getByText('Cambia Password'))
 
-    await user.type(screen.getByPlaceholderText('Inserisci la password attuale'), 'WrongPass!')
-    await user.type(screen.getByPlaceholderText('Minimo 6 caratteri'), 'NewPass1!')
+    await user.type(screen.getByPlaceholderText('Inserisci la password attuale'), 'WrongPass1!')
+    await user.type(screen.getByPlaceholderText('Nuova password'), 'NewPass1!')
     await user.type(screen.getByPlaceholderText('Ripeti la nuova password'), 'NewPass1!')
 
     await user.click(screen.getByRole('button', { name: 'Salva Password' }))
@@ -322,12 +336,10 @@ describe('Profile Page', () => {
 
     await user.click(screen.getByText('Cambia Password'))
 
-    // Form is visible
     expect(screen.getByPlaceholderText('Inserisci la password attuale')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Annulla' }))
 
-    // Form should be hidden
     expect(screen.queryByPlaceholderText('Inserisci la password attuale')).not.toBeInTheDocument()
   })
 
@@ -344,15 +356,15 @@ describe('Profile Page', () => {
     expect(mockOnNavigate).toHaveBeenCalledWith('dashboard')
   })
 
-  it('shows Foto Profilo section with change button', async () => {
+  it('shows Foto profilo section with change button', async () => {
     render(<Profile onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Foto Profilo')).toBeInTheDocument()
+      expect(screen.getByText('Foto profilo')).toBeInTheDocument()
     })
 
-    expect(screen.getByText('Cambia Foto')).toBeInTheDocument()
-    expect(screen.getByText(/Formati supportati/)).toBeInTheDocument()
+    expect(screen.getByText('Cambia foto')).toBeInTheDocument()
+    expect(screen.getByText(/max 500KB/)).toBeInTheDocument()
   })
 
   it('does not show teams section when no memberships', async () => {
@@ -364,10 +376,10 @@ describe('Profile Page', () => {
     render(<Profile onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Il tuo Profilo')).toBeInTheDocument()
+      expect(screen.getByText('Informazioni account')).toBeInTheDocument()
     })
 
-    expect(screen.queryByText('Le tue Squadre')).not.toBeInTheDocument()
+    expect(screen.queryByText('Le mie squadre')).not.toBeInTheDocument()
   })
 
   it('shows Notifiche section', async () => {

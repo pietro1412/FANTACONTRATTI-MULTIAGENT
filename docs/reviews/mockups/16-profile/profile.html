@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Mockup — Profile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=Oswald:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Profile — account utente (post-login, flusso normale). Sezionato in components/profile/.
+     Switch ui per notifiche (touch>=44px), form password su Input + policy unica + strength,
+     foto upload, banner success/error -> toast. */
+  :root{
+    --bg:#0a0a0b; --card:#1a1c20; --elev:#111214; --hover:#252830;
+    --border:#2d3139; --primary:#3b82f6; --secondary:#22c55e;
+    --gold:#f59e0b; --gold2:#fbbf24; --danger:#ef4444; --passion:#ea580c;
+    --t1:#f9fafb; --t2:#9ca3af; --t3:#8b919d;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--t1);font-family:'Inter',sans-serif;padding:40px 0 80px;}
+  h1.page{font-family:'Outfit',sans-serif;font-size:22px;font-weight:700;text-align:center;margin-bottom:6px;}
+  p.sub{text-align:center;color:var(--t3);font-size:13px;margin-bottom:36px;max-width:1000px;margin-left:auto;margin-right:auto;}
+  .frame-label{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--t3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;text-align:center;}
+  .micro{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);}
+
+  .frame{width:720px;margin:0 auto;border:1px solid var(--border);border-radius:16px;background:var(--bg);overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.55);}
+  .topbar{height:46px;background:var(--elev);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px;}
+  .topbar .logo{width:24px;height:24px;border-radius:6px;background:linear-gradient(135deg,#1e40af,#3b82f6);}
+  .topbar .nav{font-size:12px;color:var(--t3);} .topbar .nav b{color:var(--t1);font-weight:600;}
+  .wrap{padding:22px 26px 28px;}
+
+  /* testata profilo */
+  .phead{display:flex;align-items:center;gap:16px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px 20px;margin-bottom:16px;}
+  .avatar{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#1e40af,#3b82f6);display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-weight:800;font-size:26px;color:#fff;flex-shrink:0;}
+  .phead .nm{font-family:'Outfit',sans-serif;font-size:20px;font-weight:700;}
+  .phead .em{font-size:12.5px;color:var(--t3);margin-top:2px;}
+  .verified{display:inline-flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:var(--secondary);background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.35);border-radius:999px;padding:2px 8px;margin-top:6px;}
+
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:16px;}
+  .card h3{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin-bottom:15px;}
+
+  .field{margin-bottom:13px;}
+  .lbl{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;color:var(--t3);display:block;margin-bottom:6px;}
+  .inp{width:100%;background:var(--elev);border:1px solid var(--border);border-radius:9px;padding:10px 13px;color:var(--t1);font-size:13.5px;}
+  .inp.ro{color:var(--t2);display:flex;align-items:center;gap:8px;}
+  .inp.ro .lock{margin-left:auto;color:var(--t3);font-size:12px;}
+
+  .photo-row{display:flex;align-items:center;gap:16px;}
+  .photo{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#1e40af,#3b82f6);display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-weight:800;font-size:28px;color:#fff;flex-shrink:0;}
+  .photo-act{display:flex;flex-direction:column;gap:8px;}
+  .pbtn{font-family:'Inter',sans-serif;font-size:12.5px;font-weight:600;border-radius:8px;padding:8px 14px;cursor:pointer;border:1px solid var(--border);background:var(--elev);color:var(--t1);min-height:40px;}
+  .pbtn.rem{color:var(--danger);border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.06);}
+  .photo-hint{font-size:10.5px;color:var(--t3);margin-top:4px;}
+
+  /* strength */
+  .strength{margin-top:8px;}
+  .str-track{display:flex;gap:4px;}
+  .str-seg{flex:1;height:4px;border-radius:2px;background:var(--border);}
+  .str-seg.on{background:var(--secondary);}
+  .str-lbl{display:flex;justify-content:space-between;margin-top:5px;font-size:10.5px;}
+  .str-lbl .req{color:var(--t3);} .str-lbl .lvl{color:var(--secondary);font-weight:600;font-family:'JetBrains Mono',monospace;font-size:9.5px;}
+
+  .btn{font-family:'Outfit',sans-serif;font-size:13.5px;font-weight:800;letter-spacing:.03em;color:#fff;background:linear-gradient(180deg,#4d92f7,var(--primary));border:none;border-radius:10px;padding:11px 20px;cursor:pointer;margin-top:4px;}
+
+  /* notifiche con Switch */
+  .ntf{display:flex;align-items:center;gap:13px;padding:12px 0;border-bottom:1px solid var(--border);}
+  .ntf:last-child{border-bottom:none;}
+  .ntf .ni{flex:1;}
+  .ntf .nt{font-family:'Outfit',sans-serif;font-size:13.5px;font-weight:600;}
+  .ntf .ns{font-size:11px;color:var(--t3);margin-top:1px;}
+  .switch{width:46px;height:26px;border-radius:999px;flex-shrink:0;position:relative;cursor:pointer;background:var(--border);transition:background .15s;}
+  .switch.on{background:var(--secondary);}
+  .switch::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .15s;}
+  .switch.on::after{transform:translateX(20px);}
+  .switch.dim{opacity:.4;}
+
+  /* le mie squadre */
+  .team{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border);}
+  .team:last-child{border-bottom:none;}
+  .crest{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-weight:800;font-size:13px;color:#06200f;flex-shrink:0;}
+  .team .ti{flex:1;min-width:0;}
+  .team .tn{font-family:'Outfit',sans-serif;font-size:13.5px;font-weight:700;}
+  .team .tl{font-size:11px;color:var(--t3);}
+  .tag-pres{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;color:#0a0a0b;background:var(--gold2);border-radius:4px;padding:1px 6px;}
+  .tag-dg{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;color:var(--primary);border:1px solid rgba(59,130,246,.4);border-radius:4px;padding:1px 6px;}
+  .team .go{font-size:11px;color:var(--primary);font-weight:600;}
+</style>
+</head>
+<body>
+
+<h1 class="page">Profile — account utente</h1>
+<p class="sub">Sezionato in components/profile/ (Foto, Account, Sicurezza, Notifiche, Le mie squadre). Switch a token per le notifiche (touch ≥44px, via checkbox-peer custom), form password su Input + policy unica + strength meter, banner success/error → toast. Header micro-label, numeroni/identità a token.</p>
+
+<div>
+  <div class="frame-label">Profile</div>
+  <div class="frame">
+    <div class="topbar"><span class="logo"></span><span class="nav">FantaContratti · <b>Profilo</b></span></div>
+    <div class="wrap">
+
+      <!-- testata -->
+      <div class="phead">
+        <div class="avatar">D</div>
+        <div>
+          <div class="nm">diego</div>
+          <div class="em">diego@test.it</div>
+          <span class="verified">✓ Email verificata</span>
+        </div>
+      </div>
+
+      <!-- foto -->
+      <div class="card">
+        <h3>Foto profilo</h3>
+        <div class="photo-row">
+          <div class="photo">D</div>
+          <div class="photo-act">
+            <div style="display:flex;gap:8px;"><button class="pbtn">📷 Cambia foto</button><button class="pbtn rem">Rimuovi</button></div>
+            <div class="photo-hint">PNG/JPG, max 500KB</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- account -->
+      <div class="card">
+        <h3>Informazioni account</h3>
+        <div class="field"><span class="lbl">Username</span><div class="inp ro">diego<span class="lock">🔒</span></div></div>
+        <div class="field" style="margin-bottom:0;"><span class="lbl">Email</span><div class="inp ro">diego@test.it<span class="lock">🔒</span></div></div>
+      </div>
+
+      <!-- sicurezza -->
+      <div class="card">
+        <h3>Sicurezza · cambio password</h3>
+        <div class="field"><span class="lbl">Password attuale</span><input class="inp" type="password" value="••••••••"></div>
+        <div class="field">
+          <span class="lbl">Nuova password</span>
+          <input class="inp" type="password" value="••••••••••">
+          <div class="strength">
+            <div class="str-track"><span class="str-seg on"></span><span class="str-seg on"></span><span class="str-seg on"></span><span class="str-seg"></span></div>
+            <div class="str-lbl"><span class="req">Min 8 · 1 maiuscola · 1 numero</span><span class="lvl">BUONA</span></div>
+          </div>
+        </div>
+        <div class="field"><span class="lbl">Conferma nuova password</span><input class="inp" type="password" value="••••••••••"></div>
+        <button class="btn">Aggiorna password</button>
+      </div>
+
+      <!-- notifiche -->
+      <div class="card">
+        <h3>Notifiche</h3>
+        <div class="ntf">
+          <div class="ni"><div class="nt">Notifiche push</div><div class="ns">Attiva le notifiche sul dispositivo</div></div>
+          <div class="switch on"></div>
+        </div>
+        <div class="ntf">
+          <div class="ni"><div class="nt">Tocca a te</div><div class="ns">Quando è il tuo turno in asta/rubata</div></div>
+          <div class="switch on"></div>
+        </div>
+        <div class="ntf">
+          <div class="ni"><div class="nt">Offerte di scambio</div><div class="ns">Nuove offerte e controfferte</div></div>
+          <div class="switch on"></div>
+        </div>
+        <div class="ntf">
+          <div class="ni"><div class="nt">Cambio fase</div><div class="ns">Quando una fase di mercato si apre o chiude</div></div>
+          <div class="switch"></div>
+        </div>
+        <div class="ntf">
+          <div class="ni"><div class="nt">Richieste e ricorsi</div><div class="ns">Solo da Presidente</div></div>
+          <div class="switch on"></div>
+        </div>
+      </div>
+
+      <!-- le mie squadre -->
+      <div class="card" style="margin-bottom:0;">
+        <h3>Le mie squadre</h3>
+        <div class="team">
+          <div class="crest" style="background:linear-gradient(135deg,#b45309,#f59e0b);">FC</div>
+          <div class="ti"><div class="tn">Diego FC <span class="tag-pres">PRES</span></div><div class="tl">Fantacontratti Test · 8 manager</div></div>
+          <span class="go">Apri →</span>
+        </div>
+        <div class="team">
+          <div class="crest" style="background:linear-gradient(135deg,#1e40af,#3b82f6);color:#fff;">DA</div>
+          <div class="ti"><div class="tn">Diego All Stars <span class="tag-dg">DG</span></div><div class="tl">Lega Amici 2025 · 10 manager</div></div>
+          <span class="go">Apri →</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</body>
+</html>
