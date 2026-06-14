@@ -103,7 +103,7 @@ describe('FeedbackHub Page', () => {
   it('renders tab buttons', () => {
     render(<FeedbackHub {...defaultProps} />)
 
-    expect(screen.getByText('Novita')).toBeInTheDocument()
+    expect(screen.getByText('Novità')).toBeInTheDocument()
     expect(screen.getByText('Le mie Segnalazioni')).toBeInTheDocument()
   })
 

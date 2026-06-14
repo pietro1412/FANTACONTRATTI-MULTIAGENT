@@ -20,9 +20,9 @@ interface FeedbackListProps {
 }
 
 const statusConfig: Record<string, { label: string; color: string; bgColor: string }> = {
-  APERTA: { label: 'Aperta', color: 'text-amber-400', bgColor: 'bg-amber-500/20' },
-  IN_LAVORAZIONE: { label: 'In Lavorazione', color: 'text-blue-400', bgColor: 'bg-blue-500/20' },
-  RISOLTA: { label: 'Risolta', color: 'text-emerald-400', bgColor: 'bg-emerald-500/20' },
+  APERTA: { label: 'Aperta', color: 'text-accent-400', bgColor: 'bg-accent-500/20' },
+  IN_LAVORAZIONE: { label: 'In Lavorazione', color: 'text-primary-300', bgColor: 'bg-primary-500/20' },
+  RISOLTA: { label: 'Risolta', color: 'text-secondary-300', bgColor: 'bg-secondary-500/20' },
 }
 
 const categoryConfig: Record<string, { label: string; icon: string }> = {
@@ -89,10 +89,10 @@ export function FeedbackList({ isAdmin, onSelectFeedback, selectedId }: Feedback
               setStatusFilter(status)
               setPage(1)
             }}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors ${
               statusFilter === status
-                ? 'bg-purple-500 text-white'
-                : 'bg-surface-300/50 text-gray-400 hover:text-white hover:bg-surface-300'
+                ? 'bg-primary-500 text-white border-primary-500'
+                : 'bg-surface-300 text-gray-400 border-surface-50 hover:text-white hover:bg-surface-100'
             }`}
           >
             {status ? statusConfig[status]?.label : 'Tutte'}
@@ -103,7 +103,7 @@ export function FeedbackList({ isAdmin, onSelectFeedback, selectedId }: Feedback
       {/* List */}
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
-          <div className="w-8 h-8 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-primary-400/30 border-t-primary-400 rounded-full animate-spin" />
         </div>
       ) : feedback.length === 0 ? (
         <div className="py-12 text-center">
@@ -115,7 +115,7 @@ export function FeedbackList({ isAdmin, onSelectFeedback, selectedId }: Feedback
       ) : (
         <div className="space-y-2">
           {feedback.map(item => {
-            const defaultStatus = { label: 'Aperta', color: 'text-amber-400', bgColor: 'bg-amber-500/20' }
+            const defaultStatus = { label: 'Aperta', color: 'text-accent-400', bgColor: 'bg-accent-500/20' }
             const defaultCategory = { label: 'Altro', icon: 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z' }
             const statusCfg = statusConfig[item.status] ?? defaultStatus
             const categoryCfg = categoryConfig[item.category] ?? defaultCategory
@@ -127,8 +127,8 @@ export function FeedbackList({ isAdmin, onSelectFeedback, selectedId }: Feedback
                 onClick={() => { onSelectFeedback(item.id); }}
                 className={`w-full p-4 rounded-xl border transition-all text-left ${
                   isSelected
-                    ? 'bg-purple-500/10 border-purple-500/50'
-                    : 'bg-surface-300/30 border-surface-50/20 hover:border-surface-50/40 hover:bg-surface-300/50'
+                    ? 'bg-primary-500/10 border-primary-500/50'
+                    : 'bg-surface-300 border-surface-50 hover:border-surface-50 hover:bg-surface-100'
                 }`}
               >
                 <div className="flex items-start justify-between gap-3 mb-2">
@@ -136,9 +136,9 @@ export function FeedbackList({ isAdmin, onSelectFeedback, selectedId }: Feedback
                     <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={categoryCfg.icon} />
                     </svg>
-                    <h4 className="text-sm font-semibold text-white truncate">{item.title}</h4>
+                    <h4 className="font-display text-sm font-bold text-white truncate">{item.title}</h4>
                   </div>
-                  <span className={`flex-shrink-0 px-2 py-0.5 text-[10px] font-medium rounded ${statusCfg.bgColor} ${statusCfg.color}`}>
+                  <span className={`flex-shrink-0 px-2 py-0.5 text-[10px] font-semibold rounded ${statusCfg.bgColor} ${statusCfg.color}`}>
                     {statusCfg.label}
                   </span>
                 </div>
@@ -154,7 +154,7 @@ export function FeedbackList({ isAdmin, onSelectFeedback, selectedId }: Feedback
                     </span>
                   )}
                   {item.responseCount > 0 && (
-                    <span className="flex items-center gap-1 text-purple-400">
+                    <span className="flex items-center gap-1 text-primary-300">
                       <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                       </svg>
