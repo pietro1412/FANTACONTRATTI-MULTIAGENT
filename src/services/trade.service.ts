@@ -102,8 +102,14 @@ export async function createTradeOffer(
     return { success: false, message: 'I budget devono essere positivi' }
   }
 
-  if (offeredBudget > fromMember.currentBudget) {
-    return { success: false, message: `Non hai abbastanza budget. Disponibile: ${fromMember.currentBudget}` }
+  // Check budget using bilancio (budget - monteIngaggi), coerente con asta/svincolati e Bibbia FINANZE/MERCATO-RICORRENTE §3.7
+  const monteIngaggiFrom = await prisma.playerContract.aggregate({
+    where: { leagueMemberId: fromMember.id },
+    _sum: { salary: true },
+  })
+  const bilancioFrom = fromMember.currentBudget - (monteIngaggiFrom._sum.salary || 0)
+  if (offeredBudget > bilancioFrom) {
+    return { success: false, message: `Non hai abbastanza bilancio. Disponibile: ${bilancioFrom}` }
   }
 
   // Get active session (required for trade offer)
@@ -462,14 +468,24 @@ export async function acceptTrade(tradeId: string, userId: string): Promise<Serv
     return { success: false, message: 'Uno dei membri non è più attivo nella lega' }
   }
 
-  // Validate receiver has enough budget for requested budget
-  if (trade.requestedBudget > receiverMember.currentBudget) {
-    return { success: false, message: `Budget insufficiente. Richiesto: ${trade.requestedBudget}, Disponibile: ${receiverMember.currentBudget}` }
+  // Validate budgets using bilancio (budget - monteIngaggi), coerente con asta/svincolati e Bibbia §3.7
+  const monteIngaggiReceiver = await prisma.playerContract.aggregate({
+    where: { leagueMemberId: receiverMember.id },
+    _sum: { salary: true },
+  })
+  const bilancioReceiver = receiverMember.currentBudget - (monteIngaggiReceiver._sum.salary || 0)
+  if (trade.requestedBudget > bilancioReceiver) {
+    return { success: false, message: `Bilancio insufficiente. Richiesto: ${trade.requestedBudget}, Disponibile: ${bilancioReceiver}` }
   }
 
-  // Re-validate sender has enough budget
-  if (trade.offeredBudget > senderMember.currentBudget) {
-    return { success: false, message: 'Il mittente non ha più abbastanza budget per questa offerta' }
+  // Re-validate sender has enough bilancio
+  const monteIngaggiSender = await prisma.playerContract.aggregate({
+    where: { leagueMemberId: senderMember.id },
+    _sum: { salary: true },
+  })
+  const bilancioSender = senderMember.currentBudget - (monteIngaggiSender._sum.salary || 0)
+  if (trade.offeredBudget > bilancioSender) {
+    return { success: false, message: 'Il mittente non ha più abbastanza bilancio per questa offerta' }
   }
 
   const offeredPlayerIds = trade.offeredPlayers as string[]

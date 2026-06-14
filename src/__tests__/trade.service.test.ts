@@ -31,6 +31,7 @@ const { mockPrisma, MockPrismaClient } = vi.hoisted(() => {
     },
     playerContract: {
       updateMany: vi.fn(),
+      aggregate: vi.fn(),
     },
     marketSession: {
       findFirst: vi.fn(),
@@ -158,6 +159,8 @@ describe('Trade Service', () => {
     mockPrisma.$transaction.mockImplementation((cb: unknown) =>
       (cb as (tx: typeof mockPrisma) => unknown)(mockPrisma)
     )
+    // Default: nessun contratto → monteIngaggi 0 → bilancio == cassa (i test che vogliono testare il vincolo bilancio sovrascrivono questo mock)
+    mockPrisma.playerContract.aggregate.mockResolvedValue({ _sum: { salary: 0 } })
     // Restore fire-and-forget service mocks (must return Promises for .catch())
     mockNotifyTradeOffer.mockResolvedValue(undefined)
     mockNotifyTradeInvalidated.mockResolvedValue(undefined)
@@ -302,7 +305,27 @@ describe('Trade Service', () => {
       )
 
       expect(result.success).toBe(false)
-      expect(result.message).toContain('Non hai abbastanza budget')
+      expect(result.message).toContain('Non hai abbastanza bilancio')
+    })
+
+    it('should reject offer that fits cassa but exceeds bilancio (budget - monteIngaggi)', async () => {
+      // Cassa 100, monteIngaggi 70 → bilancio 30. Offerta 50: sta nella cassa ma supera il bilancio → rifiuto (Bibbia §3.7)
+      mockPrisma.leagueMember.findFirst.mockResolvedValue(makeMember({ currentBudget: 100 }))
+      mockPrisma.leagueMember.findUnique.mockResolvedValue({
+        id: 'member-receiver', leagueId: 'league-1', status: 'ACTIVE', userId: 'user-receiver', user: {},
+      })
+      mockPrisma.marketSession.findFirst
+        .mockResolvedValueOnce(makeActiveSession())
+        .mockResolvedValueOnce(makeActiveSession())
+      mockPrisma.playerContract.aggregate.mockResolvedValue({ _sum: { salary: 70 } })
+
+      const result = await tradeService.createTradeOffer(
+        'league-1', 'user-sender', 'member-receiver',
+        [], [], 50, 0
+      )
+
+      expect(result.success).toBe(false)
+      expect(result.message).toContain('Non hai abbastanza bilancio. Disponibile: 30')
     })
 
     it('should return error when a reverse trade already exists in same session', async () => {
@@ -550,7 +573,7 @@ describe('Trade Service', () => {
       const result = await tradeService.acceptTrade('trade-1', 'user-receiver')
 
       expect(result.success).toBe(false)
-      expect(result.message).toContain('Budget insufficiente')
+      expect(result.message).toContain('Bilancio insufficiente')
     })
 
     it('should invalidate trade when offered players are no longer in sender roster', async () => {
