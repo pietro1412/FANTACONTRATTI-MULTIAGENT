@@ -1799,6 +1799,10 @@ export async function getLeagueRosters(leagueId: string, userId: string): Promis
           player: true,
           contract: true,
         },
+        orderBy: [
+          { player: { position: 'asc' } },
+          { player: { name: 'asc' } },
+        ],
       },
     },
   })

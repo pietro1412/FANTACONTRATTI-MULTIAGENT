@@ -1104,6 +1104,10 @@ export async function getAllRosters(leagueId: string, userId: string): Promise<S
                 },
               },
             },
+            orderBy: [
+              { player: { position: 'asc' } },
+              { player: { name: 'asc' } },
+            ],
           },
         },
       },

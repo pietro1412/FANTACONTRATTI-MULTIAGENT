@@ -125,10 +125,14 @@ router.get('/stats', authMiddleware, async (req: Request, res: Response) => {
         apiFootballStats: true,
         statsSyncedAt: true,
       },
-      orderBy: sortBy === 'quotation' ? { quotation: sortOrder === 'asc' ? 'asc' : 'desc' }
-        : sortBy === 'team' ? { team: sortOrder === 'asc' ? 'asc' : 'desc' }
-        : sortBy === 'position' ? { position: sortOrder === 'asc' ? 'asc' : 'desc' }
-        : { name: 'asc' },
+      // Keep the user-selected criterion; add role+name as coherent tiebreaker
+      orderBy: sortBy === 'quotation'
+        ? [{ quotation: sortOrder === 'asc' ? 'asc' : 'desc' }, { position: 'asc' }, { name: 'asc' }]
+        : sortBy === 'team'
+        ? [{ team: sortOrder === 'asc' ? 'asc' : 'desc' }, { position: 'asc' }, { name: 'asc' }]
+        : sortBy === 'position'
+        ? [{ position: sortOrder === 'asc' ? 'asc' : 'desc' }, { name: 'asc' }]
+        : [{ name: sortOrder === 'asc' ? 'asc' : 'desc' }, { position: 'asc' }],
       skip,
       take: limitNum,
     })

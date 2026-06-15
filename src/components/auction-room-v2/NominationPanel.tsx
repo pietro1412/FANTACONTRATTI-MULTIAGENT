@@ -5,6 +5,7 @@ import { POSITION_GRADIENTS, POSITION_FILTER_COLORS, POSITION_NAMES } from '../u
 import { PlayerStatsModal } from '../PlayerStatsModal'
 import type { PlayerInfo } from '../PlayerStatsModal'
 import type { Player, MarketProgress } from '../../types/auctionroom.types'
+import { sortPlayersByRoleAndName } from '@/utils/player-sort'
 
 interface NominationPanelProps {
   players: Player[]
@@ -86,10 +87,10 @@ export function NominationPanel({
     }
   }, [isPrimoMercato, marketProgress?.currentRole])
 
-  // Filter players by selected role tab (local)
+  // Filter players by selected role tab (local), then order by role + name
   const filteredPlayers = useMemo(() => {
-    if (selectedRole === 'TUTTI') return players
-    return players.filter(p => p.position === selectedRole)
+    const filtered = selectedRole === 'TUTTI' ? players : players.filter(p => p.position === selectedRole)
+    return sortPlayersByRoleAndName(filtered)
   }, [players, selectedRole])
 
   const handlePlayerClick = (player: Player) => {

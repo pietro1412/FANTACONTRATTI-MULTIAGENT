@@ -5,6 +5,7 @@ import { usePusherAuction } from '../services/pusher.client'
 import { useServerTime } from './useServerTime'
 import haptic from '../utils/haptics'
 import sounds from '../utils/sounds'
+import { sortPlayersByRoleAndName } from '@/utils/player-sort'
 import type {
   DragEndEvent} from '@dnd-kit/core';
 import {
@@ -385,8 +386,8 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     if (selectedTeam) filters.team = selectedTeam
     const result = await playerApi.getAll(filters)
     if (result.success && result.data) {
-      // Ordina alfabeticamente per nome
-      const sortedPlayers = (result.data as Player[]).sort((a, b) => a.name.localeCompare(b.name))
+      // Ordina per ruolo (P/D/C/A) poi alfabeticamente per nome
+      const sortedPlayers = sortPlayersByRoleAndName(result.data as Player[])
       setPlayers(sortedPlayers)
     }
   }, [leagueId, searchQuery, selectedTeam])

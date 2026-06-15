@@ -16,6 +16,7 @@ import { PlayerViewToggle, type PlayerView } from '@/components/players/PlayerVi
 import { Monogram } from '@/components/ui/Monogram'
 import { TeamLogo } from '@/components/ui/TeamLogo'
 import { SlidersHorizontal } from 'lucide-react'
+import { sortPlayersByRoleAndName, comparePlayersByRoleAndName } from '@/utils/player-sort'
 
 // ==================== TYPES ====================
 
@@ -210,7 +211,8 @@ export function Players({ leagueId, onNavigate, initialView = 'list', initialTea
   const [statsError, setStatsError] = useState<string | null>(null)
   const [teams, setTeams] = useState<string[]>([])
   const [statsTeamFilter, setStatsTeamFilter] = useState('')
-  const [sortBy, setSortBy] = useState<string>('name')
+  // Default tabellone order: natural role (P/D/C/A) then name
+  const [sortBy, setSortBy] = useState<string>('position')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
@@ -279,7 +281,7 @@ export function Players({ leagueId, onNavigate, initialView = 'list', initialTea
   }, [view, loadListData])
 
   const filteredListPlayers = useMemo<ListPlayerWithRoster[]>(() => {
-    return listPlayers
+    const filtered = listPlayers
       .map(p => ({ ...p, rosterInfo: rosterMap.get(p.id) }))
       .filter(p => {
         if (statusFilter === 'free' && p.rosterInfo) return false
@@ -287,6 +289,8 @@ export function Players({ leagueId, onNavigate, initialView = 'list', initialTea
         if (listTeamFilter && p.rosterInfo?.teamName !== listTeamFilter) return false
         return true
       })
+    // Simple list (no user-selectable sort) → natural order: role then name
+    return sortPlayersByRoleAndName(filtered)
   }, [listPlayers, rosterMap, statusFilter, listTeamFilter])
 
   const freeCount = useMemo(
@@ -358,6 +362,7 @@ export function Players({ leagueId, onNavigate, initialView = 'list', initialTea
   )
 
   const sortedStatsPlayers = useMemo(() => {
+    // Backend-sortable criteria already include a role+name tiebreaker server-side
     if (BACKEND_SORTABLE.includes(sortBy)) return statsPlayers
     const colDef = STAT_COLUMNS.find(c => c.key === sortBy)
     return [...statsPlayers].sort((a, b) => {
@@ -369,7 +374,9 @@ export function Players({ leagueId, onNavigate, initialView = 'list', initialTea
         aVal = typeof aRaw === 'number' ? aRaw : 0
         bVal = typeof bRaw === 'number' ? bRaw : 0
       }
-      return sortOrder === 'asc' ? aVal - bVal : bVal - aVal
+      const cmp = sortOrder === 'asc' ? aVal - bVal : bVal - aVal
+      // Keep the user's chosen criterion; on ties fall back to role then name
+      return cmp !== 0 ? cmp : comparePlayersByRoleAndName(a, b)
     })
   }, [statsPlayers, sortBy, sortOrder])
 
