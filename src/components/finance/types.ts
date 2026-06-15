@@ -181,6 +181,26 @@ export const CHART_TOOLTIP_ITEM_STYLE = { color: '#e5e7eb' } as const
 // Axis tick style: readable size (was 9-10px)
 export const CHART_AXIS_TICK = { fill: CHART_COLORS.axis, fontSize: 12 } as const
 
+// Shared axis-label config for "crediti (milioni)" — single source so every
+// recharts finance chart shows the same unit on the credits axis (assioma 10).
+// Spread into a recharts <YAxis label={CREDITS_Y_AXIS_LABEL} /> (or X axis).
+export const CREDITS_Y_AXIS_LABEL = {
+  value: 'Crediti (M)',
+  angle: -90 as const,
+  position: 'insideLeft' as const,
+  fill: CHART_COLORS.muted,
+  fontSize: 11,
+  style: { textAnchor: 'middle' as const },
+} as const
+
+export const CREDITS_X_AXIS_LABEL = {
+  value: 'Crediti (M)',
+  position: 'insideBottom' as const,
+  offset: -2,
+  fill: CHART_COLORS.muted,
+  fontSize: 11,
+} as const
+
 // Humanized labels for market session phases (no raw enums in UI)
 export const SESSION_PHASE_LABELS: Record<string, string> = {
   ASTA_LIBERA: 'Asta libera',

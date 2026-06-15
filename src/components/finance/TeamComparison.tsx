@@ -10,7 +10,9 @@ import {
   type FinancialsData, type LeagueTotals,
   getTeamBalance,
   computeLeagueTotals,
+  formatPhaseLabel,
   CHART_COLORS, CHART_TOOLTIP_STYLE, CHART_TOOLTIP_LABEL_STYLE, CHART_AXIS_TICK,
+  CREDITS_Y_AXIS_LABEL,
 } from './types'
 
 interface TrendPoint {
@@ -76,7 +78,7 @@ export function TeamComparison({ data, myTeamId, trends }: TeamComparisonProps) 
         const balance = getTeamBalance(t, totals.hasFinancialDetails)
         const reserve = t.slotReserve ?? 0
         return {
-          name: t.teamName.length > 9 ? t.teamName.substring(0, 9) + '..' : t.teamName,
+          name: t.teamName.length > 12 ? t.teamName.substring(0, 12) + '..' : t.teamName,
           fullName: t.teamName,
           memberId: t.memberId,
           ingaggi: t.annualContractCost,
@@ -89,23 +91,32 @@ export function TeamComparison({ data, myTeamId, trends }: TeamComparisonProps) 
 
   const myShortName = compositionData.find(d => d.isMe)?.name
 
-  // Historical trends: flatten to array of { date, [teamName]: balance }
+  // Historical trends: flatten to array of { label, [teamName]: balance }.
+  // The X axis tracks market SESSION snapshots (phases), not calendar dates:
+  // we key snapshots by createdAt timestamp (stable chronological order) but
+  // label them with the humanized phase (assioma 10 — axis must be unambiguous).
   const trendsChartData = useMemo(() => {
     if (!trends) return null
     const teamNames = Object.keys(trends)
     if (teamNames.length === 0) return null
 
-    const dateMap = new Map<string, Record<string, string | number>>()
+    // ts -> { label, [teamName]: balance }; keep ts for sorting
+    const snapMap = new Map<number, { ts: number; label: string } & Record<string, string | number>>()
 
     for (const [teamName, points] of Object.entries(trends)) {
       for (const point of points) {
-        const dateKey = new Date(point.createdAt).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' })
-        if (!dateMap.has(dateKey)) {
-          dateMap.set(dateKey, { date: dateKey })
+        const ts = new Date(point.createdAt).getTime()
+        const phaseLabel = formatPhaseLabel(point.sessionPhase)
+        const label = phaseLabel
+          || new Date(point.createdAt).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' })
+        if (!snapMap.has(ts)) {
+          snapMap.set(ts, { ts, label })
         }
-        dateMap.get(dateKey)![teamName] = point.balance
+        snapMap.get(ts)![teamName] = point.balance
       }
     }
+
+    const ordered = Array.from(snapMap.values()).sort((a, b) => a.ts - b.ts)
 
     // Render the user's line last so it stays on top
     const myName = myTeam?.teamName
@@ -113,7 +124,7 @@ export function TeamComparison({ data, myTeamId, trends }: TeamComparisonProps) 
       (a === myName ? 1 : 0) - (b === myName ? 1 : 0)
     )
 
-    return { data: Array.from(dateMap.values()), teamNames: sortedNames }
+    return { data: ordered, teamNames: sortedNames }
   }, [trends, myTeam])
 
   return (
@@ -133,14 +144,14 @@ export function TeamComparison({ data, myTeamId, trends }: TeamComparisonProps) 
           />
           <div style={{ height: 300 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={compositionData} margin={{ left: 0, right: 10, top: 10 }}>
+              <BarChart data={compositionData} margin={{ left: 12, right: 10, top: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} vertical={false} />
                 <XAxis
                   dataKey="name"
                   tick={<TeamAxisTick highlight={myShortName} />}
                   interval={0}
                 />
-                <YAxis tick={CHART_AXIS_TICK} />
+                <YAxis tick={CHART_AXIS_TICK} label={CREDITS_Y_AXIS_LABEL} />
                 <Tooltip
                   contentStyle={CHART_TOOLTIP_STYLE} labelStyle={CHART_TOOLTIP_LABEL_STYLE}
                   itemStyle={{ color: '#fff' }}
@@ -200,15 +211,16 @@ export function TeamComparison({ data, myTeamId, trends }: TeamComparisonProps) 
           {trendsChartData ? (
             <div style={{ height: 300 }}>
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={trendsChartData.data} margin={{ left: 0, right: 10, top: 10, bottom: 5 }}>
+                <LineChart data={trendsChartData.data} margin={{ left: 12, right: 10, top: 10, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
-                  <XAxis dataKey="date" tick={CHART_AXIS_TICK} />
-                  <YAxis tick={CHART_AXIS_TICK} />
+                  <XAxis dataKey="label" tick={CHART_AXIS_TICK} />
+                  <YAxis tick={CHART_AXIS_TICK} label={CREDITS_Y_AXIS_LABEL} />
                   <Tooltip
                     contentStyle={CHART_TOOLTIP_STYLE} labelStyle={CHART_TOOLTIP_LABEL_STYLE}
                     itemStyle={{ color: '#fff' }}
-                    formatter={((value: number) => [`${value}M`, '']) as Formatter<number, string>}
+                    formatter={((value: number, name: string) => [`${value}M`, name]) as Formatter<number, string>}
                   />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
                   {trendsChartData.teamNames.map(name => {
                     const isMe = name === myTeam?.teamName
                     return (

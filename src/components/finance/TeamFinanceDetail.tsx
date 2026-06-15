@@ -10,7 +10,7 @@ import {
   type TeamData, type FinancialsData,
   getTeamBalance, getHealthStatus,
   POSITION_CHART_COLORS, POSITION_NAMES, POSITION_COLORS,
-  CHART_TOOLTIP_STYLE, CHART_TOOLTIP_LABEL_STYLE, CHART_TOOLTIP_ITEM_STYLE, CHART_AXIS_TICK,
+  CHART_COLORS, CHART_TOOLTIP_STYLE, CHART_TOOLTIP_LABEL_STYLE, CHART_TOOLTIP_ITEM_STYLE, CHART_AXIS_TICK,
 } from './types'
 
 interface TeamFinanceDetailProps {
@@ -288,14 +288,14 @@ export function TeamFinanceDetail({ team, data, leagueId, onBack, onNavigateToPl
                       dataKey="x"
                       name="Ingaggio"
                       tick={CHART_AXIS_TICK}
-                      label={{ value: 'Ingaggio', position: 'insideBottom', offset: -2, fill: '#6b7280', fontSize: 12 }}
+                      label={{ value: 'Ingaggio (M)', position: 'insideBottom', offset: -2, fill: CHART_COLORS.muted, fontSize: 12 }}
                     />
                     <YAxis
                       type="number"
                       dataKey="y"
                       name="Clausola"
                       tick={CHART_AXIS_TICK}
-                      label={{ value: 'Clausola', angle: -90, position: 'insideLeft', fill: '#6b7280', fontSize: 12 }}
+                      label={{ value: 'Clausola (M)', angle: -90, position: 'insideLeft', fill: CHART_COLORS.muted, fontSize: 12, style: { textAnchor: 'middle' } }}
                     />
                     <ZAxis type="number" dataKey="z" range={[40, 200]} name="Durata" />
                     <Tooltip

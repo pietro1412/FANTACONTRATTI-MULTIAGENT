@@ -1,6 +1,6 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
 import type { Formatter } from 'recharts/types/component/DefaultTooltipContent'
-import { type TeamData, CHART_TOOLTIP_STYLE, CHART_TOOLTIP_LABEL_STYLE, CHART_TOOLTIP_ITEM_STYLE, CHART_AXIS_TICK } from './types'
+import { type TeamData, CHART_TOOLTIP_STYLE, CHART_TOOLTIP_LABEL_STYLE, CHART_TOOLTIP_ITEM_STYLE, CHART_AXIS_TICK, CREDITS_Y_AXIS_LABEL } from './types'
 
 interface WaterfallChartProps {
   team: TeamData
@@ -35,7 +35,7 @@ function buildWaterfallData(team: TeamData): WaterfallItem[] {
   if (team.totalAcquisitionCost > 0) {
     cumulative -= team.totalAcquisitionCost
     items.push({
-      name: 'Aste',
+      name: 'Acquisti (aste)',
       value: -team.totalAcquisitionCost,
       cumulative,
       isTotal: false,
@@ -87,9 +87,9 @@ function buildWaterfallData(team: TeamData): WaterfallItem[] {
     })
   }
 
-  // Budget attuale = what's left
+  // Budget attuale = cash on hand (subtotal checkpoint, before salaries)
   items.push({
-    name: 'Budget Attuale',
+    name: 'Cassa attuale',
     value: team.budget,
     cumulative: team.budget,
     isTotal: true,
@@ -109,7 +109,7 @@ function buildWaterfallData(team: TeamData): WaterfallItem[] {
   // Bilancio
   const balance = team.budget - team.annualContractCost
   items.push({
-    name: 'BILANCIO',
+    name: 'BILANCIO netto',
     value: balance,
     cumulative: balance,
     isTotal: true,
@@ -156,7 +156,7 @@ export function WaterfallChart({ team }: WaterfallChartProps) {
       {/* Desktop: recharts bar */}
       <div className="hidden md:block" style={{ height: 350 }}>
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={chartData} margin={{ top: 10, right: 10, bottom: 10, left: 10 }}>
+          <BarChart data={chartData} margin={{ top: 10, right: 10, bottom: 10, left: 12 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#2d3139" />
             <XAxis
               dataKey="name"
@@ -166,7 +166,7 @@ export function WaterfallChart({ team }: WaterfallChartProps) {
               textAnchor="end"
               height={60}
             />
-            <YAxis tick={CHART_AXIS_TICK} />
+            <YAxis tick={CHART_AXIS_TICK} label={CREDITS_Y_AXIS_LABEL} />
             <Tooltip
               contentStyle={CHART_TOOLTIP_STYLE} labelStyle={CHART_TOOLTIP_LABEL_STYLE} itemStyle={CHART_TOOLTIP_ITEM_STYLE}
               formatter={((_value: number, _name: string, props: { payload: { displayValue: number } }) => {

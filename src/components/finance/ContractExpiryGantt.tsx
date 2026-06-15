@@ -48,14 +48,24 @@ export function ContractExpiryGantt({ players, leagueId }: ContractExpiryGanttPr
         Scadenze Contrattuali
       </div>
 
-      {/* Timeline header */}
+      {/* Axis caption: the horizontal axis is the contract timeline in semesters */}
+      <div className="flex items-center gap-2 mb-1">
+        <div className="w-24 md:w-32 shrink-0" />
+        <div className="flex-1 micro-label text-gray-500">Semestri rimanenti</div>
+        <div className="w-6 micro-label text-gray-500 text-right">Sem.</div>
+      </div>
+
+      {/* Timeline header: per-semester gridline labels */}
       <div className="flex items-center gap-2 mb-3 text-[10px] text-gray-500">
-        <div className="w-24 md:w-32" />
-        {Array.from({ length: maxDuration }, (_, i) => (
-          <div key={i} className="flex-1 text-center">
-            Sem.{i + 1}
-          </div>
-        ))}
+        <div className="w-24 md:w-32 shrink-0" />
+        <div className="flex-1 flex">
+          {Array.from({ length: maxDuration }, (_, i) => (
+            <div key={i} className="flex-1 text-center">
+              Sem.{i + 1}
+            </div>
+          ))}
+        </div>
+        <div className="w-6" />
       </div>
 
       {/* Player bars */}

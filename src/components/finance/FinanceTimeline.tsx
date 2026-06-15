@@ -3,7 +3,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import type { Formatter } from 'recharts/types/component/DefaultTooltipContent'
 import { leagueApi } from '../../services/api'
 import { PlayerName } from '@/components/players/PlayerName'
-import { type FinancialsData, POSITION_COLORS, CHART_TOOLTIP_STYLE, CHART_TOOLTIP_LABEL_STYLE, CHART_TOOLTIP_ITEM_STYLE, CHART_AXIS_TICK } from './types'
+import { type FinancialsData, POSITION_COLORS, formatPhaseLabel, CHART_TOOLTIP_STYLE, CHART_TOOLTIP_LABEL_STYLE, CHART_TOOLTIP_ITEM_STYLE, CHART_AXIS_TICK, CREDITS_Y_AXIS_LABEL } from './types'
 
 interface FinanceTimelineProps {
   leagueId: string
@@ -140,8 +140,8 @@ export function FinanceTimeline({ leagueId, data, initialMemberId, onBack }: Fin
   const chartData = useMemo(() => {
     return trendData.map((point, i) => ({
       name: point.sessionPhase
-        ? `${point.sessionType === 'PRIMO_MERCATO' ? 'PM' : 'MR'} ${point.sessionPhase}`
-        : `Snap ${i + 1}`,
+        ? `${point.sessionType === 'PRIMO_MERCATO' ? 'PM' : 'MR'} · ${formatPhaseLabel(point.sessionPhase)}`
+        : `Snapshot ${i + 1}`,
       budget: point.budget,
       ingaggi: point.totalSalaries,
       bilancio: point.balance,
@@ -222,10 +222,10 @@ export function FinanceTimeline({ leagueId, data, initialMemberId, onBack }: Fin
               </div>
               <div style={{ height: 220 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData}>
+                  <LineChart data={chartData} margin={{ left: 12, right: 8, top: 8, bottom: 4 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#2d3139" />
                     <XAxis dataKey="name" tick={CHART_AXIS_TICK} />
-                    <YAxis tick={CHART_AXIS_TICK} />
+                    <YAxis tick={CHART_AXIS_TICK} label={CREDITS_Y_AXIS_LABEL} />
                     <Tooltip
                       contentStyle={CHART_TOOLTIP_STYLE} labelStyle={CHART_TOOLTIP_LABEL_STYLE} itemStyle={CHART_TOOLTIP_ITEM_STYLE}
                       formatter={((value: number, name: string) => [
