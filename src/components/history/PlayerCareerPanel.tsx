@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { historyApi } from '../../services/api'
 import { PlayerName } from '@/components/players/PlayerName'
+import { POSITION_FILTER_COLORS } from '@/components/ui/PositionBadge'
 
 interface PlayerCareerPanelProps {
   leagueId: string
@@ -61,13 +62,6 @@ const eventTypeConfig: Record<string, { icon: string; label: string; color: stri
   RELEGATION_KEEP: { icon: '⬇️', label: 'Retrocesso (Mantenuto)', color: 'text-amber-400' },
   ABROAD_COMPENSATION: { icon: '✈️', label: 'Estero (Compenso)', color: 'text-cyan-400' },
   ABROAD_KEEP: { icon: '✈️', label: 'Estero (Mantenuto)', color: 'text-cyan-300' },
-}
-
-const positionColors: Record<string, string> = {
-  P: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-  D: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-  C: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-  A: 'bg-red-500/20 text-red-400 border-red-500/30',
 }
 
 export function PlayerCareerPanel({ leagueId, playerId, playerName, onClose }: PlayerCareerPanelProps) {
@@ -137,7 +131,7 @@ export function PlayerCareerPanel({ leagueId, playerId, playerName, onClose }: P
             {/* Position Badge */}
             <div
               className={`w-14 h-14 rounded-xl flex items-center justify-center text-2xl font-bold border ${
-                positionColors[career.player.position] ?? ''
+                POSITION_FILTER_COLORS[career.player.position] ?? ''
               }`}
             >
               {career.player.position}

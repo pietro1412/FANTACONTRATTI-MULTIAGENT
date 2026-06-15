@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { historyApi } from '../../services/api'
 import { PlayerName } from '@/components/players/PlayerName'
+import { POSITION_TEXT_COLORS } from '@/components/ui/PositionBadge'
 
 interface SessionSummary {
   id: string
@@ -62,13 +63,6 @@ const eventTypeConfig: Record<string, { label: string; color: string }> = {
   RELEGATION_KEEP: { label: 'Retrocesso (Mantenuto)', color: 'text-amber-400' },
   ABROAD_COMPENSATION: { label: 'Estero (Compenso)', color: 'text-cyan-400' },
   ABROAD_KEEP: { label: 'Estero (Mantenuto)', color: 'text-cyan-300' },
-}
-
-const positionColors: Record<string, string> = {
-  P: 'bg-amber-500/20 text-amber-400',
-  D: 'bg-blue-500/20 text-blue-400',
-  C: 'bg-emerald-500/20 text-emerald-400',
-  A: 'bg-red-500/20 text-red-400',
 }
 
 export function TimelineView({ leagueId, sessions }: TimelineViewProps) {
@@ -253,7 +247,7 @@ export function TimelineView({ leagueId, sessions }: TimelineViewProps) {
                       <td className={`py-1.5 px-2 text-xs font-medium ${config.color}`}>
                         {config.label}
                       </td>
-                      <td className={`py-1.5 px-2 font-bold ${(positionColors[event.player.position] ?? 'bg-gray-500/20 text-gray-400').split(' ')[1] ?? ''}`}>
+                      <td className={`py-1.5 px-2 font-bold ${POSITION_TEXT_COLORS[event.player.position] ?? 'text-gray-400'}`}>
                         {event.player.position}
                       </td>
                       <td className="py-1.5 px-3 text-white">

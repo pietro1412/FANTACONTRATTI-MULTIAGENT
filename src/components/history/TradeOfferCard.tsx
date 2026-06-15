@@ -1,3 +1,5 @@
+import { POSITION_FILTER_COLORS } from '@/components/ui/PositionBadge'
+
 interface TradeOfferCardProps {
   trade: {
     id: string
@@ -34,13 +36,6 @@ const statusConfig: Record<string, { bg: string; text: string; label: string }> 
   CANCELLED: { bg: 'bg-gray-500/20', text: 'text-gray-400', label: 'Annullato' },
   EXPIRED: { bg: 'bg-gray-500/20', text: 'text-gray-400', label: 'Scaduto' },
   INVALIDATED: { bg: 'bg-orange-500/20', text: 'text-orange-400', label: 'Decaduta' },
-}
-
-const positionColors: Record<string, string> = {
-  P: 'bg-amber-500/20 text-amber-400',
-  D: 'bg-blue-500/20 text-blue-400',
-  C: 'bg-emerald-500/20 text-emerald-400',
-  A: 'bg-red-500/20 text-red-400',
 }
 
 export function TradeOfferCard({ trade }: TradeOfferCardProps) {
@@ -170,7 +165,7 @@ function PlayerRow({ player }: {
   return (
     <div className="flex items-center justify-between bg-surface-300/30 rounded px-2 py-1.5">
       <div className="flex items-center gap-2">
-        <span className={`text-xs px-1.5 py-0.5 rounded ${positionColors[player.position] ?? ''}`}>
+        <span className={`text-xs px-1.5 py-0.5 rounded ${POSITION_FILTER_COLORS[player.position] ?? ''}`}>
           {player.position}
         </span>
         <span className="text-sm text-white">{player.name}</span>

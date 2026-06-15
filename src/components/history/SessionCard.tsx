@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { historyApi } from '../../services/api'
 import { PlayerName } from '@/components/players/PlayerName'
+import { POSITION_TEXT_COLORS } from '@/components/ui/PositionBadge'
 
 interface SessionSummary {
   id: string
@@ -394,13 +395,6 @@ function FirstMarketTab({ data, leagueId }: { data: unknown; leagueId: string })
     stats: { totalAuctions: number; avgPrice: number; maxPrice: number }
   }
 
-  const positionColors: Record<string, string> = {
-    P: 'text-amber-400',
-    D: 'text-blue-400',
-    C: 'text-emerald-400',
-    A: 'text-red-400',
-  }
-
   return (
     <div className="space-y-4">
       {/* Stats Row */}
@@ -436,7 +430,7 @@ function FirstMarketTab({ data, leagueId }: { data: unknown; leagueId: string })
                     className={`border-b border-surface-50/10 hover:bg-surface-300/20 ${hasProphecies ? 'cursor-pointer' : ''}`}
                     onClick={() => { if (hasProphecies) setExpandedAuction(isExpanded ? null : auction.id); }}
                   >
-                    <td className={`py-1.5 px-2 font-bold ${positionColors[auction.player.position] ?? ''}`}>
+                    <td className={`py-1.5 px-2 font-bold ${POSITION_TEXT_COLORS[auction.player.position] ?? ''}`}>
                       {auction.player.position}
                     </td>
                     <td className="py-1.5 px-2 text-white">
@@ -731,12 +725,6 @@ function PrizesTab({ data }: { data: unknown }) {
               <tbody>
                 {members.filter(m => (m.indemnityPlayers?.length ?? 0) > 0).flatMap(member =>
                   (member.indemnityPlayers ?? []).map((player, idx) => {
-                    const posColors: Record<string, string> = {
-                      P: 'text-amber-400',
-                      D: 'text-blue-400',
-                      C: 'text-emerald-400',
-                      A: 'text-red-400',
-                    }
                     return (
                       <tr key={`${member.id}-${player.playerId}`} className="border-b border-surface-50/10">
                         {idx === 0 && (
@@ -744,7 +732,7 @@ function PrizesTab({ data }: { data: unknown }) {
                             <span className="text-white text-sm">{member.teamName || member.username}</span>
                           </td>
                         )}
-                        <td className={`py-2 px-2 text-center font-bold ${posColors[player.position] || 'text-gray-400'}`}>
+                        <td className={`py-2 px-2 text-center font-bold ${POSITION_TEXT_COLORS[player.position] || 'text-gray-400'}`}>
                           {player.position}
                         </td>
                         <td className="py-2 px-2">
@@ -789,13 +777,6 @@ function RubataTab({ data, leagueId }: { data: unknown; leagueId: string }) {
     stats: { total: number; stolen: number; retained: number; noBids: number }
   }
 
-  const positionColors: Record<string, string> = {
-    P: 'text-amber-400',
-    D: 'text-blue-400',
-    C: 'text-emerald-400',
-    A: 'text-red-400',
-  }
-
   return (
     <div className="space-y-4">
       {/* Stats Row */}
@@ -832,7 +813,7 @@ function RubataTab({ data, leagueId }: { data: unknown; leagueId: string }) {
                     <span className="text-green-400 font-bold" title="Trattenuto">✓</span>
                   )}
                 </td>
-                <td className={`py-1.5 px-2 font-bold ${positionColors[auction.player.position] ?? ''}`}>
+                <td className={`py-1.5 px-2 font-bold ${POSITION_TEXT_COLORS[auction.player.position] ?? ''}`}>
                   {auction.player.position}
                 </td>
                 <td className="py-1.5 px-2 text-white">
@@ -880,13 +861,6 @@ function SvincolatiTab({ data, leagueId }: { data: unknown; leagueId: string }) 
     stats: { total: number; totalSpent: number; avgPrice: number }
   }
 
-  const positionColors: Record<string, string> = {
-    P: 'text-amber-400',
-    D: 'text-blue-400',
-    C: 'text-emerald-400',
-    A: 'text-red-400',
-  }
-
   return (
     <div className="space-y-4">
       {/* Stats Row */}
@@ -912,7 +886,7 @@ function SvincolatiTab({ data, leagueId }: { data: unknown; leagueId: string }) 
           <tbody>
             {auctions.map(auction => (
               <tr key={auction.id} className="border-b border-surface-50/10 hover:bg-surface-300/20">
-                <td className={`py-1.5 px-2 font-bold ${positionColors[auction.player.position] ?? ''}`}>
+                <td className={`py-1.5 px-2 font-bold ${POSITION_TEXT_COLORS[auction.player.position] ?? ''}`}>
                   {auction.player.position}
                 </td>
                 <td className="py-1.5 px-2 text-white">
