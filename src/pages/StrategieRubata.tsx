@@ -704,6 +704,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
       age: player.playerAge,
       apiFootballId: player.playerApiFootballId,
       computedStats: player.playerComputedStats,
+      leaguePlayerId: player.playerId,
     })
   }, [])
 
@@ -1322,6 +1323,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
         isOpen={!!selectedPlayerStats}
         onClose={() => { setSelectedPlayerStats(null); }}
         player={selectedPlayerStats}
+        leagueId={leagueId}
       />
 
       {/* Player Compare Modal (#187) — shared with Rubata live */}

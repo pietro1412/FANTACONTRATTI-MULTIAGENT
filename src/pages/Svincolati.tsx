@@ -405,6 +405,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
         )}
         <SvincolatiCockpit
           board={board}
+          leagueId={leagueId}
           freeAgents={freeAgents}
           currentUsername={currentUsername}
           isPusherConnected={isPusherConnected}

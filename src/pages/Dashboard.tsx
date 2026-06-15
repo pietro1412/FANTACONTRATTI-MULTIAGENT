@@ -6,6 +6,7 @@ import { Navigation } from '../components/Navigation'
 import { SearchLeaguesModal } from '../components/SearchLeaguesModal'
 import { SkeletonCard } from '../components/ui/Skeleton'
 import { LeagueCrest, getLeagueIdentity } from '../components/ui/LeagueCrest'
+import { PlayerName } from '@/components/players/PlayerName'
 import {
   buildActions,
   phaseLabel,
@@ -274,8 +275,13 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   interface ActivityItem {
     id: string
     type: string
+    leagueId: string
+    playerId: string
     playerName: string
+    playerTeam: string
     playerPosition: string
+    playerQuotation?: number
+    playerApiFootballId?: number | null
     fromUser: string | null
     toUser: string | null
     price: number | null
@@ -357,12 +363,17 @@ export function Dashboard({ onNavigate }: DashboardProps) {
           const movementPromises = activeLeagues.slice(0, 3).map(async ({ league }) => {
             const res = await movementApi.getLeagueMovements(league.id, { limit: 5 })
             if (res.success && res.data) {
-              const movements = (res.data as { movements: Array<{ id: string; type: string; player: { name: string; position: string }; from: { username: string } | null; to: { username: string } | null; price: number | null; createdAt: string }> }).movements || []
+              const movements = (res.data as { movements: Array<{ id: string; type: string; player: { id: string; name: string; team: string; position: string; quotation?: number; apiFootballId?: number | null }; from: { username: string } | null; to: { username: string } | null; price: number | null; createdAt: string }> }).movements || []
               return movements.map(m => ({
                 id: m.id,
                 type: m.type,
+                leagueId: league.id,
+                playerId: m.player.id,
                 playerName: m.player.name,
+                playerTeam: m.player.team,
                 playerPosition: m.player.position,
+                playerQuotation: m.player.quotation,
+                playerApiFootballId: m.player.apiFootballId,
                 fromUser: m.from?.username || null,
                 toUser: m.to?.username || null,
                 price: m.price,
@@ -569,7 +580,12 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                     <span className="text-base flex-shrink-0">{typeIcon}</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-white truncate">
-                        <span className="font-medium">{activity.playerName}</span>
+                        <PlayerName
+                          player={{ name: activity.playerName, team: activity.playerTeam, position: activity.playerPosition, quotation: activity.playerQuotation, apiFootballId: activity.playerApiFootballId }}
+                          leagueId={activity.leagueId}
+                          leaguePlayerId={activity.playerId}
+                          className="text-sm font-medium"
+                        />
                         {activity.toUser && (
                           <span className="text-gray-400"> → {activity.toUser}</span>
                         )}

@@ -288,6 +288,7 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
         {view.level === 'panoramica' && (
           <FinanceDashboard
             data={data}
+            leagueId={leagueId}
             myTeamId={myTeamId}
             onTeamClick={handleTeamClick}
             onNavigateToRoster={() => { onNavigate('roster', { leagueId }); }}
@@ -315,6 +316,7 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
             <TeamFinanceDetail
               team={team}
               data={data}
+              leagueId={leagueId}
               onBack={handleBackToComparison}
               onNavigateToPlayers={handleNavigateToPlayers}
               onNavigateToTimeline={handleNavigateToTimeline}

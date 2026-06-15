@@ -4,6 +4,7 @@ import type { Formatter } from 'recharts/types/component/DefaultTooltipContent'
 import { WaterfallChart } from './WaterfallChart'
 import { ContractExpiryGantt } from './ContractExpiryGantt'
 import { KPICard } from './KPICard'
+import { PlayerName } from '@/components/players/PlayerName'
 import {
   type TeamData, type FinancialsData,
   getTeamBalance, getHealthStatus,
@@ -14,13 +15,14 @@ import {
 interface TeamFinanceDetailProps {
   team: TeamData
   data: FinancialsData
+  leagueId: string
   onBack: () => void
   onNavigateToPlayers: (teamName: string) => void
   onNavigateToTimeline: (memberId: string) => void
 }
 
 
-export function TeamFinanceDetail({ team, data, onBack, onNavigateToPlayers, onNavigateToTimeline }: TeamFinanceDetailProps) {
+export function TeamFinanceDetail({ team, data, leagueId, onBack, onNavigateToPlayers, onNavigateToTimeline }: TeamFinanceDetailProps) {
   const [expandedSection, setExpandedSection] = useState<string | null>(null)
   const hasFinancialDetails = !data.inContrattiPhase && (team.totalReleaseCosts !== null || team.totalIndemnities !== null)
 
@@ -235,7 +237,15 @@ export function TeamFinanceDetail({ team, data, onBack, onNavigateToPlayers, onN
                   <span className={`px-1 py-0.5 rounded text-[8px] font-bold ${POSITION_COLORS[player.position] ?? ''}`}>
                     {player.position}
                   </span>
-                  <span className="text-xs text-white font-medium flex-1 truncate">{player.name}</span>
+                  <span className="flex-1 min-w-0">
+                    <PlayerName
+                      player={{ name: player.name, team: player.team, position: player.position, quotation: player.quotation, age: player.age, apiFootballId: player.apiFootballId }}
+                      leagueId={leagueId}
+                      leaguePlayerId={player.id}
+                      truncate
+                      className="text-xs font-medium"
+                    />
+                  </span>
                   <span className="text-[10px] text-gray-500">{player.salary}M x{player.duration}</span>
                   <span className="text-[10px] text-gray-500">cl.{player.clause}</span>
                   <div className="w-20 h-3 bg-surface-100/30 rounded-full overflow-hidden">
@@ -259,7 +269,7 @@ export function TeamFinanceDetail({ team, data, onBack, onNavigateToPlayers, onN
 
       {/* Grid: Contract expiry gantt + Clause scatter */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <ContractExpiryGantt players={team.players} />
+        <ContractExpiryGantt players={team.players} leagueId={leagueId} />
 
         {/* Clause scatter chart */}
         <div className="bg-surface-300/50 rounded-lg p-3 md:p-4 border border-surface-50/10">
@@ -346,7 +356,13 @@ export function TeamFinanceDetail({ team, data, onBack, onNavigateToPlayers, onN
                   .sort((a, b) => b.salary - a.salary)
                   .map(player => (
                     <tr key={player.id} className="hover:bg-surface-100/20">
-                      <td className="px-2 md:px-3 py-2 text-white">{player.name}</td>
+                      <td className="px-2 md:px-3 py-2 text-white">
+                        <PlayerName
+                          player={{ name: player.name, team: player.team, position: player.position, quotation: player.quotation, age: player.age, apiFootballId: player.apiFootballId }}
+                          leagueId={leagueId}
+                          leaguePlayerId={player.id}
+                        />
+                      </td>
                       <td className="px-2 py-2 text-center">
                         <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${POSITION_COLORS[player.position] ?? ''}`}>
                           {player.position}

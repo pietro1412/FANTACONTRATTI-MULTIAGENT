@@ -6,6 +6,7 @@ import { BidChips } from '@/components/ui/BidChips'
 import { ManagerListRow } from '@/components/ui/ManagerListRow'
 import { MemberReadyChips } from '@/components/ui/MemberReadyChips'
 import { Monogram } from '@/components/ui/Monogram'
+import { PlayerName } from '@/components/players/PlayerName'
 import { AdminTestFab } from '../auction/AdminTestFab'
 import { SvincolatiCockpitAdminBar, SvincolatiTestPanel } from './SvincolatiCockpitAdminBar'
 import { Button } from '../ui/Button'
@@ -25,6 +26,7 @@ const POS_NAMES: Record<string, string> = { P: 'Portiere', D: 'Difensore', C: 'C
 
 export interface SvincolatiCockpitProps {
   board: BoardState
+  leagueId: string
   freeAgents: Player[]
   currentUsername: string | undefined
   isPusherConnected: boolean
@@ -442,21 +444,30 @@ export function SvincolatiCockpit(props: SvincolatiCockpitProps) {
               {freeAgents.length === 0 ? (
                 <p className="text-gray-500 text-center text-sm py-6">Nessun giocatore trovato</p>
               ) : (
-                freeAgents.slice(0, 80).map(player => (
-                  <button
+                freeAgents.slice(0, 80).map(player => {
+                  const nominable = canNominate && !props.isSubmitting
+                  return (
+                  <div
                     key={player.id}
-                    type="button"
-                    onClick={canNominate ? () => { props.onNominate(player.id); } : undefined}
-                    disabled={!canNominate || props.isSubmitting}
+                    role={nominable ? 'button' : undefined}
+                    tabIndex={nominable ? 0 : undefined}
+                    onClick={nominable ? () => { props.onNominate(player.id); } : undefined}
+                    onKeyDown={nominable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); props.onNominate(player.id); } } : undefined}
                     className={`w-full flex items-center gap-3 px-3.5 py-2 border-b border-surface-50/40 text-left transition-colors ${
-                      canNominate ? 'hover:bg-hover cursor-pointer' : 'cursor-default'
+                      nominable ? 'hover:bg-hover cursor-pointer' : 'cursor-default'
                     }`}
                   >
                     <span className={`w-[30px] h-[30px] rounded-lg flex items-center justify-center font-display font-extrabold text-[13px] flex-shrink-0 ${ROLE_BADGE[player.position] ?? ''}`}>
                       {player.position}
                     </span>
                     <span className="flex-1 min-w-0">
-                      <span className="block font-display font-bold text-[13.5px] text-white truncate">{player.name}</span>
+                      <PlayerName
+                        player={{ name: player.name, team: player.team, position: player.position, quotation: player.quotation }}
+                        leagueId={props.leagueId}
+                        leaguePlayerId={player.id}
+                        truncate
+                        className="block text-[13.5px]"
+                      />
                       <span className="block text-[11px] text-gray-500 truncate">{player.team}</span>
                     </span>
                     {canNominate && (
@@ -464,8 +475,9 @@ export function SvincolatiCockpit(props: SvincolatiCockpitProps) {
                         Chiama
                       </span>
                     )}
-                  </button>
-                ))
+                  </div>
+                  )
+                })
               )}
             </div>
           </div>

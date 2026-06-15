@@ -1,8 +1,10 @@
 import { useMemo } from 'react'
 import { type TeamData, getTeamBalance } from '@/components/finance/types'
+import { PlayerName } from '@/components/players/PlayerName'
 
 interface MyTeamHeroProps {
   team: TeamData
+  leagueId: string
   leagueName: string
   teamsCount: number
   budgetRank: number
@@ -13,6 +15,7 @@ interface MyTeamHeroProps {
 
 export function MyTeamHero({
   team,
+  leagueId,
   leagueName,
   teamsCount,
   budgetRank,
@@ -147,9 +150,15 @@ export function MyTeamHero({
                 {expiringContracts.map(p => (
                   <span
                     key={p.id}
-                    className="rounded-lg border border-accent-500/30 bg-surface-600/30 px-2 py-1 font-mono text-[11px] font-bold text-white"
+                    className="inline-flex items-center gap-1 rounded-lg border border-accent-500/30 bg-surface-600/30 px-2 py-1 font-mono text-[11px] font-bold text-white"
                   >
-                    {p.name} <span className="text-accent-400">{p.salary}M</span>
+                    <PlayerName
+                      player={{ name: p.name, team: p.team, position: p.position, quotation: p.quotation, age: p.age, apiFootballId: p.apiFootballId }}
+                      leagueId={leagueId}
+                      leaguePlayerId={p.id}
+                      className="text-[11px]"
+                    />
+                    <span className="text-accent-400">{p.salary}M</span>
                   </span>
                 ))}
               </div>

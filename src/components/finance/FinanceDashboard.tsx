@@ -6,6 +6,7 @@ import { type FinancialsData, type LeagueTotals, computeLeagueTotals } from './t
 
 interface FinanceDashboardProps {
   data: FinancialsData
+  leagueId: string
   myTeamId?: string
   onTeamClick: (memberId: string) => void
   onNavigateToRoster: () => void
@@ -26,7 +27,7 @@ function LeagueKpi({ label, value, unit, note }: { label: string; value: string;
   )
 }
 
-export function FinanceDashboard({ data, myTeamId, onTeamClick, onNavigateToRoster, onShowMovements }: FinanceDashboardProps) {
+export function FinanceDashboard({ data, leagueId, myTeamId, onTeamClick, onNavigateToRoster, onShowMovements }: FinanceDashboardProps) {
   const totals: LeagueTotals = useMemo(() => computeLeagueTotals(data), [data])
 
   const teamsCount = data.teams.length
@@ -54,6 +55,7 @@ export function FinanceDashboard({ data, myTeamId, onTeamClick, onNavigateToRost
       {myTeam && (
         <MyTeamHero
           team={myTeam}
+          leagueId={leagueId}
           leagueName={data.leagueName}
           teamsCount={teamsCount}
           budgetRank={budgetRank}

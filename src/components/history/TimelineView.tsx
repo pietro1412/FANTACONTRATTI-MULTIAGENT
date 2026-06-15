@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { historyApi } from '../../services/api'
+import { PlayerName } from '@/components/players/PlayerName'
 
 interface SessionSummary {
   id: string
@@ -17,6 +18,8 @@ interface TimelineEvent {
     name: string
     position: string
     team: string
+    quotation?: number
+    apiFootballId?: number | null
   }
   from: {
     memberId: string
@@ -253,7 +256,13 @@ export function TimelineView({ leagueId, sessions }: TimelineViewProps) {
                       <td className={`py-1.5 px-2 font-bold ${(positionColors[event.player.position] ?? 'bg-gray-500/20 text-gray-400').split(' ')[1] ?? ''}`}>
                         {event.player.position}
                       </td>
-                      <td className="py-1.5 px-3 text-white">{event.player.name}</td>
+                      <td className="py-1.5 px-3 text-white">
+                        <PlayerName
+                          player={{ name: event.player.name, team: event.player.team, position: event.player.position, quotation: event.player.quotation, apiFootballId: event.player.apiFootballId }}
+                          leagueId={leagueId}
+                          leaguePlayerId={event.player.id}
+                        />
+                      </td>
                       <td className="py-1.5 px-3 text-gray-400 hidden md:table-cell">
                         {event.from?.teamName || event.from?.username || '-'}
                       </td>

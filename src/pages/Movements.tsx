@@ -11,6 +11,7 @@ import { SkeletonPlayerRow } from '../components/ui/Skeleton'
 import { MOVEMENT_TYPE_LABELS, MOVEMENT_TYPE_SHORT, MOVEMENT_TYPE_COLORS } from '../utils/movement-constants'
 import { POSITION_TEXT_COLORS } from '../components/ui/PositionBadge'
 import { Textarea } from '@/components/ui/Textarea'
+import { PlayerName } from '@/components/players/PlayerName'
 
 interface MovementsProps {
   leagueId: string
@@ -22,6 +23,9 @@ interface Player {
   name: string
   team: string
   position: string
+  quotation?: number
+  age?: number | null
+  apiFootballId?: number | null
 }
 
 interface MemberInfo {
@@ -400,7 +404,13 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
                               />
                             </div>
                             <span className={`font-bold text-xs ${posColor}`}>{movement.player.position}</span>
-                            <span className="text-white font-medium text-sm truncate">{movement.player.name}</span>
+                            <PlayerName
+                              player={{ name: movement.player.name, team: movement.player.team, position: movement.player.position, quotation: movement.player.quotation, age: movement.player.age, apiFootballId: movement.player.apiFootballId }}
+                              leagueId={leagueId}
+                              leaguePlayerId={movement.player.id}
+                              truncate
+                              className="text-sm font-medium"
+                            />
                           </div>
                           <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-500">
                             <span>{formatDate(movement.createdAt)}</span>
@@ -555,7 +565,13 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
                             />
                           </div>
                           <span className={`font-bold text-xs ${posColor}`}>{movement.player.position}</span>
-                          <span className="text-white font-medium truncate">{movement.player.name}</span>
+                          <PlayerName
+                            player={{ name: movement.player.name, team: movement.player.team, position: movement.player.position, quotation: movement.player.quotation, age: movement.player.age, apiFootballId: movement.player.apiFootballId }}
+                            leagueId={leagueId}
+                            leaguePlayerId={movement.player.id}
+                            truncate
+                            className="font-medium"
+                          />
                         </div>
 
                         {/* Da → A */}

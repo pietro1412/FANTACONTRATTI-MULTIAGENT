@@ -1386,7 +1386,7 @@ describe('Svincolati', () => {
   })
 
   // ---- My turn nomination click calls handleNominate ----
-  it('calls handleNominate when a player is clicked during my turn', async () => {
+  it('calls handleNominate when a free-agent row is clicked during my turn', async () => {
     const user = userEvent.setup()
     hookOverrides = {
       board: makeAuctionBoard({
@@ -1402,8 +1402,33 @@ describe('Svincolati', () => {
 
     render(<Svincolati leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    await user.click(screen.getByText('Mario Rossi'))
+    // Axiom 7: the player NAME is a button that opens the stats modal (it must
+    // NOT trigger nomination). The nomination is triggered by clicking elsewhere
+    // on the row (e.g. the "Chiama" call-to-action).
+    await user.click(screen.getByText('Chiama'))
     expect(mockHandleNominate).toHaveBeenCalledWith('p1')
+  })
+
+  // ---- Axiom 7: clicking the player name opens stats, not nomination ----
+  it('does not nominate when the player NAME is clicked (opens stats instead)', async () => {
+    const user = userEvent.setup()
+    hookOverrides = {
+      board: makeAuctionBoard({
+        state: 'READY_CHECK',
+        isMyTurn: true,
+        currentTurnUsername: 'TestUser',
+        currentTurnMemberId: 'member1',
+      }) as never,
+      freeAgents: [
+        { id: 'p1', name: 'Mario Rossi', team: 'Juventus', position: 'A', quotation: 25 },
+      ],
+    }
+
+    render(<Svincolati leagueId={leagueId} onNavigate={mockOnNavigate} />)
+
+    const nameButton = screen.getByRole('button', { name: 'Mario Rossi' })
+    await user.click(nameButton)
+    expect(mockHandleNominate).not.toHaveBeenCalled()
   })
 
   // ---- Pass turn handler ----

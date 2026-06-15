@@ -4,6 +4,7 @@ import { getPlayerPhotoUrl } from '../../utils/player-images'
 import { POSITION_GRADIENTS, POSITION_FILTER_COLORS, POSITION_NAMES } from '../ui/PositionBadge'
 import { PlayerStatsModal } from '../PlayerStatsModal'
 import type { PlayerInfo } from '../PlayerStatsModal'
+import { PlayerName } from '@/components/players/PlayerName'
 import type { Player, MarketProgress } from '../../types/auctionroom.types'
 import { sortPlayersByRoleAndName } from '@/utils/player-sort'
 
@@ -372,10 +373,13 @@ export function NominationPanel({
                 const isSelected = focalPlayer?.id === player.id
                 const ageBadge = getAgeBadge(player.age)
                 return (
-                  <button
+                  <div
                     key={player.id}
+                    role="button"
+                    tabIndex={0}
                     onClick={() => { handlePlayerClick(player); }}
-                    className={`relative rounded-xl p-3 text-left transition-all border group ${
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handlePlayerClick(player); } }}
+                    className={`relative rounded-xl p-3 text-left transition-all border group cursor-pointer ${
                       isSelected
                         ? 'bg-sky-500/10 border-sky-500/40 ring-1 ring-sky-500/30'
                         : 'bg-surface-300/40 border-surface-50/60 hover:border-sky-500/40 hover:scale-[1.02]'
@@ -401,7 +405,13 @@ export function NominationPanel({
 
                       {/* Info */}
                       <div className="min-w-0 flex-1">
-                        <p className="font-bold text-white text-sm truncate leading-tight">{player.name}</p>
+                        <PlayerName
+                          player={{ name: player.name, team: player.team, position: player.position, quotation: player.quotation, age: player.age, apiFootballId: player.apiFootballId }}
+                          leagueId={leagueId}
+                          leaguePlayerId={player.id}
+                          truncate
+                          className="text-sm leading-tight"
+                        />
                         <div className="flex items-center gap-1.5 mt-0.5">
                           <div className="w-4 h-4 bg-white/90 rounded flex items-center justify-center flex-shrink-0">
                             <img src={getTeamLogo(player.team)} alt={player.team} className="w-3 h-3 object-contain" />
@@ -424,7 +434,7 @@ export function NominationPanel({
                         <span className="text-sm font-mono font-bold text-accent-400 flex-shrink-0">{player.quotation}</span>
                       )}
                     </div>
-                  </button>
+                  </div>
                 )
               })}
             </div>
@@ -487,7 +497,12 @@ export function NominationPanel({
                         </td>
                         {/* Nome */}
                         <td className="py-2 px-3">
-                          <span className="font-medium text-white">{player.name}</span>
+                          <PlayerName
+                            player={{ name: player.name, team: player.team, position: player.position, quotation: player.quotation, age: player.age, apiFootballId: player.apiFootballId }}
+                            leagueId={leagueId}
+                            leaguePlayerId={player.id}
+                            className="font-medium"
+                          />
                         </td>
                         {/* Squadra */}
                         <td className="py-2 px-3">

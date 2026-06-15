@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { historyApi } from '../../services/api'
+import { PlayerName } from '@/components/players/PlayerName'
 
 interface SessionSummary {
   id: string
@@ -214,11 +215,11 @@ export function SessionCard({
             ) : (
               <>
                 {activeTab === 'overview' && <OverviewTab data={tabData.overview} />}
-                {activeTab === 'firstMarket' && <FirstMarketTab data={tabData.firstMarket} />}
+                {activeTab === 'firstMarket' && <FirstMarketTab data={tabData.firstMarket} leagueId={leagueId} />}
                 {activeTab === 'trades' && <TradesTab data={tabData.trades} />}
                 {activeTab === 'prizes' && <PrizesTab data={tabData.prizes} />}
-                {activeTab === 'rubata' && <RubataTab data={tabData.rubata} />}
-                {activeTab === 'svincolati' && <SvincolatiTab data={tabData.svincolati} />}
+                {activeTab === 'rubata' && <RubataTab data={tabData.rubata} leagueId={leagueId} />}
+                {activeTab === 'svincolati' && <SvincolatiTab data={tabData.svincolati} leagueId={leagueId} />}
               </>
             )}
           </div>
@@ -365,7 +366,7 @@ function OverviewTab({ data }: { data: unknown }) {
   )
 }
 
-function FirstMarketTab({ data }: { data: unknown }) {
+function FirstMarketTab({ data, leagueId }: { data: unknown; leagueId: string }) {
   const [expandedAuction, setExpandedAuction] = useState<string | null>(null)
 
   if (!data) return <div className="text-gray-400">Caricamento...</div>
@@ -373,7 +374,7 @@ function FirstMarketTab({ data }: { data: unknown }) {
   const { auctions, stats } = data as {
     auctions: Array<{
       id: string
-      player: { id: string; name: string; position: string; team: string }
+      player: { id: string; name: string; position: string; team: string; quotation?: number; apiFootballId?: number | null }
       basePrice: number
       finalPrice: number
       winner: { memberId: string; username: string; teamName: string | null } | null
@@ -438,7 +439,13 @@ function FirstMarketTab({ data }: { data: unknown }) {
                     <td className={`py-1.5 px-2 font-bold ${positionColors[auction.player.position] ?? ''}`}>
                       {auction.player.position}
                     </td>
-                    <td className="py-1.5 px-2 text-white">{auction.player.name}</td>
+                    <td className="py-1.5 px-2 text-white">
+                      <PlayerName
+                        player={{ name: auction.player.name, team: auction.player.team, position: auction.player.position, quotation: auction.player.quotation, apiFootballId: auction.player.apiFootballId }}
+                        leagueId={leagueId}
+                        leaguePlayerId={auction.player.id}
+                      />
+                    </td>
                     <td className="py-1.5 px-2 text-gray-500 hidden md:table-cell">{auction.player.team}</td>
                     <td className="py-1.5 px-2 text-right font-medium text-primary-400">{auction.finalPrice}M</td>
                     <td className="py-1.5 px-2 text-center text-gray-500 hidden sm:table-cell">{auction.bidCount}</td>
@@ -765,13 +772,13 @@ function PrizesTab({ data }: { data: unknown }) {
   )
 }
 
-function RubataTab({ data }: { data: unknown }) {
+function RubataTab({ data, leagueId }: { data: unknown; leagueId: string }) {
   if (!data) return <div className="text-gray-400">Caricamento...</div>
 
   const { auctions, stats } = data as {
     auctions: Array<{
       id: string
-      player: { id: string; name: string; position: string; team: string }
+      player: { id: string; name: string; position: string; team: string; quotation?: number; apiFootballId?: number | null }
       basePrice: number
       finalPrice: number
       seller: { memberId: string; username: string; teamName: string | null } | null
@@ -828,7 +835,13 @@ function RubataTab({ data }: { data: unknown }) {
                 <td className={`py-1.5 px-2 font-bold ${positionColors[auction.player.position] ?? ''}`}>
                   {auction.player.position}
                 </td>
-                <td className="py-1.5 px-2 text-white">{auction.player.name}</td>
+                <td className="py-1.5 px-2 text-white">
+                  <PlayerName
+                    player={{ name: auction.player.name, team: auction.player.team, position: auction.player.position, quotation: auction.player.quotation, apiFootballId: auction.player.apiFootballId }}
+                    leagueId={leagueId}
+                    leaguePlayerId={auction.player.id}
+                  />
+                </td>
                 <td className="py-1.5 px-2 text-gray-500 hidden md:table-cell">{auction.player.team}</td>
                 <td className="py-1.5 px-2 text-gray-300">
                   {auction.seller?.teamName || auction.seller?.username || '-'}
@@ -851,13 +864,13 @@ function RubataTab({ data }: { data: unknown }) {
   )
 }
 
-function SvincolatiTab({ data }: { data: unknown }) {
+function SvincolatiTab({ data, leagueId }: { data: unknown; leagueId: string }) {
   if (!data) return <div className="text-gray-400">Caricamento...</div>
 
   const { auctions, stats } = data as {
     auctions: Array<{
       id: string
-      player: { id: string; name: string; position: string; team: string }
+      player: { id: string; name: string; position: string; team: string; quotation?: number; apiFootballId?: number | null }
       basePrice: number
       finalPrice: number
       nominator: { memberId: string; username: string; teamName: string | null } | null
@@ -902,7 +915,13 @@ function SvincolatiTab({ data }: { data: unknown }) {
                 <td className={`py-1.5 px-2 font-bold ${positionColors[auction.player.position] ?? ''}`}>
                   {auction.player.position}
                 </td>
-                <td className="py-1.5 px-2 text-white">{auction.player.name}</td>
+                <td className="py-1.5 px-2 text-white">
+                  <PlayerName
+                    player={{ name: auction.player.name, team: auction.player.team, position: auction.player.position, quotation: auction.player.quotation, apiFootballId: auction.player.apiFootballId }}
+                    leagueId={leagueId}
+                    leaguePlayerId={auction.player.id}
+                  />
+                </td>
                 <td className="py-1.5 px-2 text-gray-500 hidden md:table-cell">{auction.player.team}</td>
                 <td className="py-1.5 px-2 text-right text-gray-500">{auction.basePrice}M</td>
                 <td className="py-1.5 px-2 text-right font-medium text-primary-400">{auction.finalPrice}M</td>

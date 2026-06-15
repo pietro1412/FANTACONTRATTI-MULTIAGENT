@@ -188,6 +188,9 @@ export async function getLeagueMovements(
         name: m.player.name,
         position: m.player.position,
         team: m.player.team,
+        quotation: m.player.quotation,
+        age: m.player.age,
+        apiFootballId: m.player.apiFootballId,
       },
       from: m.fromMember
         ? {

@@ -1550,6 +1550,7 @@ export async function getLeagueFinancials(leagueId: string, userId: string, sess
                 position: true,
                 quotation: true,
                 age: true,
+                apiFootballId: true,
               },
             },
             contract: {
@@ -1646,6 +1647,7 @@ export async function getLeagueFinancials(leagueId: string, userId: string, sess
           position: r.player.position,
           quotation: r.player.quotation,
           age: r.player.age,
+          apiFootballId: r.player.apiFootballId,
           salary: displaySalary,
           duration: displayDuration,
           clause: r.contract?.rescissionClause || 0,
@@ -1891,7 +1893,7 @@ export async function getFinancialTimeline(
     const contractHistory = await prisma.contractHistory.findMany({
       where: { leagueMemberId: targetMemberId },
       include: {
-        player: { select: { id: true, name: true, position: true, quotation: true } },
+        player: { select: { id: true, name: true, team: true, position: true, quotation: true, apiFootballId: true } },
         marketSession: { select: { id: true, type: true, currentPhase: true, status: true, createdAt: true } },
       },
       orderBy: { createdAt: 'desc' },
@@ -1959,8 +1961,12 @@ export async function getFinancialTimeline(
       eventType: ch.eventType,
       label: EVENT_TYPE_LABELS[ch.eventType] || ch.eventType,
       color: EVENT_TYPE_COLORS[ch.eventType] || 'gray',
+      playerId: ch.player.id,
       playerName: ch.player.name,
+      playerTeam: ch.player.team,
       playerPosition: ch.player.position,
+      playerQuotation: ch.player.quotation,
+      playerApiFootballId: ch.player.apiFootballId,
       previousSalary: ch.previousSalary,
       previousDuration: ch.previousDuration,
       previousClause: ch.previousClause,

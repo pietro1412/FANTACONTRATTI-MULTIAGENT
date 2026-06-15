@@ -1,10 +1,12 @@
 import { type PlayerData, POSITION_COLORS } from './types'
+import { PlayerName } from '@/components/players/PlayerName'
 
 interface ContractExpiryGanttProps {
   players: PlayerData[]
+  leagueId: string
 }
 
-export function ContractExpiryGantt({ players }: ContractExpiryGanttProps) {
+export function ContractExpiryGantt({ players, leagueId }: ContractExpiryGanttProps) {
   // Filter active players with contracts, sort by duration (shortest first = most urgent)
   const activePlayers = players
     .filter(p => p.duration > 0 && !p.draftReleased)
@@ -67,7 +69,13 @@ export function ContractExpiryGantt({ players }: ContractExpiryGanttProps) {
                 <span className={`px-1 py-0.5 rounded text-[8px] md:text-[10px] font-bold ${POSITION_COLORS[player.position] ?? ''}`}>
                   {player.position}
                 </span>
-                <span className="text-[10px] md:text-xs text-white truncate">{player.name}</span>
+                <PlayerName
+                  player={{ name: player.name, team: player.team, position: player.position, quotation: player.quotation, age: player.age, apiFootballId: player.apiFootballId }}
+                  leagueId={leagueId}
+                  leaguePlayerId={player.id}
+                  truncate
+                  className="text-[10px] md:text-xs font-normal"
+                />
               </div>
               <div className="flex-1 h-4 md:h-5 bg-surface-100/30 rounded-full overflow-hidden relative">
                 <div

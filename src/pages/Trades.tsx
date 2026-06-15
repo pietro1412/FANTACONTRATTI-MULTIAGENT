@@ -442,6 +442,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
       apiFootballId: p.apiFootballId,
       computedStats: p.computedStats,
       statsSyncedAt: p.statsSyncedAt,
+      leaguePlayerId: p.id,
     })
   }
 
@@ -844,6 +845,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                         key={offer.id}
                         offer={offer}
                         variant="received"
+                        leagueId={leagueId}
                         isInTradePhase={isInTradePhase}
                         isHighlighted={offer.id === highlightedOfferId}
                         onAccept={(id) => { void handleAccept(id) }}
@@ -874,6 +876,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                         key={offer.id}
                         offer={offer}
                         variant="sent"
+                        leagueId={leagueId}
                         isInTradePhase={isInTradePhase}
                         isHighlighted={offer.id === highlightedOfferId}
                         onCancel={(id) => { void handleCancel(id) }}
@@ -933,7 +936,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                   return (
                     <div className="panel-scroll flex-1 min-h-0">
                       {filtered.map(offer => (
-                        <TradeOfferCard key={offer.id} offer={offer} variant="history" />
+                        <TradeOfferCard key={offer.id} offer={offer} variant="history" leagueId={leagueId} />
                       ))}
                     </div>
                   )
@@ -949,6 +952,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
         isOpen={!!selectedPlayerStats}
         onClose={() => { setSelectedPlayerStats(null); }}
         player={selectedPlayerStats}
+        leagueId={leagueId}
       />
 
       {/* Counter Offer Modal */}

@@ -1,4 +1,5 @@
 import { Monogram } from '@/components/ui/Monogram'
+import { PlayerName } from '@/components/players/PlayerName'
 import { getTimeRemaining } from './utils'
 import type { Player, TradeOffer } from './types'
 
@@ -7,6 +8,8 @@ export type TradeOfferVariant = 'received' | 'sent' | 'history'
 interface TradeOfferCardProps {
   offer: TradeOffer
   variant: TradeOfferVariant
+  /** League id — enables the "Carriera Lega" tab in the player stats modal. */
+  leagueId?: string
   isInTradePhase?: boolean
   isHighlighted?: boolean
   onViewStats?: (player: Player) => void
@@ -33,7 +36,7 @@ const HISTORY_STATUS: Record<string, { label: string; cls: string }> = {
   EXPIRED: { label: 'Scaduto', cls: 'bg-surface-300 text-gray-400 border-surface-50' },
 }
 
-function PlayerChips({ players, budget, accent }: { players: Player[]; budget: number; accent: 'get' | 'give' }) {
+function PlayerChips({ players, budget, accent, leagueId }: { players: Player[]; budget: number; accent: 'get' | 'give'; leagueId?: string }) {
   const creditCls = accent === 'get' ? 'text-secondary-400' : 'text-danger-400'
   const hasNothing = players.length === 0 && budget === 0
   return (
@@ -45,7 +48,12 @@ function PlayerChips({ players, budget, accent }: { players: Player[]; budget: n
             <span className={`w-[18px] h-[18px] rounded-[5px] flex items-center justify-center font-display font-extrabold text-[9px] ${role}`}>
               {p.position}
             </span>
-            {p.name}
+            <PlayerName
+              player={{ name: p.name, team: p.team, position: p.position, quotation: p.quotation, age: p.age, apiFootballId: p.apiFootballId }}
+              leagueId={leagueId}
+              leaguePlayerId={p.id}
+              className="text-[11.5px] font-semibold"
+            />
           </span>
         )
       })}
@@ -62,6 +70,7 @@ function PlayerChips({ players, budget, accent }: { players: Player[]; budget: n
 export function TradeOfferCard({
   offer,
   variant,
+  leagueId,
   isInTradePhase = false,
   isHighlighted = false,
   onAccept,
@@ -121,13 +130,13 @@ export function TradeOfferCard({
       {/* Leg GET */}
       <div className="flex flex-col gap-1 min-w-0">
         <span className="micro-label text-[9px] text-secondary-400">{labels[variant].get}</span>
-        <PlayerChips players={getPlayers} budget={getBudget} accent="get" />
+        <PlayerChips players={getPlayers} budget={getBudget} accent="get" leagueId={leagueId} />
       </div>
 
       {/* Leg GIVE */}
       <div className="flex flex-col gap-1 min-w-0">
         <span className="micro-label text-[9px] text-danger-400">{labels[variant].give}</span>
-        <PlayerChips players={givePlayers} budget={giveBudget} accent="give" />
+        <PlayerChips players={givePlayers} budget={giveBudget} accent="give" leagueId={leagueId} />
       </div>
 
       {/* Actions / status */}

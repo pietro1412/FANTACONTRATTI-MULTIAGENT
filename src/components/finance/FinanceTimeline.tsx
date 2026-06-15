@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import type { Formatter } from 'recharts/types/component/DefaultTooltipContent'
 import { leagueApi } from '../../services/api'
+import { PlayerName } from '@/components/players/PlayerName'
 import { type FinancialsData, POSITION_COLORS, CHART_TOOLTIP_STYLE, CHART_TOOLTIP_LABEL_STYLE, CHART_TOOLTIP_ITEM_STYLE, CHART_AXIS_TICK } from './types'
 
 interface FinanceTimelineProps {
@@ -17,8 +18,12 @@ interface TimelineEvent {
   eventType: string
   label: string
   color: string
+  playerId?: string
   playerName?: string
+  playerTeam?: string
   playerPosition?: string
+  playerQuotation?: number
+  playerApiFootballId?: number | null
   previousSalary?: number | null
   newSalary?: number | null
   previousDuration?: number | null
@@ -304,7 +309,12 @@ export function FinanceTimeline({ leagueId, data, initialMemberId, onBack }: Fin
                           {/* Contract event details */}
                           {event.type === 'contract' && event.playerName && (
                             <div className="text-xs text-gray-400">
-                              <span className="text-white">{event.playerName}</span>
+                              <PlayerName
+                                player={{ name: event.playerName, team: event.playerTeam ?? '', position: event.playerPosition ?? '', quotation: event.playerQuotation, apiFootballId: event.playerApiFootballId }}
+                                leagueId={leagueId}
+                                leaguePlayerId={event.playerId}
+                                className="text-xs"
+                              />
                               {event.previousSalary != null && event.newSalary != null && event.previousSalary !== event.newSalary && (
                                 <span className="ml-2">
                                   Ingaggio: {event.previousSalary}M &rarr; {event.newSalary}M

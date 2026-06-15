@@ -7,6 +7,7 @@ export interface PlayerData {
   position: string
   quotation: number
   age: number | null
+  apiFootballId: number | null
   salary: number
   duration: number
   clause: number

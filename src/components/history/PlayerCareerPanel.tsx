@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { historyApi } from '../../services/api'
+import { PlayerName } from '@/components/players/PlayerName'
 
 interface PlayerCareerPanelProps {
   leagueId: string
@@ -143,7 +144,12 @@ export function PlayerCareerPanel({ leagueId, playerId, playerName, onClose }: P
             </div>
             {/* Player Info */}
             <div>
-              <h3 className="text-xl font-bold text-white">{career.player.name}</h3>
+              <PlayerName
+                player={{ name: career.player.name, team: career.player.team, position: career.player.position, quotation: career.player.quotation }}
+                leagueId={leagueId}
+                leaguePlayerId={career.player.id}
+                className="text-xl"
+              />
               <p className="text-gray-400">{career.player.team}</p>
               <p className="text-sm text-gray-500">Quotazione: {career.player.quotation}M</p>
             </div>
