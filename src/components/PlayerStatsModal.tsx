@@ -3,6 +3,7 @@ import { Modal, ModalHeader, ModalBody } from './ui/Modal'
 import { POSITION_GRADIENTS } from './ui/PositionBadge'
 import { getPlayerPhotoUrl, getTeamLogoUrl } from '../utils/player-images'
 import { historyApi } from '../services/api'
+import { NOT_DISPONIBILE } from '../utils/stat-format'
 import type { PlayerCareer } from './history/PlayerCareerPanel'
 
 // Italian labels for player movement types (shared with PlayerCareerPanel data shape)
@@ -258,9 +259,9 @@ export function PlayerStatsModal({ isOpen, onClose, player, leagueId, leaguePlay
                 />
               )}
               {player.team}
-              {player.age != null && (
-                <span className={`ml-2 ${getAgeColor(player.age)}`}>• {player.age} anni</span>
-              )}
+              <span className={`ml-2 ${getAgeColor(player.age)}`}>
+                • {player.age != null ? `${player.age} anni` : NOT_DISPONIBILE}
+              </span>
               {player.quotation && (
                 <span className="ml-2 px-2 py-0.5 rounded bg-primary-500/20 text-primary-400 font-medium">
                   {player.quotation}M
