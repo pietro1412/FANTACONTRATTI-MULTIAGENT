@@ -2,6 +2,31 @@ import { useState, useEffect } from 'react'
 import { Modal, ModalHeader, ModalBody } from './ui/Modal'
 import { POSITION_GRADIENTS } from './ui/PositionBadge'
 import { getPlayerPhotoUrl, getTeamLogoUrl } from '../utils/player-images'
+import { historyApi } from '../services/api'
+import type { PlayerCareer } from './history/PlayerCareerPanel'
+
+// Italian labels for player movement types (shared with PlayerCareerPanel data shape)
+const MOVEMENT_LABELS: Record<string, string> = {
+  FIRST_MARKET: 'Primo Mercato',
+  TRADE: 'Scambio',
+  RUBATA: 'Rubata',
+  SVINCOLATI: 'Svincolati',
+  RELEASE: 'Cessione',
+  CONTRACT_RENEW: 'Rinnovo',
+  RETIREMENT: 'Ritiro',
+  RELEGATION_RELEASE: 'Retrocesso (Rilascio)',
+  RELEGATION_KEEP: 'Retrocesso (Mantenuto)',
+  ABROAD_COMPENSATION: 'Estero (Compenso)',
+  ABROAD_KEEP: 'Estero (Mantenuto)',
+}
+
+function formatCareerDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString('it-IT', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  })
+}
 
 const API_URL = String(import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:3003'))
 
@@ -77,12 +102,18 @@ export interface PlayerInfo {
   apiFootballId?: number | null
   computedStats?: ComputedSeasonStats | null
   statsSyncedAt?: string | null
+  /** League SerieAPlayer id — enables the "Carriera Lega" tab when paired with leagueId */
+  leaguePlayerId?: string
 }
 
 interface PlayerStatsModalProps {
   isOpen: boolean
   onClose: () => void
   player: PlayerInfo | null
+  /** League id — enables the "Carriera Lega" tab (together with the player's league id) */
+  leagueId?: string
+  /** League SerieAPlayer id — overrides player.leaguePlayerId if provided */
+  leaguePlayerId?: string
 }
 
 function StatValue({ value, suffix = '' }: { value: number | null | undefined; suffix?: string }) {
@@ -117,13 +148,26 @@ interface MatchRating {
   assists: number | null
 }
 
-export function PlayerStatsModal({ isOpen, onClose, player }: PlayerStatsModalProps) {
-  const [activeTab, setActiveTab] = useState<'panoramica' | 'storico'>('panoramica')
+export function PlayerStatsModal({ isOpen, onClose, player, leagueId, leaguePlayerId }: PlayerStatsModalProps) {
+  const [activeTab, setActiveTab] = useState<'panoramica' | 'storico' | 'carriera'>('panoramica')
   const [matchHistory, setMatchHistory] = useState<MatchRating[]>([])
   const [historyLoading, setHistoryLoading] = useState(false)
 
+  // Carriera Lega tab
+  const effectiveLeaguePlayerId = leaguePlayerId ?? player?.leaguePlayerId
+  const careerEnabled = !!(leagueId && effectiveLeaguePlayerId)
+  const [career, setCareer] = useState<PlayerCareer | null>(null)
+  const [careerLoading, setCareerLoading] = useState(false)
+  const [careerError, setCareerError] = useState<string | null>(null)
+
   // Reset tab when player changes
   useEffect(() => { setActiveTab('panoramica') }, [player?.name])
+
+  // Reset career data when target player/league changes
+  useEffect(() => {
+    setCareer(null)
+    setCareerError(null)
+  }, [leagueId, effectiveLeaguePlayerId])
 
   // T-025: Fetch match history when storico tab is selected
   useEffect(() => {
@@ -135,6 +179,23 @@ export function PlayerStatsModal({ isOpen, onClose, player }: PlayerStatsModalPr
       .catch(() => { setMatchHistory([]); })
       .finally(() => { setHistoryLoading(false); })
   }, [activeTab, player?.apiFootballId])
+
+  // Fetch league career on first access to the "carriera" tab
+  useEffect(() => {
+    if (activeTab !== 'carriera' || !leagueId || !effectiveLeaguePlayerId || career) return
+    setCareerLoading(true)
+    setCareerError(null)
+    historyApi.getPlayerCareer(leagueId, effectiveLeaguePlayerId)
+      .then(result => {
+        if (result.success && result.data) {
+          setCareer(result.data as PlayerCareer)
+        } else {
+          setCareerError(result.message || 'Errore nel caricamento della carriera')
+        }
+      })
+      .catch(() => { setCareerError('Errore di connessione'); })
+      .finally(() => { setCareerLoading(false); })
+  }, [activeTab, leagueId, effectiveLeaguePlayerId, career])
 
   if (!player) return null
 
@@ -229,6 +290,16 @@ export function PlayerStatsModal({ isOpen, onClose, player }: PlayerStatsModalPr
           >
             Storico Partite
           </button>
+          {careerEnabled && (
+            <button
+              onClick={() => { setActiveTab('carriera'); }}
+              className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                activeTab === 'carriera' ? 'bg-primary-500/20 text-primary-400' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              Carriera Lega
+            </button>
+          )}
         </div>
 
         {/* Storico tab */}
@@ -267,6 +338,102 @@ export function PlayerStatsModal({ isOpen, onClose, player }: PlayerStatsModalPr
                   <span className="text-center text-white">{m.assists || '-'}</span>
                 </div>
               ))}
+            </div>
+          )
+        )}
+
+        {/* Carriera Lega tab */}
+        {activeTab === 'carriera' && (
+          careerLoading ? (
+            <div className="flex items-center justify-center py-10">
+              <div className="w-9 h-9 border-2 border-primary-500/30 border-t-primary-500 rounded-full animate-spin" />
+            </div>
+          ) : careerError ? (
+            <div className="text-center py-8 text-danger-400">{careerError}</div>
+          ) : !career || career.timeline.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="text-gray-400 mb-2">Mai posseduto in questa lega</div>
+              <div className="text-sm text-gray-500">
+                Nessun passaggio registrato per questo giocatore
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* Current owner highlight */}
+              <div className="bg-surface-100/50 rounded-xl p-4 flex items-center justify-between gap-3">
+                <div>
+                  <div className="micro-label text-gray-500 mb-1">Proprietario attuale</div>
+                  <div className="font-display font-bold text-white">
+                    {career.currentOwner
+                      ? (career.currentOwner.teamName || career.currentOwner.username)
+                      : 'Svincolato'}
+                  </div>
+                </div>
+                {career.currentOwner?.contract && (
+                  <div className="text-right">
+                    <div className="micro-label text-gray-500 mb-1">Contratto</div>
+                    <div className="font-mono font-semibold text-primary-400">
+                      {career.currentOwner.contract.salary}M / {career.currentOwner.contract.duration}a
+                    </div>
+                    {career.currentOwner.contract.rescissionClause != null && (
+                      <div className="text-xs text-accent-400 font-mono">
+                        RC: {career.currentOwner.contract.rescissionClause}M
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Movements table */}
+              <div className="bg-surface-100/50 rounded-xl overflow-hidden">
+                <div className="grid grid-cols-[1.4fr_1.4fr_1fr_auto] gap-2 px-3 py-2 border-b border-surface-50/20">
+                  <span className="micro-label text-gray-500">Da</span>
+                  <span className="micro-label text-gray-500">A</span>
+                  <span className="micro-label text-gray-500">Movimento</span>
+                  <span className="micro-label text-gray-500 text-right">Prezzo</span>
+                </div>
+                <div className="divide-y divide-surface-50/10">
+                  {career.timeline.map(event => (
+                    <div
+                      key={event.id}
+                      className="grid grid-cols-[1.4fr_1.4fr_1fr_auto] gap-2 px-3 py-2.5 items-center text-sm hover:bg-surface-300/40"
+                    >
+                      <span className="text-gray-300 truncate">
+                        {event.from ? (event.from.teamName || event.from.username) : '—'}
+                      </span>
+                      <span className="text-white truncate">
+                        {event.to ? (event.to.teamName || event.to.username) : '—'}
+                      </span>
+                      <span className="text-gray-400 min-w-0">
+                        <span className="block truncate">
+                          {MOVEMENT_LABELS[event.type] || event.type}
+                        </span>
+                        <span className="block text-[10px] text-gray-500">
+                          {formatCareerDate(event.date)}
+                        </span>
+                      </span>
+                      <span className="text-right font-mono font-semibold text-primary-400">
+                        {event.price != null && event.price > 0 ? `${event.price}M` : '—'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Teams owned summary */}
+              {career.stats.teams.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="micro-label text-gray-500">Squadre</span>
+                  {career.stats.teams.map(team => (
+                    <span
+                      key={team}
+                      className="px-2.5 py-1 rounded-full bg-surface-300 text-xs text-white font-display"
+                    >
+                      {team}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           )
         )}

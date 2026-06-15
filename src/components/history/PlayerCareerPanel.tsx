@@ -8,7 +8,7 @@ interface PlayerCareerPanelProps {
   onClose: () => void
 }
 
-interface PlayerCareer {
+export interface PlayerCareer {
   player: {
     id: string
     name: string

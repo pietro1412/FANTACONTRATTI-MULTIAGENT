@@ -1052,6 +1052,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
         isOpen={!!selectedPlayer}
         onClose={() => { setSelectedPlayer(null); }}
         player={selectedPlayer}
+        leagueId={leagueId}
       />
     </div>
   )
@@ -1067,6 +1068,7 @@ function playerInfo(p: Player): PlayerInfo {
     age: p.age,
     apiFootballId: p.apiFootballId,
     computedStats: p.computedStats,
+    leaguePlayerId: p.id,
   }
 }
 

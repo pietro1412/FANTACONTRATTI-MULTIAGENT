@@ -294,7 +294,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
     enabled: useVirtual,
   })
 
-  const handlePlayerStatsClick = useCallback((info: { name: string; team: string; position: string; quotation?: number; age?: number | null; apiFootballId?: number | null; computedStats?: unknown }) => {
+  const handlePlayerStatsClick = useCallback((info: { name: string; team: string; position: string; quotation?: number; age?: number | null; apiFootballId?: number | null; computedStats?: unknown; leaguePlayerId?: string }) => {
     setSelectedPlayerForStats(info as Parameters<typeof setSelectedPlayerForStats>[0])
   }, [setSelectedPlayerForStats])
 
@@ -1475,6 +1475,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
         isOpen={!!selectedPlayerForStats}
         onClose={() => { setSelectedPlayerForStats(null); }}
         player={selectedPlayerForStats}
+        leagueId={leagueId}
       />
     </div>
   )

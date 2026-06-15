@@ -409,7 +409,7 @@ export function Players({ leagueId, onNavigate, initialView = 'list', initialTea
 
   // =============== SHARED ===============
 
-  const openPlayerStats = useCallback((p: { name: string; team: string; position: string; quotation: number; apiFootballId?: number | null; statsSyncedAt?: string | null; age?: number | null }) => {
+  const openPlayerStats = useCallback((p: { id: string; name: string; team: string; position: string; quotation: number; apiFootballId?: number | null; statsSyncedAt?: string | null; age?: number | null }) => {
     setSelectedPlayerStats({
       name: p.name,
       team: p.team,
@@ -418,6 +418,7 @@ export function Players({ leagueId, onNavigate, initialView = 'list', initialTea
       age: p.age,
       apiFootballId: p.apiFootballId,
       statsSyncedAt: p.statsSyncedAt,
+      leaguePlayerId: p.id,
     })
   }, [])
 
@@ -1085,6 +1086,7 @@ export function Players({ leagueId, onNavigate, initialView = 'list', initialTea
         isOpen={!!selectedPlayerStats}
         onClose={() => { setSelectedPlayerStats(null); }}
         player={selectedPlayerStats}
+        leagueId={leagueId}
       />
     </div>
   )

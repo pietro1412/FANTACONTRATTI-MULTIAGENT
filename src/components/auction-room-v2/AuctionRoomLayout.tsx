@@ -86,6 +86,7 @@ export function AuctionRoomLayout(props: AuctionViewProps) {
           myRosterSlots={props.myRosterSlots}
           budget={props.membership?.currentBudget || 0}
           currentBidderUsername={props.auction?.bids[0]?.bidder.user.username ?? null}
+          leagueId={props.leagueId}
         />
       </div>
 
@@ -126,6 +127,7 @@ export function AuctionRoomLayout(props: AuctionViewProps) {
           <MyPortfolio
             myRosterSlots={props.myRosterSlots}
             budget={props.membership?.currentBudget || 0}
+            leagueId={props.leagueId}
           />
         </div>
       </div>

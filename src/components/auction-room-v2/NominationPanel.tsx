@@ -21,6 +21,8 @@ interface NominationPanelProps {
   isPrimoMercato: boolean
   /** When true, players are visible but not clickable (not my turn) */
   disabled?: boolean
+  /** League id — enables the "Carriera Lega" tab in the player stats modal */
+  leagueId?: string
 }
 
 const ALL_ROLE_TABS = ['TUTTI', 'P', 'D', 'C', 'A'] as const
@@ -72,6 +74,7 @@ export function NominationPanel({
   marketProgress,
   isPrimoMercato,
   disabled = false,
+  leagueId,
 }: NominationPanelProps) {
   const [focalPlayer, setFocalPlayer] = useState<Player | null>(null)
   const [statsModalOpen, setStatsModalOpen] = useState(false)
@@ -546,7 +549,9 @@ export function NominationPanel({
           quotation: focalPlayer.quotation,
           age: focalPlayer.age,
           apiFootballId: focalPlayer.apiFootballId,
+          leaguePlayerId: focalPlayer.id,
         } as PlayerInfo : null}
+        leagueId={leagueId}
       />
     </div>
   )

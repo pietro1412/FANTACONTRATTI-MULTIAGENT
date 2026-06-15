@@ -10,6 +10,7 @@ interface MobileSidePanelProps {
   myRosterSlots: MyRosterSlots | null
   budget: number
   currentBidderUsername?: string | null
+  leagueId?: string
 }
 
 export function MobileSidePanel({
@@ -18,6 +19,7 @@ export function MobileSidePanel({
   myRosterSlots,
   budget,
   currentBidderUsername,
+  leagueId,
 }: MobileSidePanelProps) {
   const [sheet, setSheet] = useState<'managers' | 'roster' | null>(null)
 
@@ -79,7 +81,7 @@ export function MobileSidePanel({
         maxHeight="80vh"
       >
         <div className="p-2">
-          <MyPortfolio myRosterSlots={myRosterSlots} budget={budget} />
+          <MyPortfolio myRosterSlots={myRosterSlots} budget={budget} leagueId={leagueId} />
         </div>
       </BottomSheet>
     </>

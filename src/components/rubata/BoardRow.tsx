@@ -14,6 +14,7 @@ interface PlayerStatsInfo {
   age?: number | null
   apiFootballId?: number | null
   computedStats?: ComputedSeasonStats | null
+  leaguePlayerId?: string
 }
 
 export interface BoardRowProps {
@@ -70,6 +71,7 @@ export const BoardRow = memo(function BoardRow({
       age: player.playerAge,
       apiFootballId: player.playerApiFootballId,
       computedStats: player.playerComputedStats,
+      leaguePlayerId: player.playerId,
     })
   }
 

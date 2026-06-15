@@ -84,6 +84,7 @@ export function Rose({ onNavigate }: RoseProps) {
       apiFootballId: entry.player.apiFootballId,
       computedStats: entry.player.computedStats,
       statsSyncedAt: entry.player.statsSyncedAt,
+      leaguePlayerId: entry.player.id,
     })
   }, [])
 
@@ -591,6 +592,7 @@ export function Rose({ onNavigate }: RoseProps) {
         isOpen={!!selectedPlayerStats}
         onClose={() => { setSelectedPlayerStats(null); }}
         player={selectedPlayerStats}
+        leagueId={leagueId}
       />
     </div>
   )

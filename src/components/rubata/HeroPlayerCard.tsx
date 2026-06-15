@@ -22,6 +22,7 @@ interface PlayerStatsInfo {
   age?: number | null
   apiFootballId?: number | null
   computedStats?: ComputedSeasonStats | null
+  leaguePlayerId?: string
 }
 
 export interface HeroPlayerCardProps {
@@ -133,6 +134,7 @@ export const HeroPlayerCard = memo(function HeroPlayerCard({
                       age: player.playerAge,
                       apiFootballId: player.playerApiFootballId,
                       computedStats: player.playerComputedStats,
+                      leaguePlayerId: player.playerId,
                     }); }}
                     className="text-2xl sm:text-[28px] lg:text-[26px] font-display font-bold text-white hover:text-accent-300 truncate leading-tight"
                     title="Clicca per vedere statistiche"

@@ -9,6 +9,7 @@ import type { PlayerInfo } from '../PlayerStatsModal'
 interface MyPortfolioProps {
   myRosterSlots: MyRosterSlots | null
   budget: number
+  leagueId?: string
 }
 
 const POSITIONS = ['P', 'D', 'C', 'A'] as const
@@ -55,7 +56,7 @@ const POS_COLORS: Record<string, { bg: string; border: string; text: string; bad
   A: { bg: 'bg-red-500/15', border: 'border-red-500/40', text: 'text-red-400', badge: 'from-red-500 to-red-600' },
 }
 
-export function MyPortfolio({ myRosterSlots, budget: _budget }: MyPortfolioProps) {
+export function MyPortfolio({ myRosterSlots, budget: _budget, leagueId }: MyPortfolioProps) {
   const [statsModalOpen, setStatsModalOpen] = useState(false)
   const [selectedPlayer, setSelectedPlayer] = useState<{ player: RosterSlot; position: string } | null>(null)
 
@@ -184,7 +185,9 @@ export function MyPortfolio({ myRosterSlots, budget: _budget }: MyPortfolioProps
           position: selectedPlayer.position,
           age: selectedPlayer.player.age,
           apiFootballId: selectedPlayer.player.apiFootballId,
+          leaguePlayerId: selectedPlayer.player.playerId,
         } as PlayerInfo : null}
+        leagueId={leagueId}
       />
     </div>
   )
