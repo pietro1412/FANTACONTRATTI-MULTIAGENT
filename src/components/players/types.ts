@@ -17,6 +17,7 @@ export interface RosterPlayer {
   team: string
   position: 'P' | 'D' | 'C' | 'A'
   quotation: number
+  age?: number | null
   apiFootballId?: number | null
   computedStats?: ComputedSeasonStats | null
   statsSyncedAt?: string | null
