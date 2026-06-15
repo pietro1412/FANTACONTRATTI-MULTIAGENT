@@ -30,7 +30,7 @@ export function RosterTableRow({ entry, onPlayerClick }: RosterTableRowProps) {
   const cs = player.computedStats
 
   return (
-    <div className="grid grid-cols-[1.6fr_88px_96px_80px_150px] gap-2.5 items-center px-4 py-2.5 border-b border-surface-50/10 hover:bg-surface-100/60 transition-colors">
+    <div className="grid grid-cols-[1.6fr_104px_96px_80px_134px] gap-2.5 items-center px-4 py-2.5 border-b border-surface-50/10 hover:bg-surface-100/60 transition-colors">
       {/* Player identity */}
       <div className="flex items-center gap-2.5 min-w-0">
         <PlayerRoleBadge position={player.position} />

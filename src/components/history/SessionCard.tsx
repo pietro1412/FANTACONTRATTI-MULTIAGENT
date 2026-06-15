@@ -571,11 +571,11 @@ function TradesTab({ data }: { data: unknown }) {
                     </td>
                   ) : (
                     <>
-                      <td className="py-2 px-2 text-gray-300 max-w-[200px] truncate" title={formatPlayers(trade.offeredPlayers)}>
+                      <td className="py-2 px-2 text-gray-300" title={formatPlayers(trade.offeredPlayers)}>
                         {formatPlayers(trade.offeredPlayers)}
                         {trade.offeredBudget > 0 && <span className="text-primary-400 ml-1">+{trade.offeredBudget}M</span>}
                       </td>
-                      <td className="py-2 px-2 text-gray-300 max-w-[200px] truncate" title={formatPlayers(trade.requestedPlayers)}>
+                      <td className="py-2 px-2 text-gray-300" title={formatPlayers(trade.requestedPlayers)}>
                         {formatPlayers(trade.requestedPlayers)}
                         {trade.requestedBudget > 0 && <span className="text-primary-400 ml-1">+{trade.requestedBudget}M</span>}
                       </td>
@@ -661,8 +661,8 @@ function PrizesTab({ data }: { data: unknown }) {
                 <th className="text-left py-2 text-gray-400">Manager</th>
                 <th className="text-center py-2 text-gray-400">Base</th>
                 {categories.map(cat => (
-                  <th key={cat.id} className="text-center py-2 text-gray-400 whitespace-nowrap">
-                    {cat.name.length > 12 ? cat.name.substring(0, 12) + '...' : cat.name}
+                  <th key={cat.id} className="text-center py-2 px-2 text-gray-400 whitespace-nowrap">
+                    {cat.name}
                   </th>
                 ))}
                 <th className="text-center py-2 text-yellow-400">Totale</th>

@@ -573,7 +573,7 @@ export function Players({ leagueId, onNavigate, initialView = 'list', initialTea
   )
 
   // ===== LIST PANEL =====
-  const listColsClass = 'grid grid-cols-[minmax(0,2fr)_minmax(110px,1.2fr)_84px_72px] gap-3 items-center'
+  const listColsClass = 'grid grid-cols-[minmax(0,2.4fr)_minmax(72px,1fr)_56px_48px] lg:grid-cols-[minmax(0,2fr)_minmax(110px,1.2fr)_84px_72px] gap-2 lg:gap-3 items-center'
   const listPanel = (
     <div className="bg-surface-200 border border-surface-50 rounded-xl overflow-hidden flex flex-col lg:h-full lg:min-h-0">
       <div className={`${listColsClass} px-4 py-2.5 border-b border-surface-50 bg-surface-300/40 flex-shrink-0`}>

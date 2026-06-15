@@ -35,7 +35,7 @@ export function TeamRanking({ teams, hasFinancialDetails, onTeamClick, myTeamId 
           <button
             key={team.memberId}
             onClick={() => { onTeamClick(team.memberId); }}
-            className={`grid w-full grid-cols-[28px_minmax(80px,128px)_1fr_72px] items-center gap-2.5 px-3 py-2.5 text-left transition-colors md:gap-3.5 md:px-5 ${
+            className={`grid w-full grid-cols-[24px_minmax(96px,1.4fr)_minmax(48px,1fr)_64px] items-center gap-2 px-3 py-2.5 text-left transition-colors md:grid-cols-[28px_minmax(120px,1.6fr)_1fr_72px] md:gap-3.5 md:px-5 ${
               idx > 0 ? 'border-t border-surface-50/40' : ''
             } ${
               isMe

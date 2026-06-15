@@ -258,7 +258,7 @@ export function NominationPanel({
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-lg font-black text-white uppercase truncate">{focalPlayer.name}</p>
+                  <p className="text-lg font-black text-white uppercase break-words">{focalPlayer.name}</p>
                   <div className="flex items-center gap-2 mt-1 flex-wrap">
                     <div className="w-5 h-5 bg-white/90 rounded flex items-center justify-center flex-shrink-0">
                       <img src={getTeamLogo(focalPlayer.team)} alt={focalPlayer.team} className="w-3.5 h-3.5 object-contain" />
@@ -409,14 +409,13 @@ export function NominationPanel({
                           player={{ name: player.name, team: player.team, position: player.position, quotation: player.quotation, age: player.age, apiFootballId: player.apiFootballId }}
                           leagueId={leagueId}
                           leaguePlayerId={player.id}
-                          truncate
-                          className="text-sm leading-tight"
+                          className="text-sm leading-tight break-words"
                         />
                         <div className="flex items-center gap-1.5 mt-0.5">
                           <div className="w-4 h-4 bg-white/90 rounded flex items-center justify-center flex-shrink-0">
                             <img src={getTeamLogo(player.team)} alt={player.team} className="w-3 h-3 object-contain" />
                           </div>
-                          <span className="text-sm text-gray-400 truncate">{player.team}</span>
+                          <span className="text-sm text-gray-400 break-words">{player.team}</span>
                         </div>
                         {/* Age badge + mini stats */}
                         <div className="flex items-center gap-1.5 mt-1">

@@ -43,22 +43,22 @@ export function MobileBottomBar({
       <div className="bg-surface-200 border-t border-surface-50 p-3 shadow-2xl">
         {/* Timer + Current Info */}
         <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             {auction.timerExpiresAt && (
               <AuctionTimer timeLeft={timeLeft} totalSeconds={timerSetting} compact />
             )}
-            <div>
-              <p className="text-sm text-gray-400 truncate max-w-[120px]">{auction.player.name}</p>
+            <div className="min-w-0">
+              <p className="text-sm text-gray-400 break-words">{auction.player.name}</p>
               <p className="text-2xl font-mono font-bold text-white">{auction.currentPrice}</p>
               {auction.bids.length > 0 && (
-                <p className="text-xs text-gray-500 truncate max-w-[140px]">
+                <p className="text-xs text-gray-500 break-words">
                   {auction.bids[auction.bids.length - 1]?.bidder.teamName || auction.bids[auction.bids.length - 1]?.bidder.user.username}
                 </p>
               )}
             </div>
           </div>
           {isUserWinning && (
-            <span className="px-2 py-1 bg-green-500/20 text-green-400 text-sm rounded-full font-medium border border-green-500/30">
+            <span className="flex-shrink-0 px-2 py-1 bg-green-500/20 text-green-400 text-sm rounded-full font-medium border border-green-500/30">
               Vincendo
             </span>
           )}

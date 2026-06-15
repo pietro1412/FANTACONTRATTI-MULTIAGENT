@@ -36,13 +36,13 @@ export function RosterPlayerCard({ entry, onPlayerClick }: RosterPlayerCardProps
           <button
             type="button"
             onClick={onPlayerClick}
-            className="font-display font-bold text-white text-sm truncate block hover:text-primary-400 transition-colors text-left w-full"
+            className="font-display font-bold text-white text-sm break-words block hover:text-primary-400 transition-colors text-left w-full"
           >
             {player.name}
           </button>
           <div className="flex items-center gap-1.5 text-[11px] text-gray-500 mt-0.5">
             <TeamLogo team={player.team} size="xs" />
-            <span className="truncate">{player.team}</span>
+            <span className="break-words">{player.team}</span>
             <span className="font-mono">· {player.age != null ? `${player.age} anni` : NOT_DISPONIBILE}</span>
             <span className="ml-auto font-mono text-[10px] text-gray-500">
               {formatStat(cs?.appearances)}P {formatStat(cs?.totalGoals)}G {formatStat(cs?.totalAssists)}A

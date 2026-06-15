@@ -449,7 +449,7 @@ export function Rose({ onNavigate }: RoseProps) {
   const tablePanel = (
     <div className="bg-surface-200 border border-surface-50 rounded-xl overflow-hidden flex flex-col lg:h-full lg:min-h-0">
       {/* Column headers */}
-      <div className="grid grid-cols-[1.6fr_88px_96px_80px_150px] gap-2.5 px-4 py-2.5 border-b border-surface-50 bg-surface-300/40 flex-shrink-0">
+      <div className="grid grid-cols-[1.6fr_104px_96px_80px_134px] gap-2.5 px-4 py-2.5 border-b border-surface-50 bg-surface-300/40 flex-shrink-0">
         {sortableHeaders.map(col => (
           <button
             key={col.key}

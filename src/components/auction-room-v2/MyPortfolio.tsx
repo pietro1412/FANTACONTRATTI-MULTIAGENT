@@ -132,7 +132,7 @@ export function MyPortfolio({ myRosterSlots, budget: _budget, leagueId }: MyPort
                           position={pos}
                           posGradient={colors.badge}
                         />
-                        <span className="flex-1 min-w-0 text-sm text-gray-200 font-semibold truncate">
+                        <span className="flex-1 min-w-0 text-sm text-gray-200 font-semibold break-words lg:truncate">
                           {player.playerName}
                         </span>
                         <span className="w-4 h-4 bg-white/80 rounded flex items-center justify-center flex-shrink-0">
