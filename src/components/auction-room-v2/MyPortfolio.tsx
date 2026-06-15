@@ -5,6 +5,7 @@ import { getTeamLogo } from '../../utils/teamLogos'
 import { getPlayerPhotoUrl } from '../../utils/player-images'
 import { PlayerStatsModal } from '../PlayerStatsModal'
 import type { PlayerInfo } from '../PlayerStatsModal'
+import { NOT_DISPONIBILE } from '@/utils/stat-format'
 
 interface MyPortfolioProps {
   myRosterSlots: MyRosterSlots | null
@@ -137,11 +138,12 @@ export function MyPortfolio({ myRosterSlots, budget: _budget, leagueId }: MyPort
                         <span className="w-4 h-4 bg-white/80 rounded flex items-center justify-center flex-shrink-0">
                           <img src={getTeamLogo(player.playerTeam)} alt={player.playerTeam} className="w-3 h-3 object-contain" />
                         </span>
-                        {player.age != null && (
-                          <span className={`text-sm font-bold flex-shrink-0 ${getAgeColor(player.age)}`}>{player.age}a</span>
-                        )}
-                        <span className={`text-sms font-mono font-bold flex-shrink-0 ${colors.text}`}>
-                          {player.acquisitionPrice}M
+                        <span className={`text-sm font-bold flex-shrink-0 ${getAgeColor(player.age)}`}>
+                          {player.age != null ? `${player.age}a` : NOT_DISPONIBILE}
+                        </span>
+                        <span className="inline-flex items-baseline gap-1 flex-shrink-0" title={`Acquistato a ${player.acquisitionPrice}M`}>
+                          <span className="text-[9px] text-gray-500">Acq</span>
+                          <span className={`text-sms font-mono font-bold ${colors.text}`}>{player.acquisitionPrice}M</span>
                         </span>
                       </button>
                     )

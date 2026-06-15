@@ -1,5 +1,6 @@
 import { PlayerCell, getDurationColor, DURATION_MULTIPLIERS, type ContractPlayer } from './shared'
 import { Stepper } from './Stepper'
+import { NOT_DISPONIBILE } from '@/utils/stat-format'
 
 export interface PendingItemProps {
   player: ContractPlayer
@@ -45,7 +46,7 @@ export function PendingItem({
         sub={
           <>
             <span>{player.team}</span>
-            {player.age != null && <span>· {player.age}</span>}
+            <span>· {player.age != null ? `${player.age} anni` : NOT_DISPONIBILE}</span>
           </>
         }
       />

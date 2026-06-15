@@ -1,5 +1,7 @@
 import { PlayerRoleBadge } from './PlayerRoleBadge'
 import { TeamLogo } from '@/components/ui/TeamLogo'
+import { ContractInline } from '@/components/ui/ContractInline'
+import { formatStat, NOT_DISPONIBILE } from '@/utils/stat-format'
 import type { RosterEntry } from './types'
 
 export interface RosterTableRowProps {
@@ -43,17 +45,17 @@ export function RosterTableRow({ entry, onPlayerClick }: RosterTableRowProps) {
           <div className="flex items-center gap-1.5 text-[10px] text-gray-500 mt-0.5 min-w-0">
             <TeamLogo team={player.team} size="xs" />
             <span className="truncate">{player.team}</span>
+            <span className="text-gray-600 font-mono">
+              · {player.age != null ? `${player.age} anni` : NOT_DISPONIBILE}
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Salary × duration */}
-      <div className="text-right">
+      {/* Contract: ingaggio + durata (labels always shown — Axiom 9) */}
+      <div className="flex justify-end">
         {contract ? (
-          <>
-            <span className="stat-number text-base text-accent-400">{contract.salary}M</span>
-            <div className="font-mono text-[9px] text-gray-500">×{contract.duration} sem</div>
-          </>
+          <ContractInline salary={contract.salary} duration={contract.duration} variant="compact" className="justify-end text-[11px]" />
         ) : (
           <span className="text-gray-500">-</span>
         )}
@@ -79,10 +81,10 @@ export function RosterTableRow({ entry, onPlayerClick }: RosterTableRowProps) {
 
       {/* Season mini-stats */}
       <div className="flex gap-2.5 justify-end">
-        <MiniStat label="PR" value={cs?.appearances ?? '-'} />
-        <MiniStat label="G" value={cs?.totalGoals ?? '-'} />
-        <MiniStat label="A" value={cs?.totalAssists ?? '-'} />
-        <MiniStat label="VT" value={cs?.avgRating != null ? cs.avgRating.toFixed(1) : '-'} />
+        <MiniStat label="PR" value={formatStat(cs?.appearances)} />
+        <MiniStat label="G" value={formatStat(cs?.totalGoals)} />
+        <MiniStat label="A" value={formatStat(cs?.totalAssists)} />
+        <MiniStat label="VT" value={formatStat(cs?.avgRating, { decimals: 1 })} />
       </div>
     </div>
   )

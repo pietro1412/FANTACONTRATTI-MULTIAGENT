@@ -12,6 +12,7 @@ import { MOVEMENT_TYPE_LABELS, MOVEMENT_TYPE_SHORT, MOVEMENT_TYPE_COLORS } from 
 import { POSITION_TEXT_COLORS } from '../components/ui/PositionBadge'
 import { Textarea } from '@/components/ui/Textarea'
 import { PlayerName } from '@/components/players/PlayerName'
+import { ContractInline } from '@/components/ui/ContractInline'
 
 interface MovementsProps {
   leagueId: string
@@ -451,7 +452,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
                           {movement.newContract && (
                             <div>
                               <span className="text-gray-500">Contratto</span>
-                              <p className="text-gray-300">{movement.newContract.salary}M × {movement.newContract.duration}sem</p>
+                              <ContractInline salary={movement.newContract.salary} duration={movement.newContract.duration} variant="compact" className="mt-0.5 text-xs" />
                             </div>
                           )}
                         </div>
@@ -593,9 +594,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
                         {/* Contratto */}
                         <div className="col-span-2 text-xs">
                           {movement.newContract ? (
-                            <span className="text-gray-300">
-                              {movement.newContract.salary}M × {movement.newContract.duration}sem
-                            </span>
+                            <ContractInline salary={movement.newContract.salary} duration={movement.newContract.duration} variant="compact" className="text-xs" />
                           ) : (
                             <span className="text-gray-400">—</span>
                           )}

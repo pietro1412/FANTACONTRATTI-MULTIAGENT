@@ -5,6 +5,7 @@ import { WaterfallChart } from './WaterfallChart'
 import { ContractExpiryGantt } from './ContractExpiryGantt'
 import { KPICard } from './KPICard'
 import { PlayerName } from '@/components/players/PlayerName'
+import { NOT_DISPONIBILE } from '@/utils/stat-format'
 import {
   type TeamData, type FinancialsData,
   getTeamBalance, getHealthStatus,
@@ -369,10 +370,10 @@ export function TeamFinanceDetail({ team, data, leagueId, onBack, onNavigateToPl
                         </span>
                       </td>
                       <td className="px-2 py-2 text-right text-gray-400 hidden md:table-cell">{player.quotation}</td>
-                      <td className="px-2 py-2 text-right text-gray-400 hidden md:table-cell">{player.age ?? '-'}</td>
+                      <td className="px-2 py-2 text-right text-gray-400 hidden md:table-cell">{player.age != null ? player.age : NOT_DISPONIBILE}</td>
                       <td className="px-2 py-2 text-right text-accent-400 font-medium">{player.salary}M</td>
                       <td className={`px-2 py-2 text-right font-medium ${player.duration <= 1 ? 'text-danger-400' : player.duration <= 2 ? 'text-amber-400' : 'text-white'}`}>
-                        {player.duration}
+                        {player.duration} <span className="text-[9px] text-gray-500 font-normal">sem</span>
                       </td>
                       <td className="px-2 py-2 text-right text-gray-400 hidden md:table-cell">{player.clause}M</td>
                     </tr>

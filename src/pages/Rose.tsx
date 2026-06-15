@@ -81,6 +81,7 @@ export function Rose({ onNavigate }: RoseProps) {
       team: entry.player.team,
       position: entry.player.position,
       quotation: entry.player.quotation,
+      age: entry.player.age,
       apiFootballId: entry.player.apiFootballId,
       computedStats: entry.player.computedStats,
       statsSyncedAt: entry.player.statsSyncedAt,

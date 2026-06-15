@@ -17,6 +17,7 @@ import { Monogram } from '@/components/ui/Monogram'
 import { TeamLogo } from '@/components/ui/TeamLogo'
 import { SlidersHorizontal } from 'lucide-react'
 import { sortPlayersByRoleAndName, comparePlayersByRoleAndName } from '@/utils/player-sort'
+import { formatStat, NOT_DISPONIBILE } from '@/utils/stat-format'
 
 // ==================== TYPES ====================
 
@@ -133,7 +134,7 @@ const STAT_COLUMNS: ColumnDef[] = [
   // General
   { key: 'appearances', label: 'Presenze', shortLabel: 'Pres', category: 'general', getValue: p => p.stats?.appearances ?? null, sortable: true },
   { key: 'minutes', label: 'Minuti Giocati', shortLabel: 'Min', category: 'general', getValue: p => p.stats?.minutes ?? null, sortable: true },
-  { key: 'rating', label: 'Rating Medio', shortLabel: 'Rating', category: 'general', getValue: p => p.stats?.rating ?? null, format: v => v?.toFixed(2) ?? '-', sortable: true },
+  { key: 'rating', label: 'Rating Medio', shortLabel: 'Rating', category: 'general', getValue: p => p.stats?.rating ?? null, format: v => formatStat(v, { decimals: 2 }), sortable: true },
 
   // Attack
   { key: 'goals', label: 'Gol', shortLabel: 'Gol', category: 'attack', getValue: p => p.stats?.goals ?? null, tone: 'good', sortable: true },
@@ -141,7 +142,7 @@ const STAT_COLUMNS: ColumnDef[] = [
   { key: 'ga', label: 'Gol + Assist', shortLabel: 'G+A', category: 'attack', getValue: p => p.stats ? p.stats.goals + p.stats.assists : null, sortable: true },
   { key: 'shotsTotal', label: 'Tiri Totali', shortLabel: 'Tiri', category: 'attack', getValue: p => p.stats?.shotsTotal ?? null, sortable: true },
   { key: 'shotsOn', label: 'Tiri in Porta', shortLabel: 'TiP', category: 'attack', getValue: p => p.stats?.shotsOn ?? null, sortable: true },
-  { key: 'shotsAccuracy', label: 'Precisione Tiri %', shortLabel: 'Tiri%', category: 'attack', getValue: p => p.stats && p.stats.shotsTotal > 0 ? Math.round((p.stats.shotsOn / p.stats.shotsTotal) * 100) : null, format: v => v !== null ? `${v}%` : '-', sortable: true },
+  { key: 'shotsAccuracy', label: 'Precisione Tiri %', shortLabel: 'Tiri%', category: 'attack', getValue: p => p.stats && p.stats.shotsTotal > 0 ? Math.round((p.stats.shotsOn / p.stats.shotsTotal) * 100) : null, format: v => formatStat(v, { suffix: '%' }), sortable: true },
   { key: 'penaltyScored', label: 'Rigori Segnati', shortLabel: 'RigS', category: 'attack', getValue: p => p.stats?.penaltyScored ?? null, sortable: true },
   { key: 'penaltyMissed', label: 'Rigori Sbagliati', shortLabel: 'RigX', category: 'attack', getValue: p => p.stats?.penaltyMissed ?? null, tone: 'danger', sortable: true },
 
@@ -152,10 +153,10 @@ const STAT_COLUMNS: ColumnDef[] = [
   // Passing
   { key: 'passesTotal', label: 'Passaggi Totali', shortLabel: 'Pass', category: 'passing', getValue: p => p.stats?.passesTotal ?? null, sortable: true },
   { key: 'passesKey', label: 'Passaggi Chiave', shortLabel: 'KeyP', category: 'passing', getValue: p => p.stats?.passesKey ?? null, tone: 'attack', sortable: true },
-  { key: 'passAccuracy', label: 'Precisione Pass %', shortLabel: 'Pass%', category: 'passing', getValue: p => p.stats?.passAccuracy ?? null, format: v => v !== null ? `${v}%` : '-', sortable: true },
+  { key: 'passAccuracy', label: 'Precisione Pass %', shortLabel: 'Pass%', category: 'passing', getValue: p => p.stats?.passAccuracy ?? null, format: v => formatStat(v, { suffix: '%' }), sortable: true },
   { key: 'dribblesAttempts', label: 'Dribbling Tentati', shortLabel: 'DrbT', category: 'passing', getValue: p => p.stats?.dribblesAttempts ?? null, sortable: true },
   { key: 'dribblesSuccess', label: 'Dribbling Riusciti', shortLabel: 'DrbR', category: 'passing', getValue: p => p.stats?.dribblesSuccess ?? null, sortable: true },
-  { key: 'dribblesAccuracy', label: 'Dribbling %', shortLabel: 'Drb%', category: 'passing', getValue: p => p.stats && p.stats.dribblesAttempts > 0 ? Math.round((p.stats.dribblesSuccess / p.stats.dribblesAttempts) * 100) : null, format: v => v !== null ? `${v}%` : '-', sortable: true },
+  { key: 'dribblesAccuracy', label: 'Dribbling %', shortLabel: 'Drb%', category: 'passing', getValue: p => p.stats && p.stats.dribblesAttempts > 0 ? Math.round((p.stats.dribblesSuccess / p.stats.dribblesAttempts) * 100) : null, format: v => formatStat(v, { suffix: '%' }), sortable: true },
 
   // Discipline
   { key: 'yellowCards', label: 'Ammonizioni', shortLabel: 'Amm', category: 'discipline', getValue: p => p.stats?.yellowCards ?? null, tone: 'warning', sortable: true },
@@ -610,7 +611,7 @@ export function Players({ leagueId, onNavigate, initialView = 'list', initialTea
                       <span className="flex items-center gap-1.5 text-[10px] text-gray-500 mt-0.5 min-w-0">
                         <TeamLogo team={player.team} size="xs" />
                         <span className="truncate">{player.team}</span>
-                        {player.age != null && <span className="text-gray-600">· {player.age} anni</span>}
+                        <span className="text-gray-600 font-mono">· {player.age != null ? `${player.age} anni` : NOT_DISPONIBILE}</span>
                       </span>
                     </div>
                   </div>
@@ -637,7 +638,7 @@ export function Players({ leagueId, onNavigate, initialView = 'list', initialTea
                   {/* Rating */}
                   <div className="text-right">
                     <span className={`stat-number text-base ${rating != null && rating >= 7 ? 'text-accent-400' : 'text-gray-400'}`}>
-                      {rating != null ? rating.toFixed(1) : '-'}
+                      {formatStat(rating, { decimals: 1 })}
                     </span>
                   </div>
                 </div>
@@ -750,7 +751,9 @@ export function Players({ leagueId, onNavigate, initialView = 'list', initialTea
                       const raw = col.getValue(player)
                       const display = col.format
                         ? col.format(typeof raw === 'number' ? raw : null)
-                        : raw ?? '-'
+                        : typeof raw === 'string'
+                          ? raw
+                          : formatStat(raw)
                       const isRating = col.key === 'rating' && typeof raw === 'number'
                       const ratingTone = isRating
                         ? (raw >= 7 ? 'text-secondary-400' : raw >= 6 ? 'text-white' : 'text-warning-400')

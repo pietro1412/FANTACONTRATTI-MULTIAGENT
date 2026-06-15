@@ -1,6 +1,7 @@
 import { PlayerRoleBadge } from './PlayerRoleBadge'
 import { TeamLogo } from '@/components/ui/TeamLogo'
-import { getDurationColor } from '@/components/contracts/shared'
+import { ContractInline } from '@/components/ui/ContractInline'
+import { formatStat, NOT_DISPONIBILE } from '@/utils/stat-format'
 import type { RosterEntry } from './types'
 
 export interface RosterPlayerCardProps {
@@ -42,21 +43,23 @@ export function RosterPlayerCard({ entry, onPlayerClick }: RosterPlayerCardProps
           <div className="flex items-center gap-1.5 text-[11px] text-gray-500 mt-0.5">
             <TeamLogo team={player.team} size="xs" />
             <span className="truncate">{player.team}</span>
-            {cs && cs.appearances > 0 && (
-              <span className="ml-auto font-mono text-[10px] text-gray-500">
-                {cs.appearances}P {cs.totalGoals}G {cs.totalAssists}A
-              </span>
-            )}
+            <span className="font-mono">· {player.age != null ? `${player.age} anni` : NOT_DISPONIBILE}</span>
+            <span className="ml-auto font-mono text-[10px] text-gray-500">
+              {formatStat(cs?.appearances)}P {formatStat(cs?.totalGoals)}G {formatStat(cs?.totalAssists)}A
+            </span>
           </div>
         </div>
       </div>
 
       {contract ? (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          <ContractStat label="Ing" value={`${contract.salary}M`} tone="text-accent-400" />
-          <ContractStat label="Dur" value={`${contract.duration}s`} tone={getDurationColor(contract.duration)} />
-          <ContractStat label="Cls" value={clause !== null ? `${clause}M` : '-'} tone="text-white" />
-          <ContractStat label="Rub" value={rubata !== null ? `${rubata}M` : '-'} tone="text-gray-300" />
+        <div className="space-y-2">
+          {/* Ingaggio + durata: labels always shown (Axiom 9) */}
+          <ContractInline salary={contract.salary} duration={contract.duration} variant="compact" />
+          {/* Clausola + rubata as cockpit stats */}
+          <div className="grid grid-cols-2 gap-2">
+            <ContractStat label="Cls" value={clause !== null ? `${clause}M` : '-'} tone="text-white" />
+            <ContractStat label="Rub" value={rubata !== null ? `${rubata}M` : '-'} tone="text-gray-300" />
+          </div>
         </div>
       ) : (
         <div className="text-center text-gray-500 text-xs py-1">Nessun contratto</div>

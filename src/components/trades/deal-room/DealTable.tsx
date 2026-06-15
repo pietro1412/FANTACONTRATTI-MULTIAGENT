@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { getPlayerPhotoUrl } from '@/utils/player-images'
 import { Textarea } from '@/components/ui/Textarea'
 import { Monogram } from '@/components/ui/Monogram'
+import { ContractInline } from '@/components/ui/ContractInline'
 import { POSITION_GRADIENTS } from '../../ui/PositionBadge'
 import type { RosterEntry, LeagueMember } from '../types'
 
@@ -88,12 +89,14 @@ function DealAsset({ entry, onRemove, onViewStats }: { entry: RosterEntry; onRem
         >
           {p.name}
         </button>
-        <div className="text-[10.5px] text-gray-500 flex items-center gap-1.5">
+        <div className="text-[10.5px] text-gray-500 flex items-center gap-1.5 flex-wrap">
           <span className="truncate">{p.team}</span>
           <span aria-hidden="true">·</span>
-          <span>ing. {p.contract?.salary ?? '-'}M</span>
-          <span aria-hidden="true">·</span>
-          <span>{p.contract?.duration ?? '-'} sem</span>
+          {p.contract ? (
+            <ContractInline salary={p.contract.salary} duration={p.contract.duration} variant="compact" className="text-[10.5px]" />
+          ) : (
+            <span className="italic">senza contratto</span>
+          )}
         </div>
       </div>
       <button

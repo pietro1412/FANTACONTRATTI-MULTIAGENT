@@ -1089,6 +1089,7 @@ export async function getAllRosters(leagueId: string, userId: string): Promise<S
                   team: true,
                   position: true,
                   quotation: true,
+                  age: true,
                   apiFootballId: true,
                   apiFootballStats: true,
                   statsSyncedAt: true,

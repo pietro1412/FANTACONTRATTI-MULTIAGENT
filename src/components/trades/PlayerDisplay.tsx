@@ -1,6 +1,7 @@
 import { getTeamLogo } from '../../utils/teamLogos'
 import { getPlayerPhotoUrl } from '../../utils/player-images'
 import { POSITION_GRADIENTS } from '../ui/PositionBadge'
+import { ContractInline } from '@/components/ui/ContractInline'
 import { getRoleStyle } from './utils'
 import type { Player } from './types'
 
@@ -93,22 +94,16 @@ export function PlayerCard({ player, compact = false }: { player: Player, compac
         <p className="text-white font-medium truncate">{player.name}</p>
         <p className="text-gray-500 text-xs">{player.team}</p>
       </div>
-      {/* Contract Info */}
+      {/* Contract Info: ingaggio + durata + clausola with labels (Axiom 9) */}
       <div className="text-right flex-shrink-0">
         {player.contract ? (
-          <div className="space-y-0.5">
-            <div className="flex items-center justify-end gap-2">
-              <span className="text-accent-400 font-semibold text-sm font-mono">{player.contract.salary}M</span>
-              <span className="text-gray-400">•</span>
-              <span className="text-gray-400 text-xs font-mono">{player.contract.duration}sem</span>
-            </div>
-            <div className="flex items-center justify-end gap-1">
-              <span className="text-[10px] text-gray-500 uppercase">Rubata:</span>
-              <span className="text-warning-400 font-medium text-xs font-mono">
-                {player.contract.rescissionClause ? `${player.contract.rescissionClause}M` : '-'}
-              </span>
-            </div>
-          </div>
+          <ContractInline
+            salary={player.contract.salary}
+            duration={player.contract.duration}
+            clause={player.contract.rescissionClause ?? null}
+            variant="compact"
+            className="justify-end"
+          />
         ) : (
           <p className="text-gray-400 text-xs italic">Contratto n.d.</p>
         )}

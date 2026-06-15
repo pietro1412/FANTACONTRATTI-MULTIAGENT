@@ -1,6 +1,7 @@
 import { PlayerCell, Tag, getDurationColor, DURATION_MULTIPLIERS, type ContractPlayer } from './shared'
 import { getRenewalConstraints } from './renewal-logic'
 import { Stepper } from './Stepper'
+import { NOT_DISPONIBILE } from '@/utils/stat-format'
 
 export interface RenewalItemContract {
   id: string
@@ -95,7 +96,7 @@ export function RenewalItem({
   const sub = (
     <>
       <span>{c.player.team}</span>
-      {c.player.age != null && <span>· {c.player.age}</span>}
+      <span>· {c.player.age != null ? `${c.player.age} anni` : NOT_DISPONIBILE}</span>
       {rating != null && <span className="text-primary-400 font-semibold">{rating.toFixed(1)}</span>}
       {renderTags({
         canSpalmare: c.canSpalmare,

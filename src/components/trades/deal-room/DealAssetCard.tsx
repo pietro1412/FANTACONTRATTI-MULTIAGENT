@@ -1,6 +1,8 @@
 import { getPlayerPhotoUrl } from '@/utils/player-images'
+import { ContractInline } from '@/components/ui/ContractInline'
 import { POSITION_GRADIENTS } from '../../ui/PositionBadge'
 import { getAgeColor } from '../utils'
+import { NOT_DISPONIBILE } from '@/utils/stat-format'
 import type { RosterEntry } from '../types'
 
 interface DealAssetCardProps {
@@ -83,18 +85,20 @@ export function DealAssetCard({ entry, isSelected, onToggle, side, onViewStats }
           </button>
           <div className="flex items-center gap-1.5 text-xs text-gray-400">
             <span className="truncate">{p.team}</span>
-            {p.age != null && (
-              <span className={getAgeColor(p.age)}>· {p.age}a</span>
-            )}
+            <span className={p.age != null ? getAgeColor(p.age) : 'text-gray-500'}>
+              · {p.age != null ? `${p.age}a` : NOT_DISPONIBILE}
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Contract info */}
-      <div className="flex items-center gap-2 text-sm flex-shrink-0 ml-2">
-        <span className="text-accent-400 font-mono font-medium">{p.contract?.salary ?? '-'}M</span>
-        <span className="text-gray-500">x</span>
-        <span className="text-white font-mono font-medium">{p.contract?.duration ?? '-'}A</span>
+      {/* Contract info: ingaggio + durata with labels (Axiom 9) */}
+      <div className="flex-shrink-0 ml-2">
+        {p.contract ? (
+          <ContractInline salary={p.contract.salary} duration={p.contract.duration} variant="compact" className="justify-end text-xs" />
+        ) : (
+          <span className="text-gray-500 text-sm">-</span>
+        )}
       </div>
     </div>
   )
