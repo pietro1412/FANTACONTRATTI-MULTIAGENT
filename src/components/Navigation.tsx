@@ -56,6 +56,7 @@ const MenuIcons = {
   trades: <ArrowLeftRight size={ICON_SIZE} />,
   contracts: <FileSignature size={ICON_SIZE} />,
   rubata: <Target size={ICON_SIZE} />,
+  prizes: <Trophy size={ICON_SIZE} />,
 }
 
 // Le voci del menu lega derivano dalla fase corrente tramite getVisibleNavItems
@@ -398,6 +399,8 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
                   highlight={item.key === 'adminPanel'}
                   isAdmin={item.adminOnly}
                   iconKey={item.icon}
+                  current={item.isCurrent}
+                  live={item.isLive}
                 />
               ))}
             </nav>
@@ -726,6 +729,8 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
                     highlight={item.key === 'adminPanel'}
                     isAdmin={item.adminOnly}
                     iconElement={MenuIcons[item.icon as keyof typeof MenuIcons]}
+                    current={item.isCurrent}
+                    live={item.isLive}
                   />
                 ))}
               </>
@@ -840,9 +845,27 @@ interface NavButtonProps {
   large?: boolean
   isAdmin?: boolean
   iconKey?: string
+  /** Questa voce rappresenta la fase corrente della lega (accento oro + tag). */
+  current?: boolean
+  /** Fase corrente di tipo asta-live (tag LIVE rosso invece di ORA). */
+  live?: boolean
 }
 
-function NavButton({ label, active, onClick, accent, highlight, large, isAdmin, iconKey }: NavButtonProps) {
+// Tag "ORA" (fase corrente) / "LIVE" (asta in corso) accanto alla voce di fase.
+function PhaseTag({ live }: { live?: boolean }) {
+  return (
+    <span
+      className={`ml-1 inline-flex items-center gap-1 text-[8px] font-bold tracking-wider px-1.5 py-0.5 rounded ${
+        live ? 'bg-danger-500 text-white animate-pulse' : 'bg-accent-400 text-[#0a0a0b]'
+      }`}
+    >
+      {live && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+      {live ? 'LIVE' : 'ORA'}
+    </span>
+  )
+}
+
+function NavButton({ label, active, onClick, accent, highlight, large, isAdmin, iconKey, current, live }: NavButtonProps) {
   const baseClasses = large
     ? 'relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300 whitespace-nowrap group focus:outline-none focus:ring-2 focus:ring-primary-400/50'
     : 'relative px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-300 whitespace-nowrap group focus:outline-none focus:ring-2 focus:ring-primary-400/50'
@@ -862,13 +885,13 @@ function NavButton({ label, active, onClick, accent, highlight, large, isAdmin, 
 
   const icon = getIcon()
 
-  // Admin/highlight items get gold accent
-  if (highlight || isAdmin) {
+  // Admin/highlight items + fase corrente: accento oro
+  if (highlight || isAdmin || current) {
     return (
       <button
         onClick={onClick}
         className={`${baseClasses} ${
-          active
+          active || current
             ? 'bg-gradient-to-r from-accent-500/30 to-accent-600/20 text-accent-300 shadow-md shadow-accent-500/20 scale-[1.02]'
             : 'text-accent-400 hover:bg-accent-500/15 hover:text-accent-300 hover:scale-[1.02]'
         }`}
@@ -881,6 +904,7 @@ function NavButton({ label, active, onClick, accent, highlight, large, isAdmin, 
         <span className="flex items-center gap-1.5">
           {icon}
           {label}
+          {current && <PhaseTag live={live} />}
         </span>
       </button>
     )
@@ -921,14 +945,18 @@ interface MobileNavButtonProps {
   icon?: 'back'
   isAdmin?: boolean
   iconElement?: React.ReactNode
+  /** Questa voce rappresenta la fase corrente della lega (accento oro + tag). */
+  current?: boolean
+  /** Fase corrente di tipo asta-live (tag LIVE rosso invece di ORA). */
+  live?: boolean
 }
 
-function MobileNavButton({ label, active, onClick, accent, highlight, icon, isAdmin, iconElement }: MobileNavButtonProps) {
+function MobileNavButton({ label, active, onClick, accent, highlight, icon, isAdmin, iconElement, current, live }: MobileNavButtonProps) {
   const baseClasses = 'w-full text-left px-4 py-3 rounded-xl transition-all duration-300 flex items-center gap-3 focus:outline-none focus:ring-2 focus:ring-primary-400/50'
 
   const getClasses = () => {
-    if (highlight || isAdmin) {
-      return active
+    if (highlight || isAdmin || current) {
+      return active || current
         ? 'bg-gradient-to-r from-accent-500/25 to-accent-600/15 text-accent-300 shadow-md shadow-accent-500/10 border-l-3 border-accent-400 scale-[1.01]'
         : 'text-accent-400 hover:bg-accent-500/15 hover:text-accent-300 hover:translate-x-1'
     }
@@ -962,7 +990,7 @@ function MobileNavButton({ label, active, onClick, accent, highlight, icon, isAd
   return (
     <button onClick={onClick} className={`${baseClasses} ${getClasses()}`} data-testid={`mobile-nav-${label.toLowerCase().replace(/\s+/g, '-')}`}>
       {renderIcon()}
-      <span className="flex-1 font-medium">{label}</span>
+      <span className="flex-1 font-medium">{label}{current && <PhaseTag live={live} />}</span>
       {active && (
         <div className="flex items-center gap-1">
           <div className={`w-2 h-2 rounded-full ${highlight || isAdmin || accent ? 'bg-accent-400' : 'bg-primary-400'} animate-pulse`} />

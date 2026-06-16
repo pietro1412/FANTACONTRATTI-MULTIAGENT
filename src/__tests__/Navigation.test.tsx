@@ -111,6 +111,13 @@ describe('Navigation Component', () => {
       expect(screen.getByTestId('nav-profezie')).toBeInTheDocument()
       expect(screen.getByTestId('nav-feedback')).toBeInTheDocument()
 
+      // P1 (F-NAV-2): le sezioni di consultazione sono SEMPRE presenti, anche
+      // quando non sono la fase corrente (prima sparivano dal menu).
+      expect(screen.getByTestId('nav-rose')).toBeInTheDocument()
+      expect(screen.getByTestId('nav-scambi')).toBeInTheDocument()
+      expect(screen.getByTestId('nav-contratti')).toBeInTheDocument()
+      expect(screen.getByTestId('nav-premi')).toBeInTheDocument()
+
       // Admin panel should NOT be visible for non-admin
       expect(screen.queryByTestId('nav-admin')).not.toBeInTheDocument()
     })
