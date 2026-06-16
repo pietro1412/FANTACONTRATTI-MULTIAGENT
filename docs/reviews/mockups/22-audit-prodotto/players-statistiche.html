@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup — Players / Statistiche less-is-more (P4)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=Oswald:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0a0b; --card:#1a1c20; --elev:#111214; --hover:#252830;
+    --border:#2d3139; --primary:#3b82f6; --secondary:#22c55e;
+    --gold:#f59e0b; --gold2:#fbbf24; --danger:#ef4444; --passion:#ea580c;
+    --t1:#f9fafb; --t2:#9ca3af; --t3:#8b919d;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--t1);font-family:'Inter',sans-serif;padding:40px 0 80px;}
+  h1.page{font-family:'Outfit',sans-serif;font-size:22px;font-weight:700;text-align:center;margin-bottom:6px;}
+  p.sub{text-align:center;color:var(--t3);font-size:13px;margin-bottom:34px;max-width:1040px;margin-left:auto;margin-right:auto;}
+  p.sub b{color:var(--t2);}
+  .frames{display:flex;flex-direction:column;align-items:center;gap:54px;}
+  .frame-label{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--t3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;text-align:center;}
+  .micro{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);}
+
+  /* cockpit-like frame */
+  .frame{width:1280px;border:1px solid var(--border);border-radius:16px;background:var(--bg);overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.55);}
+  .topbar{height:46px;background:var(--elev);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 18px;gap:14px;}
+  .logo{width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,#1e40af,#3b82f6);}
+  .tnav{display:flex;gap:14px;margin-left:6px;font-size:12px;color:var(--t3);}
+  .tnav a.on{color:var(--t1);font-weight:600;}
+
+  /* testata cockpit */
+  .chead{display:flex;align-items:center;gap:14px;padding:14px 18px;border-bottom:1px solid var(--border);}
+  .ch-ic{width:40px;height:40px;border-radius:11px;background:rgba(59,130,246,.14);color:var(--primary);display:flex;align-items:center;justify-content:center;font-size:18px;}
+  .ch-t{font-family:'Outfit';font-size:17px;font-weight:700;}
+  .ch-s{font-size:12px;color:var(--t3);margin-top:1px;}
+  .ch-right{margin-left:auto;display:flex;align-items:center;gap:8px;}
+  .kpi{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:6px 13px;text-align:right;}
+  .kpi .l{font-family:'JetBrains Mono';font-size:8px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);}
+  .kpi .v{font-family:'Oswald';font-size:20px;font-weight:600;}
+
+  /* barra controlli */
+  .ctrl{display:flex;align-items:center;gap:8px;padding:8px 18px;background:var(--elev);border-bottom:1px solid var(--border);}
+  .seg{display:inline-flex;border:1px solid var(--border);border-radius:9px;overflow:hidden;}
+  .seg button{font-size:11.5px;font-weight:600;color:var(--t2);background:var(--card);border:none;padding:6px 13px;cursor:pointer;}
+  .seg button.on{background:var(--primary);color:#fff;}
+  .pill{font-size:11px;font-weight:600;color:var(--t2);background:var(--card);border:1px solid var(--border);border-radius:8px;padding:6px 12px;cursor:pointer;}
+  .pill.on{color:var(--gold2);border-color:rgba(245,158,11,.5);background:rgba(245,158,11,.08);}
+  .search{margin-left:auto;font-size:11.5px;color:var(--t3);background:var(--card);border:1px solid var(--border);border-radius:8px;padding:6px 12px;min-width:180px;}
+  .colbtn{font-size:11px;font-weight:600;color:var(--t2);background:var(--card);border:1px solid var(--border);border-radius:8px;padding:6px 12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
+
+  /* preset di colonne (poche, ad alto valore) */
+  .presets{display:flex;align-items:center;gap:6px;padding:8px 18px 4px;}
+  .presets .micro{margin-right:4px;}
+
+  /* tabella: poche colonne, NIENTE scroll orizzontale */
+  .tbl{padding:8px 18px 18px;}
+  table{width:100%;border-collapse:collapse;}
+  thead th{font-family:'JetBrains Mono';font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--t3);text-align:right;padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap;}
+  thead th.l{text-align:left;}
+  tbody td{padding:9px 10px;border-bottom:1px solid var(--border);font-size:13px;text-align:right;font-variant-numeric:tabular-nums;font-family:'Oswald';}
+  tbody tr:hover{background:var(--hover);}
+  /* identità giocatore (Assioma 6: ruolo→nome→squadra→età) */
+  .pl{display:flex;align-items:center;gap:11px;text-align:left;}
+  .rb{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Outfit';font-weight:800;font-size:13px;flex-shrink:0;}
+  .role-P{background:rgba(245,158,11,.14);color:var(--gold2);} .role-D{background:rgba(59,130,246,.15);color:var(--primary);}
+  .role-C{background:rgba(34,197,94,.14);color:var(--secondary);} .role-A{background:rgba(239,68,68,.15);color:var(--danger);}
+  .pl .nm{font-family:'Outfit';font-size:14px;font-weight:700;color:var(--primary);cursor:pointer;line-height:1.1;}
+  .pl .nm:hover{text-decoration:underline;}
+  .pl .meta{font-size:11px;color:var(--t3);font-family:'Inter';}
+  .vt{font-weight:700;} .vt.good{color:var(--secondary);} .vt.mid{color:var(--t1);} .vt.low{color:var(--gold2);}
+  .drill{font-family:'Inter';font-size:11px;color:var(--primary);cursor:pointer;font-weight:600;}
+  td.act{text-align:center;}
+
+  /* nota */
+  .legend{max-width:1000px;margin:30px auto 0;font-size:12px;color:var(--t2);line-height:1.7;padding:0 20px;}
+  .legend b{color:var(--gold2);}
+  .legend ul{margin:8px 0 0 18px;}
+
+  /* mobile */
+  .mobile{width:390px;border:1px solid var(--border);border-radius:30px;background:var(--bg);overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.55);}
+  .m-card{display:flex;align-items:center;gap:11px;padding:12px 14px;border-bottom:1px solid var(--border);}
+  .m-card .nm{font-family:'Outfit';font-size:14px;font-weight:700;color:var(--primary);}
+  .m-card .meta{font-size:11px;color:var(--t3);}
+  .m-card .stat{margin-left:auto;text-align:right;}
+  .m-card .stat .v{font-family:'Oswald';font-size:20px;font-weight:700;}
+  .m-card .stat .l{font-family:'JetBrains Mono';font-size:8px;color:var(--t3);letter-spacing:.08em;text-transform:uppercase;}
+</style>
+</head>
+<body>
+
+<h1 class="page">Players / Statistiche — less is more</h1>
+<p class="sub">Risolve <b>F-PD-1</b> e <b>F-MOB-1</b> (Assioma 2). Default a <b>poche colonne ad alto valore</b> (niente scroll orizzontale forzato); le 26 colonne attuali diventano un <b>drill-down</b> nella scheda giocatore (PlayerStatsModal) oppure un preset esplicito "Tutte" solo su desktop. Nome cliccabile (Assioma 7), gerarchia ruolo→nome→squadra→età (Assioma 6). Mobile: una card per giocatore con la metrica selezionata, mai troncamento.</p>
+
+<div class="frames">
+
+  <!-- DESKTOP -->
+  <div>
+    <div class="frame-label">Desktop · vista Statistiche con preset "Essenziale" (default) — leggibile senza scroll laterale</div>
+    <div class="frame">
+      <div class="topbar"><span class="logo"></span><div class="tnav"><a>Hub</a><a>Rose</a><a class="on">Giocatori</a><a>Finanze</a></div></div>
+
+      <div class="chead">
+        <div class="ch-ic">📊</div>
+        <div><div class="ch-t">Giocatori · Statistiche</div><div class="ch-s">Rendimento Serie A · stagione 2025/26 · 612 giocatori</div></div>
+        <div class="ch-right">
+          <div class="kpi"><div class="l">Totale</div><div class="v">612</div></div>
+          <div class="kpi"><div class="l">Liberi</div><div class="v" style="color:var(--secondary);">148</div></div>
+        </div>
+      </div>
+
+      <div class="ctrl">
+        <div class="seg"><button>Lista</button><button class="on">Statistiche</button></div>
+        <span class="pill on">Tutti</span><span class="pill">Liberi</span><span class="pill">In rosa</span>
+        <input class="search" placeholder="Cerca giocatore…">
+        <button class="colbtn">⊞ Colonne</button>
+      </div>
+
+      <!-- preset poche colonne -->
+      <div class="presets">
+        <span class="micro">Preset</span>
+        <span class="pill on">Essenziale</span>
+        <span class="pill">Attacco</span>
+        <span class="pill">Centrocampo</span>
+        <span class="pill">Difesa</span>
+        <span class="pill">Portieri</span>
+        <span class="pill" title="Solo desktop, dietro scelta esplicita">Tutte (26) ⤢</span>
+      </div>
+
+      <!-- tabella: 6 colonne max, niente overflow-x -->
+      <div class="tbl">
+        <table>
+          <thead>
+            <tr>
+              <th class="l">Giocatore</th>
+              <th>Quot.</th>
+              <th>Pres.</th>
+              <th>Voto</th>
+              <th>Fanta</th>
+              <th>Gol+Ass</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><div class="pl"><span class="rb role-A">A</span><div><div class="nm">Mateo Retegui</div><div class="meta">Atalanta · 26 anni</div></div></div></td>
+              <td>34</td><td>31</td><td class="vt good">6.9</td><td class="vt good">8.4</td><td>22</td>
+              <td class="act"><span class="drill">scheda →</span></td>
+            </tr>
+            <tr>
+              <td><div class="pl"><span class="rb role-C">C</span><div><div class="nm">Nicolò Barella</div><div class="meta">Inter · 28 anni</div></div></div></td>
+              <td>21</td><td>33</td><td class="vt mid">6.6</td><td class="vt mid">6.9</td><td>9</td>
+              <td class="act"><span class="drill">scheda →</span></td>
+            </tr>
+            <tr>
+              <td><div class="pl"><span class="rb role-D">D</span><div><div class="nm">Alessandro Bastoni</div><div class="meta">Inter · 26 anni</div></div></div></td>
+              <td>18</td><td>30</td><td class="vt mid">6.3</td><td class="vt mid">6.5</td><td>4</td>
+              <td class="act"><span class="drill">scheda →</span></td>
+            </tr>
+            <tr>
+              <td><div class="pl"><span class="rb role-P">P</span><div><div class="nm">Mike Maignan</div><div class="meta">Milan · 30 anni</div></div></div></td>
+              <td>16</td><td>29</td><td class="vt low">6.0</td><td class="vt low">5.8</td><td>—</td>
+              <td class="act"><span class="drill">scheda →</span></td>
+            </tr>
+            <tr>
+              <td><div class="pl"><span class="rb role-A">A</span><div><div class="nm">Ademola Lookman</div><div class="meta">Atalanta · 27 anni</div></div></div></td>
+              <td>27</td><td>28</td><td class="vt good">6.8</td><td class="vt good">7.9</td><td>17</td>
+              <td class="act"><span class="drill">scheda →</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- MOBILE -->
+  <div>
+    <div class="frame-label">Mobile · una card per giocatore, metrica selezionata visibile per intero (Assioma 2)</div>
+    <div class="mobile">
+      <div class="topbar" style="height:44px;"><span class="logo"></span><div class="tnav"><a class="on">Giocatori · Stat</a></div></div>
+      <div class="ctrl" style="overflow-x:auto;">
+        <div class="seg"><button>Lista</button><button class="on">Stat</button></div>
+        <span class="pill on">Fanta</span><span class="pill">Voto</span><span class="pill">Gol+Ass</span>
+      </div>
+      <div>
+        <div class="m-card"><span class="rb role-A">A</span><div><div class="nm">Mateo Retegui</div><div class="meta">Atalanta · 26 anni</div></div><div class="stat"><div class="v" style="color:var(--secondary);">8.4</div><div class="l">Fantamedia</div></div></div>
+        <div class="m-card"><span class="rb role-A">A</span><div><div class="nm">Ademola Lookman</div><div class="meta">Atalanta · 27 anni</div></div><div class="stat"><div class="v" style="color:var(--secondary);">7.9</div><div class="l">Fantamedia</div></div></div>
+        <div class="m-card"><span class="rb role-C">C</span><div><div class="nm">Nicolò Barella</div><div class="meta">Inter · 28 anni</div></div><div class="stat"><div class="v">6.9</div><div class="l">Fantamedia</div></div></div>
+        <div class="m-card"><span class="rb role-D">D</span><div><div class="nm">Alessandro Bastoni</div><div class="meta">Inter · 26 anni</div></div><div class="stat"><div class="v">6.5</div><div class="l">Fantamedia</div></div></div>
+        <div class="m-card"><span class="rb role-P">P</span><div><div class="nm">Mike Maignan</div><div class="meta">Milan · 30 anni</div></div><div class="stat"><div class="v" style="color:var(--gold2);">5.8</div><div class="l">Fantamedia</div></div></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="legend">
+  <b>Cosa cambia rispetto a oggi</b>
+  <ul>
+    <li><b>Default = poche colonne</b> (Giocatore, Quot., Pres., Voto, Fanta, Gol+Ass): leggibile senza scroll orizzontale, su desktop e mobile.</li>
+    <li><b>Le 26 colonne</b> diventano: (a) preset per ruolo (Attacco/Centrocampo/Difesa/Portieri) con poche metriche pertinenti, (b) drill-down completo nella <b>scheda giocatore</b> (PlayerStatsModal), (c) preset "Tutte (26)" come scelta <i>esplicita</i> solo desktop.</li>
+    <li><b>Mobile</b>: una card per giocatore con la metrica scelta in evidenza (chip Fanta/Voto/Gol+Ass), mai una tabella che si tronca (Assioma 2).</li>
+    <li><b>Gerarchia</b> ruolo→nome→squadra→età rispettata (Assioma 6); nome sempre cliccabile → scheda (Assioma 7).</li>
+    <li>Coerente con lo stile Finanze: tone semantici sui voti (verde alto / bianco medio / oro basso).</li>
+  </ul>
+</div>
+
+</body>
+</html>

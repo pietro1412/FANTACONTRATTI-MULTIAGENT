@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup — Navigazione unificata + barra-fase persistente (P1 + P2)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=Oswald:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Token Stadium Nights (coerenti con i mockup 05/11). */
+  :root{
+    --bg:#0a0a0b; --card:#1a1c20; --elev:#111214; --hover:#252830;
+    --border:#2d3139; --primary:#3b82f6; --secondary:#22c55e;
+    --gold:#f59e0b; --gold2:#fbbf24; --danger:#ef4444; --passion:#ea580c;
+    --t1:#f9fafb; --t2:#9ca3af; --t3:#8b919d;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--t1);font-family:'Inter',sans-serif;padding:40px 0 80px;}
+  h1.page{font-family:'Outfit',sans-serif;font-size:22px;font-weight:700;text-align:center;margin-bottom:6px;}
+  p.sub{text-align:center;color:var(--t3);font-size:13px;margin-bottom:34px;max-width:1040px;margin-left:auto;margin-right:auto;}
+  p.sub b{color:var(--t2);}
+  .frames{display:flex;flex-direction:column;align-items:center;gap:54px;}
+  .frame-label{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--t3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;text-align:center;}
+  .micro{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);}
+
+  /* ===== DESKTOP FRAME ===== */
+  .frame{width:1280px;border:1px solid var(--border);border-radius:16px;background:var(--bg);overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.55);}
+
+  /* --- header (IA stabile) --- */
+  .topbar{height:50px;background:var(--elev);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 18px;gap:14px;}
+  .logo{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#1e40af,#3b82f6);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+  .league-id{display:flex;align-items:center;gap:9px;padding-left:13px;margin-left:3px;border-left:1px solid var(--border);cursor:pointer;}
+  .crest-sm{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,#b45309,#f59e0b);display:flex;align-items:center;justify-content:center;font-family:'Outfit';font-weight:800;font-size:11px;color:#1a1206;}
+  .league-id .nm{font-size:13px;font-weight:600;color:var(--t1);}
+  .league-id .sw{font-size:10px;color:var(--t3);}
+  /* nav: TUTTE le sezioni sempre presenti, in ordine fisso = ordine fasi */
+  .nav{display:flex;align-items:center;gap:2px;margin-left:14px;}
+  .nav a{position:relative;display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--t2);padding:7px 10px;border-radius:8px;cursor:pointer;white-space:nowrap;}
+  .nav a:hover{background:var(--hover);color:var(--t1);}
+  .nav a.on{color:var(--t1);font-weight:600;background:var(--hover);}
+  /* fase corrente: evidenziata, NON sostituisce le altre */
+  .nav a.now{color:var(--gold2);font-weight:700;background:rgba(245,158,11,.10);box-shadow:inset 0 0 0 1px rgba(245,158,11,.35);}
+  .nav a .tag{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.08em;padding:1px 5px;border-radius:5px;}
+  .nav a.now .tag{color:#0a0a0b;background:var(--gold2);}
+  .nav a.live .tag{color:#fff;background:var(--danger);display:inline-flex;align-items:center;gap:3px;}
+  .nav a .tag .d{width:5px;height:5px;border-radius:50%;background:#fff;}
+  /* sezioni-fase non ancora raggiunte: presenti ma "dimmed" */
+  .nav a.future{color:var(--t3);opacity:.6;}
+  .nav a.future:hover{opacity:1;}
+  .nav .nsep{width:1px;height:18px;background:var(--border);margin:0 4px;}
+  .me{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--t2);}
+  .me .star{width:22px;height:22px;border-radius:6px;background:rgba(245,158,11,.14);color:var(--gold2);display:flex;align-items:center;justify-content:center;font-size:11px;}
+
+  /* --- barra-fase persistente azionabile (P2) --- */
+  .phasebar{display:flex;align-items:center;gap:14px;background:linear-gradient(120deg,rgba(245,158,11,.10),rgba(26,28,32,.2) 65%);border-bottom:1px solid var(--border);padding:9px 18px;}
+  .pb-now{display:flex;align-items:center;gap:11px;flex-shrink:0;}
+  .pb-ic{width:36px;height:36px;border-radius:10px;background:rgba(245,158,11,.16);color:var(--gold2);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+  .pb-txt .l{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold2);}
+  .pb-txt .t{font-family:'Outfit';font-size:14px;font-weight:700;line-height:1.15;}
+  .pb-txt .s{font-size:11px;color:var(--t2);}
+  /* stepper cliccabile */
+  .steps{display:flex;align-items:center;gap:3px;margin-left:6px;overflow:hidden;flex:1;}
+  .step{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border-radius:8px;font-size:11px;font-weight:600;color:var(--t3);cursor:pointer;white-space:nowrap;}
+  .step:hover{background:var(--hover);color:var(--t1);}
+  .step .dot{width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Oswald';font-size:9px;font-weight:700;background:var(--hover);color:var(--t3);}
+  .step.done{color:var(--secondary);} .step.done .dot{background:var(--secondary);color:#06200f;}
+  .step.curr{color:#0a0a0b;background:var(--gold2);font-weight:700;cursor:default;} .step.curr .dot{background:#0a0a0b;color:var(--gold2);}
+  .step.fut{opacity:.55;} .step .chev{color:var(--t3);font-size:10px;}
+  .pb-cta{margin-left:auto;flex-shrink:0;font-family:'Outfit';font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;color:#0a0a0b;background:linear-gradient(180deg,var(--gold2),var(--gold));border:none;border-radius:9px;padding:9px 18px;cursor:pointer;}
+
+  /* --- finto contenuto pagina --- */
+  .body{padding:18px;}
+  .ghost{background:var(--card);border:1px solid var(--border);border-radius:13px;}
+  .ghost.h{height:74px;margin-bottom:14px;display:flex;align-items:center;padding:0 18px;gap:14px;}
+  .gh-ic{width:42px;height:42px;border-radius:11px;background:var(--elev);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:19px;}
+  .gh-t{font-family:'Outfit';font-size:17px;font-weight:700;}
+  .gh-s{font-size:12px;color:var(--t3);margin-top:1px;}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+  .ghost.kpi{height:80px;}
+  .ghost.row{height:230px;margin-top:14px;}
+  .dim{display:flex;align-items:center;justify-content:center;height:100%;color:var(--t3);font-size:12px;}
+
+  /* ===== MOBILE FRAME ===== */
+  .mobile{width:390px;border:1px solid var(--border);border-radius:30px;background:var(--bg);overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.55);}
+  .m-top{height:48px;background:var(--elev);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;padding:0 14px;}
+  .m-burger{width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--t2);}
+  .m-leag{display:flex;align-items:center;gap:7px;cursor:pointer;}
+  .m-leag .nm{font-size:13px;font-weight:600;}
+  .m-leag .cv{font-size:11px;color:var(--t3);}
+  /* barra-fase mobile compatta */
+  .m-phase{display:flex;align-items:center;gap:10px;background:linear-gradient(120deg,rgba(245,158,11,.12),rgba(26,28,32,.2));border-bottom:1px solid var(--border);padding:9px 14px;}
+  .m-phase .pb-ic{width:32px;height:32px;font-size:15px;}
+  .m-phase .pb-cta{padding:7px 13px;font-size:11px;}
+  .m-prog{display:flex;gap:3px;padding:7px 14px 9px;background:var(--elev);border-bottom:1px solid var(--border);}
+  .m-prog .seg{flex:1;height:4px;border-radius:2px;background:var(--hover);}
+  .m-prog .seg.done{background:var(--secondary);} .m-prog .seg.curr{background:var(--gold2);}
+  .m-body{padding:14px;min-height:300px;}
+  .m-body .dim{height:280px;}
+  /* bottom nav: voci STABILI (Hub, Rosa, Giocatori, Finanze, Menu) + badge fase su Menu/azione */
+  .m-bottom{height:60px;background:rgba(26,28,32,.97);border-top:1px solid var(--border);display:flex;}
+  .m-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--t3);position:relative;}
+  .m-tab .i{font-size:18px;} .m-tab .l{font-size:9.5px;font-weight:600;}
+  .m-tab.on{color:var(--primary);}
+  .m-tab.on::before{content:"";position:absolute;top:0;left:50%;transform:translateX(-50%);width:30px;height:3px;border-radius:2px;background:var(--primary);}
+  /* la tab "Ora" porta sempre alla fase corrente, con badge che ne dice il nome */
+  .m-tab.now{color:var(--gold2);}
+  .m-tab .badge{position:absolute;top:6px;right:50%;transform:translateX(22px);font-family:'JetBrains Mono';font-size:7px;font-weight:700;padding:1px 4px;border-radius:6px;background:var(--gold2);color:#0a0a0b;}
+  .m-tab .badge.live{background:var(--danger);color:#fff;}
+
+  .legend{max-width:1000px;margin:30px auto 0;font-size:12px;color:var(--t2);line-height:1.7;padding:0 20px;}
+  .legend b{color:var(--gold2);}
+  .legend ul{margin:8px 0 0 18px;}
+</style>
+</head>
+<body>
+
+<h1 class="page">Navigazione unificata + barra-fase persistente</h1>
+<p class="sub">Risolve i finding <b>F-NAV-1/2/4</b> e <b>F-COE-1</b>. Una sola tassonomia stabile (tutte le sezioni di lega SEMPRE presenti, in ordine = ordine fasi); la fase corrente è <b>evidenziata</b>, non sostituisce le altre voci. Sotto l'header: una <b>barra-fase persistente azionabile</b> (visibile in ogni sezione) con "cosa fare ora" + stepper a 7 fasi cliccabile. Mobile: tab-bar stabile + barra-fase compatta. Less-is-more: non aggiunge dati, riorganizza l'accesso.</p>
+
+<div class="frames">
+
+  <!-- ============ DESKTOP ============ -->
+  <div>
+    <div class="frame-label">Desktop · sezione "Rose" mentre la lega è in fase RUBATA — fase evidenziata, tutte le sezioni sempre raggiungibili</div>
+    <div class="frame">
+      <!-- header IA stabile -->
+      <div class="topbar">
+        <span class="logo">⚽</span>
+        <div class="league-id"><span class="crest-sm">FC</span><div><div class="nm">Fantacontratti Test</div></div><span class="sw">▾</span></div>
+        <nav class="nav">
+          <a>🏠 Hub</a>
+          <a class="on">👥 Rose</a>
+          <a>📊 Giocatori</a>
+          <span class="nsep"></span>
+          <a class="done-sec">🤝 Scambi</a>
+          <a class="done-sec">📋 Contratti</a>
+          <a class="now">🎯 Rubata <span class="tag live"><span class="d"></span>LIVE</span></a>
+          <a class="future">🆕 Svincolati</a>
+          <span class="nsep"></span>
+          <a>💰 Finanze</a>
+          <a>📜 Storico</a>
+          <a>🔮 Profezie</a>
+        </nav>
+        <div class="me"><span class="star">★</span>Diego · DG ▾</div>
+      </div>
+
+      <!-- barra-fase persistente azionabile -->
+      <div class="phasebar">
+        <div class="pb-now">
+          <div class="pb-ic">🎯</div>
+          <div class="pb-txt">
+            <div class="l">Fase 4 di 7 · in corso</div>
+            <div class="t">Rubata in corso</div>
+          </div>
+        </div>
+        <div class="steps">
+          <span class="step done"><span class="dot">✓</span>1° Mercato</span><span class="chev">›</span>
+          <span class="step done"><span class="dot">✓</span>Scambi</span><span class="chev">›</span>
+          <span class="step done"><span class="dot">✓</span>Premi</span><span class="chev">›</span>
+          <span class="step done"><span class="dot">✓</span>Contratti</span><span class="chev">›</span>
+          <span class="step curr"><span class="dot">●</span>Rubata</span><span class="chev">›</span>
+          <span class="step fut"><span class="dot">6</span>Svincolati</span><span class="chev">›</span>
+          <span class="step fut"><span class="dot">7</span>Post-asta</span>
+        </div>
+        <button class="pb-cta">Entra nella Rubata →</button>
+      </div>
+
+      <!-- finto contenuto pagina (Rose) -->
+      <div class="body">
+        <div class="ghost h">
+          <div class="gh-ic">👥</div>
+          <div><div class="gh-t">Rose · La mia rosa</div><div class="gh-s">Fantacontratti Test · 23 giocatori</div></div>
+        </div>
+        <div class="grid3">
+          <div class="ghost kpi"><div class="dim">Budget</div></div>
+          <div class="ghost kpi"><div class="dim">Monte ingaggi</div></div>
+          <div class="ghost kpi"><div class="dim">Clausole tot.</div></div>
+        </div>
+        <div class="ghost row"><div class="dim">— tabella rosa (contenuto della pagina, invariato) —</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ MOBILE ============ -->
+  <div>
+    <div class="frame-label">Mobile · stessa logica — tab-bar stabile, barra-fase compatta, switch lega accessibile</div>
+    <div class="mobile">
+      <div class="m-top">
+        <div class="m-burger">☰</div>
+        <div class="m-leag"><span class="crest-sm">FC</span><div><div class="nm">Fantacontratti</div></div><span class="cv">▾</span></div>
+        <div style="margin-left:auto;" class="m-burger">●</div>
+      </div>
+
+      <!-- barra-fase compatta -->
+      <div class="m-phase">
+        <div class="pb-ic">🎯</div>
+        <div class="pb-txt"><div class="l">Fase 4/7 · Rubata</div><div class="s" style="font-size:11px;color:var(--t2);">Tocca a te: difendi i tuoi</div></div>
+        <button class="pb-cta">Entra →</button>
+      </div>
+      <!-- progresso 7 fasi compatto -->
+      <div class="m-prog">
+        <span class="seg done"></span><span class="seg done"></span><span class="seg done"></span><span class="seg done"></span><span class="seg curr"></span><span class="seg"></span><span class="seg"></span>
+      </div>
+
+      <div class="m-body"><div class="dim">— contenuto sezione (Rose) —</div></div>
+
+      <!-- bottom nav STABILE -->
+      <div class="m-bottom">
+        <div class="m-tab on"><span class="i">🏠</span><span class="l">Hub</span></div>
+        <div class="m-tab now"><span class="i">🎯</span><span class="l">Ora</span><span class="badge live">RUBATA</span></div>
+        <div class="m-tab"><span class="i">👥</span><span class="l">Rose</span></div>
+        <div class="m-tab"><span class="i">💰</span><span class="l">Finanze</span></div>
+        <div class="m-tab"><span class="i">☰</span><span class="l">Menu</span></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="legend">
+  <b>Cosa cambia rispetto a oggi</b>
+  <ul>
+    <li><b>Sezioni sempre presenti</b> (oggi: solo la fase corrente compare nel menu). Scambi/Contratti restano raggiungibili anche durante la Rubata; le fasi non ancora raggiunte sono <i>dimmed</i> ma cliccabili (decisione di prodotto P1: visibili-disabilitate vs nascoste — da confermare).</li>
+    <li><b>Fase corrente evidenziata</b> con accento oro + tag ORA/LIVE, invece di essere l'unica voce di fase.</li>
+    <li><b>Barra-fase persistente</b> in ogni sezione: "in che fase è la lega + cosa fare ora + CTA" sempre sotto gli occhi (oggi vive solo nell'hub). Stepper a 7 fasi <i>cliccabile</i>.</li>
+    <li><b>Mobile</b>: tab-bar con voci stabili; la 2ª tab "Ora" porta SEMPRE alla fase corrente con badge che ne dice il nome (oggi cambia significato silenziosamente). Switch lega nel tap sul crest.</li>
+    <li><b>Coerenza Assioma 4</b>: header, hub-tiles e bottom-nav derivano tutti dalla stessa lista di sezioni.</li>
+  </ul>
+</div>
+
+</body>
+</html>
