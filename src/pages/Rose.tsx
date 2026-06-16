@@ -17,6 +17,8 @@ import { RosterPlayerCard } from '@/components/players/RosterPlayerCard'
 import { RosterSidebar } from '@/components/players/RosterSidebar'
 import type { RosterEntry } from '@/components/players/types'
 import { SlidersHorizontal } from 'lucide-react'
+import { InfoTooltip } from '@/components/ui/InfoTooltip'
+import { GLOSSARY } from '@/components/help/Glossary'
 
 interface RoseProps {
   onNavigate: (page: string, params?: Record<string, string>) => void
@@ -324,21 +326,30 @@ export function Rose({ onNavigate }: RoseProps) {
 
       <div className="ml-auto flex items-center gap-3 sm:gap-4">
         <div className="text-right">
-          <div className="micro-label text-[9px]">Budget</div>
+          <div className="micro-label text-[9px] flex items-center justify-end gap-1">
+            Budget
+            <InfoTooltip content={GLOSSARY.budget!.short} label={GLOSSARY.budget!.term} align="right" />
+          </div>
           <div className="budget-display text-lg sm:text-xl text-accent-400 leading-tight">
             {selectedMember?.currentBudget ?? 0}<span className="text-xs text-gray-500">M</span>
           </div>
         </div>
         <div className="w-px h-7 bg-surface-50" />
         <div className="text-right">
-          <div className="micro-label text-[9px]">Monte ingaggi</div>
+          <div className="micro-label text-[9px] flex items-center justify-end gap-1">
+            Monte ingaggi
+            <InfoTooltip content={GLOSSARY.monteIngaggi!.short} label={GLOSSARY.monteIngaggi!.term} align="right" />
+          </div>
           <div className="budget-display text-lg sm:text-xl text-white leading-tight">
             {stats.salary}<span className="text-xs text-gray-500">M</span>
           </div>
         </div>
         <div className="hidden sm:block w-px h-7 bg-surface-50" />
         <div className="hidden sm:block text-right">
-          <div className="micro-label text-[9px]">Clausole tot.</div>
+          <div className="micro-label text-[9px] flex items-center justify-end gap-1">
+            Clausole tot.
+            <InfoTooltip content={GLOSSARY.clausola!.short} label={GLOSSARY.clausola!.term} align="right" />
+          </div>
           <div className="budget-display text-lg sm:text-xl text-gray-300 leading-tight">
             {stats.clauses}<span className="text-xs text-gray-500">M</span>
           </div>

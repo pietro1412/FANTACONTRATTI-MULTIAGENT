@@ -10,6 +10,7 @@ import { pusherClient } from '../services/pusher.client'
 import { useLeaguePhase } from '../hooks/useLeaguePhase'
 import { getVisibleNavItems } from '../lib/navItems'
 import { PhaseBar } from './league/PhaseBar'
+import { GlossaryButton } from './help/Glossary'
 import {
   Home, Settings, User, Users, UserPlus, Clock, Lightbulb,
   ArrowLeft, Trophy, CircleUserRound, BookOpen, CloudUpload,
@@ -482,6 +483,9 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
                 Test Latency
               </a>
             )}
+
+            {/* Glossario contestuale - help globale (P3) */}
+            <GlossaryButton />
 
             {/* Pending Invites - shown globally */}
             <PendingInvites onNavigate={onNavigate} />

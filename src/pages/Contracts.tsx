@@ -13,6 +13,8 @@ import { PendingItem } from '@/components/contracts/PendingItem'
 import { ExitedCard } from '@/components/contracts/ExitedCard'
 import { RoleBadge, TeamLogo, getRoleStyle, getRoleAccentText, MAX_ROSTER_SIZE, type ContractPlayer } from '@/components/contracts/shared'
 import haptic from '@/utils/haptics'
+import { InfoTooltip } from '@/components/ui/InfoTooltip'
+import { GLOSSARY } from '@/components/help/Glossary'
 
 interface ContractsProps {
   leagueId: string
@@ -657,12 +659,18 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
         </div>
         <div className="w-px h-7 bg-surface-50" />
         <div className="text-right">
-          <div className="micro-label text-[9px]">Budget</div>
+          <div className="micro-label text-[9px] flex items-center justify-end gap-1">
+            Budget
+            <InfoTooltip content={GLOSSARY.budget!.short} label={GLOSSARY.budget!.term} align="right" />
+          </div>
           <div className="budget-display text-lg sm:text-xl text-accent-400 leading-tight">{memberBudget}<span className="text-xs text-gray-500">M</span></div>
         </div>
         <div className="hidden sm:block w-px h-7 bg-surface-50" />
         <div className="hidden sm:block text-right">
-          <div className="micro-label text-[9px]">Ingaggi</div>
+          <div className="micro-label text-[9px] flex items-center justify-end gap-1">
+            Ingaggi
+            <InfoTooltip content={GLOSSARY.monteIngaggi!.short} label={GLOSSARY.monteIngaggi!.term} align="right" />
+          </div>
           <div className="budget-display text-lg sm:text-xl text-white leading-tight">{projectedSalaries}<span className="text-xs text-gray-500">M</span></div>
         </div>
         <div className="hidden md:block w-px h-7 bg-surface-50" />
@@ -853,8 +861,14 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
       <span className="micro-label">Giocatore</span>
       <span className="micro-label text-right">Contratto attuale</span>
       <span className="micro-label text-center">Nuovo ingaggio</span>
-      <span className="micro-label text-center">Durata</span>
-      <span className="micro-label text-right">Clausola</span>
+      <span className="micro-label text-center inline-flex items-center justify-center gap-1">
+        Durata
+        <InfoTooltip content={GLOSSARY.durata!.short} label={GLOSSARY.durata!.term} />
+      </span>
+      <span className="micro-label text-right inline-flex items-center justify-end gap-1">
+        Clausola
+        <InfoTooltip content={GLOSSARY.clausola!.short} label={GLOSSARY.clausola!.term} align="right" />
+      </span>
       <span className="micro-label text-center">Azione</span>
     </div>
   )
