@@ -12,6 +12,7 @@ import { SvincolatiCockpitAdminBar, SvincolatiTestPanel } from './SvincolatiCock
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { getTeamLogo } from '../../utils/teamLogos'
+import { NOT_DISPONIBILE } from '../../utils/stat-format'
 import { SERIE_A_TEAMS } from '../../types/svincolati.types'
 import type { BoardState, Player } from '../../types/svincolati.types'
 
@@ -462,13 +463,17 @@ export function SvincolatiCockpit(props: SvincolatiCockpitProps) {
                     </span>
                     <span className="flex-1 min-w-0">
                       <PlayerName
-                        player={{ name: player.name, team: player.team, position: player.position, quotation: player.quotation }}
+                        player={{ name: player.name, team: player.team, position: player.position, quotation: player.quotation, age: player.age }}
                         leagueId={props.leagueId}
                         leaguePlayerId={player.id}
                         truncate
                         className="block text-[13.5px]"
                       />
-                      <span className="block text-[11px] text-gray-500 truncate">{player.team}</span>
+                      <span className="block text-[11px] text-gray-500 truncate">
+                        {player.team}
+                        <span className="text-gray-600" aria-hidden="true"> · </span>
+                        <span className="font-mono">{player.age != null ? `${player.age} anni` : NOT_DISPONIBILE}</span>
+                      </span>
                     </span>
                     {canNominate && (
                       <span className="font-mono text-[9.5px] font-bold text-secondary-400 border border-secondary-500/40 bg-secondary-500/[0.08] rounded-md px-2 py-1 flex-shrink-0">
@@ -564,6 +569,8 @@ function PlayerHead({ player, nominator }: { player: Player; nominator?: string 
             <img src={getTeamLogo(player.team)} alt={player.team} className="w-3 h-3 object-contain" />
           </span>
           <b className="text-gray-200 font-semibold">{player.team}</b>
+          <span className="text-gray-600" aria-hidden="true">·</span>
+          <span className="font-mono text-gray-300">{player.age != null ? `${player.age} anni` : NOT_DISPONIBILE}</span>
         </p>
       </div>
       {nominator && (
