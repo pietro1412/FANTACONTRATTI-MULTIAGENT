@@ -2,6 +2,8 @@
 // (Pre-mercato → Primo Mercato → Mercato Ricorrente) con la sequenza delle fasi
 // del mercato ricorrente quando è in corso. Sostituisce PhaseStepper + PhaseCalendar.
 
+import { RECURRENT_PHASES } from '@/lib/phaseSteps'
+
 interface PhaseIndicatorProps {
   leagueStatus: string
   sessions: Array<{ type: string; status: string; currentPhase: string }>
@@ -17,15 +19,8 @@ interface Step {
   marker: string
 }
 
-// Ordine canonico delle fasi del mercato ricorrente (vedi MERCATO_RICORRENTE in CLAUDE.md).
-const RECURRENT_PHASES: { key: string; label: string }[] = [
-  { key: 'OFFERTE_PRE_RINNOVO', label: 'Scambi' },
-  { key: 'PREMI', label: 'Premi' },
-  { key: 'CONTRATTI', label: 'Contratti' },
-  { key: 'RUBATA', label: 'Rubata' },
-  { key: 'ASTA_SVINCOLATI', label: 'Svincolati' },
-  { key: 'OFFERTE_POST_ASTA_SVINCOLATI', label: 'Post-asta' },
-]
+// Ordine canonico delle fasi del mercato ricorrente: sorgente condivisa in
+// src/lib/phaseSteps.ts (riusata anche da PhaseBar — Assioma 4).
 
 function buildSteps(leagueStatus: string, sessions: PhaseIndicatorProps['sessions']): Step[] {
   const firstMarketDone = sessions.some(s => s.type === 'PRIMO_MERCATO' && s.status === 'COMPLETED')

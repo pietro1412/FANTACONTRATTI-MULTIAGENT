@@ -9,6 +9,7 @@ import { FeedbackBadge } from './FeedbackBadge'
 import { pusherClient } from '../services/pusher.client'
 import { useLeaguePhase } from '../hooks/useLeaguePhase'
 import { getVisibleNavItems } from '../lib/navItems'
+import { PhaseBar } from './league/PhaseBar'
 import {
   Home, Settings, User, Users, UserPlus, Clock, Lightbulb,
   ArrowLeft, Trophy, CircleUserRound, BookOpen, CloudUpload,
@@ -61,6 +62,10 @@ const MenuIcons = {
 
 // Le voci del menu lega derivano dalla fase corrente tramite getVisibleNavItems
 // (src/lib/navItems.ts) — sorgente di verità unica condivisa con BottomNavBar.
+
+// Pagine cockpit live: la barra-fase persistente NON si mostra qui (la testata
+// cockpit mostra già fase + timer). Vedi CLAUDE.md §Pattern cockpit.
+const COCKPIT_PAGES = new Set(['auction', 'rubata', 'svincolati'])
 
 // Get page display name for breadcrumbs (should match menu labels)
 function getPageDisplayName(page: string): string {
@@ -240,6 +245,9 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
 
   // Voci di menu derivate dalla fase corrente (sorgente unica condivisa con BottomNavBar)
   const visibleMenuItems = getVisibleNavItems(currentPhase, null, Boolean(isLeagueAdmin))
+
+  // Barra-fase persistente: in ogni sezione di lega tranne i cockpit live (P2)
+  const showPhaseBar = Boolean(leagueId) && !COCKPIT_PAGES.has(currentPage)
 
   // Fasi "live" (aste): mostrano il badge Live nell'header
   const isLivePhase =
@@ -620,6 +628,15 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
         </div>
       </div>
 
+      {/* Barra-fase persistente azionabile (P2) — parte dell'header sticky */}
+      {showPhaseBar && leagueId && (
+        <PhaseBar
+          leagueId={leagueId}
+          currentPhase={currentPhase}
+          activeSessionId={activeSessionId}
+          onNavigate={onNavigate}
+        />
+      )}
     </header>
 
     {/* Mobile Navigation - FUORI dall'header per evitare vincoli di altezza */}
