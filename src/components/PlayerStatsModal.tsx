@@ -12,13 +12,21 @@ const MOVEMENT_LABELS: Record<string, string> = {
   TRADE: 'Scambio',
   RUBATA: 'Rubata',
   SVINCOLATI: 'Svincolati',
-  RELEASE: 'Cessione',
   CONTRACT_RENEW: 'Rinnovo',
   RETIREMENT: 'Ritiro',
   RELEGATION_RELEASE: 'Retrocesso (Rilascio)',
   RELEGATION_KEEP: 'Retrocesso (Mantenuto)',
   ABROAD_COMPENSATION: 'Estero (Compenso)',
   ABROAD_KEEP: 'Estero (Mantenuto)',
+}
+
+// RELEASE copre due casi distinti, distinguibili dal prezzo: taglio volontario
+// (costo di taglio > 0, minimo 1) vs fine contratto/scadenza (costo 0).
+function getMovementLabel(type: string, price: number | null | undefined): string {
+  if (type === 'RELEASE') {
+    return price != null && price > 0 ? 'Taglio' : 'Fine contratto'
+  }
+  return MOVEMENT_LABELS[type] || type
 }
 
 function formatCareerDate(dateStr: string): string {
@@ -407,7 +415,7 @@ export function PlayerStatsModal({ isOpen, onClose, player, leagueId, leaguePlay
                       </span>
                       <span className="text-gray-400 min-w-0">
                         <span className="block truncate">
-                          {MOVEMENT_LABELS[event.type] || event.type}
+                          {getMovementLabel(event.type, event.price)}
                         </span>
                         <span className="block text-[10px] text-gray-500">
                           {formatCareerDate(event.date)}
