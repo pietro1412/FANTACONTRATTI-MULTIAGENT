@@ -15,6 +15,7 @@ import { PlayerRoleFilter } from '@/components/players/PlayerRoleFilter'
 import { PlayerViewToggle, type PlayerView } from '@/components/players/PlayerViewToggle'
 import { Monogram } from '@/components/ui/Monogram'
 import { TeamLogo } from '@/components/ui/TeamLogo'
+import { ContractInline } from '@/components/ui/ContractInline'
 import { SlidersHorizontal } from 'lucide-react'
 import { sortPlayersByRoleAndName, comparePlayersByRoleAndName } from '@/utils/player-sort'
 import { formatStat, NOT_DISPONIBILE } from '@/utils/stat-format'
@@ -303,8 +304,12 @@ export function Players({ leagueId, onNavigate, initialView = 'list', initialTea
   const virtualizer = useVirtualizer({
     count: filteredListPlayers.length,
     getScrollElement: () => listScrollRef.current,
-    estimateSize: () => 56,
+    // Rostered players get a taller estimate on mobile (extra contract row).
+    // Real height is corrected by measureElement once the row is mounted, so
+    // desktop (no extra row) and mobile stay free of overlaps.
+    estimateSize: index => (filteredListPlayers[index]?.rosterInfo ? 78 : 56),
     overscan: 12,
+    measureElement: el => el.getBoundingClientRect().height,
   })
 
   // =============== STATS VIEW DATA ===============
@@ -573,13 +578,20 @@ export function Players({ leagueId, onNavigate, initialView = 'list', initialTea
   )
 
   // ===== LIST PANEL =====
-  const listColsClass = 'grid grid-cols-[minmax(0,2.4fr)_minmax(72px,1fr)_56px_48px] lg:grid-cols-[minmax(0,2fr)_minmax(110px,1.2fr)_84px_72px] gap-2 lg:gap-3 items-center'
+  // Desktop adds 4 contract columns (Ing/Dur/Cls/Rub) between Quot. and Voto;
+  // on mobile those columns collapse out of the grid (the contract values move
+  // to a labeled row under the name via <ContractInline>).
+  const listColsClass = 'grid grid-cols-[minmax(0,2.4fr)_minmax(72px,1fr)_56px_48px] lg:grid-cols-[minmax(0,2fr)_minmax(110px,1.2fr)_84px_64px_64px_64px_64px_72px] gap-2 lg:gap-3 items-center'
   const listPanel = (
     <div className="bg-surface-200 border border-surface-50 rounded-xl overflow-hidden flex flex-col lg:h-full lg:min-h-0">
       <div className={`${listColsClass} px-4 py-2.5 border-b border-surface-50 bg-surface-300/40 flex-shrink-0`}>
         <span className="micro-label text-[9px]">Giocatore</span>
         <span className="micro-label text-[9px]">Stato</span>
         <span className="micro-label text-[9px] text-right">Quot.</span>
+        <span className="micro-label text-[9px] text-right hidden lg:block">Ing</span>
+        <span className="micro-label text-[9px] text-right hidden lg:block">Dur</span>
+        <span className="micro-label text-[9px] text-right hidden lg:block">Cls</span>
+        <span className="micro-label text-[9px] text-right hidden lg:block">Rub</span>
         <span className="micro-label text-[9px] text-right">Voto</span>
       </div>
       {listLoading ? (
@@ -595,52 +607,96 @@ export function Players({ leagueId, onNavigate, initialView = 'list', initialTea
               const player = filteredListPlayers[virtualRow.index]
               if (!player) return null
               const rating = player.apiFootballStats?.games?.rating
+              const contract = player.rosterInfo?.contract
+              const rubataPrice = contract && contract.rescissionClause != null
+                ? contract.rescissionClause + contract.salary
+                : null
               return (
                 <div
                   key={player.id}
+                  data-index={virtualRow.index}
+                  ref={virtualizer.measureElement}
                   style={{ position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${virtualRow.start}px)` }}
-                  className={`${listColsClass} px-4 py-2 border-b border-surface-50/10 hover:bg-surface-100/60 transition-colors cursor-pointer`}
+                  className="border-b border-surface-50/10 hover:bg-surface-100/60 transition-colors cursor-pointer"
                   onClick={() => { openPlayerStats(player); }}
                 >
-                  {/* Player identity */}
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <PlayerPhoto apiFootballId={player.apiFootballId} name={player.name} position={player.position} />
-                    <PlayerRoleBadge position={player.position} size="sm" />
+                  <div className={`${listColsClass} px-4 py-2`}>
+                    {/* Player identity */}
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <PlayerPhoto apiFootballId={player.apiFootballId} name={player.name} position={player.position} />
+                      <PlayerRoleBadge position={player.position} size="sm" />
+                      <div className="min-w-0">
+                        <span className="block font-display font-bold text-[13px] text-white leading-tight truncate">{player.name}</span>
+                        <span className="flex items-center gap-1.5 text-[10px] text-gray-500 mt-0.5 min-w-0">
+                          <TeamLogo team={player.team} size="xs" />
+                          <span className="truncate">{player.team}</span>
+                          <span className="text-gray-600 font-mono">· {player.age != null ? `${player.age} anni` : NOT_DISPONIBILE}</span>
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Status */}
                     <div className="min-w-0">
-                      <span className="block font-display font-bold text-[13px] text-white leading-tight truncate">{player.name}</span>
-                      <span className="flex items-center gap-1.5 text-[10px] text-gray-500 mt-0.5 min-w-0">
-                        <TeamLogo team={player.team} size="xs" />
-                        <span className="truncate">{player.team}</span>
-                        <span className="text-gray-600 font-mono">· {player.age != null ? `${player.age} anni` : NOT_DISPONIBILE}</span>
+                      {player.rosterInfo ? (
+                        <span className="inline-flex items-center gap-1.5 text-[11px] text-gray-300 min-w-0">
+                          <Monogram name={player.rosterInfo.teamName || player.rosterInfo.memberUsername} size="xs" />
+                          <span className="truncate">{player.rosterInfo.teamName || player.rosterInfo.memberUsername}</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex font-mono text-[9.5px] font-bold tracking-[0.06em] text-secondary-400 bg-secondary-500/10 border border-secondary-500/35 rounded-full px-2.5 py-0.5">
+                          LIBERO
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Quotation */}
+                    <div className="text-right">
+                      <span className="stat-number text-base text-white">{player.quotation}</span>
+                    </div>
+
+                    {/* Contract columns — desktop only */}
+                    <div className="hidden lg:block text-right">
+                      <span className="stat-number text-sm text-white">
+                        {contract ? `${contract.salary}M` : '-'}
+                      </span>
+                    </div>
+                    <div className="hidden lg:block text-right">
+                      <span className="stat-number text-sm text-white">
+                        {contract ? `${contract.duration}s` : '-'}
+                      </span>
+                    </div>
+                    <div className="hidden lg:block text-right">
+                      <span className="stat-number text-sm text-white">
+                        {contract && contract.rescissionClause != null ? `${contract.rescissionClause}M` : '-'}
+                      </span>
+                    </div>
+                    <div className="hidden lg:block text-right">
+                      <span className="stat-number text-sm text-white">
+                        {rubataPrice != null ? `${rubataPrice}M` : '-'}
+                      </span>
+                    </div>
+
+                    {/* Rating */}
+                    <div className="text-right">
+                      <span className={`stat-number text-base ${rating != null && rating >= 7 ? 'text-accent-400' : 'text-gray-400'}`}>
+                        {formatStat(rating, { decimals: 1 })}
                       </span>
                     </div>
                   </div>
 
-                  {/* Status */}
-                  <div className="min-w-0">
-                    {player.rosterInfo ? (
-                      <span className="inline-flex items-center gap-1.5 text-[11px] text-gray-300 min-w-0">
-                        <Monogram name={player.rosterInfo.teamName || player.rosterInfo.memberUsername} size="xs" />
-                        <span className="truncate">{player.rosterInfo.teamName || player.rosterInfo.memberUsername}</span>
-                      </span>
-                    ) : (
-                      <span className="inline-flex font-mono text-[9.5px] font-bold tracking-[0.06em] text-secondary-400 bg-secondary-500/10 border border-secondary-500/35 rounded-full px-2.5 py-0.5">
-                        LIBERO
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Quotation */}
-                  <div className="text-right">
-                    <span className="stat-number text-base text-white">{player.quotation}</span>
-                  </div>
-
-                  {/* Rating */}
-                  <div className="text-right">
-                    <span className={`stat-number text-base ${rating != null && rating >= 7 ? 'text-accent-400' : 'text-gray-400'}`}>
-                      {formatStat(rating, { decimals: 1 })}
-                    </span>
-                  </div>
+                  {/* Contract row — mobile only, rostered players */}
+                  {contract && (
+                    <div className="lg:hidden px-4 pb-2 -mt-0.5 pl-[58px]">
+                      <ContractInline
+                        salary={contract.salary}
+                        duration={contract.duration}
+                        clause={contract.rescissionClause}
+                        rubataPrice={rubataPrice}
+                        variant="compact"
+                        className="text-[11px]"
+                      />
+                    </div>
+                  )}
                 </div>
               )
             })}
