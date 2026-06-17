@@ -90,7 +90,7 @@ const PHASE_SVINCOLATI: NavItem = { key: 'svincolati', label: 'Svincolati', icon
  * Le aste live hanno una voce dedicata (auction/rubata/svincolati); le altre fasi
  * sono rappresentate da una voce di consultazione sempre presente (trades/contracts/prizes).
  */
-function phaseToNavKey(phase: string | null | undefined): NavItemKey | null {
+export function phaseToNavKey(phase: string | null | undefined): NavItemKey | null {
   switch (phase) {
     case 'ASTA_LIBERA':
       return 'auction'
