@@ -810,12 +810,14 @@ export async function startLeague(leagueId: string, adminUserId: string): Promis
 
   const activeMembers = league.members.length
 
-  // Verifica numero minimo partecipanti (regola piattaforma: min 6)
+  // Verifica numero minimo partecipanti: usa il minimo della lega, mai sotto il
+  // minimo di piattaforma (6). Coerente col frontend che mostra league.minParticipants.
   const PLATFORM_MIN_PARTICIPANTS = 6
-  if (activeMembers < PLATFORM_MIN_PARTICIPANTS) {
+  const minRequired = Math.max(PLATFORM_MIN_PARTICIPANTS, league.minParticipants ?? PLATFORM_MIN_PARTICIPANTS)
+  if (activeMembers < minRequired) {
     return {
       success: false,
-      message: `Servono almeno ${PLATFORM_MIN_PARTICIPANTS} partecipanti per avviare la lega (attualmente ${activeMembers})`,
+      message: `Servono almeno ${minRequired} partecipanti per avviare la lega (attualmente ${activeMembers})`,
     }
   }
 

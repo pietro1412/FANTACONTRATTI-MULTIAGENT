@@ -57,7 +57,7 @@ export function AdminPhasesTab({
           </div>
           <div className="bg-surface-300 border border-surface-50 rounded-xl p-4 mb-4">
             <p className="text-sm text-gray-300">
-              Partecipanti: <span className="font-bold text-white">{activeMembers.length}</span> / {league?.minParticipants || 6} richiesti
+              Partecipanti: <span className="font-bold text-white">{activeMembers.length}</span> / {league?.minParticipants || 6} <span className="text-gray-500">(minimo per avviare)</span>
             </p>
           </div>
           {activeMembers.length >= (league?.minParticipants || 6) ? (
@@ -66,7 +66,7 @@ export function AdminPhasesTab({
             </Button>
           ) : (
             <p className="text-danger-400 font-medium text-sm">
-              Mancano {(league?.minParticipants || 6) - activeMembers.length} partecipanti per attivare la lega
+              Mancano {(league?.minParticipants || 6) - activeMembers.length} partecipanti per raggiungere il minimo di avvio
             </p>
           )}
         </div>
@@ -102,7 +102,7 @@ export function AdminPhasesTab({
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="bg-surface-300 rounded-xl border border-surface-50 p-4">
           <p className="stat-number text-3xl text-primary-400 leading-none">{activeMembers.length}/{league?.maxParticipants}</p>
-          <p className="text-xs text-gray-400 mt-2">Partecipanti attivi</p>
+          <p className="text-xs text-gray-400 mt-2">Iscritti / capienza</p>
         </div>
         <div className="bg-surface-300 rounded-xl border border-accent-500/30 p-4">
           <p className="stat-number text-3xl text-accent-400 leading-none">{pendingMembers.length}</p>
