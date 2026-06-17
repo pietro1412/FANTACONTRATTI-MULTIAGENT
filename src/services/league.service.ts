@@ -707,22 +707,26 @@ export async function updateMemberStatus(
       },
     })
 
-    // Send email notification to the manager (#52)
+    // Send email notification to the manager (#52) — fire-and-forget (non bloccante)
     if (member.user?.email) {
-      try {
-        const leagueUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/leagues/${leagueId}`
-        const emailSvc = await getEmailService()
-        if (emailSvc) {
-          await emailSvc.sendJoinRequestResponseEmail(
-            member.user.email,
-            member.league.name,
-            true, // approved
-            leagueUrl
-          )
+      const recipientEmail = member.user.email
+      const leagueName = member.league.name
+      const leagueUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/leagues/${leagueId}`
+      void (async () => {
+        try {
+          const emailSvc = await getEmailService()
+          if (emailSvc) {
+            await emailSvc.sendJoinRequestResponseEmail(
+              recipientEmail,
+              leagueName,
+              true, // approved
+              leagueUrl
+            )
+          }
+        } catch {
+          // Error intentionally silenced
         }
-      } catch {
-        // Error intentionally silenced
-      }
+      })()
     }
 
     return { success: true, message: 'Membro accettato' }
@@ -734,35 +738,43 @@ export async function updateMemberStatus(
       data: { status: MemberStatus.LEFT },
     })
 
-    // Send email notification for rejection (#126)
+    // Send email notification for rejection (#126) — fire-and-forget (non bloccante)
     if (action === 'reject' && member.user?.email) {
-      try {
-        const emailSvc = await getEmailService()
-        if (emailSvc) {
-          await emailSvc.sendJoinRequestResponseEmail(
-            member.user.email,
-            member.league.name,
-            false // rejected
-          )
+      const recipientEmail = member.user.email
+      const leagueName = member.league.name
+      void (async () => {
+        try {
+          const emailSvc = await getEmailService()
+          if (emailSvc) {
+            await emailSvc.sendJoinRequestResponseEmail(
+              recipientEmail,
+              leagueName,
+              false // rejected
+            )
+          }
+        } catch {
+          // Error intentionally silenced
         }
-      } catch {
-        // Error intentionally silenced
-      }
+      })()
     }
 
-    // Send email notification for kick/expulsion (#125)
+    // Send email notification for kick/expulsion (#125) — fire-and-forget (non bloccante)
     if (action === 'kick' && member.user?.email) {
-      try {
-        const emailSvc = await getEmailService()
-        if (emailSvc) {
-          await emailSvc.sendMemberExpelledEmail(
-            member.user.email,
-            member.league.name
-          )
+      const recipientEmail = member.user.email
+      const leagueName = member.league.name
+      void (async () => {
+        try {
+          const emailSvc = await getEmailService()
+          if (emailSvc) {
+            await emailSvc.sendMemberExpelledEmail(
+              recipientEmail,
+              leagueName
+            )
+          }
+        } catch {
+          // Error intentionally silenced
         }
-      } catch {
-        // Error intentionally silenced
-      }
+      })()
     }
 
     return {

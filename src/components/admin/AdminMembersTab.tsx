@@ -4,6 +4,7 @@ import type { Member } from './types'
 export interface AdminMembersTabProps {
   activeMembers: Member[]
   isSubmitting: boolean
+  pendingMemberId?: string | null
   confirmKick: (memberId: string, username: string) => void
   handleCompleteWithTestUsers: () => void
 }
@@ -11,6 +12,7 @@ export interface AdminMembersTabProps {
 export function AdminMembersTab({
   activeMembers,
   isSubmitting,
+  pendingMemberId,
   confirmKick,
   handleCompleteWithTestUsers,
 }: AdminMembersTabProps) {
@@ -56,7 +58,7 @@ export function AdminMembersTab({
               <div className="flex items-center justify-between text-xs text-gray-500">
                 <span>{member.teamName || '-'}</span>
                 {member.role !== 'ADMIN' && (
-                  <Button size="sm" variant="outline" className="border-danger-500/50 text-danger-400 !px-2 !py-1 !text-xs !min-h-[36px]" onClick={() => { confirmKick(member.id, member.user.username); }} disabled={isSubmitting}>
+                  <Button size="sm" variant="outline" className="border-danger-500/50 text-danger-400 !px-2 !py-1 !text-xs !min-h-[36px]" onClick={() => { confirmKick(member.id, member.user.username); }} disabled={isSubmitting} isLoading={pendingMemberId === member.id} loadingText="Espello...">
                     Espelli
                   </Button>
                 )}
@@ -103,7 +105,7 @@ export function AdminMembersTab({
                   <td className="px-5 py-3 text-right budget-display text-accent-400 text-lg">{member.currentBudget}</td>
                   <td className="px-5 py-3 text-right">
                     {member.role !== 'ADMIN' && (
-                      <Button size="sm" variant="outline" className="border-danger-500/50 text-danger-400" onClick={() => { confirmKick(member.id, member.user.username); }} disabled={isSubmitting}>
+                      <Button size="sm" variant="outline" className="border-danger-500/50 text-danger-400" onClick={() => { confirmKick(member.id, member.user.username); }} disabled={isSubmitting} isLoading={pendingMemberId === member.id} loadingText="Espello...">
                         Espelli
                       </Button>
                     )}

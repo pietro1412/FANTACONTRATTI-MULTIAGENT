@@ -12,6 +12,7 @@ export interface AdminRequestsTabProps {
   inviteDuration: number
   setInviteDuration: (duration: number) => void
   isSubmitting: boolean
+  pendingMemberId?: string | null
   handleMemberAction: (memberId: string, action: 'accept' | 'reject') => void
   handleCreateInvite: () => void
   handleCancelInvite: (inviteId: string) => void
@@ -25,6 +26,7 @@ export function AdminRequestsTab({
   inviteDuration,
   setInviteDuration,
   isSubmitting,
+  pendingMemberId,
   handleMemberAction,
   handleCreateInvite,
   handleCancelInvite,
@@ -75,10 +77,10 @@ export function AdminRequestsTab({
                     </div>
                   </div>
                   <div className="flex gap-2 flex-shrink-0">
-                    <Button size="sm" variant="secondary" onClick={() => { handleMemberAction(member.id, 'accept'); }} disabled={isSubmitting}>
+                    <Button size="sm" variant="secondary" onClick={() => { handleMemberAction(member.id, 'accept'); }} disabled={isSubmitting} isLoading={pendingMemberId === member.id} loadingText="Accetto...">
                       Accetta
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => { handleMemberAction(member.id, 'reject'); }} disabled={isSubmitting}>
+                    <Button size="sm" variant="outline" onClick={() => { handleMemberAction(member.id, 'reject'); }} disabled={isSubmitting} isLoading={pendingMemberId === member.id} loadingText="Rifiuto...">
                       Rifiuta
                     </Button>
                   </div>
