@@ -1,5 +1,6 @@
-// In production (Vercel), API is at same origin. In dev, use localhost:3003
-const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:3003')
+// Same-origin: in dev le chiamate /api passano dal proxy Vite (vite.config) verso
+// localhost:3003; in produzione l'API e' sullo stesso origin. Override con VITE_API_URL.
+const API_URL = import.meta.env.VITE_API_URL || ''
 
 interface ApiResponse<T = unknown> {
   success: boolean
