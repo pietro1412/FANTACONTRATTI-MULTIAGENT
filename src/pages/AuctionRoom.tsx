@@ -208,10 +208,10 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
 
   // ==================== MAIN AUCTION ROOM ====================
   return (
-    <div className="min-h-screen lg:h-dvh lg:flex lg:flex-col lg:overflow-hidden">
+    <div className="min-h-screen overflow-x-hidden lg:h-dvh lg:flex lg:flex-col lg:overflow-hidden">
       <Navigation currentPage="auction" leagueId={leagueId} isLeagueAdmin={isAdmin} onNavigate={onNavigate} />
 
-      <main className={`w-full max-w-full mx-auto px-3 py-3 lg:px-4 lg:py-3 ${auction ? 'pb-52 md:pb-40 lg:pb-3' : ''} lg:flex-1 lg:min-h-0 lg:flex lg:flex-col lg:overflow-hidden`}>
+      <main className={`w-full max-w-full min-w-0 overflow-x-hidden mx-auto px-3 py-3 lg:px-4 lg:py-3 ${auction ? 'pb-52 md:pb-40 lg:pb-3' : ''} lg:flex-1 lg:min-h-0 lg:flex lg:flex-col lg:overflow-hidden`}>
         {/* Unified Layout */}
         <AuctionRoomLayout
           auction={auction}
