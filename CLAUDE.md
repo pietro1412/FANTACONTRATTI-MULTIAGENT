@@ -218,7 +218,7 @@ Questi file contengono le regole di business core. **NON modificare senza confer
 
 - Import path misti (`@/` vs `../`) → usare `@/` per nuovo codice
 - Global error handler presente (`src/api/index.ts`) ma non sfruttato: i route handler usano try/catch locale invece di `next(err)`
-- `auction-room/` (vecchia) e `auction-room-v2/` coesistono: la v2 è attiva (`AuctionRoomLayout`), ma `AuctionRoom.tsx` importa ancora 6 modali dalla vecchia → da consolidare
+- `auction-room/` (vecchia) e `auction-room-v2/` coesistono: la v2 è attiva (`AuctionRoomLayout`), ma `AuctionRoom.tsx` importa ancora 6 modali dalla vecchia (`AuctionRoomModals.tsx`) e `Svincolati.tsx` ne importa `ManagerDetailModal` → da consolidare (refactoring dedicato, non semplice rimozione)
 
 ## Documenti di Riferimento
 
