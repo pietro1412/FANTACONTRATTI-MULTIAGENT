@@ -10,7 +10,7 @@
     "dev:api": "tsx watch src/api/index.ts",
     "build": "vite build",
     "build:api": "node scripts/build-api.mjs",
-    "vercel-build": "prisma generate --schema=prisma/schema.generated.prisma && prisma db push --schema=prisma/schema.generated.prisma --accept-data-loss && node scripts/build-api.mjs && vite build",
+    "vercel-build": "prisma generate --schema=prisma/schema.generated.prisma && prisma db push --schema=prisma/schema.generated.prisma && node scripts/build-api.mjs && vite build",
     "postinstall": "prisma generate --schema=prisma/schema.generated.prisma",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
