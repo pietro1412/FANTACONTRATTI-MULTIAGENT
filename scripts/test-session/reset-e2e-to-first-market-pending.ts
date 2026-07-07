@@ -33,7 +33,7 @@ import { PrismaClient, Prisma, MemberStatus, SessionStatus, MarketPhase } from '
 
 const prisma = new PrismaClient()
 
-const LEAGUE_ID = 'cmq3eqxpf06p7xt0cjcjil3qe'
+const LEAGUE_ID = process.env.E2E_LEAGUE_ID || 'cmq3eqxpf06p7xt0cjcjil3qe'
 
 async function main() {
   console.log('=== RESET LEGA E2E → PRIMO MERCATO DA AVVIARE ===')

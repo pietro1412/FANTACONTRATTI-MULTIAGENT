@@ -24,7 +24,7 @@ import { PrismaClient, Position, AcquisitionType, RosterStatus, MemberStatus } f
 import { calculateDefaultSalary, calculateRescissionClause } from '../../src/services/contract.service'
 
 const prisma = new PrismaClient()
-const LEAGUE_ID = 'cmq3eqxpf06p7xt0cjcjil3qe'
+const LEAGUE_ID = process.env.E2E_LEAGUE_ID || 'cmq3eqxpf06p7xt0cjcjil3qe'
 
 // Prezzo simbolico di acquisizione per i giocatori aggiunti dallo script.
 // salary = round(price/10) min 1 → con questi valori salary ∈ {1,2,3} (varietà), budget resta positivo.

@@ -9,7 +9,7 @@ import { PrismaClient, MemberRole, MemberStatus, JoinType } from '@prisma/client
 
 const prisma = new PrismaClient()
 
-const LEAGUE_ID = 'cmq3eqxpf06p7xt0cjcjil3qe'
+const LEAGUE_ID = process.env.E2E_LEAGUE_ID || 'cmq3eqxpf06p7xt0cjcjil3qe'
 
 // Manager seedati reali (oltre a Pietro admin). teamName arbitrario per il test.
 const MANAGERS = [

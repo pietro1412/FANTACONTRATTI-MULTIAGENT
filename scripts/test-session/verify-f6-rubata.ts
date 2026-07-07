@@ -22,7 +22,7 @@ import {
 } from '../../src/services/rubata.service'
 
 const prisma = new PrismaClient()
-const LEAGUE_ID = 'cmq3eqxpf06p7xt0cjcjil3qe'
+const LEAGUE_ID = process.env.E2E_LEAGUE_ID || 'cmq3eqxpf06p7xt0cjcjil3qe'
 const POS_ORDER: Record<string, number> = { P: 1, D: 2, C: 3, A: 4 }
 
 let pass = 0, fail = 0

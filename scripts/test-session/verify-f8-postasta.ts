@@ -17,7 +17,7 @@ import { getLeagueFinancials } from '../../src/services/league.service'
 import { getLeagueStatistics } from '../../src/services/admin.service'
 
 const prisma = new PrismaClient()
-const LEAGUE_ID = 'cmq3eqxpf06p7xt0cjcjil3qe'
+const LEAGUE_ID = process.env.E2E_LEAGUE_ID || 'cmq3eqxpf06p7xt0cjcjil3qe'
 
 let pass = 0, fail = 0
 const fails: string[] = []
