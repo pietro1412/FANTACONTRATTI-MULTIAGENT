@@ -170,7 +170,7 @@ function LeagueCard({
 
   return (
     <div
-      className={`bg-surface-200 rounded-2xl border p-4 flex flex-col transition-all ${
+      className={`bg-surface-200 rounded-2xl border p-4 flex flex-col min-w-0 transition-all ${
         isPending ? 'border-amber-500/30' : 'border-surface-50/20'
       } ${league.status === 'COMPLETED' ? 'opacity-75' : ''} ${
         clickable ? 'hover:border-primary-500/40 hover:shadow-glow cursor-pointer group' : ''
