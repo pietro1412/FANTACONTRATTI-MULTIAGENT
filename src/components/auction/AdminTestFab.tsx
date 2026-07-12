@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { FlaskConical, X } from 'lucide-react'
 
 /**
- * I controlli di test esistono solo per le sessioni di prova: visibili in dev
- * (npm run dev / dev:local) o forzabili in build con VITE_TEST_CONTROLS=true.
- * In produzione il FAB sparisce per costruzione.
+ * Controlli admin per la gestione della sala asta (avvia/timer/fase/chiudi,
+ * sblocco manager, completa-rose). Sempre attivi in dev (npm run dev / dev:local);
+ * in produzione compaiono quando VITE_TEST_CONTROLS=true (impostata su Vercel per
+ * dare all'admin di lega gli strumenti di gestione — 2026-07-12).
  */
 export const TEST_CONTROLS_ENABLED =
   import.meta.env.DEV || import.meta.env.VITE_TEST_CONTROLS === 'true'
