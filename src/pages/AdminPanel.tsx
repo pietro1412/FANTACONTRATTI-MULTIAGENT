@@ -143,6 +143,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
   const [newInviteEmail, setNewInviteEmail] = useState('')
   const [inviteDuration, setInviteDuration] = useState(7)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [pendingMemberId, setPendingMemberId] = useState<string | null>(null)
   const [auctionMode, setAuctionMode] = useState<'REMOTE' | 'IN_PRESENCE'>('REMOTE')
   const [consolidationStatus, setConsolidationStatus] = useState<ConsolidationStatus | null>(null)
 
@@ -321,6 +322,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
 
   async function handleMemberAction(memberId: string, action: 'accept' | 'reject' | 'kick') {
     setIsSubmitting(true)
+    setPendingMemberId(memberId)
 
     const res = await leagueApi.updateMember(leagueId, memberId, action)
     if (res.success) {
@@ -332,6 +334,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
       toast.error(res.message || 'Errore')
     }
     setIsSubmitting(false)
+    setPendingMemberId(null)
   }
 
   async function confirmKick(memberId: string, username: string) {
@@ -723,6 +726,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
                     <AdminMembersTab
                       activeMembers={activeMembers}
                       isSubmitting={isSubmitting}
+                      pendingMemberId={pendingMemberId}
                       confirmKick={(memberId, username) => void confirmKick(memberId, username)}
                       handleCompleteWithTestUsers={() => void handleCompleteWithTestUsers()}
                     />
@@ -734,6 +738,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
                       inviteDuration={inviteDuration}
                       setInviteDuration={setInviteDuration}
                       isSubmitting={isSubmitting}
+                      pendingMemberId={pendingMemberId}
                       handleMemberAction={(memberId, action) => void handleMemberAction(memberId, action)}
                       handleCreateInvite={() => void handleCreateInvite()}
                       handleCancelInvite={(inviteId) => void handleCancelInvite(inviteId)}

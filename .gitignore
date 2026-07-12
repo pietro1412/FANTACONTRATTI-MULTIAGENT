@@ -53,6 +53,9 @@ nul
 # Screenshot capture output
 screenshots/
 
+# DB backups locali (rigenerabili, non source of truth)
+scripts/backups/
+
 # Vercel
 .vercel/
 

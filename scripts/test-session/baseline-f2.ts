@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
-const LEAGUE_ID = 'cmq3eqxpf06p7xt0cjcjil3qe'
+const LEAGUE_ID = process.env.E2E_LEAGUE_ID || 'cmq3eqxpf06p7xt0cjcjil3qe'
 async function main() {
   const contracts = await prisma.playerContract.findMany({
     where: { roster: { leagueMember: { leagueId: LEAGUE_ID }, status: 'ACTIVE' } },

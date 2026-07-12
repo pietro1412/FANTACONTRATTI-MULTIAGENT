@@ -114,6 +114,12 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     open: true,
+    // Proxy delle chiamate API al backend Express: il client usa path relativi
+    // (/api/...), così funziona sia da localhost sia da altri device sulla LAN
+    // (es. smartphone via --host) senza CORS né problemi di hairpin sull'IP locale.
+    proxy: {
+      '/api': { target: 'http://localhost:3003', changeOrigin: true },
+    },
   },
   build: {
     outDir: 'dist',

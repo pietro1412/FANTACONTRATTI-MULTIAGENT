@@ -121,7 +121,7 @@ export function NominationPanel({
       </div>
 
       {/* Row 1: Role Tabs + Search Input inline */}
-      <div className="flex items-center gap-2 mb-2">
+      <div className="flex flex-wrap items-center gap-2 mb-2 lg:flex-nowrap">
         {/* Role tabs */}
         <div className="flex gap-1 flex-shrink-0">
           {ALL_ROLE_TABS.map(role => {
@@ -149,7 +149,7 @@ export function NominationPanel({
         </div>
 
         {/* Search input */}
-        <div className="relative flex-1 min-w-0">
+        <div className="relative w-full min-w-0 lg:flex-1">
           <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
             <svg className="w-3.5 h-3.5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -360,7 +360,7 @@ export function NominationPanel({
       })()}
 
       {/* Player Grid / Table */}
-      <div className="max-h-[45vh] overflow-y-auto">
+      <div className="max-h-[45vh] overflow-y-auto overflow-x-hidden">
         {filteredPlayers.length === 0 ? (
           <p className="text-gray-500 text-center py-4">Nessun giocatore</p>
         ) : (

@@ -7,7 +7,7 @@
 import { PrismaClient } from '@prisma/client'
 import { calculateRescissionClause } from '../../src/services/contract.service'
 const prisma = new PrismaClient()
-const LEAGUE_ID = 'cmq3eqxpf06p7xt0cjcjil3qe'
+const LEAGUE_ID = process.env.E2E_LEAGUE_ID || 'cmq3eqxpf06p7xt0cjcjil3qe'
 const SESSION = 'cmq6fav4j04kzx6pmj7cuykq3'
 
 let pass = 0, fail = 0

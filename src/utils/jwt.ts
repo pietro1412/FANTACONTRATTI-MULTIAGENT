@@ -1,8 +1,22 @@
 import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
 
-const ACCESS_TOKEN_SECRET = process.env.JWT_ACCESS_SECRET || 'access-secret-change-in-production'
-const REFRESH_TOKEN_SECRET = process.env.JWT_REFRESH_SECRET || 'refresh-secret-change-in-production'
+// In production the secrets MUST come from the environment: a missing env var
+// would otherwise silently sign tokens with a fallback string that is public
+// in the repo. Fail fast at module load instead. Dev/test keep a local fallback.
+const isProduction = process.env.NODE_ENV === 'production' || !!process.env.VERCEL
+
+function requireSecret(name: string, devFallback: string): string {
+  const value = process.env[name]
+  if (value) return value
+  if (isProduction) {
+    throw new Error(`FATAL: ${name} is not set — refusing to start with a public fallback secret in production`)
+  }
+  return devFallback
+}
+
+const ACCESS_TOKEN_SECRET = requireSecret('JWT_ACCESS_SECRET', 'access-secret-change-in-production')
+const REFRESH_TOKEN_SECRET = requireSecret('JWT_REFRESH_SECRET', 'refresh-secret-change-in-production')
 
 const ACCESS_TOKEN_EXPIRY = '15m'
 const REFRESH_TOKEN_EXPIRY = '7d'

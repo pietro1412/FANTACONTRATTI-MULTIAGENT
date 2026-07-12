@@ -20,10 +20,10 @@ export interface CockpitShellProps {
  */
 export function CockpitShell({ header, adminBar, children, className = '' }: CockpitShellProps) {
   return (
-    <div className={`lg:flex-1 lg:min-h-0 lg:flex lg:flex-col lg:overflow-hidden ${className}`}>
+    <div className={`min-w-0 max-w-full overflow-x-hidden lg:flex-1 lg:min-h-0 lg:flex lg:flex-col lg:overflow-hidden ${className}`}>
       <div className="lg:flex-shrink-0">{header}</div>
       {adminBar && <div className="lg:flex-shrink-0">{adminBar}</div>}
-      <div className="lg:flex-1 lg:min-h-0 lg:overflow-hidden">{children}</div>
+      <div className="min-w-0 lg:flex-1 lg:min-h-0 lg:overflow-hidden">{children}</div>
     </div>
   )
 }

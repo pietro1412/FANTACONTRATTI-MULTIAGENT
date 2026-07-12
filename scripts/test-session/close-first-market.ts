@@ -14,7 +14,7 @@ import { PrismaClient } from '@prisma/client'
 import { closeAuctionSession } from '../../src/services/auction.service'
 
 const prisma = new PrismaClient()
-const LEAGUE_ID = 'cmq3eqxpf06p7xt0cjcjil3qe'
+const LEAGUE_ID = process.env.E2E_LEAGUE_ID || 'cmq3eqxpf06p7xt0cjcjil3qe'
 const ADMIN_EMAIL = 'pietro@test.it'
 
 async function main() {

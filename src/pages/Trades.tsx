@@ -11,6 +11,8 @@ import { PlayerStatsModal, type PlayerInfo } from '../components/PlayerStatsModa
 import { useToast } from '@/components/ui/Toast'
 import { Tabs } from '@/components/ui/Tabs'
 import haptic from '../utils/haptics'
+import { InfoTooltip } from '@/components/ui/InfoTooltip'
+import { GLOSSARY } from '@/components/help/Glossary'
 import type { FinancialsData } from '../components/finance/types'
 import {
   type TradeOffer, type LeagueMember, type RosterEntry, type MarketSession, type Player,
@@ -589,12 +591,18 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
 
       <div className="ml-auto flex items-center gap-4">
         <div className="text-right">
-          <div className="micro-label text-[9px]">Budget</div>
+          <div className="micro-label text-[9px] flex items-center justify-end gap-1">
+            Budget
+            <InfoTooltip content={GLOSSARY.budget!.short} label={GLOSSARY.budget!.term} align="right" />
+          </div>
           <div className="budget-display text-lg sm:text-xl text-accent-400 leading-tight">{myBudget}<span className="text-xs text-gray-500">M</span></div>
         </div>
         <div className="hidden sm:block w-px h-7 bg-surface-50" />
         <div className="hidden sm:block text-right">
-          <div className="micro-label text-[9px]">Monte ingaggi</div>
+          <div className="micro-label text-[9px] flex items-center justify-end gap-1">
+            Monte ingaggi
+            <InfoTooltip content={GLOSSARY.monteIngaggi!.short} label={GLOSSARY.monteIngaggi!.term} align="right" />
+          </div>
           <div className="budget-display text-lg sm:text-xl text-white leading-tight">{myTotalSalary}<span className="text-xs text-gray-500">M</span></div>
         </div>
         <div className="hidden md:block w-px h-7 bg-surface-50" />

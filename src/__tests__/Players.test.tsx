@@ -213,9 +213,9 @@ describe('Players Page', () => {
   it('renders stats view with player names in the table', async () => {
     render(<Players leagueId="league-1" onNavigate={mockOnNavigate} initialView="stats" />)
     await waitFor(() => {
-      expect(screen.getByText('Lautaro Martinez')).toBeInTheDocument()
+      expect(screen.getAllByText('Lautaro Martinez').length).toBeGreaterThan(0)
     })
-    expect(screen.getByText('Barella Nicolo')).toBeInTheDocument()
+    expect(screen.getAllByText('Barella Nicolo').length).toBeGreaterThan(0)
   })
 
   it('renders Navigation with playerStats page for stats view', async () => {
@@ -236,7 +236,7 @@ describe('Players Page', () => {
   it('renders preset buttons in stats view', async () => {
     render(<Players leagueId="league-1" onNavigate={mockOnNavigate} initialView="stats" />)
     await waitFor(() => {
-      expect(screen.getByText('Lautaro Martinez')).toBeInTheDocument()
+      expect(screen.getAllByText('Lautaro Martinez').length).toBeGreaterThan(0)
     })
     expect(screen.getAllByText('Essenziali').length).toBeGreaterThan(0)
   })
@@ -256,7 +256,7 @@ describe('Players Page', () => {
     const user = userEvent.setup()
     const { container } = render(<Players leagueId="league-1" onNavigate={mockOnNavigate} initialView="stats" />)
     await waitFor(() => {
-      expect(screen.getByText('Lautaro Martinez')).toBeInTheDocument()
+      expect(screen.getAllByText('Lautaro Martinez').length).toBeGreaterThan(0)
     })
     const checkboxes = container.querySelectorAll('tbody input[type="checkbox"]')
     expect(checkboxes.length).toBe(2)
@@ -270,7 +270,7 @@ describe('Players Page', () => {
     const user = userEvent.setup()
     render(<Players leagueId="league-1" onNavigate={mockOnNavigate} initialView="stats" />)
     await waitFor(() => {
-      expect(screen.getByText('Lautaro Martinez')).toBeInTheDocument()
+      expect(screen.getAllByText('Lautaro Martinez').length).toBeGreaterThan(0)
     })
     await user.click(screen.getByText(/Giocatore/))
     await waitFor(() => {
@@ -290,7 +290,7 @@ describe('Players Page', () => {
     const statsButtons = screen.getAllByText('Statistiche')
     await user.click(statsButtons[0]!)
     await waitFor(() => {
-      expect(screen.getByText('Lautaro Martinez')).toBeInTheDocument()
+      expect(screen.getAllByText('Lautaro Martinez').length).toBeGreaterThan(0)
     })
   })
 })

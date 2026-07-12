@@ -39,7 +39,7 @@ export function MobileBottomBar({
   const isRoleFull = roleSlot ? roleSlot.filled >= roleSlot.total : false
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 lg:hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+    <div className="fixed bottom-14 md:bottom-0 left-0 right-0 z-50 lg:hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
       <div className="bg-surface-200 border-t border-surface-50 p-3 shadow-2xl">
         {/* Timer + Current Info */}
         <div className="flex items-center justify-between mb-2">

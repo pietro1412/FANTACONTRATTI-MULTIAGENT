@@ -707,22 +707,26 @@ export async function updateMemberStatus(
       },
     })
 
-    // Send email notification to the manager (#52)
+    // Send email notification to the manager (#52) — fire-and-forget (non bloccante)
     if (member.user?.email) {
-      try {
-        const leagueUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/leagues/${leagueId}`
-        const emailSvc = await getEmailService()
-        if (emailSvc) {
-          await emailSvc.sendJoinRequestResponseEmail(
-            member.user.email,
-            member.league.name,
-            true, // approved
-            leagueUrl
-          )
+      const recipientEmail = member.user.email
+      const leagueName = member.league.name
+      const leagueUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/leagues/${leagueId}`
+      void (async () => {
+        try {
+          const emailSvc = await getEmailService()
+          if (emailSvc) {
+            await emailSvc.sendJoinRequestResponseEmail(
+              recipientEmail,
+              leagueName,
+              true, // approved
+              leagueUrl
+            )
+          }
+        } catch {
+          // Error intentionally silenced
         }
-      } catch {
-        // Error intentionally silenced
-      }
+      })()
     }
 
     return { success: true, message: 'Membro accettato' }
@@ -734,35 +738,43 @@ export async function updateMemberStatus(
       data: { status: MemberStatus.LEFT },
     })
 
-    // Send email notification for rejection (#126)
+    // Send email notification for rejection (#126) — fire-and-forget (non bloccante)
     if (action === 'reject' && member.user?.email) {
-      try {
-        const emailSvc = await getEmailService()
-        if (emailSvc) {
-          await emailSvc.sendJoinRequestResponseEmail(
-            member.user.email,
-            member.league.name,
-            false // rejected
-          )
+      const recipientEmail = member.user.email
+      const leagueName = member.league.name
+      void (async () => {
+        try {
+          const emailSvc = await getEmailService()
+          if (emailSvc) {
+            await emailSvc.sendJoinRequestResponseEmail(
+              recipientEmail,
+              leagueName,
+              false // rejected
+            )
+          }
+        } catch {
+          // Error intentionally silenced
         }
-      } catch {
-        // Error intentionally silenced
-      }
+      })()
     }
 
-    // Send email notification for kick/expulsion (#125)
+    // Send email notification for kick/expulsion (#125) — fire-and-forget (non bloccante)
     if (action === 'kick' && member.user?.email) {
-      try {
-        const emailSvc = await getEmailService()
-        if (emailSvc) {
-          await emailSvc.sendMemberExpelledEmail(
-            member.user.email,
-            member.league.name
-          )
+      const recipientEmail = member.user.email
+      const leagueName = member.league.name
+      void (async () => {
+        try {
+          const emailSvc = await getEmailService()
+          if (emailSvc) {
+            await emailSvc.sendMemberExpelledEmail(
+              recipientEmail,
+              leagueName
+            )
+          }
+        } catch {
+          // Error intentionally silenced
         }
-      } catch {
-        // Error intentionally silenced
-      }
+      })()
     }
 
     return {
@@ -810,12 +822,14 @@ export async function startLeague(leagueId: string, adminUserId: string): Promis
 
   const activeMembers = league.members.length
 
-  // Verifica numero minimo partecipanti (regola piattaforma: min 6)
+  // Verifica numero minimo partecipanti: usa il minimo della lega, mai sotto il
+  // minimo di piattaforma (6). Coerente col frontend che mostra league.minParticipants.
   const PLATFORM_MIN_PARTICIPANTS = 6
-  if (activeMembers < PLATFORM_MIN_PARTICIPANTS) {
+  const minRequired = Math.max(PLATFORM_MIN_PARTICIPANTS, league.minParticipants ?? PLATFORM_MIN_PARTICIPANTS)
+  if (activeMembers < minRequired) {
     return {
       success: false,
-      message: `Servono almeno ${PLATFORM_MIN_PARTICIPANTS} partecipanti per avviare la lega (attualmente ${activeMembers})`,
+      message: `Servono almeno ${minRequired} partecipanti per avviare la lega (attualmente ${activeMembers})`,
     }
   }
 

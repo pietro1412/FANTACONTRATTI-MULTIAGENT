@@ -732,7 +732,9 @@ export function Players({ leagueId, onNavigate, initialView = 'list', initialTea
       ) : sortedStatsPlayers.length === 0 ? (
         <EmptyState icon="🔍" title="Nessun giocatore trovato" description="Prova a modificare i filtri di ricerca o a cambiare ruolo/squadra." compact />
       ) : (
-        <div className="lg:panel-scroll lg:flex-1 lg:min-h-0 overflow-auto">
+        <>
+        {/* Desktop (lg+): tabellone completo con scroll orizzontale e preset (profondità) */}
+        <div className="hidden lg:block lg:panel-scroll lg:flex-1 lg:min-h-0 overflow-auto">
           <table className="border-separate border-spacing-0 w-max min-w-full">
             <thead>
               <tr>
@@ -830,6 +832,67 @@ export function Players({ leagueId, onNavigate, initialView = 'list', initialTea
             </tbody>
           </table>
         </div>
+
+        {/* Mobile (<lg): lista a card — chip che vanno a capo, nessuno scroll
+            orizzontale (Assioma 2). Il dettaglio completo è nella scheda giocatore. */}
+        <div className="lg:hidden overflow-y-auto max-h-[70vh] divide-y divide-surface-50/10">
+          {sortedStatsPlayers.map(player => {
+            const isSelected = selectedForCompare.has(player.id)
+            return (
+              <div key={player.id} className={`p-3 ${isSelected ? 'bg-primary-500/10' : ''}`}>
+                <div className="flex items-center gap-2.5">
+                  <input
+                    type="checkbox"
+                    className="rounded border-surface-50 bg-surface-300 text-primary-500 focus:ring-primary-500 flex-shrink-0"
+                    checked={isSelected}
+                    onChange={() => { togglePlayerForCompare(player.id); }}
+                    aria-label={`Seleziona ${player.name} per il confronto`}
+                  />
+                  <PlayerRoleBadge position={player.position} size="sm" />
+                  <div className="min-w-0 flex-1">
+                    <button
+                      type="button"
+                      onClick={() => { openPlayerStats(player); }}
+                      className="block font-display font-bold text-sm text-white leading-tight truncate text-left hover:text-primary-400 transition-colors"
+                    >
+                      {player.name}
+                    </button>
+                    <span className="flex items-center gap-1.5 text-[11px] text-gray-500 mt-0.5">
+                      <TeamLogo team={player.team} size="xs" />
+                      <span className="truncate">{player.team}</span>
+                    </span>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <span className="micro-label text-[8px] text-gray-500 block">Quot</span>
+                    <span className="stat-number text-sm text-white">{player.quotation}</span>
+                  </div>
+                </div>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {visibleColumnDefs.map(col => {
+                    const raw = col.getValue(player)
+                    const display = col.format
+                      ? col.format(typeof raw === 'number' ? raw : null)
+                      : typeof raw === 'string'
+                        ? raw
+                        : formatStat(raw)
+                    const isRating = col.key === 'rating' && typeof raw === 'number'
+                    const ratingTone = isRating
+                      ? (raw >= 7 ? 'text-secondary-400' : raw >= 6 ? 'text-white' : 'text-warning-400')
+                      : ''
+                    const tone = col.tone ? TONE_CLASS[col.tone] : 'text-gray-300'
+                    return (
+                      <span key={col.key} className="flex items-center gap-1 px-2 py-1 rounded-lg bg-surface-300/60 border border-surface-50/20">
+                        <span className="micro-label text-[8px] text-gray-500">{col.shortLabel}</span>
+                        <span className={`stat-number text-xs ${isRating ? ratingTone : tone}`}>{display}</span>
+                      </span>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+        </>
       )}
 
       {/* Footer: compare action + pagination */}
@@ -967,7 +1030,8 @@ export function Players({ leagueId, onNavigate, initialView = 'list', initialTea
               <div>
                 <label className="block micro-label mb-2">Preset colonne</label>
                 <div className="grid grid-cols-3 gap-2">
-                  {PRESET_ORDER.map(key => {
+                  {/* "Tutte" (26 colonne) resta solo desktop: su mobile sarebbe troppo (less-is-more). */}
+                  {PRESET_ORDER.filter(k => k !== 'all').map(key => {
                     const preset = COLUMN_PRESETS[key]!
                     return (
                       <button

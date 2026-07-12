@@ -19,7 +19,7 @@
 import { PrismaClient, MemberStatus, RosterStatus } from '@prisma/client'
 import { calculateRescissionClause } from '../../src/services/contract.service'
 const prisma = new PrismaClient()
-const LEAGUE_ID = 'cmq3eqxpf06p7xt0cjcjil3qe'
+const LEAGUE_ID = process.env.E2E_LEAGUE_ID || 'cmq3eqxpf06p7xt0cjcjil3qe'
 const FORCED_DURATION = 3
 
 // Quanti giocatori marcare per ciascun motivo di uscita.
