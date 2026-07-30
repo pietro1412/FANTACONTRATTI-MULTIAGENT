@@ -106,6 +106,7 @@ const mockLeagueData = {
 
 // Mock API
 const mockGetAllRosters = vi.fn()
+const mockGetOngoingIndicator = vi.fn()
 vi.mock('../services/api', () => ({
   leagueApi: {
     getAllRosters: (...args: unknown[]) => mockGetAllRosters(...args),
@@ -117,6 +118,7 @@ vi.mock('../services/api', () => ({
   },
   tradeApi: {
     getReceived: vi.fn().mockResolvedValue({ success: true, data: [] }),
+    getOngoingIndicator: (...args: unknown[]) => mockGetOngoingIndicator(...args),
   },
   userApi: {
     getMyPendingInvites: vi.fn().mockResolvedValue({ success: true, data: [] }),
@@ -159,6 +161,7 @@ describe('Rose Page', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    mockGetOngoingIndicator.mockResolvedValue({ success: true, data: { count: 0 } })
   })
 
   it('renders loading skeletons while data is being fetched', () => {
@@ -218,6 +221,58 @@ describe('Rose Page', () => {
 
     await waitFor(() => {
       expect(screen.getByText('La mia rosa')).toBeInTheDocument()
+    })
+  })
+
+  it('shows ongoing trades indicator for third parties', async () => {
+    mockGetOngoingIndicator.mockResolvedValue({ success: true, data: { count: 2 } })
+    const dataThirdParty = {
+      ...mockLeagueData,
+      currentUserId: 'u999',
+    }
+    mockGetAllRosters.mockResolvedValue({ success: true, data: dataThirdParty })
+
+    render(<Rose onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/2 trattative/)).toBeInTheDocument()
+    })
+  })
+
+  it('hides ongoing trades indicator when viewing own roster', async () => {
+    mockGetOngoingIndicator.mockResolvedValue({ success: true, data: { count: 2 } })
+    mockGetAllRosters.mockResolvedValue({ success: true, data: mockLeagueData })
+
+    render(<Rose onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('La mia rosa')).toBeInTheDocument()
+    })
+
+    expect(screen.queryByText(/trattative/)).not.toBeInTheDocument()
+  })
+
+  it('hides ongoing trades indicator when count is 0', async () => {
+    mockGetOngoingIndicator.mockResolvedValue({ success: true, data: { count: 0 } })
+    mockGetAllRosters.mockResolvedValue({ success: true, data: mockLeagueData })
+
+    render(<Rose onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Monte ingaggi')).toBeInTheDocument()
+    })
+
+    expect(screen.queryByText(/trattativa/)).not.toBeInTheDocument()
+  })
+
+  it('tolerates ongoing indicator API failure', async () => {
+    mockGetOngoingIndicator.mockRejectedValue(new Error('Network error'))
+    mockGetAllRosters.mockResolvedValue({ success: true, data: mockLeagueData })
+
+    render(<Rose onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Monte ingaggi')).toBeInTheDocument()
     })
   })
 

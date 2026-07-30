@@ -84,11 +84,11 @@ vi.mock('../services/api', () => ({
 const sampleLeagues = [
   {
     membership: { id: 'm1', role: 'ADMIN', status: 'ACTIVE', currentBudget: 350 },
-    league: { id: 'l1', name: 'Lega Test', status: 'ACTIVE', members: [{ id: 'm1', role: 'ADMIN' }] },
+    league: { id: 'l1', name: 'Lega Test', status: 'ACTIVE', isPublic: false, members: [{ id: 'm1', role: 'ADMIN' }] },
   },
   {
     membership: { id: 'm2', role: 'MEMBER', status: 'PENDING', currentBudget: 0 },
-    league: { id: 'l2', name: 'Lega Pending', status: 'DRAFT', members: [{ id: 'm2', role: 'MEMBER' }] },
+    league: { id: 'l2', name: 'Lega Pending', status: 'DRAFT', isPublic: true, members: [{ id: 'm2', role: 'MEMBER' }] },
   },
 ]
 
@@ -120,6 +120,19 @@ describe('Dashboard', () => {
     })
 
     expect(screen.getByText('Lega Pending')).toBeInTheDocument()
+  })
+
+  it('shows public/private badge on league cards', async () => {
+    render(<Dashboard onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Lega Test')).toBeInTheDocument()
+    })
+
+    // Lega Test is private
+    expect(screen.getByText('Privata')).toBeInTheDocument()
+    // Lega Pending is public
+    expect(screen.getByText('Pubblica')).toBeInTheDocument()
   })
 
   it('shows page title and subtitle', async () => {

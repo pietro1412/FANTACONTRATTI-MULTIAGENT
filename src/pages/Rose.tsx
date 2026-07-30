@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
-import { leagueApi } from '@/services/api'
+import { leagueApi, tradeApi } from '@/services/api'
 import { Navigation } from '@/components/Navigation'
 import { CockpitShell } from '@/components/cockpit/CockpitShell'
 import { BottomSheet } from '@/components/ui/BottomSheet'
@@ -75,6 +75,9 @@ export function Rose({ onNavigate }: RoseProps) {
   }
 
   // Stats modal
+  // Ongoing trades indicator (anonymized, not involving the user)
+  const [ongoingTradesCount, setOngoingTradesCount] = useState(0)
+
   const [selectedPlayerStats, setSelectedPlayerStats] = useState<PlayerInfo | null>(null)
 
   const openPlayerStats = useCallback((entry: RosterEntry) => {
@@ -97,11 +100,19 @@ export function Rose({ onNavigate }: RoseProps) {
     setLoading(true)
 
     try {
-      const res = await leagueApi.getAllRosters(leagueId)
+      const [res, ongoingRes] = await Promise.all([
+        leagueApi.getAllRosters(leagueId),
+        tradeApi.getOngoingIndicator(leagueId).catch((): { success: boolean; data?: unknown } => ({ success: false })),
+      ])
       if (res.success && res.data) {
         const data = res.data as LeagueData
         setLeagueData(data)
         setIsLeagueAdmin(data.isAdmin || false)
+
+        if (ongoingRes.success && ongoingRes.data) {
+          const ongoingData = ongoingRes.data as { count?: number }
+          setOngoingTradesCount(typeof ongoingData.count === 'number' ? ongoingData.count : 0)
+        }
 
         // Default to current user's member
         const myMember = data.members.find(m => m.userId === data.currentUserId)
@@ -321,6 +332,18 @@ export function Rose({ onNavigate }: RoseProps) {
       {isOwnRoster && (
         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-mono text-[10.5px] font-bold tracking-[0.06em] border text-accent-400 bg-accent-500/10 border-accent-500/50">
           <span className="dot-live bg-accent-400" /> La mia rosa
+        </span>
+      )}
+
+      {ongoingTradesCount > 0 && !isOwnRoster && (
+        <span
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-mono text-[10.5px] font-bold tracking-[0.06em] border text-accent-400 bg-accent-500/10 border-accent-500/50"
+          title="Altre trattative sono in corso nella lega. I dettagli non sono visibili."
+        >
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+          </svg>
+          {ongoingTradesCount} {ongoingTradesCount === 1 ? 'trattativa' : 'trattative'}
         </span>
       )}
 

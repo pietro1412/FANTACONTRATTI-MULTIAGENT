@@ -24,6 +24,7 @@ interface League {
   id: string
   name: string
   status: string
+  isPublic: boolean
   imageUrl?: string | null
   maxParticipants?: number
   members: Array<{ id: string; role: string }>
@@ -186,6 +187,13 @@ function LeagueCard({
           <span className="inline-flex items-center gap-1.5 text-[11px] text-gray-400 mt-1">
             <RoleTag role={membership.role} />
             {league.members.length}{league.maxParticipants ? `/${league.maxParticipants}` : ''}
+            <span className={`text-[9px] font-mono font-bold uppercase tracking-wider px-1 py-0.5 rounded ${
+              league.isPublic
+                ? 'bg-secondary-500/15 text-secondary-400 border border-secondary-500/30'
+                : 'bg-primary-500/15 text-primary-400 border border-primary-500/30'
+            }`}>
+              {league.isPublic ? 'Pubblica' : 'Privata'}
+            </span>
           </span>
         </div>
         {stateBadge}
