@@ -6,7 +6,7 @@
 
 ## Primi passi
 
-1. **Registrati** sulla piattaforma: `<URL>` (email + password).
+1. **Registrati** sulla piattaforma: `https://fantacontratti-multiagent.vercel.app` (email + password).
 2. **Accetta l'invito** alla lega: ti arriva via email e lo trovi anche nell'app.
 3. Al momento dell'accettazione **scegli il nome della tua squadra** — e sei dentro.
 
