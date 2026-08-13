@@ -92,13 +92,12 @@ export function MyTeamHero({
               </div>
             </div>
             <div>
-              <div className="micro-label">Slot rosa</div>
+              <div className="micro-label">Giocatori in rosa</div>
               <div className="stat-number mt-1 text-2xl text-white md:text-[27px]">
                 {team.slotCount}
-                <span className="text-sm font-medium text-gray-400">/{team.maxSlots}</span>
               </div>
               <div className="mt-1 text-[11px] text-gray-500">
-                {team.slotsFree} {team.slotsFree === 1 ? 'slot ancora libero' : 'slot ancora liberi'}
+                giocatori sotto contratto
               </div>
             </div>
           </div>

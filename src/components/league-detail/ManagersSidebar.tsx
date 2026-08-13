@@ -128,7 +128,7 @@ export function ManagersSidebar({
             </div>
             <div className="flex justify-between items-center text-sm">
               <span className="text-gray-400">Giocatori a roster</span>
-              <span className="text-white font-medium">{totals.totalSlots}/{totals.maxTotalSlots}</span>
+              <span className="text-white font-medium">{totals.totalSlots}</span>
             </div>
             <div className="flex justify-between items-center text-sm">
               <span className="text-gray-400">Team OK / Attenzione / Critico</span>

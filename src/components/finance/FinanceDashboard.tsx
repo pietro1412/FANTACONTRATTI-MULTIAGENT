@@ -93,7 +93,7 @@ export function FinanceDashboard({ data, leagueId, myTeamId, onTeamClick, onNavi
           <LeagueKpi
             label="Giocatori sotto contratto"
             value={`${totals.totalSlots}`}
-            note={`su ${totals.maxTotalSlots} slot totali di lega`}
+            note="in tutta la lega"
           />
         </div>
       </section>

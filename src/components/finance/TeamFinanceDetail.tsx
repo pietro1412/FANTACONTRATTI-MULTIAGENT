@@ -135,11 +135,9 @@ export function TeamFinanceDetail({ team, data, leagueId, onBack, onNavigateToPl
         />
         <KPICard
           title="Rosa"
-          description="Giocatori attualmente sotto contratto rispetto agli slot massimi. Gli slot liberi possono essere riempiti al prossimo mercato."
-          value={`${team.slotCount}/${team.maxSlots}`}
-          subtitle={`${team.slotsFree} slot liberi`}
-          progress={Math.round((team.slotCount / team.maxSlots) * 100)}
-          progressColor="bg-secondary-500"
+          description="Giocatori attualmente sotto contratto. Dopo il primo mercato non ci sono limiti di rosa: l'unico vincolo di consistenza e nella fase rinnovi (max 29)."
+          value={`${team.slotCount}`}
+          subtitle="giocatori sotto contratto"
         />
       </div>
 
