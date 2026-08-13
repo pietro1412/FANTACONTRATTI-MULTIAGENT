@@ -7,6 +7,10 @@
 > **Aggiornamento 2026-06-06:** Sprint A e Sprint B (feature di gioco) COMPLETATI e verdi. I gap "C1–C4" descritti sotto sono risolti o erano dead code — lo stato corrente è in `docs/COMPLETAMENTO-BACKLOG.md`. Rinviati a round dedicati post-merge: **formula indennizzo ESTERO** (in attesa input) e **Polish UX web**.
 >
 > **Aggiornamento 2026-08-13:** Sprint B UI completo (T1-1 toggle lega + badge, T3-1 indicatore trattativa ai terzi, T3-2 controfferta, T7-2 Pusher Svincolati — commit `e91901b`). Branch allineati: `main` = `develop` = `opencode_luglio` = `2cf6d06`. Test: 1712 verdi (77 file). Ristrutturate le colonne contratto di `Contracts`/`Rose` (attuale/rinnovo separate, colonna Rubata, tag SCADE). Unico blocco rimasto a Sprint C: **formula indennizzo ESTERO** (in attesa input).
+>
+> **Aggiornamento 2026-08-13 (sera) — Livello 2 raccolta evidenze beta** (branch `feature/1.x-raccolta-evidenze-beta`, base `04705c7`, WIP non ancora fuso): reporter errori globali frontend (`window.onerror`/`unhandledrejection` → `/api/logs` con versione/UA), contesto sessione auto nelle segnalazioni (`metadata` su `UserFeedback` + `pageContext`), workflow conferma fix RISOLTA→CHIUSA con reopen, issue GitHub dal superadmin (`GH_PAT`), `relatedLogs` admin nel dettaglio. Test: **1751 verdi (81 file)**. Aggiunta **smoke suite beta** (`tests/e2e/smoke-beta.spec.ts` + `playwright.beta.config.ts`, 6 test read-only su preview/prod via env) — verificata 3x su stack locale. ⚠️ **Da fare su Vercel**: settare env `GH_PAT` per abilitare la creazione issue GitHub.
+>
+> Nota: i paragrafi sotto (§1, §2, §3) riflettono lo stato storico di giugno 2026 (conteggi test e dettagli C1–C4 non più attuali) — fanno fede i paragrafi sopra e `HANDOFF.md`.
 
 ---
 

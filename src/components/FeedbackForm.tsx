@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Textarea } from '@/components/ui/Textarea'
 import { feedbackApi } from '../services/api'
+import { buildSessionMetadata } from '@/utils/app-meta'
 
 interface FeedbackFormProps {
   leagueId?: string
@@ -49,6 +50,7 @@ export function FeedbackForm({ leagueId, pageContext, onSuccess, onCancel }: Fee
         category,
         leagueId,
         pageContext,
+        metadata: buildSessionMetadata(),
       })
 
       if (res.success) {

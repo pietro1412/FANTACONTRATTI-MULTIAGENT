@@ -5,6 +5,7 @@ import { FeedbackForm } from '../components/FeedbackForm'
 import { FeedbackList } from '../components/FeedbackList'
 import { FeedbackDetail } from '../components/FeedbackDetail'
 import { useAuth } from '../hooks/useAuth'
+import { getPageContext } from '@/utils/app-meta'
 
 interface PatchNote {
   id: string
@@ -370,6 +371,7 @@ export function FeedbackHub({ leagueId, feedbackId: initialFeedbackId, onNavigat
             <div className="p-6">
               <FeedbackForm
                 leagueId={leagueId}
+                pageContext={getPageContext()}
                 onSuccess={handleFormSuccess}
                 onCancel={() => { setShowForm(false); }}
               />

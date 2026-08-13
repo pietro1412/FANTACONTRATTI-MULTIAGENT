@@ -1,5 +1,6 @@
 import { Component } from 'react'
 import type { ErrorInfo, ReactNode } from 'react'
+import { getAccessToken } from '@/services/api'
 
 interface ErrorBoundaryProps {
   children: ReactNode
@@ -23,9 +24,13 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
     const apiUrl = (import.meta.env.VITE_API_URL as string | undefined) ?? ''
 
     // Fire-and-forget log to backend — use fetch directly to avoid circular deps with api.ts
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+    const token = getAccessToken()
+    if (token) headers['Authorization'] = `Bearer ${token}`
+
     fetch(`${apiUrl}/api/logs`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({
         severity: 'CRITICAL',
         category: 'ERROR',
@@ -33,6 +38,11 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
         metadata: {
           stack: error.stack,
           componentStack: errorInfo.componentStack,
+          version: __APP_VERSION__,
+          commit: __GIT_COMMIT__,
+          branch: __GIT_BRANCH__,
+          userAgent: navigator.userAgent,
+          url: window.location.href,
         },
       }),
     }).catch(() => {

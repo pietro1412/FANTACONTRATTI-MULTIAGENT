@@ -626,6 +626,7 @@ enum FeedbackStatus {
   APERTA           // Initial state - report submitted
   IN_LAVORAZIONE   // Admin is working on it
   RISOLTA          // Issue resolved
+  CHIUSA           // Tester confirmed the fix works
 }
 
 // ==================== FEEDBACK CATEGORY ENUM ====================
@@ -658,6 +659,9 @@ model UserFeedback {
 
   // Optional: page/context where issue occurred
   pageContext     String?           // e.g., "contracts", "auction", "rubata"
+
+  // Auto-attached session context (version, userAgent, platform, viewport...)
+  metadata        Json?
 
   // GitHub integration
   githubIssueId   Int?              // GitHub issue number if created

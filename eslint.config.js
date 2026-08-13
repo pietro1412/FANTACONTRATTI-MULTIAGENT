@@ -15,6 +15,7 @@ export default tseslint.config(
       // Node-side scripts/config not part of the app's TS project (were never
       // type-lintable: not in tsconfig.json). Excluded to keep lint meaningful.
       'playwright.config.ts',
+      'playwright.beta.config.ts',
       'prisma/**',
       'scripts/**',
     ],

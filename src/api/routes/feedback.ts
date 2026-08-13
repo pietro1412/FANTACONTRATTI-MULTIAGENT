@@ -13,6 +13,9 @@ import {
   markNotificationRead,
   markAllNotificationsRead,
   getFeedbackStats,
+  confirmFeedbackFix,
+  reopenFeedback,
+  createGitHubIssue,
 } from '../../services/feedback.service'
 import { authMiddleware } from '../middleware/auth'
 
@@ -23,12 +26,13 @@ const router = Router()
 // POST /api/feedback - Submit new feedback
 router.post('/', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { title, description, category, leagueId, pageContext } = req.body as {
+    const { title, description, category, leagueId, pageContext, metadata } = req.body as {
       title: string
       description: string
       category?: FeedbackCategory
       leagueId?: string
       pageContext?: string
+      metadata?: Record<string, unknown>
     }
 
     const result = await submitFeedback(req.user!.userId, {
@@ -37,6 +41,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
       category,
       leagueId,
       pageContext,
+      metadata,
     })
 
     if (!result.success) {
@@ -202,6 +207,71 @@ router.post('/:id/response', authMiddleware, async (req: Request, res: Response)
     res.status(201).json(result)
   } catch (error) {
     console.error('Add feedback response error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// ==================== OWNER ENDPOINTS ====================
+
+// POST /api/feedback/:id/confirm - Tester confirms the fix works (owner)
+router.post('/:id/confirm', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const feedbackId = req.params.id
+
+    const result = await confirmFeedbackFix(feedbackId!, req.user!.userId)
+
+    if (!result.success) {
+      const statusCode = result.message === 'Non autorizzato' ? 403 :
+                         result.message === 'Segnalazione non trovata' ? 404 : 400
+      res.status(statusCode).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Confirm feedback fix error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// POST /api/feedback/:id/reopen - Tester re-opens a feedback that still fails (owner)
+router.post('/:id/reopen', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const feedbackId = req.params.id
+
+    const result = await reopenFeedback(feedbackId!, req.user!.userId)
+
+    if (!result.success) {
+      const statusCode = result.message === 'Non autorizzato' ? 403 :
+                         result.message === 'Segnalazione non trovata' ? 404 : 400
+      res.status(statusCode).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Reopen feedback error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// POST /api/feedback/:id/github - Create linked GitHub issue (superadmin)
+router.post('/:id/github', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const feedbackId = req.params.id
+
+    const result = await createGitHubIssue(feedbackId!, req.user!.userId)
+
+    if (!result.success) {
+      const statusCode = result.message === 'Non autorizzato' ? 403 :
+                         result.message === 'Segnalazione non trovata' ? 404 : 400
+      res.status(statusCode).json(result)
+      return
+    }
+
+    res.status(201).json(result)
+  } catch (error) {
+    console.error('Create GitHub issue error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })

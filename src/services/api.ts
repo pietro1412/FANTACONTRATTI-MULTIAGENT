@@ -1875,6 +1875,7 @@ export const feedbackApi = {
     category?: 'BUG' | 'SUGGERIMENTO' | 'DOMANDA' | 'ALTRO'
     leagueId?: string
     pageContext?: string
+    metadata?: Record<string, unknown>
   }) =>
     request('/api/feedback', {
       method: 'POST',
@@ -1916,7 +1917,7 @@ export const feedbackApi = {
   getStats: () => request('/api/feedback/stats'),
 
   // Update feedback status (superadmin only)
-  updateStatus: (id: string, status: 'APERTA' | 'IN_LAVORAZIONE' | 'RISOLTA') =>
+  updateStatus: (id: string, status: 'APERTA' | 'IN_LAVORAZIONE' | 'RISOLTA' | 'CHIUSA') =>
     request(`/api/feedback/${id}/status`, {
       method: 'PATCH',
       body: JSON.stringify({ status }),
@@ -1926,12 +1927,24 @@ export const feedbackApi = {
   addResponse: (
     id: string,
     content: string,
-    statusChange?: 'APERTA' | 'IN_LAVORAZIONE' | 'RISOLTA'
+    statusChange?: 'APERTA' | 'IN_LAVORAZIONE' | 'RISOLTA' | 'CHIUSA'
   ) =>
     request(`/api/feedback/${id}/response`, {
       method: 'POST',
       body: JSON.stringify({ content, statusChange }),
     }),
+
+  // Tester confirms the fix works (owner only, from RISOLTA)
+  confirmFix: (id: string) =>
+    request(`/api/feedback/${id}/confirm`, { method: 'POST' }),
+
+  // Tester re-opens a feedback that still fails (owner only, from RISOLTA)
+  reopen: (id: string) =>
+    request(`/api/feedback/${id}/reopen`, { method: 'POST' }),
+
+  // Create linked GitHub issue (superadmin only)
+  createGithubIssue: (id: string) =>
+    request(`/api/feedback/${id}/github`, { method: 'POST' }),
 
   // Get unread notifications
   getUnreadNotifications: () => request('/api/feedback/notifications/unread'),

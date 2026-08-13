@@ -41,6 +41,9 @@ Verificare che TUTTE le env siano presenti su Vercel per gli scope **Production*
 **Cron API-Football + anti-bot (non bloccanti per il flusso beta):**
 - `CRON_SECRET`, `API_FOOTBALL_KEY`, `API_FOOTBALL_DAILY_LIMIT`, `TURNSTILE_SECRET_KEY`, `LOG_LEVEL`
 
+**Raccolta evidenze beta (dal Livello 2, 2026-08-13 — non bloccante, senza di essa il bottone GitHub del superadmin risponde "GH_PAT non configurato"):**
+- `GH_PAT` — GitHub Personal Access Token (scope `repo`/`issues`) per creare issue dal pannello Feedback del superadmin
+
 > Riferimento locale: confrontare con `.env.vercel` / `.env` in locale per non dimenticarne nessuna.
 
 ## 2. ⚙️ Sicurezza dato: PITR su Neon

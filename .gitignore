@@ -16,6 +16,7 @@ dist-ssr/
 # Testing
 coverage/
 playwright-report/
+playwright-report-beta/
 playwright/.cache/
 test-results/
 

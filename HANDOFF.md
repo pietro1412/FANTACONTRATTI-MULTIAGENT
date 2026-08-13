@@ -1,7 +1,7 @@
 # HANDOFF — FantaContratti Dynasty Platform
 
 > File di passaggio per prendere in carico lo sviluppo. Generato: 2026-07-27.
-> Aggiornato: 2026-08-13 (Sprint B UI completo, branch allineati su `2cf6d06`).
+> Aggiornato: 2026-08-13 (Livello 2 raccolta evidenze beta su `feature/1.x-raccolta-evidenze-beta`, WIP non ancora fuso).
 > Aggiornato solo su conferma dello stato effettivo.
 
 ---
@@ -41,15 +41,16 @@
 ## 3. Stato Git
 
 ### Branch attuale
-- **HEAD su `opencode_luglio`** (commit `2cf6d06`)
-- `main` = `develop` = `opencode_luglio` = `2cf6d06` (**allineati — divergenza risolta 2026-08-13**)
-- Working tree pulito
+- **HEAD su `feature/1.x-raccolta-evidenze-beta`** (base `04705c7` = allineato a `main`/`develop`/`opencode_luglio`)
+- `main` = `develop` = `opencode_luglio` = `04705c7` (**allineati — divergenza risolta 2026-08-13**)
+- Working tree con modifiche WIP del Livello 2 raccolta evidenze (non ancora committate)
 - Script dev committati: `scripts/avvia-piattaforma.ps1` (launcher idempotente API :3003 + client :5174), `scripts/setup-scambi-test.ts` (seed dati scambi per test), `scripts/_create-sim-league.ts`, `scripts/_stress-test*.mjs`
 
 ### Branch locali
 | Branch | Stato |
 |--------|-------|
-| `opencode_luglio` | ✅ HEAD, attivo, == `main` |
+| `feature/1.x-raccolta-evidenze-beta` | ✅ HEAD attivo, WIP Livello 2 (da committare e fondere) |
+| `opencode_luglio` | ✅ == `main` |
 | `develop` | ✅ allineato a `main` |
 | `main` | ✅ produzione, aggiornato |
 | `feature/1.x-prod-hardening` | Locale, da valutare |
@@ -130,7 +131,7 @@ Dopo modifiche: `db:build-schema` → merge in `schema.generated.prisma` → `db
 | Check | Stato |
 |-------|-------|
 | Typecheck (`tsc --noEmit`) | ✅ 0 errori |
-| Test (1712) | ✅ Tutti verdi (77 file, ~75s) |
+| Test (1751) | ✅ Tutti verdi (81 file, ~63s) |
 | Build (`npm run build` + `build:api`) | ✅ Verificata 2026-08-13 |
 | Lint | ✅ 0 errori (1204 warning pre-esistenti, nessuno nuovo) |
 | CI/CD | GitHub Actions: lint + typecheck + test + build su PR (`.github/workflows/pr-validation.yml`) |
@@ -171,6 +172,17 @@ Dopo modifiche: `db:build-schema` → merge in `schema.generated.prisma` → `db
 - CORS dev accetta IP LAN
 - E2E parametrizzati (env + baseURL)
 - Runbook rilascio beta + guida onboarding beta
+
+**Livello 2 — Raccolta evidenze beta (2026-08-13, branch `feature/1.x-raccolta-evidenze-beta`, WIP):**
+- Schema: `metadata Json?` su `UserFeedback` + stato `CHIUSA` (feedback.prisma)
+- Reporter errori globali frontend (`src/utils/frontend-error-reporter.ts`): `window.onerror` + `unhandledrejection` → POST `/api/logs` con severity ERROR, versione build, UA, auth da `getAccessToken()`
+- Contesto sessione auto: `src/utils/app-meta.ts` (`buildSessionMetadata`/`getPageContext`); `FeedbackForm` invia metadata, `FeedbackHub` passa `pageContext`
+- Backend: `submitFeedback` salva metadata; `getFeedbackById` include `relatedLogs` (ultimi 10 AppLog autore a −15 min, admin-only)
+- Workflow conferma fix: `confirmFeedbackFix` (RISOLTA→CHIUSA) + `reopenFeedback` (→APERTA, azzera `resolvedAt`); bottoni owner in `FeedbackDetail`
+- Issue GitHub dal superadmin: `createGitHubIssue` (usa `GH_PAT`, label da categoria, link all'issue esistente); route `POST /api/feedback/:id/github` + bottone admin
+- Test: feedback.service +28 (49 totali), app-meta (5), frontend-error-reporter (4) — tutti verdi; tsc e lint puliti
+- **Smoke suite beta**: `tests/e2e/smoke-beta.spec.ts` + `playwright.beta.config.ts` (read-only, env-driven, 6 test) — verificata 3x su stack locale
+- ⚠️ **Da fare su Vercel**: settare env `GH_PAT` (Personal Access Token con scope `repo`/`issues`) per abilitare la creazione issue GitHub dal pannello Feedback del superadmin
 
 ### ⬜ MANCANTE — Sprint B UI (da implementare)
 
@@ -227,7 +239,14 @@ npm run db:push          # Applica a DB
 # Test
 npm run test             # Vitest watch
 npm run test:all         # Singola esecuzione
-npm run test:e2e         # Playwright
+npm run test:e2e         # Playwright (dev server locale)
+npm run test:e2e:beta    # Smoke suite su istanza già attiva (vedi sotto)
+
+# Smoke beta (preview/prod, read-only, 6 test)
+#   $env:E2E_BASE_URL="https://<preview>.vercel.app"
+#   $env:E2E_MANAGER_EMAIL="..."; $env:E2E_MANAGER_PASSWORD="..."
+#   $env:E2E_LEAGUE_URL="https://<app>/leagues/<id>"   # serve per i test 4-5
+#   npx playwright test --config=playwright.beta.config.ts
 
 # Qualità
 npm run lint             # ESLint

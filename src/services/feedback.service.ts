@@ -1,4 +1,5 @@
 import { FeedbackStatus, FeedbackCategory } from '@prisma/client'
+import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import type { ServiceResult } from '@/shared/types/service-result'
 
@@ -12,6 +13,7 @@ export async function submitFeedback(
     category?: FeedbackCategory
     leagueId?: string
     pageContext?: string
+    metadata?: Record<string, unknown>
   }
 ): Promise<ServiceResult> {
   // Validate input
@@ -55,6 +57,7 @@ export async function submitFeedback(
       category: data.category || FeedbackCategory.BUG,
       leagueId: data.leagueId || null,
       pageContext: data.pageContext || null,
+      metadata: data.metadata as Prisma.InputJsonValue | undefined,
       status: FeedbackStatus.APERTA,
     },
     include: {
@@ -181,6 +184,49 @@ export async function getFeedbackById(
     },
   })
 
+  // Correlate AppLog entries of the same user around the feedback window
+  // (Livello 2 evidenze beta) — superadmin only, never exposed to the owner.
+  let relatedLogs: Array<{
+    id: string
+    severity: string
+    category: string
+    message: string
+    timestamp: Date
+    source: string
+    method?: string | null
+    path?: string | null
+    statusCode?: number | null
+    metadata?: unknown
+  }> = []
+
+  if (user?.isSuperAdmin) {
+    const since = new Date(feedback.createdAt.getTime() - 15 * 60 * 1000)
+    const logs = await prisma.appLog.findMany({
+      where: {
+        userId: feedback.userId,
+        timestamp: { gte: since },
+        OR: [
+          { severity: { in: ['ERROR', 'CRITICAL'] } },
+          { category: 'ERROR' },
+        ],
+      },
+      orderBy: { timestamp: 'desc' },
+      take: 10,
+    })
+    relatedLogs = logs.map(l => ({
+      id: l.id,
+      severity: l.severity,
+      category: l.category,
+      message: l.message,
+      timestamp: l.timestamp,
+      source: l.source,
+      method: l.method,
+      path: l.path,
+      statusCode: l.statusCode,
+      metadata: l.metadata ?? undefined,
+    }))
+  }
+
   return {
     success: true,
     data: {
@@ -190,11 +236,13 @@ export async function getFeedbackById(
       category: feedback.category,
       status: feedback.status,
       pageContext: feedback.pageContext,
+      metadata: feedback.metadata ?? undefined,
       githubIssueId: feedback.githubIssueId,
       githubIssueUrl: feedback.githubIssueUrl,
       createdAt: feedback.createdAt,
       updatedAt: feedback.updatedAt,
       resolvedAt: feedback.resolvedAt,
+      relatedLogs: relatedLogs.length > 0 ? relatedLogs : undefined,
       user: {
         id: feedback.user.id,
         username: feedback.user.username,
@@ -373,6 +421,184 @@ export async function updateFeedbackStatus(
       status: updatedFeedback.status,
       resolvedAt: updatedFeedback.resolvedAt,
     },
+  }
+}
+
+// ==================== CONFIRM FIX (OWNER) ====================
+
+export async function confirmFeedbackFix(
+  feedbackId: string,
+  userId: string
+): Promise<ServiceResult> {
+  const feedback = await prisma.userFeedback.findUnique({
+    where: { id: feedbackId },
+  })
+
+  if (!feedback) {
+    return { success: false, message: 'Segnalazione non trovata' }
+  }
+
+  if (feedback.userId !== userId) {
+    return { success: false, message: 'Non autorizzato' }
+  }
+
+  if (feedback.status !== FeedbackStatus.RISOLTA) {
+    return { success: false, message: 'Puoi confermare il fix solo su segnalazioni risolte' }
+  }
+
+  const updated = await prisma.userFeedback.update({
+    where: { id: feedbackId },
+    data: { status: FeedbackStatus.CHIUSA },
+  })
+
+  return {
+    success: true,
+    message: 'Fix confermato. Grazie per il riscontro!',
+    data: { id: updated.id, status: updated.status, resolvedAt: updated.resolvedAt },
+  }
+}
+
+// ==================== REOPEN FEEDBACK (OWNER) ====================
+
+export async function reopenFeedback(
+  feedbackId: string,
+  userId: string
+): Promise<ServiceResult> {
+  const feedback = await prisma.userFeedback.findUnique({
+    where: { id: feedbackId },
+  })
+
+  if (!feedback) {
+    return { success: false, message: 'Segnalazione non trovata' }
+  }
+
+  if (feedback.userId !== userId) {
+    return { success: false, message: 'Non autorizzato' }
+  }
+
+  if (feedback.status !== FeedbackStatus.RISOLTA && feedback.status !== FeedbackStatus.CHIUSA) {
+    return { success: false, message: 'Puoi riaprire solo una segnalazione risolta o chiusa' }
+  }
+
+  const updated = await prisma.userFeedback.update({
+    where: { id: feedbackId },
+    data: {
+      status: FeedbackStatus.APERTA,
+      resolvedAt: null,
+    },
+  })
+
+  return {
+    success: true,
+    message: 'Segnalazione riaperta',
+    data: { id: updated.id, status: updated.status, resolvedAt: updated.resolvedAt },
+  }
+}
+
+// ==================== CREATE GITHUB ISSUE (ADMIN) ====================
+
+const GITHUB_REPO_OWNER = 'pietro1412'
+const GITHUB_REPO_NAME = 'FANTACONTRATTI-MULTIAGENT'
+
+export async function createGitHubIssue(
+  feedbackId: string,
+  adminUserId: string
+): Promise<ServiceResult> {
+  const admin = await prisma.user.findUnique({
+    where: { id: adminUserId },
+    select: { isSuperAdmin: true },
+  })
+
+  if (!admin?.isSuperAdmin) {
+    return { success: false, message: 'Non autorizzato' }
+  }
+
+  const token = process.env.GH_PAT
+  if (!token) {
+    return { success: false, message: 'GH_PAT non configurato sul server' }
+  }
+
+  const feedback = await prisma.userFeedback.findUnique({
+    where: { id: feedbackId },
+    include: {
+      user: { select: { username: true, email: true } },
+      league: { select: { name: true } },
+    },
+  })
+
+  if (!feedback) {
+    return { success: false, message: 'Segnalazione non trovata' }
+  }
+
+  if (feedback.githubIssueId) {
+    return {
+      success: true,
+      message: 'Issue gia\' creata',
+      data: { githubIssueId: feedback.githubIssueId, githubIssueUrl: feedback.githubIssueUrl },
+    }
+  }
+
+  const categoryLabel: Record<FeedbackCategory, string> = {
+    BUG: '🐞 Bug',
+    SUGGERIMENTO: '💡 Suggerimento',
+    DOMANDA: '❓ Domanda',
+    ALTRO: '📦 Altro',
+  }
+  const label = categoryLabel[feedback.category] ?? feedback.category
+
+  const body = [
+    `**Tipo:** ${label}`,
+    `**Stato:** ${feedback.status}`,
+    `**Da:** ${feedback.user.username}${feedback.user.email ? ` (${feedback.user.email})` : ''}`,
+    feedback.league ? `**Lega:** ${feedback.league.name}` : '**Lega:** —',
+    feedback.pageContext ? `**Pagina:** ${feedback.pageContext}` : '',
+    '',
+    '---',
+    '',
+    feedback.description,
+    '',
+    '---',
+    '',
+    '_Creata automaticamente dal Feedback Hub._',
+  ]
+    .filter((line: string) => line !== '')
+    .join('\n')
+
+  const response = await fetch(
+    `https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/issues`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github+json',
+        'Content-Type': 'application/json',
+        'X-GitHub-Api-Version': '2022-11-28',
+      },
+      body: JSON.stringify({
+        title: `[${label}] ${feedback.title}`,
+        body,
+      }),
+    }
+  )
+
+  if (!response.ok) {
+    return { success: false, message: `Errore GitHub (${response.status})` }
+  }
+
+  const created = await response.json() as { number: number; html_url: string }
+
+  const updated = await prisma.userFeedback.update({
+    where: { id: feedbackId },
+    data: {
+      githubIssueId: created.number,
+      githubIssueUrl: created.html_url,
+    },
+  })
+
+  return {
+    success: true,
+    message: 'Issue GitHub creata',
+    data: { githubIssueId: updated.githubIssueId, githubIssueUrl: updated.githubIssueUrl },
   }
 }
 

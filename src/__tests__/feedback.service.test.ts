@@ -35,6 +35,9 @@ const { mockPrisma, MockPrismaClient } = vi.hoisted(() => {
       updateMany: vi.fn(),
       upsert: vi.fn()
     },
+    appLog: {
+      findMany: vi.fn()
+    },
     $transaction: vi.fn()
   }
 
@@ -170,6 +173,37 @@ describe('Feedback Service', () => {
 
       expect(result.success).toBe(true)
       expect(result.data).toBeDefined()
+    })
+
+    it('persists session metadata when provided', async () => {
+      mockPrisma.userFeedback.create.mockResolvedValue({
+        id: 'feedback-3',
+        title: 'Bug with context',
+        category: 'BUG',
+        status: 'APERTA',
+        createdAt: new Date('2026-01-01'),
+        user: { username: 'testuser' },
+        league: null
+      })
+
+      const metadata = { version: '1.x@abc', userAgent: 'test-agent', route: '/leagues/l1/contracts' }
+
+      const result = await feedbackService.submitFeedback('user-1', {
+        title: 'Bug with context',
+        description: 'Broken on contracts',
+        pageContext: 'contracts',
+        metadata
+      })
+
+      expect(result.success).toBe(true)
+      expect(mockPrisma.userFeedback.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            pageContext: 'contracts',
+            metadata
+          })
+        })
+      )
     })
   })
 
@@ -314,12 +348,341 @@ describe('Feedback Service', () => {
         ]
       })
       mockPrisma.feedbackNotification.updateMany.mockResolvedValue({ count: 0 })
+      mockPrisma.appLog.findMany.mockResolvedValue([])
 
       const result = await feedbackService.getFeedbackById('fb-1', 'admin-1')
 
       expect(result.success).toBe(true)
       const data = result.data as { responses: unknown[] }
       expect(data.responses).toHaveLength(1)
+    })
+
+    it('includes related logs for superadmin', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({ isSuperAdmin: true })
+      mockPrisma.userFeedback.findUnique.mockResolvedValue({
+        id: 'fb-1',
+        userId: 'other-user',
+        title: 'Someone Bug',
+        description: 'Description',
+        category: 'BUG',
+        status: 'APERTA',
+        pageContext: null,
+        githubIssueId: null,
+        githubIssueUrl: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        resolvedAt: null,
+        user: { id: 'other-user', username: 'otheruser' },
+        league: null,
+        responses: []
+      })
+      mockPrisma.feedbackNotification.updateMany.mockResolvedValue({ count: 0 })
+      mockPrisma.appLog.findMany.mockResolvedValue([
+        {
+          id: 'log-1',
+          severity: 'ERROR',
+          category: 'ERROR',
+          message: 'unhandledrejection: boom',
+          timestamp: new Date(),
+          source: 'FRONTEND',
+          method: null,
+          path: null,
+          statusCode: null,
+          metadata: null
+        }
+      ])
+
+      const result = await feedbackService.getFeedbackById('fb-1', 'admin-1')
+
+      expect(result.success).toBe(true)
+      const data = result.data as { relatedLogs?: Array<{ id: string; severity: string }> }
+      expect(data.relatedLogs).toHaveLength(1)
+      expect(data.relatedLogs?.[0]?.severity).toBe('ERROR')
+    })
+
+    it('does not include related logs for the owner', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({ isSuperAdmin: false })
+      mockPrisma.userFeedback.findUnique.mockResolvedValue({
+        id: 'fb-1',
+        userId: 'user-1',
+        title: 'My Bug',
+        description: 'Description',
+        category: 'BUG',
+        status: 'APERTA',
+        pageContext: null,
+        githubIssueId: null,
+        githubIssueUrl: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        resolvedAt: null,
+        user: { id: 'user-1', username: 'testuser' },
+        league: null,
+        responses: []
+      })
+      mockPrisma.feedbackNotification.updateMany.mockResolvedValue({ count: 0 })
+
+      const result = await feedbackService.getFeedbackById('fb-1', 'user-1')
+
+      expect(result.success).toBe(true)
+      expect(mockPrisma.appLog.findMany).not.toHaveBeenCalled()
+      const data = result.data as { relatedLogs?: unknown }
+      expect(data.relatedLogs).toBeUndefined()
+    })
+  })
+
+  // ==================== confirmFeedbackFix ====================
+
+  describe('confirmFeedbackFix', () => {
+    it('returns error when feedback not found', async () => {
+      mockPrisma.userFeedback.findUnique.mockResolvedValue(null)
+
+      const result = await feedbackService.confirmFeedbackFix('fb-999', 'user-1')
+
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('Segnalazione non trovata')
+    })
+
+    it('returns error when user is not the owner', async () => {
+      mockPrisma.userFeedback.findUnique.mockResolvedValue({
+        id: 'fb-1',
+        userId: 'other-user',
+        status: 'RISOLTA'
+      })
+
+      const result = await feedbackService.confirmFeedbackFix('fb-1', 'user-1')
+
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('Non autorizzato')
+    })
+
+    it('returns error when feedback is not RISOLTA', async () => {
+      mockPrisma.userFeedback.findUnique.mockResolvedValue({
+        id: 'fb-1',
+        userId: 'user-1',
+        status: 'APERTA'
+      })
+
+      const result = await feedbackService.confirmFeedbackFix('fb-1', 'user-1')
+
+      expect(result.success).toBe(false)
+      expect(result.message).toContain('risolte')
+    })
+
+    it('marks feedback as CHIUSA', async () => {
+      mockPrisma.userFeedback.findUnique.mockResolvedValue({
+        id: 'fb-1',
+        userId: 'user-1',
+        status: 'RISOLTA'
+      })
+      mockPrisma.userFeedback.update.mockResolvedValue({
+        id: 'fb-1',
+        status: 'CHIUSA',
+        resolvedAt: new Date()
+      })
+
+      const result = await feedbackService.confirmFeedbackFix('fb-1', 'user-1')
+
+      expect(result.success).toBe(true)
+      expect(mockPrisma.userFeedback.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: { status: 'CHIUSA' }
+        })
+      )
+      expect((result.data as { status: string }).status).toBe('CHIUSA')
+    })
+  })
+
+  // ==================== reopenFeedback ====================
+
+  describe('reopenFeedback', () => {
+    it('returns error when feedback not found', async () => {
+      mockPrisma.userFeedback.findUnique.mockResolvedValue(null)
+
+      const result = await feedbackService.reopenFeedback('fb-999', 'user-1')
+
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('Segnalazione non trovata')
+    })
+
+    it('returns error when user is not the owner', async () => {
+      mockPrisma.userFeedback.findUnique.mockResolvedValue({
+        id: 'fb-1',
+        userId: 'other-user',
+        status: 'RISOLTA'
+      })
+
+      const result = await feedbackService.reopenFeedback('fb-1', 'user-1')
+
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('Non autorizzato')
+    })
+
+    it('returns error when feedback is still open', async () => {
+      mockPrisma.userFeedback.findUnique.mockResolvedValue({
+        id: 'fb-1',
+        userId: 'user-1',
+        status: 'APERTA'
+      })
+
+      const result = await feedbackService.reopenFeedback('fb-1', 'user-1')
+
+      expect(result.success).toBe(false)
+      expect(result.message).toContain('riaprire')
+    })
+
+    it('reopens a RISOLTA feedback back to APERTA', async () => {
+      mockPrisma.userFeedback.findUnique.mockResolvedValue({
+        id: 'fb-1',
+        userId: 'user-1',
+        status: 'RISOLTA'
+      })
+      mockPrisma.userFeedback.update.mockResolvedValue({
+        id: 'fb-1',
+        status: 'APERTA',
+        resolvedAt: null
+      })
+
+      const result = await feedbackService.reopenFeedback('fb-1', 'user-1')
+
+      expect(result.success).toBe(true)
+      expect(mockPrisma.userFeedback.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: { status: 'APERTA', resolvedAt: null }
+        })
+      )
+    })
+  })
+
+  // ==================== createGitHubIssue ====================
+
+  describe('createGitHubIssue', () => {
+    beforeEach(() => {
+      vi.stubGlobal('fetch', vi.fn())
+    })
+
+    afterEach(() => {
+      vi.unstubAllGlobals()
+    })
+
+    it('returns error when user is not superadmin', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({ isSuperAdmin: false })
+
+      const result = await feedbackService.createGitHubIssue('fb-1', 'user-1')
+
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('Non autorizzato')
+    })
+
+    it('returns error when GH_PAT is not configured', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({ isSuperAdmin: true })
+      delete process.env.GH_PAT
+
+      const result = await feedbackService.createGitHubIssue('fb-1', 'admin-1')
+
+      expect(result.success).toBe(false)
+      expect(result.message).toContain('GH_PAT')
+    })
+
+    it('returns error when feedback not found', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({ isSuperAdmin: true })
+      process.env.GH_PAT = 'test-token'
+      mockPrisma.userFeedback.findUnique.mockResolvedValue(null)
+
+      const result = await feedbackService.createGitHubIssue('fb-999', 'admin-1')
+
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('Segnalazione non trovata')
+    })
+
+    it('returns success when issue already created', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({ isSuperAdmin: true })
+      process.env.GH_PAT = 'test-token'
+      mockPrisma.userFeedback.findUnique.mockResolvedValue({
+        id: 'fb-1',
+        githubIssueId: 42,
+        githubIssueUrl: 'https://github.com/owner/repo/issues/42',
+        user: { username: 'user1', email: 'user1@test.it' },
+        league: null,
+        category: 'BUG',
+        status: 'APERTA',
+        title: 'Bug',
+        description: 'Desc',
+        pageContext: null
+      })
+
+      const result = await feedbackService.createGitHubIssue('fb-1', 'admin-1')
+
+      expect(result.success).toBe(true)
+      expect(result.message).toContain('gia')
+    })
+
+    it('returns error when GitHub API call fails', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({ isSuperAdmin: true })
+      process.env.GH_PAT = 'test-token'
+      mockPrisma.userFeedback.findUnique.mockResolvedValue({
+        id: 'fb-1',
+        githubIssueId: null,
+        githubIssueUrl: null,
+        user: { username: 'user1', email: 'user1@test.it' },
+        league: { id: 'l1', name: 'League One' },
+        category: 'BUG',
+        status: 'APERTA',
+        title: 'Bug',
+        description: 'Desc',
+        pageContext: 'contracts'
+      })
+      const fetchMock = vi.mocked(fetch)
+      fetchMock.mockResolvedValue({
+        ok: false,
+        status: 401
+      } as Response)
+
+      const result = await feedbackService.createGitHubIssue('fb-1', 'admin-1')
+
+      expect(result.success).toBe(false)
+      expect(result.message).toContain('Errore GitHub')
+    })
+
+    it('creates the GitHub issue and stores the link', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({ isSuperAdmin: true })
+      process.env.GH_PAT = 'test-token'
+      mockPrisma.userFeedback.findUnique.mockResolvedValue({
+        id: 'fb-1',
+        githubIssueId: null,
+        githubIssueUrl: null,
+        user: { username: 'user1', email: 'user1@test.it' },
+        league: { id: 'l1', name: 'League One' },
+        category: 'BUG',
+        status: 'APERTA',
+        title: 'Crash on contracts',
+        description: 'App crashes',
+        pageContext: 'contracts'
+      })
+      const fetchMock = vi.mocked(fetch)
+      fetchMock.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ number: 123, html_url: 'https://github.com/pietro1412/FANTACONTRATTI-MULTIAGENT/issues/123' })
+      } as unknown as Response)
+      mockPrisma.userFeedback.update.mockResolvedValue({
+        id: 'fb-1',
+        githubIssueId: 123,
+        githubIssueUrl: 'https://github.com/pietro1412/FANTACONTRATTI-MULTIAGENT/issues/123'
+      })
+
+      const result = await feedbackService.createGitHubIssue('fb-1', 'admin-1')
+
+      expect(result.success).toBe(true)
+      expect(fetchMock).toHaveBeenCalledWith(
+        'https://api.github.com/repos/pietro1412/FANTACONTRATTI-MULTIAGENT/issues',
+        expect.objectContaining({
+          method: 'POST',
+          headers: expect.objectContaining({ Authorization: 'Bearer test-token' })
+        })
+      )
+      expect(mockPrisma.userFeedback.update).toHaveBeenCalled()
+      const data = result.data as { githubIssueId: number; githubIssueUrl: string }
+      expect(data.githubIssueId).toBe(123)
+      expect(data.githubIssueUrl).toContain('issues/123')
     })
   })
 

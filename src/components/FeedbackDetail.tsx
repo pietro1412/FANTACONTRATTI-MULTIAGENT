@@ -11,6 +11,19 @@ interface FeedbackResponse {
   createdAt: string
 }
 
+interface RelatedLog {
+  id: string
+  severity: string
+  category: string
+  message: string
+  timestamp: string
+  source: string
+  method?: string | null
+  path?: string | null
+  statusCode?: number | null
+  metadata?: unknown
+}
+
 interface FeedbackData {
   id: string
   title: string
@@ -18,11 +31,13 @@ interface FeedbackData {
   category: string
   status: string
   pageContext: string | null
+  metadata?: Record<string, unknown>
   githubIssueId: number | null
   githubIssueUrl: string | null
   createdAt: string
   updatedAt: string
   resolvedAt: string | null
+  relatedLogs?: RelatedLog[]
   user: { id: string; username: string }
   league: { id: string; name: string } | null
   responses: FeedbackResponse[]
@@ -39,6 +54,7 @@ const statusConfig: Record<string, { label: string; color: string; bgColor: stri
   APERTA: { label: 'Aperta', color: 'text-accent-400', bgColor: 'bg-accent-500/20' },
   IN_LAVORAZIONE: { label: 'In Lavorazione', color: 'text-primary-300', bgColor: 'bg-primary-500/20' },
   RISOLTA: { label: 'Risolta', color: 'text-secondary-300', bgColor: 'bg-secondary-500/20' },
+  CHIUSA: { label: 'Chiusa', color: 'text-gray-300', bgColor: 'bg-surface-100/40' },
 }
 
 const categoryConfig: Record<string, { label: string; icon: string }> = {
@@ -58,6 +74,13 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
   const [responseContent, setResponseContent] = useState('')
   const [responseStatus, setResponseStatus] = useState<string>('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Details / evidence panels
+  const [showDetails, setShowDetails] = useState(false)
+  const [showLogs, setShowLogs] = useState(false)
+  const [isConfirming, setIsConfirming] = useState(false)
+  const [isReopening, setIsReopening] = useState(false)
+  const [isCreatingIssue, setIsCreatingIssue] = useState(false)
 
   useEffect(() => {
     void loadFeedback()
@@ -105,7 +128,7 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
 
   async function handleChangeStatus(newStatus: string) {
     try {
-      const res = await feedbackApi.updateStatus(feedbackId, newStatus as 'APERTA' | 'IN_LAVORAZIONE' | 'RISOLTA')
+      const res = await feedbackApi.updateStatus(feedbackId, newStatus as 'APERTA' | 'IN_LAVORAZIONE' | 'RISOLTA' | 'CHIUSA')
       if (res.success) {
         void loadFeedback()
         onUpdated?.()
@@ -115,6 +138,56 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
     } catch (_err) {
       toast.error('Errore di connessione')
     }
+  }
+
+  async function handleConfirmFix() {
+    setIsConfirming(true)
+    try {
+      const res = await feedbackApi.confirmFix(feedbackId)
+      if (res.success) {
+        toast.success('Fix confermato. Grazie!')
+        void loadFeedback()
+        onUpdated?.()
+      } else {
+        toast.error(res.message || 'Errore nella conferma')
+      }
+    } catch (_err) {
+      toast.error('Errore di connessione')
+    }
+    setIsConfirming(false)
+  }
+
+  async function handleReopen() {
+    setIsReopening(true)
+    try {
+      const res = await feedbackApi.reopen(feedbackId)
+      if (res.success) {
+        toast.success('Segnalazione riaperta')
+        void loadFeedback()
+        onUpdated?.()
+      } else {
+        toast.error(res.message || 'Errore nella riapertura')
+      }
+    } catch (_err) {
+      toast.error('Errore di connessione')
+    }
+    setIsReopening(false)
+  }
+
+  async function handleCreateGithubIssue() {
+    setIsCreatingIssue(true)
+    try {
+      const res = await feedbackApi.createGithubIssue(feedbackId)
+      if (res.success) {
+        toast.success('Issue GitHub creata')
+        void loadFeedback()
+      } else {
+        toast.error(res.message || 'Errore nella creazione dell\'issue')
+      }
+    } catch (_err) {
+      toast.error('Errore di connessione')
+    }
+    setIsCreatingIssue(false)
   }
 
   function formatDate(dateString: string): string {
@@ -216,7 +289,7 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
           <div className="mt-4 pt-4 border-t border-surface-50">
             <span className="micro-label mb-2 block">Cambia stato:</span>
             <div className="flex gap-2">
-              {['APERTA', 'IN_LAVORAZIONE', 'RISOLTA'].map(status => {
+              {['APERTA', 'IN_LAVORAZIONE', 'RISOLTA', 'CHIUSA'].map(status => {
                 if (status === feedback.status) return null
                 const cfg = statusConfig[status] ?? defaultStatus
                 return (
@@ -230,6 +303,101 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
                 )
               })}
             </div>
+          </div>
+        )}
+
+        {/* Owner: confirm fix / still broken (tester workflow) */}
+        {!isAdmin && feedback.status === 'RISOLTA' && (
+          <div className="mt-4 pt-4 border-t border-surface-50">
+            <span className="micro-label mb-2 block">Il fix e' stato verificato?</span>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => { void handleConfirmFix() }}
+                disabled={isConfirming}
+                className="font-display px-4 py-2 text-xs font-bold bg-secondary-500/20 text-secondary-300 border border-secondary-500/40 rounded-lg hover:bg-secondary-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isConfirming ? 'Invio...' : 'Confermo, ora funziona'}
+              </button>
+              <button
+                onClick={() => { void handleReopen() }}
+                disabled={isReopening}
+                className="px-4 py-2 text-xs font-medium bg-danger-500/10 text-danger-400 border border-danger-500/30 rounded-lg hover:bg-danger-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isReopening ? 'Invio...' : 'Ancora non funziona'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Admin: GitHub issue + evidence panels */}
+        {isAdmin && (
+          <div className="mt-4 pt-4 border-t border-surface-50 space-y-3">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <span className="micro-label">Issue GitHub</span>
+              {feedback.githubIssueUrl ? (
+                <a
+                  href={feedback.githubIssueUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1.5 text-xs font-medium bg-surface-300 text-primary-300 border border-primary-500/30 rounded-lg hover:bg-surface-100 transition-colors"
+                >
+                  Issue #{feedback.githubIssueId} →
+                </a>
+              ) : (
+                <button
+                  onClick={() => { void handleCreateGithubIssue() }}
+                  disabled={isCreatingIssue}
+                  className="px-3 py-1.5 text-xs font-medium bg-surface-300 text-white border border-surface-50 rounded-lg hover:bg-surface-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isCreatingIssue ? 'Creazione...' : 'Crea issue GitHub'}
+                </button>
+              )}
+            </div>
+
+            {feedback.metadata && (
+              <div className="border border-surface-50 rounded-xl overflow-hidden">
+                <button
+                  onClick={() => { setShowDetails(v => !v); }}
+                  className="w-full flex items-center justify-between px-3 py-2 text-left bg-surface-300/50 text-xs font-semibold text-gray-300 hover:bg-surface-100/50 transition-colors"
+                >
+                  Dettagli tecnici (versione, dispositivo, pagina)
+                  <span className={`transform transition-transform ${showDetails ? 'rotate-180' : ''}`}>▾</span>
+                </button>
+                {showDetails && (
+                  <div className="px-3 py-2 bg-surface-300/20">
+                    <pre className="text-[11px] text-gray-400 whitespace-pre-wrap font-mono">{JSON.stringify(feedback.metadata, null, 2)}</pre>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {feedback.relatedLogs && feedback.relatedLogs.length > 0 && (
+              <div className="border border-surface-50 rounded-xl overflow-hidden">
+                <button
+                  onClick={() => { setShowLogs(v => !v); }}
+                  className="w-full flex items-center justify-between px-3 py-2 text-left bg-surface-300/50 text-xs font-semibold text-gray-300 hover:bg-surface-100/50 transition-colors"
+                >
+                  Log correlati ({feedback.relatedLogs.length})
+                  <span className={`transform transition-transform ${showLogs ? 'rotate-180' : ''}`}>▾</span>
+                </button>
+                {showLogs && (
+                  <div className="divide-y divide-surface-50">
+                    {feedback.relatedLogs.map(log => (
+                      <div key={log.id} className="px-3 py-2">
+                        <div className="flex items-center justify-between gap-2 mb-0.5">
+                          <span className={`text-[10px] font-mono font-bold ${log.severity === 'CRITICAL' ? 'text-danger-400' : 'text-warning-400'}`}>
+                            {log.severity} · {log.source} · {log.category}
+                          </span>
+                          <span className="text-[10px] text-gray-500 font-mono">{formatDate(log.timestamp)}</span>
+                        </div>
+                        <p className="text-[11px] text-gray-400 font-mono break-all">{log.message}</p>
+                        {log.path && <p className="text-[10px] text-gray-500 font-mono">{log.method ?? ''} {log.path} {log.statusCode ?? ''}</p>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
