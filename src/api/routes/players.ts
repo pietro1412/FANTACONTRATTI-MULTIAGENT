@@ -1,9 +1,9 @@
 import { Router } from 'express'
 import type { Request, Response } from 'express'
-import type { Position } from '@prisma/client';
-import { Prisma } from '@prisma/client'
+import type { Position, Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma'
 import { getPlayers, getPlayerById, getTeams } from '../../services/player.service'
+import { computeSeasonStatsBatch } from '../../services/player-stats.service'
 import { authMiddleware } from '../middleware/auth'
 
 const router = Router()
@@ -40,6 +40,9 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
 
     const players = await getPlayers(filters)
 
+    // Compute season stats from PlayerMatchRating (single batch query)
+    const statsMap = await computeSeasonStatsBatch(players.map(p => p.id))
+
     // Enrich with mini-stats from apiFootballStats JSON blob
     const enrichedPlayers = players.map((p: Record<string, unknown>) => {
       const stats = p.apiFootballStats as {
@@ -53,6 +56,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
         goals: stats?.goals?.total ?? null,
         assists: stats?.goals?.assists ?? null,
         avgRating: stats?.games?.rating ? Math.round(stats.games.rating * 10) / 10 : null,
+        computedStats: statsMap.get(p.id as string) || null,
       }
     })
 
@@ -89,7 +93,6 @@ router.get('/stats', authMiddleware, async (req: Request, res: Response) => {
     // Build where clause
     const where: Prisma.SerieAPlayerWhereInput = {
       isActive: true,
-      apiFootballStats: { not: Prisma.DbNull }, // Only players with stats
     }
 
     if (position && ['P', 'D', 'C', 'A'].includes(position as string)) {
@@ -137,6 +140,9 @@ router.get('/stats', authMiddleware, async (req: Request, res: Response) => {
       take: limitNum,
     })
 
+    // Compute season stats from PlayerMatchRating (single batch query)
+    const statsMap = await computeSeasonStatsBatch(players.map(p => p.id))
+
     // Parse stats and flatten for easier frontend use
     const playersWithStats = players.map((p) => {
       const stats = p.apiFootballStats as {
@@ -158,6 +164,7 @@ router.get('/stats', authMiddleware, async (req: Request, res: Response) => {
         quotation: p.quotation,
         apiFootballId: p.apiFootballId,
         statsSyncedAt: p.statsSyncedAt,
+        computedStats: statsMap.get(p.id) || null,
         stats: stats ? {
           appearances: stats.games?.appearences ?? 0,
           minutes: stats.games?.minutes ?? 0,

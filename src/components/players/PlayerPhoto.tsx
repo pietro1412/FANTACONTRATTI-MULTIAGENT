@@ -16,22 +16,10 @@ const SIZES = {
   md: 'w-10 h-10 text-sm',
 } as const
 
-function initials(name: string): string {
-  return (
-    name
-      .split(/\s+/)
-      .filter(Boolean)
-      .map(part => part[0])
-      .join('')
-      .slice(0, 2)
-      .toUpperCase() || '?'
-  )
-}
-
 /**
- * Round player photo (API-Football) with a graceful fallback to a position-tinted
- * monogram tile. Consolidates the previously duplicated photo + onError logic in
- * AllPlayers and PlayerStats for the Giocatori cluster.
+ * Round player photo (API-Football) with a graceful uniform fallback: a position-tinted
+ * tile with a person icon (no photo). Consolidates the previously duplicated photo +
+ * onError logic in AllPlayers and PlayerStats for the Giocatori cluster.
  */
 export function PlayerPhoto({ apiFootballId, name, position, size = 'sm', className = '' }: PlayerPhotoProps) {
   const url = getPlayerPhotoUrl(apiFootballId)
@@ -53,11 +41,15 @@ export function PlayerPhoto({ apiFootballId, name, position, size = 'sm', classN
         />
       ) : null}
       <span
-        className={`w-full h-full rounded-full bg-gradient-to-br ${gradient} items-center justify-center font-display font-bold text-white ${
+        aria-hidden="true"
+        className={`w-full h-full rounded-full bg-gradient-to-br ${gradient} items-center justify-center text-white ${
           url ? 'hidden' : 'flex'
         }`}
       >
-        {initials(name)}
+        <svg className="w-1/2 h-1/2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="8" r="4" />
+          <path d="M4.5 20c.6-4 4-6.5 7.5-6.5s6.9 2.5 7.5 6.5" />
+        </svg>
       </span>
     </span>
   )

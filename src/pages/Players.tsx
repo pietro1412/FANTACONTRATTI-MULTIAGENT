@@ -19,6 +19,7 @@ import { ContractInline } from '@/components/ui/ContractInline'
 import { SlidersHorizontal } from 'lucide-react'
 import { sortPlayersByRoleAndName, comparePlayersByRoleAndName } from '@/utils/player-sort'
 import { formatStat, NOT_DISPONIBILE } from '@/utils/stat-format'
+import type { ComputedSeasonStats } from '@/services/player-stats.service'
 
 // ==================== TYPES ====================
 
@@ -46,6 +47,7 @@ interface ListPlayer {
     games?: { appearences?: number | null; rating?: number | null } | null
     goals?: { total?: number | null; assists?: number | null } | null
   } | null
+  computedStats?: ComputedSeasonStats | null
   statsSyncedAt?: string | null
 }
 
@@ -94,6 +96,7 @@ type PlayerWithStats = {
   position: string
   quotation: number
   apiFootballId: number | null
+  computedStats?: ComputedSeasonStats | null
   statsSyncedAt: string | null
   stats: {
     appearances: number
@@ -206,6 +209,7 @@ export function Players({ leagueId, onNavigate, initialView = 'list', initialTea
   const [availableTeams, setAvailableTeams] = useState<string[]>([])
   const [statusFilter, setStatusFilter] = useState<'all' | 'free' | 'rostered'>(initialTeamFilter ? 'rostered' : 'all')
   const [listTeamFilter, setListTeamFilter] = useState<string>(initialTeamFilter || '')
+  const [listSerieATeam, setListSerieATeam] = useState('')
 
   // ----- Stats view state -----
   const [statsPlayers, setStatsPlayers] = useState<PlayerWithStats[]>([])
@@ -289,11 +293,12 @@ export function Players({ leagueId, onNavigate, initialView = 'list', initialTea
         if (statusFilter === 'free' && p.rosterInfo) return false
         if (statusFilter === 'rostered' && !p.rosterInfo) return false
         if (listTeamFilter && p.rosterInfo?.teamName !== listTeamFilter) return false
+        if (listSerieATeam && p.team !== listSerieATeam) return false
         return true
       })
     // Simple list (no user-selectable sort) → natural order: role then name
     return sortPlayersByRoleAndName(filtered)
-  }, [listPlayers, rosterMap, statusFilter, listTeamFilter])
+  }, [listPlayers, rosterMap, statusFilter, listTeamFilter, listSerieATeam])
 
   const freeCount = useMemo(
     () => listPlayers.filter(p => !rosterMap.has(p.id)).length,
@@ -347,8 +352,13 @@ export function Players({ leagueId, onNavigate, initialView = 'list', initialTea
   }, [positionFilter, statsTeamFilter, searchQuery, sortBy, sortOrder, page])
 
   useEffect(() => {
-    if (view === 'stats') void loadTeams()
-  }, [view, loadTeams])
+    void loadTeams()
+  }, [loadTeams])
+
+  // Filters change → back to the first page of the tabellone
+  useEffect(() => {
+    setPage(1)
+  }, [positionFilter, searchQuery])
 
   useEffect(() => {
     if (view === 'stats') void loadStatsPlayers()
@@ -415,7 +425,7 @@ export function Players({ leagueId, onNavigate, initialView = 'list', initialTea
 
   // =============== SHARED ===============
 
-  const openPlayerStats = useCallback((p: { id: string; name: string; team: string; position: string; quotation: number; apiFootballId?: number | null; statsSyncedAt?: string | null; age?: number | null }) => {
+  const openPlayerStats = useCallback((p: { id: string; name: string; team: string; position: string; quotation: number; apiFootballId?: number | null; statsSyncedAt?: string | null; age?: number | null; computedStats?: ComputedSeasonStats | null }) => {
     setSelectedPlayerStats({
       name: p.name,
       team: p.team,
@@ -423,6 +433,7 @@ export function Players({ leagueId, onNavigate, initialView = 'list', initialTea
       quotation: p.quotation,
       age: p.age,
       apiFootballId: p.apiFootballId,
+      computedStats: p.computedStats,
       statsSyncedAt: p.statsSyncedAt,
       leaguePlayerId: p.id,
     })
@@ -528,11 +539,32 @@ export function Players({ leagueId, onNavigate, initialView = 'list', initialTea
               {availableTeams.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
           )}
+          {teams.length > 0 && (
+            <select
+              value={listSerieATeam}
+              onChange={(e) => { setListSerieATeam(e.target.value) }}
+              className="hidden md:block px-2.5 py-1.5 text-xs rounded-lg bg-surface-300 border border-surface-50 text-gray-300 focus:outline-none focus:border-accent-500/50"
+            >
+              <option value="">Squadra Serie A</option>
+              {teams.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+          )}
         </>
       )}
 
       {view === 'stats' && (
-        <div className="ml-auto hidden md:flex items-center gap-2 flex-wrap">
+        <>
+          {teams.length > 0 && (
+            <select
+              value={statsTeamFilter}
+              onChange={(e) => { setStatsTeamFilter(e.target.value); setPage(1) }}
+              className="hidden md:block px-2.5 py-1.5 text-xs rounded-lg bg-surface-300 border border-surface-50 text-gray-300 focus:outline-none focus:border-accent-500/50"
+            >
+              <option value="">Squadra Serie A</option>
+              {teams.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+          )}
+          <div className="ml-auto hidden md:flex items-center gap-2 flex-wrap">
           <span className="micro-label text-[9px]">Preset</span>
           {PRESET_ORDER.map(key => {
             const preset = COLUMN_PRESETS[key]!
@@ -552,7 +584,8 @@ export function Players({ leagueId, onNavigate, initialView = 'list', initialTea
               </button>
             )
           })}
-        </div>
+          </div>
+        </>
       )}
 
       {/* Mobile compact search + Filtri */}
@@ -621,14 +654,20 @@ export function Players({ leagueId, onNavigate, initialView = 'list', initialTea
                   onClick={() => { openPlayerStats(player); }}
                 >
                   <div className={`${listColsClass} px-4 py-2`}>
-                    {/* Player identity */}
-                    <div className="flex items-center gap-2.5 min-w-0">
+                    {/* Player identity: foto → logo → ruolo → nome grande (desktop); su
+                        mobile il logo scende sulla seconda riga per non schiacciare il nome */}
+                    <div className="flex items-center gap-2 min-w-0">
                       <PlayerPhoto apiFootballId={player.apiFootballId} name={player.name} position={player.position} />
+                      <span className="hidden lg:flex"><TeamLogo team={player.team} size="xs" /></span>
                       <PlayerRoleBadge position={player.position} size="sm" />
                       <div className="min-w-0">
-                        <span className="block font-display font-bold text-[13px] text-white leading-tight truncate">{player.name}</span>
-                        <span className="flex items-center gap-1.5 text-[10px] text-gray-500 mt-0.5 min-w-0">
+                        <span className="block font-display font-bold text-sm text-white leading-tight truncate">{player.name}</span>
+                        <span className="flex items-center gap-1.5 text-[10px] text-gray-500 mt-0.5 min-w-0 lg:hidden">
                           <TeamLogo team={player.team} size="xs" />
+                          <span className="truncate">{player.team}</span>
+                          <span className="text-gray-600 font-mono">· {player.age != null ? `${player.age} anni` : NOT_DISPONIBILE}</span>
+                        </span>
+                        <span className="hidden lg:flex items-center gap-1.5 text-[10px] text-gray-500 mt-0.5 min-w-0">
                           <span className="truncate">{player.team}</span>
                           <span className="text-gray-600 font-mono">· {player.age != null ? `${player.age} anni` : NOT_DISPONIBILE}</span>
                         </span>
@@ -1019,6 +1058,19 @@ export function Players({ leagueId, onNavigate, initialView = 'list', initialTea
                   >
                     <option value="">Tutte le squadre</option>
                     {availableTeams.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+              )}
+              {teams.length > 0 && (
+                <div>
+                  <label className="block micro-label mb-2">Squadra Serie A</label>
+                  <select
+                    value={listSerieATeam}
+                    onChange={(e) => { setListSerieATeam(e.target.value) }}
+                    className="w-full px-3 py-2.5 bg-surface-300 border border-surface-50 rounded-lg text-white text-sm"
+                  >
+                    <option value="">Tutte le squadre</option>
+                    {teams.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
                 </div>
               )}
