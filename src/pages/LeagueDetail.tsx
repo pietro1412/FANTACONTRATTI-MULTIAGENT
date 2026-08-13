@@ -113,13 +113,10 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
       if (response.success && response.data) {
         const data = response.data as { isSuperAdmin: boolean }
         setIsSuperAdmin(data.isSuperAdmin)
-        if (data.isSuperAdmin) {
-          onNavigate('dashboard')
-          return
-        }
       } else {
         setIsSuperAdmin(false)
       }
+      // Superadmin can open any league (e.g. to review feedback/rosters) even without membership.
       void loadCriticalData()
     }
     void checkSuperAdmin()

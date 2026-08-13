@@ -195,14 +195,20 @@ describe('LeagueDetail', () => {
     expect(screen.getByTestId('managers-sidebar')).toBeInTheDocument()
   })
 
-  it('redirects superadmin to dashboard', async () => {
+  it('lets superadmin open the league without membership', async () => {
     mockGetStatus.mockResolvedValue({ success: true, data: { isSuperAdmin: true } })
+    mockGetById.mockResolvedValue({
+      success: true,
+      data: { league: sampleLeague, isAdmin: false, userMembership: null },
+    })
 
     render(<LeagueDetail leagueId="l1" onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      expect(mockOnNavigate).toHaveBeenCalledWith('dashboard')
+      expect(screen.getByTestId('league-header')).toHaveTextContent('Lega Champions')
     })
+
+    expect(mockOnNavigate).not.toHaveBeenCalled()
   })
 
   it('shows "Lega non trovata" when league data is missing', async () => {
