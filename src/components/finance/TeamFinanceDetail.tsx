@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { PieChart, Pie, ResponsiveContainer, Tooltip, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, ZAxis } from 'recharts'
+import { PieChart, Pie, ResponsiveContainer, Tooltip } from 'recharts'
 import type { Formatter } from 'recharts/types/component/DefaultTooltipContent'
 import { WaterfallChart } from './WaterfallChart'
 import { ContractExpiryGantt } from './ContractExpiryGantt'
@@ -10,7 +10,7 @@ import {
   type TeamData, type FinancialsData,
   getTeamBalance, getHealthStatus,
   POSITION_CHART_COLORS, POSITION_NAMES, POSITION_COLORS,
-  CHART_COLORS, CHART_TOOLTIP_STYLE, CHART_TOOLTIP_LABEL_STYLE, CHART_TOOLTIP_ITEM_STYLE, CHART_AXIS_TICK,
+  CHART_COLORS, CHART_TOOLTIP_STYLE, CHART_TOOLTIP_LABEL_STYLE, CHART_TOOLTIP_ITEM_STYLE,
 } from './types'
 
 interface TeamFinanceDetailProps {
@@ -54,19 +54,24 @@ export function TeamFinanceDetail({ team, data, leagueId, onBack, onNavigateToPl
   const top5Salary = topContracts.reduce((s, p) => s + p.salary, 0)
   const concentrationPct = totalSalary > 0 ? Math.round((top5Salary / totalSalary) * 100) : 0
 
-  // Clause scatter data
-  const clauseData = useMemo(() => {
+  // Top 5 by rubata price (clausola + ingaggio)
+  const topRubata = useMemo(() => {
+    return [...team.players]
+      .filter(p => !p.draftReleased && p.salary > 0 && p.clause > 0)
+      .map(p => ({ ...p, rubataPrice: p.clause + p.salary }))
+      .sort((a, b) => b.rubataPrice - a.rubataPrice)
+      .slice(0, 5)
+  }, [team.players])
+
+  const totalRubataValue = useMemo(() => {
     return team.players
       .filter(p => !p.draftReleased && p.salary > 0 && p.clause > 0)
-      .map(p => ({
-        name: p.name,
-        x: p.salary,
-        y: p.clause,
-        z: p.duration,
-        position: p.position,
-        fill: POSITION_CHART_COLORS[p.position] || '#3b82f6',
-      }))
+      .reduce((s, p) => s + p.clause + p.salary, 0)
   }, [team.players])
+
+  const maxRubata = topRubata[0]?.rubataPrice ?? 0
+  const top5RubataValue = topRubata.reduce((s, p) => s + p.rubataPrice, 0)
+  const top5RubataPct = totalRubataValue > 0 ? Math.round((top5RubataValue / totalRubataValue) * 100) : 0
 
   // Average duration
   const avgDuration = useMemo(() => {
@@ -270,53 +275,52 @@ export function TeamFinanceDetail({ team, data, leagueId, onBack, onNavigateToPl
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <ContractExpiryGantt players={team.players} leagueId={leagueId} />
 
-        {/* Clause scatter chart */}
+        {/* Top 5 rubata price — bar list (clausola + ingaggio) */}
         <div className="bg-surface-300/50 rounded-lg p-3 md:p-4 border border-surface-50/10">
           <div className="micro-label mb-3">
-            Clausole Rescissorie
+            Top 5 Prezzo Rubata
           </div>
-          {clauseData.length > 0 ? (
+          {topRubata.length > 0 ? (
             <>
-              <div style={{ height: 220 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <ScatterChart margin={{ bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#2d3139" />
-                    <XAxis
-                      type="number"
-                      dataKey="x"
-                      name="Ingaggio"
-                      tick={CHART_AXIS_TICK}
-                      label={{ value: 'Ingaggio (M)', position: 'insideBottom', offset: -2, fill: CHART_COLORS.muted, fontSize: 12 }}
-                    />
-                    <YAxis
-                      type="number"
-                      dataKey="y"
-                      name="Clausola"
-                      tick={CHART_AXIS_TICK}
-                      label={{ value: 'Clausola (M)', angle: -90, position: 'insideLeft', fill: CHART_COLORS.muted, fontSize: 12, style: { textAnchor: 'middle' } }}
-                    />
-                    <ZAxis type="number" dataKey="z" range={[40, 200]} name="Durata" />
-                    <Tooltip
-                      contentStyle={CHART_TOOLTIP_STYLE} labelStyle={CHART_TOOLTIP_LABEL_STYLE} itemStyle={CHART_TOOLTIP_ITEM_STYLE}
-                      formatter={((value: number, name: string) => [
-                        `${value}M`,
-                        name
-                      ]) as Formatter<number, string>}
-                      labelFormatter={(_, payload) => {
-                        const item = payload?.[0]?.payload as (typeof clauseData)[0] | undefined
-                        return item ? `${item.name} (${item.position})` : ''
-                      }}
-                    />
-                    <Scatter data={clauseData} fillOpacity={0.7} />
-                  </ScatterChart>
-                </ResponsiveContainer>
+              <div className="space-y-2">
+                {topRubata.map((player, i) => {
+                  const barPct = maxRubata > 0 ? Math.round((player.rubataPrice / maxRubata) * 100) : 0
+                  return (
+                    <div key={player.id} className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500 w-4">{i + 1}.</span>
+                      <span className={`px-1 py-0.5 rounded text-[8px] font-bold ${POSITION_COLORS[player.position] ?? ''}`}>
+                        {player.position}
+                      </span>
+                      <span className="flex-1 min-w-0">
+                        <PlayerName
+                          player={{ name: player.name, team: player.team, position: player.position, quotation: player.quotation, age: player.age, apiFootballId: player.apiFootballId }}
+                          leagueId={leagueId}
+                          leaguePlayerId={player.id}
+                          truncate
+                          className="text-xs font-medium"
+                        />
+                      </span>
+                      <span className="text-[10px] text-gray-500">
+                        cl.{player.clause} + {player.salary}
+                      </span>
+                      <div className="w-20 h-3 bg-surface-100/30 rounded-full overflow-hidden flex-shrink-0">
+                        <div
+                          className="h-full rounded-full"
+                          style={{ width: `${barPct}%`, backgroundColor: POSITION_CHART_COLORS[player.position] || CHART_COLORS.accent }}
+                        />
+                      </div>
+                      <span className="text-[10px] text-accent-400 w-8 text-right flex-shrink-0">{player.rubataPrice}M</span>
+                    </div>
+                  )
+                })}
               </div>
-              <div className="text-[10px] text-gray-500 mt-1">
-                Dimensione bolla = durata residua
+              <div className="mt-3 pt-2 border-t border-surface-50/20 text-[10px] text-gray-500">
+                Prezzo rubata = clausola + ingaggio · Top 5 = {top5RubataPct}% del valore rubata della rosa
+                {top5RubataPct > 80 && <span className="text-danger-400 ml-2">Alta concentrazione</span>}
               </div>
             </>
           ) : (
-            <div className="text-sm text-gray-500 text-center py-8">Nessun dato clausole</div>
+            <div className="text-sm text-gray-500 text-center py-8">Nessun dato rubata</div>
           )}
         </div>
       </div>
