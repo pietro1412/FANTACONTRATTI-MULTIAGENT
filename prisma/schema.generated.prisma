@@ -627,6 +627,7 @@ enum FeedbackStatus {
   IN_LAVORAZIONE   // Admin is working on it
   RISOLTA          // Issue resolved
   CHIUSA           // Tester confirmed the fix works
+  RIFIUTATA        // Superadmin rejected the report (not a real issue / off-topic)
 }
 
 // ==================== FEEDBACK CATEGORY ENUM ====================

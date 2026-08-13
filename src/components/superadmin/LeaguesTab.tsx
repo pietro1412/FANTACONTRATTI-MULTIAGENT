@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
-import { AlertTriangle, ExternalLink, Trash2 } from 'lucide-react'
+import { AlertTriangle, ExternalLink, MessageSquare, Trash2 } from 'lucide-react'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { LeagueCrest } from '../ui/LeagueCrest'
@@ -21,6 +21,8 @@ export interface LeaguesTabProps {
   onViewRoster: (memberId: string) => void
   /** Apre la pagina della lega (il superadmin la raggiunge anche se non e membro). */
   onOpenLeague: (leagueId: string) => void
+  /** Apre il Feedback Hub della lega (sezione segnalazioni, anche senza membership). */
+  onOpenFeedback: (leagueId: string) => void
   /** Conferma eliminazione lega. Risolve a true se l'eliminazione e riuscita. */
   onDeleteLeague: (leagueId: string) => Promise<boolean>
 }
@@ -37,6 +39,7 @@ export function LeaguesTab({
   setExpandedLeague,
   onViewRoster,
   onOpenLeague,
+  onOpenFeedback,
   onDeleteLeague,
 }: LeaguesTabProps) {
   const [leagueToDelete, setLeagueToDelete] = useState<League | null>(null)
@@ -124,6 +127,14 @@ export function LeaguesTab({
                       <p className="text-xs text-gray-400">Budget iniziale</p>
                       <p className="stat-number text-accent-400 text-lg">{league.initialBudget}</p>
                     </div>
+                    <button
+                      onClick={() => { onOpenFeedback(league.id); }}
+                      className="p-2 rounded-lg text-accent-400 hover:text-accent-300 hover:bg-accent-500/10 transition-colors"
+                      aria-label={`Feedback lega ${league.name}`}
+                      title="Feedback segnalazioni"
+                    >
+                      <MessageSquare size={18} aria-hidden="true" />
+                    </button>
                     <button
                       onClick={() => { onOpenLeague(league.id); }}
                       className="p-2 rounded-lg text-primary-400 hover:text-primary-300 hover:bg-primary-500/10 transition-colors"

@@ -424,6 +424,7 @@ function SuperAdminWrapper() {
   const onNavigate = useCallback((page: string, params?: Record<string, string>) => {
     if (page === 'dashboard') void navigate('/dashboard')
     else if (page === 'leagueDetail' && params?.leagueId) void navigate(`/leagues/${params.leagueId}`)
+    else if (page === 'feedbackHub' && params?.leagueId) void navigate(`/leagues/${params.leagueId}/feedback`)
     else if (page === 'superadmin' && params?.tab) {
       void navigate(`/superadmin?tab=${params.tab}`)
     }

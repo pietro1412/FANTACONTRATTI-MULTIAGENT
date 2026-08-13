@@ -24,6 +24,7 @@ const statusConfig: Record<string, { label: string; color: string; bgColor: stri
   IN_LAVORAZIONE: { label: 'In Lavorazione', color: 'text-primary-300', bgColor: 'bg-primary-500/20' },
   RISOLTA: { label: 'Risolta', color: 'text-secondary-300', bgColor: 'bg-secondary-500/20' },
   CHIUSA: { label: 'Chiusa', color: 'text-gray-300', bgColor: 'bg-surface-100/40' },
+  RIFIUTATA: { label: 'Rifiutata', color: 'text-danger-400', bgColor: 'bg-danger-500/20' },
 }
 
 const categoryConfig: Record<string, { label: string; icon: string }> = {
@@ -83,7 +84,7 @@ export function FeedbackList({ isAdmin, onSelectFeedback, selectedId }: Feedback
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-sm text-gray-400">Filtra per stato:</span>
-        {['', 'APERTA', 'IN_LAVORAZIONE', 'RISOLTA', 'CHIUSA'].map(status => (
+        {['', 'APERTA', 'IN_LAVORAZIONE', 'RISOLTA', 'CHIUSA', 'RIFIUTATA'].map(status => (
           <button
             key={status}
             onClick={() => {

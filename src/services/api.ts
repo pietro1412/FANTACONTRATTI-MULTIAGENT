@@ -1916,8 +1916,8 @@ export const feedbackApi = {
   // Get feedback stats (superadmin only)
   getStats: () => request('/api/feedback/stats'),
 
-  // Update feedback status (superadmin only)
-  updateStatus: (id: string, status: 'APERTA' | 'IN_LAVORAZIONE' | 'RISOLTA' | 'CHIUSA') =>
+    // Update feedback status (superadmin only)
+    updateStatus: (id: string, status: 'APERTA' | 'IN_LAVORAZIONE' | 'RISOLTA' | 'CHIUSA' | 'RIFIUTATA') =>
     request(`/api/feedback/${id}/status`, {
       method: 'PATCH',
       body: JSON.stringify({ status }),
@@ -1927,7 +1927,7 @@ export const feedbackApi = {
   addResponse: (
     id: string,
     content: string,
-    statusChange?: 'APERTA' | 'IN_LAVORAZIONE' | 'RISOLTA' | 'CHIUSA'
+    statusChange?: 'APERTA' | 'IN_LAVORAZIONE' | 'RISOLTA' | 'CHIUSA' | 'RIFIUTATA'
   ) =>
     request(`/api/feedback/${id}/response`, {
       method: 'POST',

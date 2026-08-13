@@ -55,6 +55,7 @@ const statusConfig: Record<string, { label: string; color: string; bgColor: stri
   IN_LAVORAZIONE: { label: 'In Lavorazione', color: 'text-primary-300', bgColor: 'bg-primary-500/20' },
   RISOLTA: { label: 'Risolta', color: 'text-secondary-300', bgColor: 'bg-secondary-500/20' },
   CHIUSA: { label: 'Chiusa', color: 'text-gray-300', bgColor: 'bg-surface-100/40' },
+  RIFIUTATA: { label: 'Rifiutata', color: 'text-danger-400', bgColor: 'bg-danger-500/20' },
 }
 
 const categoryConfig: Record<string, { label: string; icon: string }> = {
@@ -81,6 +82,7 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
   const [isConfirming, setIsConfirming] = useState(false)
   const [isReopening, setIsReopening] = useState(false)
   const [isCreatingIssue, setIsCreatingIssue] = useState(false)
+  const [isRejecting, setIsRejecting] = useState(false)
 
   useEffect(() => {
     void loadFeedback()
@@ -110,7 +112,7 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
       const res = await feedbackApi.addResponse(
         feedbackId,
         responseContent.trim(),
-        responseStatus as 'APERTA' | 'IN_LAVORAZIONE' | 'RISOLTA' | undefined
+        responseStatus as 'APERTA' | 'IN_LAVORAZIONE' | 'RISOLTA' | 'CHIUSA' | 'RIFIUTATA' | undefined
       )
       if (res.success) {
         setResponseContent('')
@@ -128,7 +130,7 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
 
   async function handleChangeStatus(newStatus: string) {
     try {
-      const res = await feedbackApi.updateStatus(feedbackId, newStatus as 'APERTA' | 'IN_LAVORAZIONE' | 'RISOLTA' | 'CHIUSA')
+      const res = await feedbackApi.updateStatus(feedbackId, newStatus as 'APERTA' | 'IN_LAVORAZIONE' | 'RISOLTA' | 'CHIUSA' | 'RIFIUTATA')
       if (res.success) {
         void loadFeedback()
         onUpdated?.()
@@ -172,6 +174,23 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
       toast.error('Errore di connessione')
     }
     setIsReopening(false)
+  }
+
+  async function handleReject() {
+    setIsRejecting(true)
+    try {
+      const res = await feedbackApi.updateStatus(feedbackId, 'RIFIUTATA')
+      if (res.success) {
+        toast.success('Segnalazione rifiutata')
+        void loadFeedback()
+        onUpdated?.()
+      } else {
+        toast.error(res.message || 'Errore nel rifiuto della segnalazione')
+      }
+    } catch (_err) {
+      toast.error('Errore di connessione')
+    }
+    setIsRejecting(false)
   }
 
   async function handleCreateGithubIssue() {
@@ -289,7 +308,7 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
           <div className="mt-4 pt-4 border-t border-surface-50">
             <span className="micro-label mb-2 block">Cambia stato:</span>
             <div className="flex gap-2">
-              {['APERTA', 'IN_LAVORAZIONE', 'RISOLTA', 'CHIUSA'].map(status => {
+              {['APERTA', 'IN_LAVORAZIONE', 'RISOLTA', 'CHIUSA', 'RIFIUTATA'].map(status => {
                 if (status === feedback.status) return null
                 const cfg = statusConfig[status] ?? defaultStatus
                 return (
@@ -333,25 +352,36 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
         {isAdmin && (
           <div className="mt-4 pt-4 border-t border-surface-50 space-y-3">
             <div className="flex items-center justify-between flex-wrap gap-2">
-              <span className="micro-label">Issue GitHub</span>
-              {feedback.githubIssueUrl ? (
-                <a
-                  href={feedback.githubIssueUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-3 py-1.5 text-xs font-medium bg-surface-300 text-primary-300 border border-primary-500/30 rounded-lg hover:bg-surface-100 transition-colors"
-                >
-                  Issue #{feedback.githubIssueId} →
-                </a>
-              ) : (
-                <button
-                  onClick={() => { void handleCreateGithubIssue() }}
-                  disabled={isCreatingIssue}
-                  className="px-3 py-1.5 text-xs font-medium bg-surface-300 text-white border border-surface-50 rounded-lg hover:bg-surface-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isCreatingIssue ? 'Creazione...' : 'Crea issue GitHub'}
-                </button>
-              )}
+              <span className="micro-label">Promuovi a issue</span>
+              <div className="flex items-center gap-2 flex-wrap">
+                {feedback.status !== 'RIFIUTATA' && (
+                  <button
+                    onClick={() => { void handleReject() }}
+                    disabled={isRejecting}
+                    className="px-3 py-1.5 text-xs font-medium bg-danger-500/10 text-danger-400 border border-danger-500/30 rounded-lg hover:bg-danger-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isRejecting ? 'Rifiuto...' : 'Rigetta'}
+                  </button>
+                )}
+                {feedback.githubIssueUrl ? (
+                  <a
+                    href={feedback.githubIssueUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1.5 text-xs font-medium bg-surface-300 text-primary-300 border border-primary-500/30 rounded-lg hover:bg-surface-100 transition-colors"
+                  >
+                    Issue #{feedback.githubIssueId} →
+                  </a>
+                ) : (
+                  <button
+                    onClick={() => { void handleCreateGithubIssue() }}
+                    disabled={isCreatingIssue}
+                    className="px-3 py-1.5 text-xs font-medium bg-surface-300 text-white border border-surface-50 rounded-lg hover:bg-surface-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isCreatingIssue ? 'Promozione...' : 'Promuovi a GitHub'}
+                  </button>
+                )}
+              </div>
             </div>
 
             {feedback.metadata && (
@@ -476,6 +506,7 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
                 <option value="">Nessun cambio</option>
                 <option value="IN_LAVORAZIONE">In Lavorazione</option>
                 <option value="RISOLTA">Risolta</option>
+                <option value="RIFIUTATA">Rifiutata</option>
               </select>
             </div>
             <button

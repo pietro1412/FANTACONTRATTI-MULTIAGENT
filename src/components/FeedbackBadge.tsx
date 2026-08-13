@@ -18,6 +18,7 @@ const statusConfig: Record<string, { label: string; color: string }> = {
   APERTA: { label: 'Aperta', color: 'bg-accent-500/20 text-accent-400' },
   IN_LAVORAZIONE: { label: 'In Lavorazione', color: 'bg-primary-500/20 text-primary-300' },
   RISOLTA: { label: 'Risolta', color: 'bg-secondary-500/20 text-secondary-300' },
+  RIFIUTATA: { label: 'Rifiutata', color: 'bg-danger-500/20 text-danger-400' },
 }
 
 export function FeedbackBadge({ onNavigate }: FeedbackBadgeProps) {
