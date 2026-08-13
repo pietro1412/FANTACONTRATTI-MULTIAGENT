@@ -22,6 +22,9 @@ const MAX_DURATION = 4 // Max 4 semestri
 const MIN_SALARY_PERCENTAGE = 0.1 // 10% del prezzo acquisto per acquisti non-PRIMO MERCATO
 const MAX_ROSTER_SIZE = 29 // Massimo giocatori in rosa dopo consolidamento
 
+// Durata contrattuale di default quando un giocatore entra in rosa (asta/svincolati): 3 stagioni
+export const DEFAULT_CONTRACT_DURATION = 3
+
 // Default indennizzo per giocatori ESTERO quando non esiste una categoria individuale/base
 const DEFAULT_INDENNIZZO_ESTERO = 50
 

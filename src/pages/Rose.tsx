@@ -144,6 +144,11 @@ export function Rose({ onNavigate }: RoseProps) {
     return selectedMember.userId === leagueData.currentUserId
   }, [leagueData, selectedMember])
 
+  // Il primo mercato non è ancora avvenuto se nessun membro ha giocatori in rosa
+  const firstMarketNotStarted = useMemo(() => {
+    return !leagueData || leagueData.members.every(m => m.roster.length === 0)
+  }, [leagueData])
+
   // Members available in the avatar-strip (own roster first, then alphabetical)
   const stripMembers = useMemo<ManagerStripMember[]>(() => {
     if (!leagueData) return []
@@ -444,15 +449,17 @@ export function Rose({ onNavigate }: RoseProps) {
           <div>
             <p className="text-gray-300 font-semibold text-base">Rosa vuota</p>
             <p className="text-gray-500 text-sm mt-1">
-              {isOwnRoster
-                ? "Non hai ancora acquistato giocatori. Partecipa a un'asta per costruire la tua squadra!"
-                : 'Questo manager non ha ancora acquistato giocatori.'}
+              {isOwnRoster && firstMarketNotStarted
+                ? "La rosa si comporrà al primo mercato: quando parte l'asta costruirai la tua squadra!"
+                : isOwnRoster
+                  ? "Non hai ancora acquistato giocatori. Partecipa a un'asta per costruire la tua squadra!"
+                  : 'Questo manager non ha ancora acquistato giocatori.'}
             </p>
           </div>
           {isOwnRoster && leagueId && (
             <button
               type="button"
-              onClick={() => { onNavigate('league-detail', { leagueId }); }}
+              onClick={() => { onNavigate('leagueDetail', { leagueId }); }}
               className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary-500 hover:bg-primary-600 text-white rounded-xl font-medium text-sm transition-colors"
             >
               Vai alla Lega

@@ -2,7 +2,7 @@ import type { Position } from '@prisma/client';
 import { MemberStatus, AuctionStatus, Prisma, RosterStatus } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { recordMovement } from './movement.service'
-import { calculateDefaultSalary, calculateRescissionClause } from './contract.service'
+import { calculateDefaultSalary, calculateRescissionClause, DEFAULT_CONTRACT_DURATION } from './contract.service'
 import { logAction } from './admin.service'
 import {
   triggerSvincolatiNomination,
@@ -1322,7 +1322,7 @@ export async function closeSvincolatiAuction(
 
     // Create contract automatically: 10% salary (integer, min 1), 3 semesters (svincolati default)
     const salary = calculateDefaultSalary(auction.currentPrice)
-    const duration = 3
+    const duration = DEFAULT_CONTRACT_DURATION
     const rescissionClause = calculateRescissionClause(salary, duration)
 
     await tx.playerContract.create({
