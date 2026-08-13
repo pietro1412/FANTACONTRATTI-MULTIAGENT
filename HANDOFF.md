@@ -1,6 +1,7 @@
 # HANDOFF — FantaContratti Dynasty Platform
 
 > File di passaggio per prendere in carico lo sviluppo. Generato: 2026-07-27.
+> Aggiornato: 2026-08-13 (Sprint B UI completo, branch allineati su `2cf6d06`).
 > Aggiornato solo su conferma dello stato effettivo.
 
 ---
@@ -40,26 +41,25 @@
 ## 3. Stato Git
 
 ### Branch attuale
-- **HEAD su `develop`** (commit `8874c26`)
-- Working tree pulito (3 untracked legittimi: script stress test)
+- **HEAD su `opencode_luglio`** (commit `2cf6d06`)
+- `main` = `develop` = `opencode_luglio` = `2cf6d06` (**allineati — divergenza risolta 2026-08-13**)
+- Working tree pulito
+- Script dev committati: `scripts/avvia-piattaforma.ps1` (launcher idempotente API :3003 + client :5174), `scripts/setup-scambi-test.ts` (seed dati scambi per test), `scripts/_create-sim-league.ts`, `scripts/_stress-test*.mjs`
 
 ### Branch locali
 | Branch | Stato |
 |--------|-------|
-| `develop` | ✅ HEAD, attivo |
-| `main` | 3 commit avanti develop (divergenza — vedi sotto) |
-| `feature/1.x-prod-hardening` | Locale, 1 commit avanti develop |
+| `opencode_luglio` | ✅ HEAD, attivo, == `main` |
+| `develop` | ✅ allineato a `main` |
+| `main` | ✅ produzione, aggiornato |
+| `feature/1.x-prod-hardening` | Locale, da valutare |
 | `MOBILE-ANDROID` | Locale, stato da valutare |
 
 ### Branch remote
-- `origin/develop`, `origin/main`, `origin/feature/1.x-prod-hardening`, `origin/feature/2.x-mobile-admin-features`, `origin/MOBILE-ANDROID`
+- `origin/develop`, `origin/main`, `origin/opencode_luglio`, `origin/feature/1.x-prod-hardening`, `origin/feature/2.x-mobile-admin-features`, `origin/MOBILE-ANDROID`
 
 ### ⚠️ Divergenza develop/main
-`main` è 3 commit AVANTI `develop`, ma `develop` ha 1 commit che `main` non ha:
-- `develop` ha: `8874c26` (chore admin) — NON in main
-- `main` ha: `49a1662`, `ded654d` (merge), `ed09081` — NON in develop
-
-**Necessario**: riallineare `develop` ← `main` (o merge bidirezionale) prima di nuove feature.
+**Risolto il 2026-08-13**: `develop` è stato riallineato a `main` (fast-forward a `2cf6d06`). Nessuna divergenza residua.
 
 ### Branch fusi (eliminabili)
 Il branch `feature/1.x-gap-analysis` (che conteneva Sprint A+B) **non esiste più** — è stato fuso in `develop`. Gli 9 sprint branch elencati nel PROJECT-STATUS come "da eliminare" sono già stati puliti.
@@ -130,9 +130,9 @@ Dopo modifiche: `db:build-schema` → merge in `schema.generated.prisma` → `db
 | Check | Stato |
 |-------|-------|
 | Typecheck (`tsc --noEmit`) | ✅ 0 errori |
-| Test (2249) | ✅ Tutti verdi (115 file, ~81s) |
-| Build | Non verificata in questa sessione |
-| Lint | ✅ Pulito |
+| Test (1712) | ✅ Tutti verdi (77 file, ~75s) |
+| Build (`npm run build` + `build:api`) | ✅ Verificata 2026-08-13 |
+| Lint | ✅ 0 errori (1204 warning pre-esistenti, nessuno nuovo) |
 | CI/CD | GitHub Actions: lint + typecheck + test + build su PR (`.github/workflows/pr-validation.yml`) |
 | Deploy | Vercel automatico su push a `develop`/`main` |
 
@@ -174,12 +174,14 @@ Dopo modifiche: `db:build-schema` → merge in `schema.generated.prisma` → `db
 
 ### ⬜ MANCANTE — Sprint B UI (da implementare)
 
-| ID | Feature | Note |
-|----|---------|------|
-| T1-1 UI | Toggle Pubblica/Privata in creazione lega + badge ricerca | Backend pronto |
-| T3-1 | Indicatore "trattativa in corso" ai terzi | Solo visibilità, non dettagli |
-| T3-2 | Controfferta UI completa in `Trades.tsx` | Backend pronto, manca UI |
-| T7-2 UI | Collegare eventi Pusher Svincolati a `useSvincolatiState` | Backend pronto |
+**Completato il 2026-08-13** (commit `e91901b` + sessione corrente):
+
+| ID | Feature | Stato |
+|----|---------|-------|
+| T1-1 UI | Toggle Pubblica/Privata in creazione lega + badge ricerca | ✅ FATTO — `CreateLeague.tsx` toggle + badge in `Dashboard.tsx` |
+| T3-1 | Indicatore "trattativa in corso" ai terzi | ✅ FATTO — chip su rose altrui in `Rose.tsx` (solo visibilità, no dettagli) + conteggio in `Trades.tsx` |
+| T3-2 | Controfferta UI completa in `Trades.tsx` | ✅ FATTO — `CounterOfferModal`; il giro contro-controofferta è garantito dal backend (`counterOffer` crea nuova offerta PENDING scambiata) |
+| T7-2 UI | Collegare eventi Pusher Svincolati a `useSvincolatiState` | ✅ FATTO — handler completi in `useSvincolatiState.ts` (6 eventi, optimistic update + reconcile) |
 
 ### ⬜ MANCANTE — Sprint C (bloccato / da decidere)
 
@@ -199,11 +201,11 @@ Dopo modifiche: `db:build-schema` → merge in `schema.generated.prisma` → `db
 
 ## 7. Decisioni aperte (richiedono input da Pietro)
 
-1. **Formula indennizzo ESTERO** — Blocca T4-2 e T5-A. Senza formula, il default resta 50M.
-2. **Riallineamento develop/main** — Main è 3 commit avanti develop con divergenza. Confermare strategy (merge vs rebase).
+1. **Formula indennizzo ESTERO** — Blocca T4-2 e T5-A. Senza formula, il default resta 50M. **Unico blocco rimasto a Sprint C.**
+2. ~~Riallineamento develop/main~~ — **RISOLTO 2026-08-13** (FF-merge, branch allineati su `2cf6d06`).
 3. **Stash** — 10 stash storici. Eliminare tutti o verificarne qualcuno?
 4. **Branch `MOBILE-ANDROID`** — Stato attuale? Proseguire o archiviare?
-5. **Branch `feature/1.x-prod-hardening`** — 1 commit avanti develop. Mergiare o eliminare?
+5. **Branch `feature/1.x-prod-hardening`** — 1 commit avanti develop (ora contenuto). Mergiare o eliminare?
 
 ---
 
@@ -213,6 +215,9 @@ Dopo modifiche: `db:build-schema` → merge in `schema.generated.prisma` → `db
 # Sviluppo
 npm run dev              # API + Client in parallelo (.env)
 npm run dev:local        # Su DB locale Docker (.env.local)
+
+# Launcher alternativo (idempotente, non uccide processi altrui)
+powershell -File scripts/avvia-piattaforma.ps1   # API :3003 + client :5174
 
 # Database
 npm run db:build-schema  # Merge schema modulari
@@ -234,8 +239,8 @@ npm run deploy:main      # Backup + merge develop → main + push
 
 ### Porte locali
 - API: `:3003`
-- Client Vite: `:5173`
-- DB Docker: `:5432`
+- Client Vite: `:5174` (la `:5173` è occupata da un altro progetto — nessun fallback)
+- DB Docker: `:5433`
 
 ### Credenziali test
 | Ruolo | Email | Password |

@@ -43,10 +43,13 @@ Prossimo → **Sprint B** (feature decise) e **Sprint C** (formula indennizzo + 
 - ✅ T4-1 — correzioni admin post-finalize premi (`PATCH /prizes/correct`, con audit)
 - ✅ T1-2 — annulla-fine-asta / reopen (`POST /auctions/:leagueId/:id/reopen`)
 
-**Rimanenti Sprint B — solo UI:**
-- ⬜ T1-1 (UI) — toggle Pubblica/Privata nella creazione lega + badge nella ricerca
-- ⬜ T3-2 / T3-1 — controfferta UI completa + indicatore "trattativa in corso" ai terzi
-- ⬜ T7-2 (wiring frontend) — collegare gli eventi Pusher Svincolati a `useSvincolatiState`
+**Rimanenti Sprint B — solo UI (✅ COMPLETATI 2026-08-13):**
+- ✅ T1-1 (UI) — toggle Pubblica/Privata nella creazione lega (`CreateLeague.tsx`) + badge nella ricerca (`Dashboard.tsx`) — commit `e91901b`
+- ✅ T3-2 / T3-1 — controfferta UI completa (`CounterOfferModal` in `Trades.tsx`; giro contro-controofferta garantito da `counterOffer` backend) + indicatore "trattativa in corso" ai terzi (chip su rose altrui `Rose.tsx`, conteggio `Trades.tsx`) — commit `e91901b`
+- ✅ T7-2 (wiring frontend) — eventi Pusher Svincolati collegati a `useSvincolatiState` (6 handler, optimistic update + reconcile)
+- ✅ Test dedicati `RenewalItem`/`PendingItem` aggiunti (11 test, colonne attuale/rinnovo + rubata + SCADE)
+
+**Altro (2026-08-13):** branch allineati (`main` = `develop` = `opencode_luglio` = `2cf6d06`); colonne contratto di `Contracts`/`Rose` ristrutturate (Ingaggio/Durata attuali separati dal rinnovo, colonna Rubata dedicata, tag SCADE, sort per durata); script dev committati.
 
 > Note operative:
 > - `db:push` del campo `isPublic` va eseguito sul DB (locale e prod) prima dell'uso reale.

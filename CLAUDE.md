@@ -23,6 +23,7 @@ npm run dev              # API + Client in parallelo (usa .env)
 npm run dev:local        # Come dev ma su DB locale Docker (.env.local) — uso tipico in sviluppo
 npm run dev:client       # Solo frontend (Vite)
 npm run dev:api          # Solo backend (hot reload)
+powershell -File scripts/avvia-piattaforma.ps1   # Launcher idempotente (API :3003 + client :5174, non uccide processi altrui)
 
 # Database
 npm run db:build-schema  # Merge schema modulari → schema.generated.prisma

@@ -5,6 +5,8 @@
 > Affianca `docs/SESSION-CONTEXT.md` (storico decisioni, fermo a 2026-02-06).
 >
 > **Aggiornamento 2026-06-06:** Sprint A e Sprint B (feature di gioco) COMPLETATI e verdi. I gap "C1–C4" descritti sotto sono risolti o erano dead code — lo stato corrente è in `docs/COMPLETAMENTO-BACKLOG.md`. Rinviati a round dedicati post-merge: **formula indennizzo ESTERO** (in attesa input) e **Polish UX web**.
+>
+> **Aggiornamento 2026-08-13:** Sprint B UI completo (T1-1 toggle lega + badge, T3-1 indicatore trattativa ai terzi, T3-2 controfferta, T7-2 Pusher Svincolati — commit `e91901b`). Branch allineati: `main` = `develop` = `opencode_luglio` = `2cf6d06`. Test: 1712 verdi (77 file). Ristrutturate le colonne contratto di `Contracts`/`Rose` (attuale/rinnovo separate, colonna Rubata, tag SCADE). Unico blocco rimasto a Sprint C: **formula indennizzo ESTERO** (in attesa input).
 
 ---
 
