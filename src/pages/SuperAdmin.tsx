@@ -628,6 +628,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                   expandedLeague={expandedLeague}
                   setExpandedLeague={setExpandedLeague}
                   onViewRoster={(memberId) => void loadMemberRoster(memberId)}
+                  onOpenLeague={(leagueId) => { onNavigate('leagueDetail', { leagueId }) }}
                   onDeleteLeague={handleDeleteLeague}
                 />
               )}
