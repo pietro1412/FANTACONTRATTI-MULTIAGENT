@@ -857,17 +857,25 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
 
   // ===== Tab content =====
   const tableHeader = (
-    <div className="hidden lg:grid grid-cols-[minmax(0,1fr)_112px_132px_118px_96px_92px] gap-2.5 px-4 py-2 border-b border-surface-50 bg-surface-300 flex-shrink-0">
+    <div className="hidden lg:grid grid-cols-[minmax(0,1fr)_88px_88px_130px_130px_96px_96px_92px] gap-2.5 px-4 py-2 border-b border-surface-50 bg-surface-300 flex-shrink-0">
       <span className="micro-label">Giocatore</span>
-      <span className="micro-label text-right">Contratto attuale</span>
-      <span className="micro-label text-center">Nuovo ingaggio</span>
+      <span className="micro-label text-center">Ingaggio attuale</span>
       <span className="micro-label text-center inline-flex items-center justify-center gap-1">
-        Durata
+        Durata attuale
         <InfoTooltip content={GLOSSARY.durata!.short} label={GLOSSARY.durata!.term} />
       </span>
-      <span className="micro-label text-right inline-flex items-center justify-end gap-1">
+      <span className="micro-label text-center">Ingaggio rinnovo</span>
+      <span className="micro-label text-center inline-flex items-center justify-center gap-1">
+        Durata rinnovo
+        <InfoTooltip content={GLOSSARY.durata!.short} label={GLOSSARY.durata!.term} />
+      </span>
+      <span className="micro-label text-center inline-flex items-center justify-center gap-1">
         Clausola
-        <InfoTooltip content={GLOSSARY.clausola!.short} label={GLOSSARY.clausola!.term} align="right" />
+        <InfoTooltip content={GLOSSARY.clausola!.short} label={GLOSSARY.clausola!.term} />
+      </span>
+      <span className="micro-label text-center inline-flex items-center justify-center gap-1">
+        Rubata
+        <InfoTooltip content={GLOSSARY.prezzoRubata!.short} label={GLOSSARY.prezzoRubata!.term} />
       </span>
       <span className="micro-label text-center">Azione</span>
     </div>

@@ -1,6 +1,5 @@
 import { PlayerRoleBadge } from './PlayerRoleBadge'
 import { TeamLogo } from '@/components/ui/TeamLogo'
-import { ContractInline } from '@/components/ui/ContractInline'
 import { formatStat, NOT_DISPONIBILE } from '@/utils/stat-format'
 import type { RosterEntry } from './types'
 
@@ -8,6 +7,8 @@ export interface RosterPlayerCardProps {
   entry: RosterEntry
   onPlayerClick: () => void
 }
+
+const CREDIT_UNIT = 'M'
 
 function ContractStat({ label, value, tone }: { label: string; value: string; tone: string }) {
   return (
@@ -21,6 +22,8 @@ function ContractStat({ label, value, tone }: { label: string; value: string; to
 /**
  * Mobile roster card (Rose / Giocatori cluster). Shown in normal flow below lg;
  * the desktop cockpit table uses RosterTableRow.
+ * Financial data rendered as a 4-column cockpit grid (salary/duration/clause/
+ * rubata) with rubata — the most decision-relevant figure — in accent gold.
  */
 export function RosterPlayerCard({ entry, onPlayerClick }: RosterPlayerCardProps) {
   const { player, contract } = entry
@@ -52,14 +55,11 @@ export function RosterPlayerCard({ entry, onPlayerClick }: RosterPlayerCardProps
       </div>
 
       {contract ? (
-        <div className="space-y-2">
-          {/* Ingaggio + durata: labels always shown (Axiom 9) */}
-          <ContractInline salary={contract.salary} duration={contract.duration} variant="compact" />
-          {/* Clausola + rubata as cockpit stats */}
-          <div className="grid grid-cols-2 gap-2">
-            <ContractStat label="Cls" value={clause !== null ? `${clause}M` : '-'} tone="text-white" />
-            <ContractStat label="Rub" value={rubata !== null ? `${rubata}M` : '-'} tone="text-gray-300" />
-          </div>
+        <div className="grid grid-cols-4 gap-2">
+          <ContractStat label="Ing" value={`${contract.salary}${CREDIT_UNIT}`} tone="text-white" />
+          <ContractStat label="Dur" value={`${contract.duration} s`} tone="text-white" />
+          <ContractStat label="Cls" value={clause !== null ? `${clause}${CREDIT_UNIT}` : '-'} tone="text-white" />
+          <ContractStat label="Rub" value={rubata !== null ? `${rubata}${CREDIT_UNIT}` : '-'} tone="text-accent-400" />
         </div>
       ) : (
         <div className="text-center text-gray-500 text-xs py-1">Nessun contratto</div>

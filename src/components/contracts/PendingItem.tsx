@@ -1,4 +1,4 @@
-import { PlayerCell, getDurationColor, DURATION_MULTIPLIERS, type ContractPlayer } from './shared'
+import { PlayerCell, Tag, getDurationColor, DURATION_MULTIPLIERS, type ContractPlayer } from './shared'
 import { Stepper } from './Stepper'
 import { NOT_DISPONIBILE } from '@/utils/stat-format'
 
@@ -39,7 +39,7 @@ export function PendingItem({
   const editable = inContrattiPhase && !isConsolidated
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_112px_132px_118px_96px_92px] gap-2 lg:gap-2.5 items-center px-3 lg:px-4 py-2.5 border-b border-surface-50/60 hover:bg-surface-100/60 transition-colors">
+    <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_88px_88px_130px_130px_96px_96px_92px] gap-2 lg:gap-2.5 items-center px-3 lg:px-4 py-2.5 border-b border-surface-50/60 hover:bg-surface-100/60 transition-colors">
       <PlayerCell
         player={player}
         onClick={onViewStats}
@@ -47,11 +47,12 @@ export function PendingItem({
           <>
             <span>{player.team}</span>
             <span>· {player.age != null ? `${player.age} anni` : NOT_DISPONIBILE}</span>
+            {duration === 1 && <Tag tone="danger">SCADE</Tag>}
           </>
         }
       />
 
-      <div className="flex lg:block items-center justify-between text-left lg:text-right">
+      <div className="flex lg:block items-center justify-between text-left lg:text-center lg:col-span-2">
         <span className="micro-label lg:hidden">Acquisto</span>
         <div>
           <div className="stat-number text-base text-gray-400">{acquisitionPrice}M</div>
@@ -60,7 +61,7 @@ export function PendingItem({
       </div>
 
       <div className="flex lg:justify-center items-center justify-between">
-        <span className="micro-label lg:hidden">Ingaggio</span>
+        <span className="micro-label lg:hidden">Ingaggio rinnovo</span>
         {editable ? (
           <Stepper
             value={salary}
@@ -76,7 +77,7 @@ export function PendingItem({
       </div>
 
       <div className="flex lg:justify-center items-center justify-between">
-        <span className="micro-label lg:hidden">Durata</span>
+        <span className="micro-label lg:hidden">Durata rinnovo</span>
         {editable ? (
           <Stepper
             value={duration}
@@ -92,16 +93,19 @@ export function PendingItem({
         )}
       </div>
 
-      <div className="flex lg:block items-center justify-between text-left lg:text-right">
+      <div className="flex lg:block items-center justify-between text-left lg:text-center">
         <span className="micro-label lg:hidden">Clausola</span>
         <div>
           <div className="stat-number text-base text-white">{newClausola}M</div>
           {validationError ? (
             <div className="font-mono text-[9px] text-danger-400" title={validationError}>! errore</div>
-          ) : (
-            <div className="font-mono text-[9px] text-accent-400">rub. {newRubata}</div>
-          )}
+          ) : null}
         </div>
+      </div>
+
+      <div className="flex lg:block items-center justify-between text-left lg:text-center">
+        <span className="micro-label lg:hidden">Rubata</span>
+        <div className="stat-number text-base text-white">{newRubata}M</div>
       </div>
 
       <div className="hidden lg:block" />

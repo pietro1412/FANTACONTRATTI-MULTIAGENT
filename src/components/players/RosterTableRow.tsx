@@ -1,6 +1,5 @@
 import { PlayerRoleBadge } from './PlayerRoleBadge'
 import { TeamLogo } from '@/components/ui/TeamLogo'
-import { ContractInline } from '@/components/ui/ContractInline'
 import { formatStat, NOT_DISPONIBILE } from '@/utils/stat-format'
 import type { RosterEntry } from './types'
 
@@ -8,6 +7,8 @@ export interface RosterTableRowProps {
   entry: RosterEntry
   onPlayerClick: () => void
 }
+
+const CREDIT_UNIT = 'M'
 
 function MiniStat({ label, value }: { label: string; value: string | number }) {
   return (
@@ -18,10 +19,30 @@ function MiniStat({ label, value }: { label: string; value: string | number }) {
   )
 }
 
+function FinancialValue({
+  label,
+  ariaLabel,
+  value,
+  tone = 'text-white',
+}: {
+  label: string
+  ariaLabel: string
+  value: string
+  tone?: string
+}) {
+  return (
+    <div className="text-right">
+      <div className="micro-label text-[8px] leading-none text-gray-500">{label}</div>
+      <div className={`stat-number text-[14px] leading-tight mt-0.5 ${tone}`} aria-label={ariaLabel}>{value}</div>
+    </div>
+  )
+}
+
 /**
- * Single desktop roster row (cockpit grid). Columns: player identity, salary ×
- * duration, clause, rubata cost, season mini-stats. Presentational only — the
- * page owns filtering/sorting and passes the click handler.
+ * Single desktop roster row (cockpit grid). Columns: player identity, salary,
+ * duration, clause, rubata cost (clause + salary), season mini-stats.
+ * Financial values always carry identifying labels (Axiom 9); rubata is the
+ * most decision-relevant figure, rendered in accent gold.
  */
 export function RosterTableRow({ entry, onPlayerClick }: RosterTableRowProps) {
   const { player, contract } = entry
@@ -30,7 +51,7 @@ export function RosterTableRow({ entry, onPlayerClick }: RosterTableRowProps) {
   const cs = player.computedStats
 
   return (
-    <div className="grid grid-cols-[1.6fr_104px_96px_80px_134px] gap-2.5 items-center px-4 py-2.5 border-b border-surface-50/10 hover:bg-surface-100/60 transition-colors">
+    <div className="grid grid-cols-[1.4fr_80px_64px_80px_80px_120px] gap-2.5 items-center px-4 py-2.5 border-b border-surface-50/10 hover:bg-surface-100/60 transition-colors">
       {/* Player identity */}
       <div className="flex items-center gap-2.5 min-w-0">
         <PlayerRoleBadge position={player.position} />
@@ -52,32 +73,37 @@ export function RosterTableRow({ entry, onPlayerClick }: RosterTableRowProps) {
         </div>
       </div>
 
-      {/* Contract: ingaggio + durata (labels always shown — Axiom 9) */}
-      <div className="flex justify-end">
-        {contract ? (
-          <ContractInline salary={contract.salary} duration={contract.duration} variant="compact" className="justify-end text-[11px]" />
-        ) : (
-          <span className="text-gray-500">-</span>
-        )}
-      </div>
+      {/* Salary */}
+      <FinancialValue
+        label="Ing"
+        ariaLabel={contract ? `Ingaggio ${contract.salary}M` : 'Nessun ingaggio'}
+        value={contract ? `${contract.salary}${CREDIT_UNIT}` : '-'}
+        tone={contract ? 'text-white' : 'text-gray-500'}
+      />
+
+      {/* Duration */}
+      <FinancialValue
+        label="Dur"
+        ariaLabel={contract ? `Durata ${contract.duration} s` : 'Nessuna durata'}
+        value={contract ? `${contract.duration} s` : '-'}
+        tone={contract ? 'text-white' : 'text-gray-500'}
+      />
 
       {/* Clause */}
-      <div className="text-right">
-        {clause !== null ? (
-          <span className="stat-number text-base text-white">{clause}</span>
-        ) : (
-          <span className="text-gray-500">-</span>
-        )}
-      </div>
+      <FinancialValue
+        label="Cls"
+        ariaLabel={clause !== null ? `Clausola ${clause}M` : 'Nessuna clausola'}
+        value={clause !== null ? `${clause}${CREDIT_UNIT}` : '-'}
+        tone={clause !== null ? 'text-white' : 'text-gray-500'}
+      />
 
-      {/* Rubata */}
-      <div className="text-right">
-        {rubata !== null ? (
-          <span className="stat-number text-base text-gray-400">{rubata}</span>
-        ) : (
-          <span className="text-gray-500">-</span>
-        )}
-      </div>
+      {/* Rubata cost (clause + salary) — most decision-relevant figure */}
+      <FinancialValue
+        label="Rub"
+        ariaLabel={rubata !== null ? `Prezzo rubata ${rubata}M` : 'Nessun prezzo rubata'}
+        value={rubata !== null ? `${rubata}${CREDIT_UNIT}` : '-'}
+        tone={rubata !== null ? 'text-accent-400' : 'text-gray-500'}
+      />
 
       {/* Season mini-stats */}
       <div className="flex gap-2.5 justify-end">

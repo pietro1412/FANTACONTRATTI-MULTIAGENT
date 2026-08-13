@@ -88,7 +88,6 @@ export function RenewalItem({
     newDuration,
   })
 
-  const currentRubata = c.rescissionClause + c.salary
   const releaseCost = Math.ceil((c.salary * c.duration) / 2)
   const editable = c.canRenew && inContrattiPhase && !isConsolidated && !isMarkedForRelease
 
@@ -98,6 +97,7 @@ export function RenewalItem({
       <span>{c.player.team}</span>
       <span>· {c.player.age != null ? `${c.player.age} anni` : NOT_DISPONIBILE}</span>
       {rating != null && <span className="text-primary-400 font-semibold">{rating.toFixed(1)}</span>}
+      {c.duration === 1 && <Tag tone="danger">SCADE</Tag>}
       {renderTags({
         canSpalmare: c.canSpalmare,
         isMarkedForRelease,
@@ -116,7 +116,7 @@ export function RenewalItem({
 
   return (
     <div
-      className={`grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_112px_132px_118px_96px_92px] gap-2 lg:gap-2.5 items-center px-3 lg:px-4 py-2.5 border-b border-surface-50/60 hover:bg-surface-100/60 transition-colors ${
+      className={`grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_88px_88px_130px_130px_96px_96px_92px] gap-2 lg:gap-2.5 items-center px-3 lg:px-4 py-2.5 border-b border-surface-50/60 hover:bg-surface-100/60 transition-colors ${
         isMarkedForRelease ? 'opacity-60' : ''
       } ${isKeptExited ? 'bg-secondary-500/[0.04]' : ''}`}
     >
@@ -128,18 +128,21 @@ export function RenewalItem({
         sub={sub}
       />
 
-      {/* Current contract */}
-      <div className="flex lg:block items-center justify-between text-left lg:text-right">
-        <span className="micro-label lg:hidden">Attuale</span>
-        <div>
-          <div className="stat-number text-base text-gray-400">{c.salary}×{c.duration}</div>
-          <div className="font-mono text-[9.5px] text-gray-500">claus. {c.rescissionClause} · rub. {currentRubata}</div>
-        </div>
+      {/* Current salary (read-only, same look as the new one) */}
+      <div className="flex lg:block items-center justify-between text-left lg:text-center">
+        <span className="micro-label lg:hidden">Ingaggio attuale</span>
+        <span className="stat-number text-base text-accent-400">{c.salary}M</span>
       </div>
 
-      {/* New salary */}
+      {/* Current duration (read-only, same look as the new one) */}
+      <div className="flex lg:block items-center justify-between text-left lg:text-center">
+        <span className="micro-label lg:hidden">Durata attuale</span>
+        <span className={`stat-number text-base ${getDurationColor(c.duration)}`}>{c.duration}s</span>
+      </div>
+
+      {/* Renewal salary */}
       <div className="flex lg:justify-center items-center justify-between">
-        <span className="micro-label lg:hidden">Nuovo ingaggio</span>
+        <span className="micro-label lg:hidden">Ingaggio rinnovo</span>
         {editable ? (
           <Stepper
             value={newSalary}
@@ -157,9 +160,9 @@ export function RenewalItem({
         )}
       </div>
 
-      {/* New duration */}
+      {/* Renewal duration */}
       <div className="flex lg:justify-center items-center justify-between">
-        <span className="micro-label lg:hidden">Durata</span>
+        <span className="micro-label lg:hidden">Durata rinnovo</span>
         {editable ? (
           <Stepper
             value={newDuration}
@@ -179,8 +182,8 @@ export function RenewalItem({
         )}
       </div>
 
-      {/* New clause */}
-      <div className="flex lg:block items-center justify-between text-left lg:text-right">
+      {/* Renewal clause */}
+      <div className="flex lg:block items-center justify-between text-left lg:text-center">
         <span className="micro-label lg:hidden">Clausola</span>
         {isMarkedForRelease ? (
           <div>
@@ -188,18 +191,26 @@ export function RenewalItem({
             <div className="stat-number text-base text-danger-400">−{releaseCost}M</div>
           </div>
         ) : isConsolidated && consolidatedClause != null ? (
-          <div className="stat-number text-base text-white">{consolidatedClause}M</div>
+          <span className="stat-number text-base text-white">{consolidatedClause}M</span>
         ) : (
           <div>
-            <div className={`stat-number text-base ${k.hasChanges ? 'text-white' : 'text-gray-500'}`}>{k.newRescissionClause}M</div>
+            <div className={`stat-number text-base ${k.hasChanges ? 'text-accent-400 text-glow-gold' : 'text-gray-500'}`}>{k.newRescissionClause}M</div>
             {validationError ? (
               <div className="font-mono text-[9px] text-danger-400" title={validationError}>! errore</div>
-            ) : k.hasChanges ? (
-              <div className="font-mono text-[9px] text-accent-400">↑ rub. {k.newRubata}</div>
-            ) : (
-              <div className="font-mono text-[9px] text-gray-500">= invariata</div>
-            )}
+            ) : null}
           </div>
+        )}
+      </div>
+
+      {/* Rubata (single value: updates with the renewal, stays the previous one otherwise) */}
+      <div className="flex lg:block items-center justify-between text-left lg:text-center">
+        <span className="micro-label lg:hidden">Rubata</span>
+        {isMarkedForRelease ? (
+          <span className="text-gray-500 text-sm">—</span>
+        ) : isConsolidated && consolidatedClause != null && c.draftSalary != null ? (
+          <span className="stat-number text-base text-white">{consolidatedClause + c.draftSalary}M</span>
+        ) : (
+          <span className={`stat-number text-base ${k.hasChanges ? 'text-accent-400 text-glow-gold' : 'text-gray-500'}`}>{k.newRubata}M</span>
         )}
       </div>
 
@@ -240,7 +251,7 @@ export function RenewalItem({
 
       {/* Spalma persistent hint (mobile + desktop, full row) */}
       {editable && k.salaryHint && (
-        <div className="lg:col-span-6 -mt-1">
+        <div className="lg:col-span-8 -mt-1">
           <span className="font-mono text-[9.5px] text-warning-400 inline-flex items-center gap-1">
             <span className="w-1 h-1 rounded-full bg-warning-400" /> {k.salaryHint} ({c.initialSalary} ÷ {newDuration})
           </span>
