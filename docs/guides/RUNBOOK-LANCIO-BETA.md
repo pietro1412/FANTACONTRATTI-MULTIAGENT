@@ -96,7 +96,7 @@ Backup dati: `scripts/backup-critical-data.cjs` (girato in automatico da `predep
 ## 7. Beta: canale feedback
 
 - Gli amici segnalano dalla pagina **Feedback** in-app (`/api/feedback`).
-- Triage delle segnalazioni come **superadmin** (`admin@fantacontratti.it`).
+- Triage delle segnalazioni come **superadmin** (`superadmin@fantacontratti.it` — l'account reale in produzione; `admin@fantacontratti.it` è solo il seed locale, NON esiste su Neon).
 - Guida di ingresso da condividere: `docs/guides/GUIDA-ONBOARDING-BETA.md` (sostituire `<URL>` con l'URL di produzione).
 
 ---
