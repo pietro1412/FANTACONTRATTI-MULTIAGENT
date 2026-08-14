@@ -116,7 +116,7 @@ export function RenewalItem({
 
   return (
     <div
-      className={`grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_88px_88px_130px_130px_96px_96px_92px] gap-2 lg:gap-2.5 items-center px-3 lg:px-4 py-2.5 border-b border-surface-50/60 hover:bg-surface-100/60 transition-colors ${
+      className={`grid contracts-grid items-center px-3 lg:px-4 py-2.5 border-b border-surface-50/60 hover:bg-surface-100/60 transition-colors ${
         isMarkedForRelease ? 'opacity-60' : ''
       } ${isKeptExited ? 'bg-secondary-500/[0.04]' : ''}`}
     >

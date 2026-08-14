@@ -330,6 +330,31 @@
     color: #8b919d; /* gray-500 */
   }
 
+  /* Contracts cockpit row grid (8 columns). The player column dominates and every
+     data column flexes proportionally with the container instead of holding a
+     fixed width (REVIEW_PRE_BETA: colonne flessibili) — wide screens spread the
+     space evenly, lg keeps the steppers at their minimum. Pair with Tailwind
+     `grid`: this only sets the tracks + gap, never `display`. */
+  .contracts-grid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  @media (min-width: 1024px) {
+    .contracts-grid {
+      grid-template-columns:
+        minmax(0, 3fr)
+        minmax(52px, 0.5fr)
+        minmax(48px, 0.45fr)
+        minmax(130px, 0.8fr)
+        minmax(130px, 0.75fr)
+        minmax(64px, 0.45fr)
+        minmax(56px, 0.4fr)
+        minmax(80px, 0.5fr);
+      gap: 0.625rem;
+    }
+  }
+
   /* Live indicator dot with glow (use bg-* token for color) */
   .dot-live {
     display: inline-block;

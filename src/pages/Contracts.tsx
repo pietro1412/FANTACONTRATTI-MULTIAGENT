@@ -857,7 +857,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
 
   // ===== Tab content =====
   const tableHeader = (
-    <div className="hidden lg:grid grid-cols-[minmax(0,1fr)_88px_88px_130px_130px_96px_96px_92px] gap-2.5 px-4 py-2 border-b border-surface-50 bg-surface-300 flex-shrink-0">
+    <div className="hidden lg:grid contracts-grid px-4 py-2 border-b border-surface-50 bg-surface-300 flex-shrink-0">
       <span className="micro-label">Giocatore</span>
       <span className="micro-label text-center">Ingaggio attuale</span>
       <span className="micro-label text-center inline-flex items-center justify-center gap-1">
