@@ -14,7 +14,7 @@ import { ManagerStrip, type ManagerStripMember } from '@/components/players/Mana
 import { RosterFilters } from '@/components/players/RosterFilters'
 import { RosterTableRow } from '@/components/players/RosterTableRow'
 import { RosterPlayerCard } from '@/components/players/RosterPlayerCard'
-import { RosterSidebar } from '@/components/players/RosterSidebar'
+import { RosterSidebar, type CompositionRankingRow } from '@/components/players/RosterSidebar'
 import type { RosterEntry } from '@/components/players/types'
 import { SlidersHorizontal } from 'lucide-react'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
@@ -275,6 +275,27 @@ export function Rose({ onNavigate }: RoseProps) {
       .sort((a, b) => b[1] - a[1])
       .map(([team, count]) => ({ team, count }))
   }, [selectedMember])
+
+  // League-wide composition ranking for the sidebar (hidden before the first
+  // market, when every roster is empty). Sorted by roster size, then name.
+  const compositionRanking = useMemo<CompositionRankingRow[]>(() => {
+    if (!leagueData || firstMarketNotStarted) return []
+    return leagueData.members
+      .map(m => {
+        const byPosition = { P: 0, D: 0, C: 0, A: 0 }
+        for (const entry of m.roster) {
+          byPosition[entry.player.position] += 1
+        }
+        return {
+          memberId: m.id,
+          displayName: m.teamName || m.user.username,
+          total: m.roster.length,
+          byPosition,
+          isMe: m.userId === leagueData.currentUserId,
+        }
+      })
+      .sort((a, b) => b.total - a.total || a.displayName.localeCompare(b.displayName))
+  }, [leagueData, firstMarketNotStarted])
 
   const handleSelectMember = useCallback((id: string) => {
     setSelectedMemberId(id)
@@ -565,6 +586,9 @@ export function Rose({ onNavigate }: RoseProps) {
                   teamCounts={teamCounts}
                   teamFilter={teamFilter}
                   onTeamToggle={handleTeamToggle}
+                  ranking={compositionRanking}
+                  selectedMemberId={selectedMemberId}
+                  onSelectMember={handleSelectMember}
                 />
               </div>
             )}

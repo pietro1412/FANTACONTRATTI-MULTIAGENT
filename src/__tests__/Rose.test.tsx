@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react'
 
 // ---------------------------------------------------------------------------
 // Mocks — must come before component imports
@@ -290,5 +290,61 @@ describe('Rose Page', () => {
     await waitFor(() => {
       expect(screen.getByText(/Fase CONTRATTI attiva/)).toBeInTheDocument()
     })
+  })
+
+  it('renders the composition ranking with the selected member highlighted', async () => {
+    mockGetAllRosters.mockResolvedValue({ success: true, data: mockLeagueData })
+
+    render(<Rose onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Classifica composizione')).toBeInTheDocument()
+    })
+
+    const card = screen.getByTestId('composition-ranking')
+    // Selected member (FC Test, 2 players) is highlighted
+    const myRow = within(card).getByRole('button', { name: /FC Test/ })
+    expect(myRow).toHaveAttribute('aria-pressed', 'true')
+    // Composition counts of the selected roster in the row (P0 D1 C0 A1, total 2)
+    expect(myRow).toHaveAccessibleName(/01012$/)
+    // Rival member (0 players) is not highlighted
+    const rivalRow = within(card).getByRole('button', { name: /FC Rival/ })
+    expect(rivalRow).toHaveAttribute('aria-pressed', 'false')
+    expect(rivalRow).toHaveAccessibleName(/00000$/)
+  })
+
+  it('switches the viewed roster when clicking a ranking row', async () => {
+    mockGetAllRosters.mockResolvedValue({ success: true, data: mockLeagueData })
+
+    render(<Rose onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('composition-ranking')).toBeInTheDocument()
+    })
+
+    const card = screen.getByTestId('composition-ranking')
+    fireEvent.click(within(card).getByRole('button', { name: /FC Rival/ }))
+
+    await waitFor(() => {
+      expect(within(card).getByRole('button', { name: /FC Rival/ })).toHaveAttribute('aria-pressed', 'true')
+    })
+    // The selected member composition header reflects the empty roster
+    expect(screen.getByText('Composizione · 0 giocatori')).toBeInTheDocument()
+  })
+
+  it('hides the composition ranking before the first market (all rosters empty)', async () => {
+    const dataEmpty = {
+      ...mockLeagueData,
+      members: mockLeagueData.members.map(m => ({ ...m, roster: [] })),
+    }
+    mockGetAllRosters.mockResolvedValue({ success: true, data: dataEmpty })
+
+    render(<Rose onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/Composizione · 0 giocatori/)).toBeInTheDocument()
+    })
+
+    expect(screen.queryByTestId('composition-ranking')).not.toBeInTheDocument()
   })
 })
