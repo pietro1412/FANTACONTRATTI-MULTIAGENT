@@ -1,8 +1,15 @@
 import { useState, useEffect } from 'react'
 import { ChevronUp } from 'lucide-react'
+import { useLocation } from 'react-router-dom'
 
 export function ScrollToTop() {
   const [visible, setVisible] = useState(false)
+  const { pathname } = useLocation()
+
+  // SPA routes don't reset scroll automatically: go back to top on navigation
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [pathname])
 
   useEffect(() => {
     const onScroll = () => { setVisible(window.scrollY > 400); }

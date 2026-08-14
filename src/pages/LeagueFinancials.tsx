@@ -8,7 +8,7 @@ import { FinanceDashboard } from '../components/finance/FinanceDashboard'
 import { TeamComparison } from '../components/finance/TeamComparison'
 import { TeamFinanceDetail } from '../components/finance/TeamFinanceDetail'
 import { FinanceTimeline } from '../components/finance/FinanceTimeline'
-import type { FinancialsData } from '../components/finance/types'
+import { formatSessionLabel, type FinancialsData } from '../components/finance/types'
 
 // ============================================================================
 // Navigation state for multi-level drill-down
@@ -87,6 +87,11 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
     }
   }, [leagueId, trendsData])
 
+  // Reset scroll to top when switching tab or drill-down view
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [view])
+
   // Navigation handlers
   const handleTabClick = (tab: string) => {
     if (tab === 'panoramica') setView({ level: 'panoramica' })
@@ -122,14 +127,6 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
 
   // My team (for the hero and highlighted rows), matched by username
   const myTeamId = data?.teams.find(t => t.username === user?.username)?.memberId
-
-  // Human-readable session pill label (no PM/MR acronyms, no raw enum phases)
-  const formatSessionLabel = (session: { sessionType: string; currentPhase: string | null; createdAt: string }) => {
-    const typeLabel = session.sessionType === 'PRIMO_MERCATO' ? 'Primo Mercato' : 'Mercato Riparazione'
-    const date = new Date(session.createdAt)
-    const when = date.toLocaleDateString('it-IT', { month: 'short', year: 'numeric' })
-    return `${typeLabel} · ${when}`
-  }
 
   if (loading) {
     return (
