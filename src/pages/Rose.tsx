@@ -553,11 +553,11 @@ export function Rose({ onNavigate }: RoseProps) {
 
       <main className="w-full max-w-[1400px] mx-auto px-3 lg:px-4 py-3 lg:flex-1 lg:min-h-0 lg:flex lg:flex-col lg:overflow-hidden">
         <CockpitShell header={header} adminBar={adminBar}>
-          {/* Contracts-phase info banner (other managers' contracts hidden) */}
+          {/* Contracts-phase info banner (pre-renewal contracts shown, new ones after the phase) */}
           {leagueData.inContrattiPhase && !isOwnRoster && (
             <div className="mt-3 lg:mt-2 p-2.5 bg-warning-500/10 border border-warning-500/30 rounded-xl text-sm flex-shrink-0">
               <p className="text-warning-400">
-                <strong>Fase CONTRATTI attiva:</strong> i dettagli dei contratti degli altri manager sono nascosti.
+                <strong>Fase CONTRATTI attiva:</strong> sono mostrati i contratti in vigore prima dei rinnovi; i nuovi contratti saranno visibili a conclusione della fase.
               </p>
             </div>
           )}

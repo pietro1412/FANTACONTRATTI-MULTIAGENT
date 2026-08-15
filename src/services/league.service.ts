@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import type { CreateLeagueInput, UpdateLeagueInput } from '../utils/validation'
 import type { IEmailService } from '../modules/identity/domain/services/email.service.interface'
 import { computeSeasonStatsBatch } from './player-stats.service'
+import { calculateRescissionClause } from './contract.service'
 import type { ServiceResult } from '@/shared/types/service-result'
 
 // Lazy-loaded email service to avoid initialization errors
@@ -1061,7 +1062,9 @@ export async function getAllRosters(leagueId: string, userId: string): Promise<S
     return { success: false, message: 'Non autorizzato' }
   }
 
-  // Check if we're in CONTRATTI phase - hide other managers' contracts if so
+  // Check if we're in CONTRATTI phase: during the phase the OLD (pre-renewal)
+  // contracts must stay visible in Rose/Giocatori; the new ones appear only
+  // after the phase concludes.
   const activeContrattiSession = await prisma.marketSession.findFirst({
     where: {
       leagueId,
@@ -1069,7 +1072,7 @@ export async function getAllRosters(leagueId: string, userId: string): Promise<S
       currentPhase: 'CONTRATTI',
     },
   })
-  const hideOthersContracts = !!activeContrattiSession
+  const inContrattiPhase = !!activeContrattiSession
 
   const league = await prisma.league.findUnique({
     where: { id: leagueId },
@@ -1116,6 +1119,9 @@ export async function getAllRosters(leagueId: string, userId: string): Promise<S
                   duration: true,
                   rescissionClause: true,
                   signedAt: true,
+                  // Pre-consolidation values: during CONTRATTI we show the old contract
+                  preConsolidationSalary: true,
+                  preConsolidationDuration: true,
                 },
               },
             },
@@ -1141,16 +1147,32 @@ export async function getAllRosters(leagueId: string, userId: string): Promise<S
   // Compute season stats for all players in batch (efficient single query)
   const statsMap = await computeSeasonStatsBatch(allPlayerIds)
 
-  // If in CONTRATTI phase, hide contract details for other managers
+  // Durante la fase CONTRATTI mostriamo i contratti PRE-rinnovo (vecchi) per tutti i
+  // manager: per chi ha già consolidato, preConsolidation* conserva i valori precedenti;
+  // per chi non ha ancora consolidato, i valori correnti sono ancora quelli pre-fase.
   const processedMembers = league.members.map(member => {
-    const processedRoster = member.roster.map(r => ({
-      ...r,
-      player: {
-        ...r.player,
-        computedStats: statsMap.get(r.playerId) || null,
-      },
-      contract: hideOthersContracts && member.userId !== userId ? null : r.contract,
-    }))
+    const processedRoster = member.roster.map(r => {
+      let contract = r.contract
+      if (inContrattiPhase && contract) {
+        const salary = contract.preConsolidationSalary ?? contract.salary
+        const duration = contract.preConsolidationDuration ?? contract.duration
+        contract = {
+          ...contract,
+          salary,
+          duration,
+          rescissionClause: calculateRescissionClause(salary, duration),
+        }
+      }
+
+      return {
+        ...r,
+        player: {
+          ...r.player,
+          computedStats: statsMap.get(r.playerId) || null,
+        },
+        contract,
+      }
+    })
 
     return {
       ...member,
@@ -1166,7 +1188,7 @@ export async function getAllRosters(leagueId: string, userId: string): Promise<S
       members: processedMembers,
       currentUserId: userId,
       isAdmin: membership.role === MemberRole.ADMIN,
-      inContrattiPhase: hideOthersContracts,
+      inContrattiPhase,
     },
   }
 }

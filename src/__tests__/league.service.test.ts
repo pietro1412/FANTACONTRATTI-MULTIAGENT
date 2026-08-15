@@ -777,6 +777,163 @@ describe('League Service', () => {
     })
   })
 
+  // ==================== getAllRosters ====================
+
+  describe('getAllRosters', () => {
+    it('should return error when user is not a member', async () => {
+      mockPrisma.leagueMember.findFirst.mockResolvedValue(null)
+
+      const result = await leagueService.getAllRosters('league-1', 'outsider')
+
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('Non autorizzato')
+    })
+
+    it('returns contracts unchanged when not in CONTRATTI phase', async () => {
+      mockPrisma.leagueMember.findFirst.mockResolvedValue({ id: 'member-1', role: 'MEMBER' })
+      mockPrisma.marketSession.findFirst.mockResolvedValue(null)
+      mockPrisma.league.findUnique.mockResolvedValue({
+        id: 'league-1',
+        name: 'Test League',
+        members: [
+          {
+            id: 'member-1',
+            userId: 'user-1',
+            role: 'MEMBER',
+            teamName: 'Team Alpha',
+            currentBudget: 200,
+            user: { username: 'admin' },
+            roster: [
+              {
+                id: 'r1',
+                playerId: 'p1',
+                acquisitionPrice: 10,
+                acquisitionType: 'AUCTION',
+                player: { id: 'p1', name: 'Player 1', team: 'Milan', position: 'A', quotation: 30, age: 25, apiFootballId: null, apiFootballStats: null, statsSyncedAt: null },
+                contract: {
+                  id: 'c1',
+                  salary: 12,
+                  duration: 3,
+                  rescissionClause: 108,
+                  signedAt: '2025-01-01T00:00:00Z',
+                  preConsolidationSalary: null,
+                  preConsolidationDuration: null,
+                },
+              },
+            ],
+          },
+        ],
+      })
+
+      const result = await leagueService.getAllRosters('league-1', 'user-1')
+
+      expect(result.success).toBe(true)
+      const data = result.data as {
+        inContrattiPhase: boolean
+        members: Array<{ roster: Array<{ contract: { salary: number; duration: number } | null }> }>
+      }
+      expect(data.inContrattiPhase).toBe(false)
+      expect(data.members[0]!.roster[0]!.contract!.salary).toBe(12)
+      expect(data.members[0]!.roster[0]!.contract!.duration).toBe(3)
+    })
+
+    it('shows the pre-renewal (old) contract for a consolidated manager during CONTRATTI', async () => {
+      mockPrisma.leagueMember.findFirst.mockResolvedValue({ id: 'member-1', role: 'MEMBER' })
+      mockPrisma.marketSession.findFirst.mockResolvedValue({ id: 'sess-1' })
+      mockPrisma.league.findUnique.mockResolvedValue({
+        id: 'league-1',
+        name: 'Test League',
+        members: [
+          {
+            id: 'member-1',
+            userId: 'user-1',
+            role: 'MEMBER',
+            teamName: 'Team Alpha',
+            currentBudget: 200,
+            user: { username: 'admin' },
+            roster: [
+              {
+                id: 'r1',
+                playerId: 'p1',
+                acquisitionPrice: 10,
+                acquisitionType: 'AUCTION',
+                player: { id: 'p1', name: 'Player 1', team: 'Milan', position: 'A', quotation: 30, age: 25, apiFootballId: null, apiFootballStats: null, statsSyncedAt: null },
+                contract: {
+                  id: 'c1',
+                  salary: 12,
+                  duration: 3,
+                  rescissionClause: 108,
+                  signedAt: '2025-01-01T00:00:00Z',
+                  preConsolidationSalary: 8,
+                  preConsolidationDuration: 2,
+                },
+              },
+            ],
+          },
+        ],
+      })
+
+      const result = await leagueService.getAllRosters('league-1', 'user-1')
+
+      expect(result.success).toBe(true)
+      const data = result.data as {
+        inContrattiPhase: boolean
+        members: Array<{ roster: Array<{ contract: { salary: number; duration: number; rescissionClause: number } | null }> }>
+      }
+      expect(data.inContrattiPhase).toBe(true)
+      // Old (pre-renewal) values are shown, clause recomputed: 8 * 7 (duration 2) = 56
+      expect(data.members[0]!.roster[0]!.contract!.salary).toBe(8)
+      expect(data.members[0]!.roster[0]!.contract!.duration).toBe(2)
+      expect(data.members[0]!.roster[0]!.contract!.rescissionClause).toBe(56)
+    })
+
+    it('keeps current contract values for a non-consolidated manager during CONTRATTI', async () => {
+      mockPrisma.leagueMember.findFirst.mockResolvedValue({ id: 'member-1', role: 'MEMBER' })
+      mockPrisma.marketSession.findFirst.mockResolvedValue({ id: 'sess-1' })
+      mockPrisma.league.findUnique.mockResolvedValue({
+        id: 'league-1',
+        name: 'Test League',
+        members: [
+          {
+            id: 'member-1',
+            userId: 'user-1',
+            role: 'MEMBER',
+            teamName: 'Team Alpha',
+            currentBudget: 200,
+            user: { username: 'admin' },
+            roster: [
+              {
+                id: 'r1',
+                playerId: 'p1',
+                acquisitionPrice: 10,
+                acquisitionType: 'AUCTION',
+                player: { id: 'p1', name: 'Player 1', team: 'Milan', position: 'A', quotation: 30, age: 25, apiFootballId: null, apiFootballStats: null, statsSyncedAt: null },
+                contract: {
+                  id: 'c1',
+                  salary: 8,
+                  duration: 2,
+                  rescissionClause: 56,
+                  signedAt: '2025-01-01T00:00:00Z',
+                  preConsolidationSalary: null,
+                  preConsolidationDuration: null,
+                },
+              },
+            ],
+          },
+        ],
+      })
+
+      const result = await leagueService.getAllRosters('league-1', 'user-1')
+
+      expect(result.success).toBe(true)
+      const data = result.data as {
+        members: Array<{ roster: Array<{ contract: { salary: number; duration: number } | null }> }>
+      }
+      expect(data.members[0]!.roster[0]!.contract!.salary).toBe(8)
+      expect(data.members[0]!.roster[0]!.contract!.duration).toBe(2)
+    })
+  })
+
   // ==================== getPendingJoinRequests ====================
 
   describe('getPendingJoinRequests', () => {
