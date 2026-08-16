@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog'
-import { leagueApi, superadminApi, movementApi } from '../services/api'
+import { leagueApi, superadminApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { Navigation } from '../components/Navigation'
 import { SearchLeaguesModal } from '../components/SearchLeaguesModal'
-import { SkeletonCard } from '../components/ui/Skeleton'
-import { LeagueCrest, getLeagueIdentity } from '../components/ui/LeagueCrest'
-import { PlayerName } from '@/components/players/PlayerName'
+import { SkeletonPlayerRow } from '../components/ui/Skeleton'
+import { LeagueCrest } from '../components/ui/LeagueCrest'
 import {
   buildActions,
   phaseLabel,
@@ -42,231 +41,23 @@ interface LeagueData {
   league: League
 }
 
-function getTimeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 1) return 'ora'
-  if (mins < 60) return `${mins}m fa`
-  const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours}h fa`
-  const days = Math.floor(hours / 24)
-  return `${days}g fa`
-}
+// Chips secondarie del tabellone (stati "a riposo" / non interattivi)
+const CHIP_REST = 'bg-secondary-500/15 text-secondary-400 border border-secondary-500/30'
+const CHIP_GRAY = 'bg-surface-50/20 text-gray-400 border border-surface-50/30'
 
-// ---- Attention card (rotaia "Richiede la tua attenzione") ----
-function AttentionCard({
-  ld,
-  summary,
-  actions,
-}: {
+// ---- Riga del tabellone "stile classifica" ----
+interface LeagueRow {
   ld: LeagueData
-  summary?: LeagueSummary
-  actions: DashAction[]
-}) {
-  const { league, membership } = ld
-  const identity = getLeagueIdentity(league.name)
-  const primary = actions[0]
-  const ph = phaseLabel(summary)
-  const phaseText = ph ?? (league.status === 'DRAFT' ? 'In preparazione · in attesa di avvio' : '—')
-  const isUrgent = primary?.tone === 'urgent'
-
-  return (
-    <div
-      className={`relative bg-surface-200 rounded-2xl border p-4 overflow-hidden flex flex-col shadow-lg ${
-        isUrgent ? 'border-danger-500/60 ring-1 ring-danger-500/40' : 'border-surface-50/30'
-      }`}
-    >
-      <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${identity.gradient}`} aria-hidden="true" />
-
-      <div className="flex items-center gap-3 mb-3">
-        <LeagueCrest name={league.name} imageUrl={league.imageUrl} />
-        <div className="flex-1 min-w-0">
-          <p className="font-bold text-white leading-tight truncate">{league.name}</p>
-          <span className="inline-flex items-center gap-1.5 text-[11px] text-gray-400 mt-1">
-            <RoleTag role={membership.role} />
-            {league.members.length}{league.maxParticipants ? `/${league.maxParticipants}` : ''} manager
-          </span>
-        </div>
-        {primary && (
-          <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap ${TONE_CHIP[primary.tone]}`}>
-            {primary.chip}
-          </span>
-        )}
-      </div>
-
-      <div className="flex items-center gap-2 text-xs text-gray-400 mb-3">
-        <span aria-hidden="true">📍</span>
-        <span className="font-medium text-gray-200">{phaseText}</span>
-      </div>
-
-      {primary && (
-        <div className="bg-surface-300 border border-surface-50/20 rounded-xl p-3 flex items-start gap-2.5 mb-3">
-          <span className="text-lg leading-none flex-shrink-0" aria-hidden="true">{primary.emoji}</span>
-          <span className="text-[13px] font-semibold text-white leading-snug">
-            {primary.text}
-            {actions.length > 1 && (
-              <span className="block text-[11px] font-normal text-gray-400 mt-0.5">
-                e altre {actions.length - 1} azioni in sospeso
-              </span>
-            )}
-            {primary.sub && actions.length === 1 && (
-              <span className="block text-[11px] font-normal text-gray-500 mt-0.5">{primary.sub}</span>
-            )}
-          </span>
-        </div>
-      )}
-
-      <div className="mt-auto flex items-center gap-3">
-        {league.status === 'ACTIVE' && (
-          <div className="flex-1 min-w-0">
-            <p className="text-[9px] text-gray-500 uppercase tracking-wide">Budget</p>
-            <p className="text-base font-bold font-mono text-accent-400 leading-tight">{membership.currentBudget}M</p>
-          </div>
-        )}
-        {primary && (
-          <Button
-            variant={primary.ctaVariant}
-            size="sm"
-            className={league.status === 'ACTIVE' ? '' : 'flex-1'}
-            onClick={() => { primary.go() }}
-          >
-            {primary.ctaLabel}
-          </Button>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// ---- Calm card (griglia "Tutte le mie leghe") ----
-function LeagueCard({
-  ld,
-  summary,
-  onNavigate,
-  onCancel,
-  cancelling,
-}: {
-  ld: LeagueData
-  summary?: LeagueSummary
-  onNavigate: DashboardProps['onNavigate']
-  onCancel: (e: React.MouseEvent, leagueId: string) => void
-  cancelling: boolean
-}) {
-  const { league, membership } = ld
-  const isPending = membership.status === 'PENDING'
-  const isAdmin = membership.role === 'ADMIN'
-  const ph = phaseLabel(summary)
-
-  const stateBadge = isPending ? (
-    <span className="text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30">⏳ In attesa</span>
-  ) : league.status === 'ACTIVE' ? (
-    <span className="text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded bg-secondary-500/15 text-secondary-400 border border-secondary-500/30">● Attiva</span>
-  ) : league.status === 'DRAFT' ? (
-    <span className="text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded bg-violet-500/15 text-violet-400 border border-violet-500/30">◌ In preparazione</span>
-  ) : (
-    <span className="text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded bg-surface-50/20 text-gray-400 border border-surface-50/30">✓ Completata</span>
-  )
-
-  const clickable = !isPending && league.status !== 'COMPLETED'
-
-  return (
-    <div
-      className={`bg-surface-200 rounded-2xl border p-4 flex flex-col min-w-0 transition-all ${
-        isPending ? 'border-amber-500/30' : 'border-surface-50/20'
-      } ${league.status === 'COMPLETED' ? 'opacity-75' : ''} ${
-        clickable ? 'hover:border-primary-500/40 hover:shadow-glow cursor-pointer group' : ''
-      }`}
-      onClick={() => { if (clickable) onNavigate('leagueDetail', { leagueId: league.id }) }}
-    >
-      <div className="flex items-center gap-3 mb-3">
-        <LeagueCrest name={league.name} imageUrl={league.imageUrl} size="sm" />
-        <div className="flex-1 min-w-0">
-          <p className={`font-bold leading-tight truncate ${isPending ? 'text-amber-200' : 'text-white group-hover:text-primary-400 transition-colors'}`}>
-            {league.name}
-          </p>
-          <span className="inline-flex items-center gap-1.5 text-[11px] text-gray-400 mt-1">
-            <RoleTag role={membership.role} />
-            {league.members.length}{league.maxParticipants ? `/${league.maxParticipants}` : ''}
-            <span className={`text-[9px] font-mono font-bold uppercase tracking-wider px-1 py-0.5 rounded ${
-              league.isPublic
-                ? 'bg-secondary-500/15 text-secondary-400 border border-secondary-500/30'
-                : 'bg-primary-500/15 text-primary-400 border border-primary-500/30'
-            }`}>
-              {league.isPublic ? 'Pubblica' : 'Privata'}
-            </span>
-          </span>
-        </div>
-        {stateBadge}
-      </div>
-
-      {/* Body coerente con lo stato */}
-      {isPending ? (
-        <div className="text-sm text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2 mb-3">
-          Richiesta di adesione in attesa di approvazione
-        </div>
-      ) : league.status === 'ACTIVE' ? (
-        <>
-          <div className="flex items-center justify-between text-xs mb-3">
-            <span className="text-gray-500">Fase</span>
-            <span className="font-medium text-gray-200">{ph ?? '—'}</span>
-          </div>
-          <div className="flex items-center justify-between text-xs mb-3">
-            <span className="text-gray-500">Budget</span>
-            <span className="font-mono font-bold text-accent-400">{membership.currentBudget}M</span>
-          </div>
-        </>
-      ) : league.status === 'DRAFT' ? (
-        <>
-          <div className="flex items-center justify-between text-xs mb-3">
-            <span className="text-gray-500">Membri</span>
-            <span className="font-mono font-medium text-gray-200">
-              {league.members.length}{league.maxParticipants ? ` / ${league.maxParticipants}` : ''}
-            </span>
-          </div>
-          <div className="flex items-center justify-between text-xs mb-3">
-            <span className="text-gray-500">Stato</span>
-            <span className="font-medium text-gray-200">In attesa di avvio</span>
-          </div>
-        </>
-      ) : (
-        <div className="text-sm text-gray-400 bg-surface-300 border border-surface-50/20 rounded-lg px-3 py-2 mb-3">
-          Stagione conclusa
-        </div>
-      )}
-
-      {/* Footer azioni coerenti con lo stato */}
-      <div className="mt-auto flex gap-2" onClick={(e) => { e.stopPropagation() }}>
-        {isPending ? (
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full border-amber-500/50 text-amber-400 hover:bg-amber-500/10"
-            onClick={(e) => { onCancel(e, league.id) }}
-            disabled={cancelling}
-          >
-            {cancelling ? 'Annullando...' : '✕ Annulla Richiesta'}
-          </Button>
-        ) : league.status === 'COMPLETED' ? (
-          <Button variant="ghost" size="sm" className="w-full" onClick={() => { onNavigate('history', { leagueId: league.id }) }}>
-            📊 Storico
-          </Button>
-        ) : league.status === 'DRAFT' && isAdmin ? (
-          <>
-            <Button variant="accent" size="sm" className="flex-1" onClick={() => { onNavigate('adminPanel', { leagueId: league.id }) }}>
-              Pannello Admin
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => { onNavigate('adminPanel', { leagueId: league.id, tab: 'members' }) }}>
-              Invita
-            </Button>
-          </>
-        ) : (
-          <Button variant="outline" size="sm" className="w-full" onClick={() => { onNavigate('leagueDetail', { leagueId: league.id }) }}>
-            Entra nella Lega →
-          </Button>
-        )}
-      </div>
-    </div>
-  )
+  rank: number
+  live: boolean
+  dim: boolean
+  order: number
+  phase: string
+  phaseActive: boolean
+  chip: { label: string; cls: string } | null
+  budget: string | null
+  cta: { label: string; go: () => void } | null
+  nav: () => void
 }
 
 export function Dashboard({ onNavigate }: DashboardProps) {
@@ -279,27 +70,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   const [cancellingLeagueId, setCancellingLeagueId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  // T-022: Activity feed
-  interface ActivityItem {
-    id: string
-    type: string
-    leagueId: string
-    playerId: string
-    playerName: string
-    playerTeam: string
-    playerPosition: string
-    playerQuotation?: number
-    playerApiFootballId?: number | null
-    fromUser: string | null
-    toUser: string | null
-    price: number | null
-    createdAt: string
-    leagueName: string
-  }
-  const [activities, setActivities] = useState<ActivityItem[]>([])
-
-  async function handleCancelRequest(e: React.MouseEvent, leagueId: string) {
-    e.stopPropagation()
+  async function cancelRequest(leagueId: string) {
     if (cancellingLeagueId) return
 
     const ok = await confirmDialog({
@@ -321,10 +92,6 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     }
     setCancellingLeagueId(null)
   }
-
-  useEffect(() => {
-    void loadData()
-  }, [])
 
   async function loadData() {
     setError(null)
@@ -364,37 +131,6 @@ export function Dashboard({ onNavigate }: DashboardProps) {
       if (response.success && response.data) {
         const leagueData = response.data as LeagueData[]
         setLeagues(leagueData)
-
-        // T-022: Load recent activity from active leagues
-        const activeLeagues = leagueData.filter(l => l.membership.status === 'ACTIVE')
-        if (activeLeagues.length > 0) {
-          const movementPromises = activeLeagues.slice(0, 3).map(async ({ league }) => {
-            const res = await movementApi.getLeagueMovements(league.id, { limit: 5 })
-            if (res.success && res.data) {
-              const movements = (res.data as { movements: Array<{ id: string; type: string; player: { id: string; name: string; team: string; position: string; quotation?: number; apiFootballId?: number | null }; from: { username: string } | null; to: { username: string } | null; price: number | null; createdAt: string }> }).movements || []
-              return movements.map(m => ({
-                id: m.id,
-                type: m.type,
-                leagueId: league.id,
-                playerId: m.player.id,
-                playerName: m.player.name,
-                playerTeam: m.player.team,
-                playerPosition: m.player.position,
-                playerQuotation: m.player.quotation,
-                playerApiFootballId: m.player.apiFootballId,
-                fromUser: m.from?.username || null,
-                toUser: m.to?.username || null,
-                price: m.price,
-                createdAt: m.createdAt,
-                leagueName: league.name,
-              }))
-            }
-            return []
-          })
-          const allMovements = (await Promise.all(movementPromises)).flat()
-          allMovements.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-          setActivities(allMovements.slice(0, 10))
-        }
       } else {
         setError('Errore nel caricamento delle leghe.')
       }
@@ -404,18 +140,88 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     setIsLoading(false)
   }
 
-  // Derive attention leagues (membership ACTIVE with at least one pending action) vs the calm full list
-  const attention = leagues
-    .filter(ld => ld.membership.status === 'ACTIVE')
-    .map(ld => ({ ld, actions: buildActions(ld.league.id, summaries[ld.league.id], onNavigate) }))
-    .filter(item => item.actions.length > 0)
+  // Carica i dati al mount (dichiarato dopo loadData/loadLeagues per evitare use-before-declared)
+  useEffect(() => {
+    void loadData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
-  const CALM_RANK: Record<string, number> = { ACTIVE: 0, DRAFT: 1, COMPLETED: 3 }
-  const calm = [...leagues].sort((a, b) => {
-    const ra = a.membership.status === 'PENDING' ? 2 : (CALM_RANK[a.league.status] ?? 4)
-    const rb = b.membership.status === 'PENDING' ? 2 : (CALM_RANK[b.league.status] ?? 4)
-    return ra - rb
+  // Leghe ACTIVE con azioni pendenti (riuso la logica di attention.tsx, senza duplicarla)
+  const actionMap = new Map<string, DashAction[]>()
+  for (const ld of leagues) {
+    if (ld.membership.status === 'ACTIVE') {
+      const actions = buildActions(ld.league.id, summaries[ld.league.id], onNavigate)
+      if (actions.length > 0) actionMap.set(ld.league.id, actions)
+    }
+  }
+
+  // Costruzione righe tabellone
+  const rows: LeagueRow[] = leagues.map(ld => {
+    const { league, membership } = ld
+    const isPending = membership.status === 'PENDING'
+    const isAdmin = membership.role === 'ADMIN'
+    const isActive = league.status === 'ACTIVE'
+    const primary = actionMap.get(league.id)?.[0]
+
+    let order: number
+    let phase = ''
+    let phaseActive = false
+    let chip: LeagueRow['chip'] = null
+    let budget: string | null = null
+    let cta: LeagueRow['cta'] = null
+    let nav: () => void = () => { onNavigate('leagueDetail', { leagueId: league.id }) }
+
+    if (isPending) {
+      order = 3
+      phase = 'In attesa di approvazione'
+      chip = { label: 'In attesa', cls: CHIP_GRAY }
+      nav = () => { void cancelRequest(league.id) }
+    } else if (isActive) {
+      order = primary ? 0 : 1
+      phase = phaseLabel(summaries[league.id]) ?? '—'
+      phaseActive = true
+      budget = `${membership.currentBudget}M`
+      if (primary) {
+        chip = { label: primary.chip, cls: TONE_CHIP[primary.tone] }
+        cta = { label: primary.ctaLabel, go: primary.go }
+        nav = primary.go
+      } else {
+        chip = { label: 'A riposo', cls: CHIP_REST }
+      }
+    } else if (league.status === 'DRAFT') {
+      order = 2
+      phase = 'In preparazione'
+      if (isAdmin) {
+        chip = { label: 'Pannello Admin', cls: TONE_CHIP.admin }
+        nav = () => { onNavigate('adminPanel', { leagueId: league.id }) }
+      }
+    } else {
+      order = 4
+      phase = 'Stagione conclusa'
+      chip = { label: 'Storico', cls: CHIP_GRAY }
+      nav = () => { onNavigate('history', { leagueId: league.id }) }
+    }
+
+    return {
+      ld,
+      rank: 0,
+      live: order === 0,
+      dim: order >= 2,
+      order,
+      phase,
+      phaseActive,
+      chip,
+      budget,
+      cta,
+      nav,
+    }
   })
+
+  rows.sort((a, b) => a.order - b.order || a.ld.league.name.localeCompare(b.ld.league.name, 'it'))
+  rows.forEach((row, i) => { row.rank = i + 1 })
+
+  const nInGioco = leagues.filter(l => l.league.status === 'ACTIVE').length
+  const nAttention = actionMap.size
 
   return (
     <div className="min-h-screen">
@@ -429,9 +235,11 @@ export function Dashboard({ onNavigate }: DashboardProps) {
             <p className="text-gray-400">
               {isSuperAdmin
                 ? 'Sei un superadmin - usa il pannello di controllo per gestire la piattaforma'
-                : attention.length > 0
-                  ? <>Hai <b className="text-danger-400">{attention.length} {attention.length === 1 ? 'lega che richiede' : 'leghe che richiedono'} la tua attenzione</b> · {leagues.length} totali</>
-                  : 'Gestisci le tue leghe fantasy'}
+                : nAttention > 0
+                  ? <>{nInGioco} {nInGioco === 1 ? 'lega' : 'leghe'} in gioco · <b className="text-danger-400">{nAttention}</b> con la tua attenzione</>
+                  : nInGioco > 0
+                    ? <>{nInGioco} {nInGioco === 1 ? 'lega' : 'leghe'} in gioco</>
+                    : 'Gestisci le tue leghe fantasy'}
             </p>
           </div>
           {!isSuperAdmin && (
@@ -462,9 +270,9 @@ export function Dashboard({ onNavigate }: DashboardProps) {
         )}
 
         {isLoading ? (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="bg-surface-200 border border-surface-50/20 rounded-2xl divide-y divide-surface-50/10">
             {Array.from({ length: 3 }).map((_, i) => (
-              <SkeletonCard key={i} />
+              <SkeletonPlayerRow key={i} />
             ))}
           </div>
         ) : leagues.length === 0 ? (
@@ -528,86 +336,120 @@ export function Dashboard({ onNavigate }: DashboardProps) {
           </div>
         ) : (
           <>
-            {/* ===== Richiede la tua attenzione ===== */}
-            {attention.length > 0 && (
-              <section className="mb-10">
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="w-7 h-7 rounded-lg bg-danger-500/15 text-danger-400 border border-danger-500/30 flex items-center justify-center">⚡</span>
-                  <h3 className="text-lg font-bold text-white">Richiede la tua attenzione</h3>
-                  <span className="ml-auto text-xs font-mono text-gray-400 bg-surface-200 border border-surface-50/20 rounded-full px-3 py-1">
-                    {attention.length} {attention.length === 1 ? 'lega' : 'leghe'}
-                  </span>
-                </div>
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {attention.map(({ ld, actions }) => (
-                    <AttentionCard key={ld.league.id} ld={ld} summary={summaries[ld.league.id]} actions={actions} />
-                  ))}
-                </div>
-              </section>
-            )}
+            {/* ===== Tabellone desktop (md+) ===== */}
+            <div className="hidden md:block bg-surface-200 border border-surface-50/20 rounded-2xl overflow-hidden">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-surface-50/30 bg-surface-300">
+                    <th className="w-12 text-left pl-4 pr-2 py-3 micro-label">#</th>
+                    <th className="text-left px-3 py-3 micro-label">Lega</th>
+                    <th className="text-left px-3 py-3 micro-label">Fase</th>
+                    <th className="text-left px-3 py-3 micro-label">Azioni</th>
+                    <th className="text-right px-3 py-3 micro-label">Budget</th>
+                    <th className="w-28 text-right pr-4 pl-2 py-3"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map(row => {
+                    const { league, membership } = row.ld
+                    return (
+                      <tr
+                        key={league.id}
+                        onClick={row.nav}
+                        className={`group cursor-pointer transition-colors hover:bg-surface-100 ${row.dim ? 'opacity-60 hover:opacity-100' : ''}`}
+                      >
+                        <td className="py-3 pl-4 pr-2 align-middle">
+                          <span className="flex items-center gap-2">
+                            {row.live && <span className="dot-live bg-danger-500 animate-pulse" />}
+                            <span className={`font-sport text-lg font-semibold tabular-nums ${row.live ? 'text-accent-400' : 'text-gray-500'}`}>
+                              {row.rank}
+                            </span>
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 align-middle">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <LeagueCrest name={league.name} imageUrl={league.imageUrl} size="sm" />
+                            <div className="min-w-0">
+                              <p className="font-display font-bold leading-tight truncate text-white">{league.name}</p>
+                              <span className="inline-flex items-center gap-1.5 text-[11px] text-gray-400 mt-0.5">
+                                <RoleTag role={membership.role} />
+                                {league.members.length}{league.maxParticipants ? `/${league.maxParticipants}` : ''} manager
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-3 px-3 align-middle">
+                          <span className="inline-flex items-center gap-2 text-xs text-gray-300 whitespace-nowrap">
+                            <span className={`w-1.5 h-1.5 rounded-full ${row.phaseActive ? 'bg-secondary-400 shadow-[0_0_0_3px_rgba(34,197,94,0.14)]' : 'bg-surface-50'}`} />
+                            {row.phase}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 align-middle">
+                          {row.chip && (
+                            <span className={`inline-block text-[10px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap ${row.chip.cls}`}>
+                              {row.chip.label}
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 px-3 align-middle text-right">
+                          {row.budget
+                            ? <span className="font-mono font-bold text-accent-400">{row.budget}</span>
+                            : <span className="text-gray-500">—</span>}
+                        </td>
+                        <td className="py-3 pl-2 pr-4 align-middle text-right">
+                          {row.cta ? (
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              onClick={(e) => { e.stopPropagation(); row.cta?.go() }}
+                            >
+                              {row.cta.label}
+                            </Button>
+                          ) : (
+                            <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-surface-300 border border-surface-50/30 text-gray-400 group-hover:text-primary-400 group-hover:border-primary-500/40 transition-colors text-sm">
+                              →
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
 
-            {/* ===== Tutte le mie leghe ===== */}
-            <section>
-              <div className="flex items-center gap-3 mb-4">
-                <span className="w-7 h-7 rounded-lg bg-surface-300 text-gray-400 border border-surface-50/20 flex items-center justify-center">📚</span>
-                <h3 className="text-lg font-bold text-white">Tutte le mie leghe</h3>
-                <span className="ml-auto text-xs font-mono text-gray-400 bg-surface-200 border border-surface-50/20 rounded-full px-3 py-1">
-                  {leagues.length} {leagues.length === 1 ? 'lega' : 'leghe'}
-                </span>
-              </div>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {calm.map(ld => (
-                  <LeagueCard
-                    key={ld.league.id}
-                    ld={ld}
-                    summary={summaries[ld.league.id]}
-                    onNavigate={onNavigate}
-                    onCancel={(e, id) => { void handleCancelRequest(e, id) }}
-                    cancelling={cancellingLeagueId === ld.league.id}
-                  />
-                ))}
-              </div>
-            </section>
-          </>
-        )}
-
-        {/* T-022: Activity Feed */}
-        {activities.length > 0 && (
-          <div className="mt-8">
-            <h3 className="text-lg font-bold text-white mb-4">Attivita Recente</h3>
-            <div className="bg-surface-200 rounded-xl border border-surface-50/20 divide-y divide-surface-50/10">
-              {activities.map(activity => {
-                const timeAgo = getTimeAgo(activity.createdAt)
-                const typeIcon = activity.type === 'ACQUISITION' ? '🔨' :
-                  activity.type === 'TRADE' ? '🔄' :
-                  activity.type === 'RUBATA' ? '🎯' :
-                  activity.type === 'RELEASE' ? '📤' : '📋'
-
+            {/* ===== Tabellone mobile (righe monolinea, niente troncamenti) ===== */}
+            <div className="md:hidden bg-surface-200 border border-surface-50/20 rounded-2xl divide-y divide-surface-50/10">
+              {rows.map(row => {
+                const { league, membership } = row.ld
                 return (
-                  <div key={activity.id} className="px-4 py-3 flex items-center gap-3">
-                    <span className="text-base flex-shrink-0">{typeIcon}</span>
+                  <div
+                    key={league.id}
+                    onClick={row.nav}
+                    className="flex items-center gap-3 px-4 py-3 cursor-pointer active:bg-surface-100 transition-colors"
+                  >
+                    <LeagueCrest name={league.name} imageUrl={league.imageUrl} size="sm" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-white truncate">
-                        <PlayerName
-                          player={{ name: activity.playerName, team: activity.playerTeam, position: activity.playerPosition, quotation: activity.playerQuotation, apiFootballId: activity.playerApiFootballId }}
-                          leagueId={activity.leagueId}
-                          leaguePlayerId={activity.playerId}
-                          className="text-sm font-medium"
-                        />
-                        {activity.toUser && (
-                          <span className="text-gray-400"> → {activity.toUser}</span>
-                        )}
-                        {activity.price != null && (
-                          <span className="text-accent-400 ml-1">{activity.price}M</span>
-                        )}
+                      <p className={`font-display font-bold leading-tight ${row.dim ? 'text-gray-300' : 'text-white'}`}>
+                        {league.name}
                       </p>
-                      <p className="text-[10px] text-gray-500">{activity.leagueName} · {timeAgo}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {row.phase}
+                        {league.status === 'ACTIVE' && <> · {membership.role === 'ADMIN' ? 'Presidente' : 'DG'}</>}
+                      </p>
+                    </div>
+                    <div className="text-right flex-shrink-0 ml-2">
+                      {row.live && row.chip && (
+                        <p className="text-[10px] font-bold text-danger-400 leading-tight">{row.chip.label}</p>
+                      )}
+                      {row.budget && <p className="font-mono font-bold text-accent-400">{row.budget}</p>}
+                      {!row.budget && !row.live && <span className="text-gray-500">→</span>}
                     </div>
                   </div>
                 )
               })}
             </div>
-          </div>
+          </>
         )}
       </main>
 

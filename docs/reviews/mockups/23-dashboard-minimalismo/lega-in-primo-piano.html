@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup 2/5 — Dashboard · Lega in primo piano</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=Oswald:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0a0b; --card:#1a1c20; --elev:#111214; --hover:#252830;
+    --border:#2d3139; --primary:#3b82f6; --secondary:#22c55e;
+    --gold:#f59e0b; --gold2:#fbbf24; --danger:#ef4444; --passion:#ea580c;
+    --t1:#f9fafb; --t2:#9ca3af; --t3:#8b919d;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--t1);font-family:'Inter',sans-serif;padding:40px 0 80px;}
+  button{font:inherit;}
+  h1.page{font-family:'Outfit',sans-serif;font-size:22px;font-weight:700;text-align:center;margin-bottom:6px;}
+  p.sub{text-align:center;color:var(--t3);font-size:13px;margin-bottom:36px;max-width:1040px;margin-left:auto;margin-right:auto;}
+  p.sub b{color:var(--t2);}
+  .frames{display:flex;flex-direction:column;align-items:center;gap:56px;}
+  .frame-label{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--t3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;text-align:center;}
+  .micro{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);}
+  .micro.gold{color:var(--gold2);}
+
+  .frame{width:1280px;border:1px solid var(--border);border-radius:16px;background:var(--bg);overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.55);}
+  .topbar{height:46px;background:var(--elev);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 18px;gap:14px;}
+  .logo{width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,#1e40af,#3b82f6);}
+  .tnav{display:flex;gap:14px;margin-left:6px;font-size:12px;color:var(--t3);}
+  .tnav a.on{color:var(--t1);font-weight:600;}
+
+  .phead{display:flex;align-items:center;gap:14px;padding:20px 24px 18px;border-bottom:1px solid var(--border);}
+  .pt{font-family:'Outfit';font-size:22px;font-weight:800;}
+  .ps{font-size:12.5px;color:var(--t3);margin-top:3px;}
+  .ph-actions{margin-left:auto;display:flex;gap:8px;}
+  .btn{font-size:12.5px;font-weight:600;border:none;border-radius:9px;padding:9px 16px;cursor:pointer;}
+  .btn.ghost{background:var(--card);color:var(--t2);border:1px solid var(--border);}
+  .btn.solid{background:var(--primary);color:#fff;}
+
+  .body{padding:22px 24px 26px;}
+
+  /* hero — arena gold */
+  .hero{display:flex;align-items:center;gap:20px;background:var(--card);border:1px solid rgba(245,158,11,.45);border-radius:16px;padding:20px 24px;box-shadow:0 0 0 1px rgba(245,158,11,.12),0 14px 40px rgba(245,158,11,.07);margin-bottom:8px;}
+  .hero .crest{width:62px;height:62px;border-radius:15px;display:flex;align-items:center;justify-content:center;font-family:'Outfit';font-weight:800;font-size:22px;color:#fff;flex-shrink:0;box-shadow:0 8px 20px rgba(0,0,0,.45);}
+  .hero .h-bd{flex:1;min-width:0;}
+  .hero .h-tag{display:flex;align-items:center;gap:8px;margin-bottom:3px;}
+  .hero .h-nm{font-family:'Outfit';font-size:21px;font-weight:800;line-height:1.1;}
+  .hero .h-meta{font-size:12.5px;color:var(--t3);margin-top:4px;}
+  .hero .h-meta b{color:var(--t2);}
+  .h-bud{text-align:right;padding-right:8px;}
+  .h-bud .l{font-family:'JetBrains Mono';font-size:9px;letter-spacing:.12em;color:var(--t3);text-transform:uppercase;font-weight:700;}
+  .h-bud .v{font-family:'Oswald';font-size:34px;font-weight:700;color:var(--gold2);line-height:1;}
+  .h-bud .s{font-size:11px;color:var(--t3);margin-top:3px;}
+  .chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;border-radius:999px;padding:4px 10px;}
+  .chip.urgent{color:#fca5a5;background:rgba(239,68,68,.14);border:1px solid rgba(239,68,68,.45);}
+  .chip.gold{color:var(--gold2);background:rgba(245,158,11,.13);border:1px solid rgba(245,158,11,.4);}
+  .hbtn{display:inline-flex;align-items:center;gap:8px;background:var(--primary);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;padding:11px 20px;cursor:pointer;}
+
+  /* lista compatte */
+  .sect{margin-top:22px;}
+  .sect-h{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+  .sect-h .cnt{font-family:'JetBrains Mono';font-size:10px;font-weight:700;color:var(--t3);background:var(--card);border:1px solid var(--border);border-radius:999px;padding:2px 8px;margin-left:auto;}
+  .row{display:flex;align-items:center;gap:13px;padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:var(--card);margin-bottom:8px;cursor:pointer;transition:border-color .15s;}
+  .row:hover{border-color:var(--primary);}
+  .row .crest{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:'Outfit';font-weight:800;font-size:12px;color:#fff;flex-shrink:0;}
+  .r-nm{font-family:'Outfit';font-size:14.5px;font-weight:700;}
+  .r-meta{font-size:11.5px;color:var(--t3);margin-top:1px;}
+  .r-fase{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--t2);font-weight:500;}
+  .r-fase .dot{width:6px;height:6px;border-radius:50%;background:var(--secondary);box-shadow:0 0 0 3px rgba(34,197,94,.14);}
+  .r-fase .dot.off{background:var(--border);box-shadow:none;}
+  .r-go{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;background:var(--elev);border:1px solid var(--border);color:var(--t2);font-size:14px;flex-shrink:0;}
+  .row:hover .r-go{color:var(--primary);border-color:var(--primary);}
+
+  .legend{max-width:1000px;margin:30px auto 0;font-size:12px;color:var(--t2);line-height:1.7;padding:0 20px;}
+  .legend b{color:var(--gold2);}
+  .legend ul{margin:8px 0 0 18px;}
+
+  /* mobile */
+  .mobile{width:390px;border:1px solid var(--border);border-radius:30px;background:var(--bg);overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.55);}
+  .m-hero{padding:16px;border-bottom:1px solid var(--border);background:var(--card);}
+  .m-hero .crest{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-family:'Outfit';font-weight:800;font-size:16px;color:#fff;margin-bottom:10px;box-shadow:0 6px 16px rgba(0,0,0,.4);}
+  .m-hero .nm{font-family:'Outfit';font-size:17px;font-weight:800;}
+  .m-hero .meta{font-size:11.5px;color:var(--t3);margin-top:2px;}
+  .m-hero .m-rowx{display:flex;align-items:center;justify-content:space-between;margin-top:12px;}
+  .m-hero .b{font-family:'Oswald';font-size:26px;font-weight:700;color:var(--gold2);}
+  .m-hero .bl{font-family:'JetBrains Mono';font-size:8px;letter-spacing:.12em;color:var(--t3);text-transform:uppercase;font-weight:700;}
+  .mbtn{display:block;width:100%;background:var(--primary);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;padding:12px;cursor:pointer;margin-top:12px;}
+  .m-row{display:flex;align-items:center;gap:11px;padding:12px 16px;border-bottom:1px solid rgba(45,49,57,.5);cursor:pointer;}
+  .m-row:active{background:var(--hover);}
+  .m-row .crest{width:32px;height:32px;border-radius:8px;font-size:11px;}
+  .m-lega{flex:1;min-width:0;}
+  .m-lega .nm{font-family:'Outfit';font-size:13.5px;font-weight:700;}
+  .m-lega .fs{font-size:11px;color:var(--t3);}
+</style>
+</head>
+<body>
+
+<h1 class="page">Dashboard — Mockup 2 · Lega in primo piano</h1>
+<p class="sub">Un solo <b>punto focale</b>: la lega più calda (più azioni pendenti o ultima visitata) diventa una card hero oro; tutte le altre diventano righe compatte sotto. Il cervello capisce subito <b>dove andare</b>, senza scansionare una griglia di card identiche.</p>
+
+<div class="frames">
+
+  <!-- DESKTOP -->
+  <div>
+    <div class="frame-label">Desktop · hero = lega con la tua attenzione · elenco compatto per le altre</div>
+    <div class="frame">
+      <div class="topbar"><span class="logo"></span><div class="tnav"><a class="on">Hub</a><a>Rose</a><a>Giocatori</a><a>Scambi</a><a>Finanze</a></div></div>
+
+      <div class="phead">
+        <div>
+          <div class="pt">Le mie Leghe</div>
+          <div class="ps">3 leghe in gioco · 2 con la tua attenzione</div>
+        </div>
+        <div class="ph-actions">
+          <button class="btn ghost">🔍 Cerca Leghe</button>
+          <button class="btn solid">+ Crea Nuova Lega</button>
+        </div>
+      </div>
+
+      <div class="body">
+        <div class="hero">
+          <span class="crest" style="background:linear-gradient(135deg,#f59e0b,#b45309);">FT</span>
+          <div class="h-bd">
+            <div class="h-tag">
+              <span class="h-nm">Fantacontratti Test</span>
+              <span class="chip urgent">🔴 Tocca a te</span>
+            </div>
+            <div class="h-meta">Presidente · 12/12 manager · <b>Rubata in corso</b></div>
+          </div>
+          <div class="h-bud">
+            <div class="l">Budget</div>
+            <div class="v">12M</div>
+            <div class="s">di 20M</div>
+          </div>
+          <button class="hbtn">Entra nella Rubata →</button>
+        </div>
+
+        <div class="sect">
+          <div class="sect-h"><span class="micro">Tutte le mie leghe</span><span class="cnt">5</span></div>
+          <div class="row">
+            <span class="crest" style="background:linear-gradient(135deg,#3b82f6,#1e40af);">CC</span>
+            <div><div class="r-nm">Capolista City</div><div class="r-meta">DG · 10/12 manager</div></div>
+            <div class="r-fase"><span class="dot"></span>Asta in corso</div>
+            <span class="r-go">→</span>
+          </div>
+          <div class="row">
+            <span class="crest" style="background:linear-gradient(135deg,#22c55e,#15803d);">DR</span>
+            <div><div class="r-nm">Dinamo Rossi</div><div class="r-meta">DG · 8/12 manager</div></div>
+            <div class="r-fase"><span class="dot"></span>Rubata</div>
+            <span class="r-go">→</span>
+          </div>
+          <div class="row">
+            <span class="crest" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9);">AP</span>
+            <div><div class="r-nm">Asso di Picche</div><div class="r-meta">Presidente · 5/12 manager</div></div>
+            <div class="r-fase"><span class="dot off"></span>In preparazione</div>
+            <span class="r-go">→</span>
+          </div>
+          <div class="row">
+            <span class="crest" style="background:linear-gradient(135deg,#ec4899,#be185d);">RM</span>
+            <div><div class="r-nm">Real Mapei</div><div class="r-meta">Richiesta in attesa</div></div>
+            <div class="r-fase"><span class="dot off"></span>In attesa di approvazione</div>
+            <span class="r-go">→</span>
+          </div>
+          <div class="row">
+            <span class="crest" style="background:linear-gradient(135deg,#0ea5e9,#0369a1);">VG</span>
+            <div><div class="r-nm">Vecchia Gloria</div><div class="r-meta">Scudetto 2025</div></div>
+            <div class="r-fase"><span class="dot off"></span>Stagione conclusa</div>
+            <span class="r-go">→</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MOBILE -->
+  <div>
+    <div class="frame-label">Mobile · hero compatta in testa, elenco sotto</div>
+    <div class="mobile">
+      <div class="topbar" style="height:44px;"><span class="logo"></span><div class="tnav"><a class="on">Hub</a></div></div>
+      <div class="m-hero">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <span class="crest" style="background:linear-gradient(135deg,#f59e0b,#b45309);">FT</span>
+          <div style="flex:1;min-width:0;">
+            <div class="nm">Fantacontratti Test</div>
+            <div class="meta">Rubata in corso · Presidente</div>
+          </div>
+          <span class="chip urgent">🔴 Tuo turno</span>
+        </div>
+        <div class="m-rowx">
+          <div><div class="bl">Budget</div><div class="b">12M</div></div>
+        </div>
+        <button class="mbtn">Entra nella Rubata →</button>
+      </div>
+      <div class="m-row">
+        <span class="crest" style="background:linear-gradient(135deg,#3b82f6,#1e40af);">CC</span>
+        <div class="m-lega"><div class="nm">Capolista City</div><div class="fs">Asta · 2 offerte</div></div>
+        <span class="r-go">→</span>
+      </div>
+      <div class="m-row">
+        <span class="crest" style="background:linear-gradient(135deg,#22c55e,#15803d);">DR</span>
+        <div class="m-lega"><div class="nm">Dinamo Rossi</div><div class="fs">Rubata</div></div>
+        <span class="r-go">→</span>
+      </div>
+      <div class="m-row">
+        <span class="crest" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9);">AP</span>
+        <div class="m-lega"><div class="nm">Asso di Picche</div><div class="fs">In preparazione</div></div>
+        <span class="r-go">→</span>
+      </div>
+      <div class="m-row">
+        <span class="crest" style="background:linear-gradient(135deg,#ec4899,#be185d);">RM</span>
+        <div class="m-lega"><div class="nm">Real Mapei</div><div class="fs">In attesa di approvazione</div></div>
+        <span class="r-go">→</span>
+      </div>
+      <div class="m-row">
+        <span class="crest" style="background:linear-gradient(135deg,#0ea5e9,#0369a1);">VG</span>
+        <div class="m-lega"><div class="nm">Vecchia Gloria</div><div class="fs">Stagione conclusa</div></div>
+        <span class="r-go">→</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="legend">
+  <b>Cosa cambia rispetto alle card attuali</b>
+  <ul>
+    <li><b>Un solo punto focale</b>: la lega "più calda" viene estratta dal mucchio e presentata come hero oro (il pattern arena-gold delle zone-decisione). Le altre sono righe compatte, non card che urlano.</li>
+    <li><b>La lega compare una volta sola</b>: niente più duplicazione tra "Richiede attenzione" e "Tutte le mie leghe".</li>
+    <li><b>Meno dati visibili = meno decisioni</b>: nella hero ci sono solo i dati che servono a decidere (fase, budget, CTA); nelle righe solo nome + stato di fase.</li>
+    <li><b>Selezione automatica</b>: hero = lega con più azioni pendenti; a parità, l'ultima visitata. Su mobile l'hero resta compatta e l'azione è un pulsante full-width.</li>
+  </ul>
+</div>
+
+</body>
+</html>

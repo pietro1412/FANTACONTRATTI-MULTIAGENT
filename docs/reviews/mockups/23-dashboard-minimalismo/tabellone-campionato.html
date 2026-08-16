@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup 1/5 — Dashboard · Tabellone Campionato</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=Oswald:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0a0b; --card:#1a1c20; --elev:#111214; --hover:#252830;
+    --border:#2d3139; --primary:#3b82f6; --secondary:#22c55e;
+    --gold:#f59e0b; --gold2:#fbbf24; --danger:#ef4444; --passion:#ea580c;
+    --t1:#f9fafb; --t2:#9ca3af; --t3:#8b919d;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--t1);font-family:'Inter',sans-serif;padding:40px 0 80px;}
+  button{font:inherit;}
+  h1.page{font-family:'Outfit',sans-serif;font-size:22px;font-weight:700;text-align:center;margin-bottom:6px;}
+  p.sub{text-align:center;color:var(--t3);font-size:13px;margin-bottom:36px;max-width:1040px;margin-left:auto;margin-right:auto;}
+  p.sub b{color:var(--t2);}
+  .frames{display:flex;flex-direction:column;align-items:center;gap:56px;}
+  .frame-label{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--t3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;text-align:center;}
+  .micro{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);}
+
+  /* frame */
+  .frame{width:1280px;border:1px solid var(--border);border-radius:16px;background:var(--bg);overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.55);}
+  .topbar{height:46px;background:var(--elev);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 18px;gap:14px;}
+  .logo{width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,#1e40af,#3b82f6);}
+  .tnav{display:flex;gap:14px;margin-left:6px;font-size:12px;color:var(--t3);}
+  .tnav a.on{color:var(--t1);font-weight:600;}
+
+  /* header pagina */
+  .phead{display:flex;align-items:center;gap:14px;padding:20px 24px 18px;border-bottom:1px solid var(--border);}
+  .pt{font-family:'Outfit';font-size:22px;font-weight:800;}
+  .ps{font-size:12.5px;color:var(--t3);margin-top:3px;}
+  .ph-actions{margin-left:auto;display:flex;gap:8px;}
+  .btn{font-size:12.5px;font-weight:600;border:none;border-radius:9px;padding:9px 16px;cursor:pointer;}
+  .btn.ghost{background:var(--card);color:var(--t2);border:1px solid var(--border);}
+  .btn.solid{background:var(--primary);color:#fff;}
+
+  /* contenuto */
+  .body{padding:22px 24px 26px;}
+
+  /* tabella campionato */
+  table{width:100%;border-collapse:collapse;}
+  thead th{font-family:'JetBrains Mono';font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);text-align:left;padding:8px 12px;border-bottom:1px solid var(--border);}
+  tbody td{padding:13px 12px;border-bottom:1px solid rgba(45,49,57,.55);vertical-align:middle;}
+  tbody tr{cursor:pointer;}
+  tbody tr:hover{background:var(--hover);}
+  tr.dim{opacity:.55;}
+  tr.dim:hover{opacity:.8;}
+
+  .rk{width:36px;font-family:'Oswald';font-size:20px;font-weight:600;color:var(--t3);font-variant-numeric:tabular-nums;}
+  .rk.live{color:var(--gold2);position:relative;}
+  .rk.live::before{content:'';display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--danger);margin-right:7px;box-shadow:0 0 0 3px rgba(239,68,68,.18);vertical-align:2px;animation:pl 1.6s ease-in-out infinite alternate;}
+  @keyframes pl{from{opacity:1;}to{opacity:.45;}}
+
+  .lega{display:flex;align-items:center;gap:12px;}
+  .crest{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Outfit';font-weight:800;font-size:13px;color:#fff;flex-shrink:0;box-shadow:0 4px 12px rgba(0,0,0,.4);}
+  .lg-nm{font-family:'Outfit';font-size:15px;font-weight:700;line-height:1.15;}
+  .lg-meta{font-size:11px;color:var(--t3);margin-top:2px;font-family:'Inter';}
+
+  .fase{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:var(--t2);}
+  .fase .dot{width:6px;height:6px;border-radius:50%;background:var(--border);}
+  .fase .dot.on{background:var(--secondary);box-shadow:0 0 0 3px rgba(34,197,94,.15);}
+  .chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;border-radius:999px;padding:4px 10px;}
+  .chip.urgent{color:#fca5a5;background:rgba(239,68,68,.14);border:1px solid rgba(239,68,68,.45);}
+  .chip.info{color:#93c5fd;background:rgba(59,130,246,.14);border:1px solid rgba(59,130,246,.45);}
+  .chip.warn{color:var(--gold2);background:rgba(245,158,11,.13);border:1px solid rgba(245,158,11,.4);}
+  .chip.violet{color:#c4b5fd;background:rgba(139,92,246,.14);border:1px solid rgba(139,92,246,.4);}
+  .chip.gray{color:var(--t3);background:rgba(45,49,57,.4);border:1px solid var(--border);}
+  .chip.green{color:var(--secondary);background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.35);}
+
+  .budget{font-family:'Oswald';font-size:19px;font-weight:600;color:var(--gold2);font-variant-numeric:tabular-nums;letter-spacing:.02em;}
+  .go{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:var(--primary);white-space:nowrap;}
+  .go small{font-weight:600;color:var(--t3);}
+  .gobtn{background:var(--primary);color:#fff;border:none;border-radius:8px;font-size:11.5px;font-weight:700;padding:7px 14px;cursor:pointer;white-space:nowrap;}
+
+  .legend{max-width:1000px;margin:30px auto 0;font-size:12px;color:var(--t2);line-height:1.7;padding:0 20px;}
+  .legend b{color:var(--gold2);}
+  .legend ul{margin:8px 0 0 18px;}
+
+  /* mobile */
+  .mobile{width:390px;border:1px solid var(--border);border-radius:30px;background:var(--bg);overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.55);}
+  .m-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);}
+  .m-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(45,49,57,.5);cursor:pointer;}
+  .m-row:active{background:var(--hover);}
+  .m-row .crest{width:34px;height:34px;font-size:12px;border-radius:9px;}
+  .m-lega{flex:1;min-width:0;}
+  .m-lega .nm{font-family:'Outfit';font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .m-lega .fs{font-size:11.5px;color:var(--t3);margin-top:1px;}
+  .m-right{text-align:right;flex-shrink:0;margin-left:8px;}
+  .m-right .b{font-family:'Oswald';font-size:17px;font-weight:600;color:var(--gold2);}
+  .m-right .act{font-size:10px;color:var(--danger);font-weight:700;letter-spacing:.05em;}
+</style>
+</head>
+<body>
+
+<h1 class="page">Dashboard — Mockup 1 · Tabellone Campionato</h1>
+<p class="sub">Le leghe diventano una <b>classifica da Serie A</b>: una riga per lega, ordinata per priorità d'azione. Addio card ripetitive: il dato (fase, budget) sta nelle colonne, l'azione è un unico gesto per riga. Il pallino rosso lampeggiante = "tocca a te / c'è da fare".</p>
+
+<div class="frames">
+
+  <!-- DESKTOP -->
+  <div>
+    <div class="frame-label">Desktop · tabella unica, righe ordinate, live dot sulle leghe con azioni pendenti</div>
+    <div class="frame">
+      <div class="topbar"><span class="logo"></span><div class="tnav"><a class="on">Hub</a><a>Rose</a><a>Giocatori</a><a>Scambi</a><a>Finanze</a></div></div>
+
+      <div class="phead">
+        <div>
+          <div class="pt">Le mie Leghe</div>
+          <div class="ps">3 leghe in gioco · 2 con la tua attenzione</div>
+        </div>
+        <div class="ph-actions">
+          <button class="btn ghost">🔍 Cerca Leghe</button>
+          <button class="btn solid">+ Crea Nuova Lega</button>
+        </div>
+      </div>
+
+      <div class="body">
+        <table>
+          <thead>
+            <tr><th class="rk">#</th><th>Lega</th><th>Fase</th><th>Azioni</th><th>Budget</th><th></th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="rk live">1</span></td>
+              <td><div class="lega"><span class="crest" style="background:linear-gradient(135deg,#f59e0b,#b45309);">FT</span><div><div class="lg-nm">Fantacontratti Test</div><div class="lg-meta">Presidente · 12/12 manager</div></div></div></td>
+              <td><span class="fase"><span class="dot on"></span>Rubata</span></td>
+              <td><span class="chip urgent">🔴 Tocca a te</span></td>
+              <td><span class="budget">12M</span></td>
+              <td><button class="gobtn">Entra →</button></td>
+            </tr>
+            <tr>
+              <td><span class="rk live">2</span></td>
+              <td><div class="lega"><span class="crest" style="background:linear-gradient(135deg,#3b82f6,#1e40af);">CC</span><div><div class="lg-nm">Capolista City</div><div class="lg-meta">DG · 10/12 manager</div></div></div></td>
+              <td><span class="fase"><span class="dot on"></span>Asta</span></td>
+              <td><span class="chip info">📨 2 offerte</span></td>
+              <td><span class="budget">4M</span></td>
+              <td><button class="gobtn">Entra →</button></td>
+            </tr>
+            <tr>
+              <td><span class="rk">3</span></td>
+              <td><div class="lega"><span class="crest" style="background:linear-gradient(135deg,#22c55e,#15803d);">DR</span><div><div class="lg-nm">Dinamo Rossi</div><div class="lg-meta">DG · 8/12 manager</div></div></div></td>
+              <td><span class="fase"><span class="dot on"></span>Rubata</span></td>
+              <td><span class="chip green">A riposo</span></td>
+              <td><span class="budget">7M</span></td>
+              <td><span class="go">Apri <small>→</small></span></td>
+            </tr>
+            <tr class="dim">
+              <td><span class="rk">4</span></td>
+              <td><div class="lega"><span class="crest" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9);">AP</span><div><div class="lg-nm">Asso di Picche</div><div class="lg-meta">Presidente · 5/12 manager</div></div></div></td>
+              <td><span class="fase">In preparazione</span></td>
+              <td><span class="chip violet">Pannello Admin</span></td>
+              <td><span class="budget" style="color:var(--t3);">—</span></td>
+              <td><span class="go">Apri <small>→</small></span></td>
+            </tr>
+            <tr class="dim">
+              <td><span class="rk">5</span></td>
+              <td><div class="lega"><span class="crest" style="background:linear-gradient(135deg,#ec4899,#be185d);">RM</span><div><div class="lg-nm">Real Mapei</div><div class="lg-meta">Richiesta in attesa</div></div></div></td>
+              <td><span class="fase">In attesa di approvazione</span></td>
+              <td><span class="chip gray">—</span></td>
+              <td><span class="budget" style="color:var(--t3);">—</span></td>
+              <td><span class="go">Apri <small>→</small></span></td>
+            </tr>
+            <tr class="dim">
+              <td><span class="rk">6</span></td>
+              <td><div class="lega"><span class="crest" style="background:linear-gradient(135deg,#0ea5e9,#0369a1);">VG</span><div><div class="lg-nm">Vecchia Gloria</div><div class="lg-meta">Scudetto 2025</div></div></div></td>
+              <td><span class="fase">Stagione conclusa</span></td>
+              <td><span class="chip gray">Storico</span></td>
+              <td><span class="budget" style="color:var(--t3);">—</span></td>
+              <td><span class="go">Apri <small>→</small></span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- MOBILE -->
+  <div>
+    <div class="frame-label">Mobile · una riga per lega, nome e fase per intero, budget a destra (Assioma 2)</div>
+    <div class="mobile">
+      <div class="topbar" style="height:44px;"><span class="logo"></span><div class="tnav"><a class="on">Hub</a></div></div>
+      <div class="m-head"><span class="micro">Le mie leghe</span><span style="font-size:11px;color:var(--t3);">3 in gioco</span></div>
+      <div class="m-row">
+        <span class="crest" style="background:linear-gradient(135deg,#f59e0b,#b45309);">FT</span>
+        <div class="m-lega"><div class="nm">Fantacontratti Test</div><div class="fs">Rubata · Presidente</div></div>
+        <div class="m-right"><div class="act">Tocca a te</div><div class="b">12M</div></div>
+      </div>
+      <div class="m-row">
+        <span class="crest" style="background:linear-gradient(135deg,#3b82f6,#1e40af);">CC</span>
+        <div class="m-lega"><div class="nm">Capolista City</div><div class="fs">Asta · 2 offerte</div></div>
+        <div class="m-right"><div class="act">Da vedere</div><div class="b">4M</div></div>
+      </div>
+      <div class="m-row">
+        <span class="crest" style="background:linear-gradient(135deg,#22c55e,#15803d);">DR</span>
+        <div class="m-lega"><div class="nm">Dinamo Rossi</div><div class="fs">Rubata</div></div>
+        <div class="m-right"><div class="b">7M</div></div>
+      </div>
+      <div class="m-row">
+        <span class="crest" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9);">AP</span>
+        <div class="m-lega"><div class="nm">Asso di Picche</div><div class="fs">In preparazione</div></div>
+        <div class="m-right"></div>
+      </div>
+      <div class="m-row">
+        <span class="crest" style="background:linear-gradient(135deg,#ec4899,#be185d);">RM</span>
+        <div class="m-lega"><div class="nm">Real Mapei</div><div class="fs">In attesa di approvazione</div></div>
+        <div class="m-right"></div>
+      </div>
+      <div class="m-row">
+        <span class="crest" style="background:linear-gradient(135deg,#0ea5e9,#0369a1);">VG</span>
+        <div class="m-lega"><div class="nm">Vecchia Gloria</div><div class="fs">Stagione conclusa</div></div>
+        <div class="m-right"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="legend">
+  <b>Cosa cambia rispetto alle card attuali</b>
+  <ul>
+    <li><b>Le card scompaiono</b>: 8 elementi per card → 1 riga con colonne proporzionate (nome largo, fase, azione, budget stretto) — Assioma 1.</li>
+    <li><b>Priorità = ordine</b>: le leghe con azioni pendenti salgono in cima col pallino live rosso; quelle a riposo sotto; DRAFT/PENDING/COMPLETED in coda, attenuate (opacity) senza badge urlanti.</li>
+    <li><b>Una sezione sola</b>: sparisce la doppia vista "Richiede attenzione" + "Tutte le mie leghe" (la stessa lega non appare più due volte).</li>
+    <li><b>Un gesto per riga</b>: tutta la riga è cliccabile; CTA primaria solo dove serve davvero ("Entra"), semplice freccia altrove.</li>
+    <li><b>Gerarchia visiva</b> (Assioma 6 declinato alle leghe): nome → fase → azione → budget. Mobile: riga monolinea con nome e fase per intero, mai troncati.</li>
+  </ul>
+</div>
+
+</body>
+</html>

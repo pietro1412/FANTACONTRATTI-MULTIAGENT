@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup 5/5 — Dashboard · Pannello Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=Oswald:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0a0b; --card:#1a1c20; --elev:#111214; --hover:#252830;
+    --border:#2d3139; --primary:#3b82f6; --secondary:#22c55e;
+    --gold:#f59e0b; --gold2:#fbbf24; --danger:#ef4444; --passion:#ea580c;
+    --t1:#f9fafb; --t2:#9ca3af; --t3:#8b919d;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--t1);font-family:'Inter',sans-serif;padding:40px 0 80px;}
+  button{font:inherit;}
+  h1.page{font-family:'Outfit',sans-serif;font-size:22px;font-weight:700;text-align:center;margin-bottom:6px;}
+  p.sub{text-align:center;color:var(--t3);font-size:13px;margin-bottom:36px;max-width:1040px;margin-left:auto;margin-right:auto;}
+  p.sub b{color:var(--t2);}
+  .frames{display:flex;flex-direction:column;align-items:center;gap:56px;}
+  .frame-label{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--t3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;text-align:center;}
+  .micro{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);}
+  .micro.gold{color:var(--gold2);}
+
+  .frame{width:1280px;border:1px solid var(--border);border-radius:16px;background:var(--bg);overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.55);}
+  .topbar{height:46px;background:var(--elev);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 18px;gap:14px;}
+  .logo{width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,#1e40af,#3b82f6);}
+  .tnav{display:flex;gap:14px;margin-left:6px;font-size:12px;color:var(--t3);}
+  .tnav a.on{color:var(--t1);font-weight:600;}
+
+  .phead{display:flex;align-items:center;gap:14px;padding:20px 24px 18px;border-bottom:1px solid var(--border);}
+  .pt{font-family:'Outfit';font-size:22px;font-weight:800;}
+  .ps{font-size:12.5px;color:var(--t3);margin-top:3px;}
+  .ph-actions{margin-left:auto;display:flex;gap:8px;}
+  .btn{font-size:12.5px;font-weight:600;border:none;border-radius:9px;padding:9px 16px;cursor:pointer;}
+  .btn.ghost{background:var(--card);color:var(--t2);border:1px solid var(--border);}
+  .btn.solid{background:var(--primary);color:#fff;}
+
+  .body{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:22px;padding:22px 24px 26px;align-items:start;}
+
+  /* colonna sinistra: tabella compatta */
+  .sect-h{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+  .sect-h .cnt{font-family:'JetBrains Mono';font-size:10px;font-weight:700;color:var(--t3);background:var(--card);border:1px solid var(--border);border-radius:999px;padding:2px 8px;margin-left:auto;}
+  .trow{display:flex;align-items:center;gap:13px;padding:13px 14px;border:1px solid var(--border);border-radius:12px;background:var(--card);margin-bottom:8px;cursor:pointer;transition:border-color .15s;}
+  .trow:hover{border-color:var(--primary);}
+  .trow .crest{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Outfit';font-weight:800;font-size:12px;color:#fff;flex-shrink:0;}
+  .t-nm{font-family:'Outfit';font-size:14.5px;font-weight:700;display:flex;align-items:center;gap:8px;}
+  .t-meta{font-size:11px;color:var(--t3);margin-top:2px;}
+  .pulse{width:7px;height:7px;border-radius:50%;background:var(--danger);box-shadow:0 0 0 3px rgba(239,68,68,.18);flex-shrink:0;animation:pl 1.6s ease-in-out infinite alternate;}
+  @keyframes pl{from{opacity:1;}to{opacity:.4;}}
+  .t-fase{margin-left:auto;text-align:right;}
+  .t-fase .f{font-size:12px;color:var(--t2);font-weight:500;}
+  .t-fase .b{font-family:'Oswald';font-size:17px;font-weight:600;color:var(--gold2);margin-top:1px;font-variant-numeric:tabular-nums;}
+  .t-fase .dim{font-family:'Oswald';font-size:15px;color:var(--t3);}
+
+  /* colonna destra */
+  .side{display:flex;flex-direction:column;gap:14px;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;}
+  .card .c-h{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+  .card .c-h .cnt{margin-left:auto;font-family:'JetBrains Mono';font-size:9.5px;font-weight:700;color:var(--t3);background:var(--elev);border:1px solid var(--border);border-radius:999px;padding:2px 8px;}
+  .act{display:flex;align-items:flex-start;gap:10px;padding:7px 0;}
+  .act .ic{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;background:var(--elev);border:1px solid var(--border);flex-shrink:0;}
+  .act .a{font-size:12.5px;color:var(--t1);font-weight:500;line-height:1.35;}
+  .act .a b{font-weight:700;}
+  .act .t{font-size:10.5px;color:var(--t3);margin-top:2px;}
+  .bud-row{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;}
+  .bud-row .tot{font-family:'Oswald';font-size:30px;font-weight:700;color:var(--gold2);line-height:1;font-variant-numeric:tabular-nums;}
+  .bud-row .l{font-size:11px;color:var(--t3);}
+  .bar{height:8px;border-radius:99px;background:var(--elev);border:1px solid var(--border);overflow:hidden;}
+  .bar i{display:block;height:100%;width:60%;border-radius:99px;background:linear-gradient(90deg,#3b82f6,#f59e0b);}
+  .bud-legend{display:flex;justify-content:space-between;margin-top:6px;font-family:'JetBrains Mono';font-size:9px;color:var(--t3);letter-spacing:.05em;}
+
+  .legend{max-width:1000px;margin:30px auto 0;font-size:12px;color:var(--t2);line-height:1.7;padding:0 20px;}
+  .legend b{color:var(--gold2);}
+  .legend ul{margin:8px 0 0 18px;}
+
+  /* mobile */
+  .mobile{width:390px;border:1px solid var(--border);border-radius:30px;background:var(--bg);overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.55);}
+  .m-row{display:flex;align-items:center;gap:11px;padding:12px 16px;border-bottom:1px solid rgba(45,49,57,.5);cursor:pointer;}
+  .m-row:active{background:var(--hover);}
+  .m-row .crest{width:32px;height:32px;border-radius:8px;font-size:11px;}
+  .m-lega{flex:1;min-width:0;}
+  .m-lega .nm{font-family:'Outfit';font-size:13.5px;font-weight:700;}
+  .m-lega .fs{font-size:11px;color:var(--t3);}
+  .m-bud{font-family:'Oswald';font-size:16px;font-weight:600;color:var(--gold2);margin-left:8px;}
+  .m-card{padding:14px 16px;border-bottom:1px solid rgba(45,49,57,.5);}
+  .m-card .c-h{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+</style>
+</head>
+<body>
+
+<h1 class="page">Dashboard — Mockup 5 · Pannello Manager</h1>
+<p class="sub">Layout <b>manageriale a due colonne</b> su desktop: sinistra le leghe (lista compatta), destra il polso della stagione (attività recente + budget complessivo). È la variante più "dirigenziale" — sfrutta la larghezza dello schermo invece di riempirla di card identiche.</p>
+
+<div class="frames">
+
+  <!-- DESKTOP -->
+  <div>
+    <div class="frame-label">Desktop · due colonne: leghe + quadro di stagione</div>
+    <div class="frame">
+      <div class="topbar"><span class="logo"></span><div class="tnav"><a class="on">Hub</a><a>Rose</a><a>Giocatori</a><a>Scambi</a><a>Finanze</a></div></div>
+
+      <div class="phead">
+        <div>
+          <div class="pt">Le mie Leghe</div>
+          <div class="ps">3 leghe in gioco · 2 con la tua attenzione</div>
+        </div>
+        <div class="ph-actions">
+          <button class="btn ghost">🔍 Cerca Leghe</button>
+          <button class="btn solid">+ Crea Nuova Lega</button>
+        </div>
+      </div>
+
+      <div class="body">
+
+        <div>
+          <div class="sect-h"><span class="micro">Le mie leghe</span><span class="cnt">6</span></div>
+
+          <div class="trow">
+            <span class="pulse"></span>
+            <span class="crest" style="background:linear-gradient(135deg,#f59e0b,#b45309);">FT</span>
+            <div><div class="t-nm">Fantacontratti Test</div><div class="t-meta">Presidente · 12/12 manager</div></div>
+            <div class="t-fase"><div class="f">Rubata · tuo turno</div><div class="b">12M</div></div>
+          </div>
+          <div class="trow">
+            <span class="pulse"></span>
+            <span class="crest" style="background:linear-gradient(135deg,#3b82f6,#1e40af);">CC</span>
+            <div><div class="t-nm">Capolista City</div><div class="t-meta">DG · 10/12 manager</div></div>
+            <div class="t-fase"><div class="f">Asta · 2 offerte</div><div class="b">4M</div></div>
+          </div>
+          <div class="trow">
+            <span class="crest" style="background:linear-gradient(135deg,#22c55e,#15803d);">DR</span>
+            <div><div class="t-nm">Dinamo Rossi</div><div class="t-meta">DG · 8/12 manager</div></div>
+            <div class="t-fase"><div class="f">Rubata · a riposo</div><div class="b">7M</div></div>
+          </div>
+          <div class="trow">
+            <span class="crest" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9);">AP</span>
+            <div><div class="t-nm">Asso di Picche</div><div class="t-meta">Presidente · 5/12 manager</div></div>
+            <div class="t-fase"><div class="f">In preparazione</div><div class="dim">—</div></div>
+          </div>
+          <div class="trow">
+            <span class="crest" style="background:linear-gradient(135deg,#ec4899,#be185d);">RM</span>
+            <div><div class="t-nm">Real Mapei</div><div class="t-meta">Richiesta in attesa</div></div>
+            <div class="t-fase"><div class="f">In attesa di approvazione</div><div class="dim">—</div></div>
+          </div>
+          <div class="trow">
+            <span class="crest" style="background:linear-gradient(135deg,#0ea5e9,#0369a1);">VG</span>
+            <div><div class="t-nm">Vecchia Gloria</div><div class="t-meta">Scudetto 2025</div></div>
+            <div class="t-fase"><div class="f">Conclusa</div><div class="dim">—</div></div>
+          </div>
+        </div>
+
+        <div class="side">
+          <div class="card">
+            <div class="c-h"><span class="micro">Attività recente</span><span class="cnt">24h</span></div>
+            <div class="act"><span class="ic">🔨</span><div><div class="a"><b>Baiano</b> → Capolista City · 3M</div><div class="t">2h fa · Asta</div></div></div>
+            <div class="act"><span class="ic">🎯</span><div><div class="a"><b>Rubata</b>: tocca a <b>Michele</b></div><div class="t">4h fa · Fantacontratti Test</div></div></div>
+            <div class="act"><span class="ic">🔄</span><div><div class="a"><b>Rinaldi</b> ⇄ <b>Dossena</b> · scambio</div><div class="t">ieri · Dinamo Rossi</div></div></div>
+          </div>
+
+          <div class="card">
+            <div class="c-h"><span class="micro">Budget complessivo</span><span class="cnt">3 leghe</span></div>
+            <div class="bud-row"><div class="tot">23M</div><div class="l">di 40M disponibili</div></div>
+            <div class="bar"><i></i></div>
+            <div class="bud-legend"><span>0</span><span>in gioco 12M / 20M</span><span>40M</span></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- MOBILE -->
+  <div>
+    <div class="frame-label">Mobile · colonne impilate: leghe → attività → budget</div>
+    <div class="mobile">
+      <div class="topbar" style="height:44px;"><span class="logo"></span><div class="tnav"><a class="on">Hub</a></div></div>
+      <div style="padding:12px 16px;border-bottom:1px solid var(--border);"><span class="micro">Le mie leghe</span></div>
+      <div class="m-row">
+        <span class="crest" style="background:linear-gradient(135deg,#f59e0b,#b45309);">FT</span>
+        <div class="m-lega"><div class="nm">Fantacontratti Test</div><div class="fs">Rubata · tuo turno</div></div>
+        <span class="m-bud">12M</span>
+      </div>
+      <div class="m-row">
+        <span class="crest" style="background:linear-gradient(135deg,#3b82f6,#1e40af);">CC</span>
+        <div class="m-lega"><div class="nm">Capolista City</div><div class="fs">Asta · 2 offerte</div></div>
+        <span class="m-bud">4M</span>
+      </div>
+      <div class="m-row">
+        <span class="crest" style="background:linear-gradient(135deg,#22c55e,#15803d);">DR</span>
+        <div class="m-lega"><div class="nm">Dinamo Rossi</div><div class="fs">Rubata</div></div>
+        <span class="m-bud">7M</span>
+      </div>
+      <div class="m-row">
+        <span class="crest" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9);">AP</span>
+        <div class="m-lega"><div class="nm">Asso di Picche</div><div class="fs">In preparazione</div></div>
+      </div>
+      <div class="m-row">
+        <span class="crest" style="background:linear-gradient(135deg,#ec4899,#be185d);">RM</span>
+        <div class="m-lega"><div class="nm">Real Mapei</div><div class="fs">In attesa</div></div>
+      </div>
+      <div class="m-row">
+        <span class="crest" style="background:linear-gradient(135deg,#0ea5e9,#0369a1);">VG</span>
+        <div class="m-lega"><div class="nm">Vecchia Gloria</div><div class="fs">Conclusa</div></div>
+      </div>
+      <div class="m-card">
+        <div class="c-h"><span class="micro">Attività recente</span><span class="cnt">24h</span></div>
+        <div class="act"><span class="ic">🔨</span><div><div class="a"><b>Baiano</b> → Capolista City · 3M</div><div class="t">2h fa · Asta</div></div></div>
+        <div class="act"><span class="ic">🎯</span><div><div class="a"><b>Rubata</b>: tocca a <b>Michele</b></div><div class="t">4h fa · Fantacontratti Test</div></div></div>
+      </div>
+      <div class="m-card">
+        <div class="c-h"><span class="micro">Budget complessivo</span><span class="cnt">3 leghe</span></div>
+        <div class="bud-row"><div class="tot">23M</div><div class="l">di 40M</div></div>
+        <div class="bar"><i></i></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="legend">
+  <b>Cosa cambia rispetto alle card attuali</b>
+  <ul>
+    <li><b>Due colonne asimmetriche</b> (pattern "pannello"): la colonna leghe è compatta e scansione verticale; la colonna destra dà il quadro di stagione senza rubare il focus.</li>
+    <li><b>Il pulsante diventa un dettaglio</b>: il pallino rosso = "c'è da fare", il budget = valore; la riga intera è il target del click. Niente più CTA per card.</li>
+    <li><b>L'attività recente è contesto, non rumore</b>: vive nella sidebar con un orizzonte temporale (24h) ed entra nella pagina solo se c'è movimento.</li>
+    <li><b>Budget complessivo in numerone Oswald</b> con barra blu→oro: un colpo d'occhio sul portafoglio di stagione (stile Finanze).</li>
+    <li><b>Mobile</b>: le colonne si impilano in ordine di importanza (leghe → attività → budget), nessun troncamento (Assioma 2).</li>
+  </ul>
+</div>
+
+</body>
+</html>

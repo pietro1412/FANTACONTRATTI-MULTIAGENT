@@ -43,6 +43,7 @@ vi.mock('../components/SearchLeaguesModal', () => ({
 // Mock Skeleton
 vi.mock('../components/ui/Skeleton', () => ({
   SkeletonCard: () => <div data-testid="skeleton-card">Loading...</div>,
+  SkeletonPlayerRow: () => <div data-testid="skeleton-row">Loading...</div>,
 }))
 
 // Mock Button
@@ -109,30 +110,17 @@ describe('Dashboard', () => {
 
     render(<Dashboard onNavigate={mockOnNavigate} />)
 
-    expect(screen.getAllByTestId('skeleton-card').length).toBeGreaterThan(0)
+    expect(screen.getAllByTestId('skeleton-row').length).toBeGreaterThan(0)
   })
 
-  it('renders league cards after data loads', async () => {
+  it('renders leagues in the tabellone after data loads', async () => {
     render(<Dashboard onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Lega Test')).toBeInTheDocument()
+      expect(screen.getAllByText('Lega Test').length).toBeGreaterThan(0)
     })
 
-    expect(screen.getByText('Lega Pending')).toBeInTheDocument()
-  })
-
-  it('shows public/private badge on league cards', async () => {
-    render(<Dashboard onNavigate={mockOnNavigate} />)
-
-    await waitFor(() => {
-      expect(screen.getByText('Lega Test')).toBeInTheDocument()
-    })
-
-    // Lega Test is private
-    expect(screen.getByText('Privata')).toBeInTheDocument()
-    // Lega Pending is public
-    expect(screen.getByText('Pubblica')).toBeInTheDocument()
+    expect(screen.getAllByText('Lega Pending').length).toBeGreaterThan(0)
   })
 
   it('shows page title and subtitle', async () => {
@@ -142,7 +130,8 @@ describe('Dashboard', () => {
       expect(screen.getByText('Le mie Leghe')).toBeInTheDocument()
     })
 
-    expect(screen.getByText('Gestisci le tue leghe fantasy')).toBeInTheDocument()
+    // Lega Test è ACTIVE, Lega Pending è in attesa → nessuna attenzione pendente
+    expect(screen.getByText('1 lega in gioco')).toBeInTheDocument()
   })
 
   it('redirects superadmin to superadmin panel', async () => {
@@ -183,7 +172,7 @@ describe('Dashboard', () => {
     render(<Dashboard onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Lega Test')).toBeInTheDocument()
+      expect(screen.getAllByText('Lega Test').length).toBeGreaterThan(0)
     })
 
     // The "Crea Nuova Lega" button in the header area
@@ -193,18 +182,19 @@ describe('Dashboard', () => {
     expect(mockOnNavigate).toHaveBeenCalledWith('create-league')
   })
 
-  it('navigates to league detail when an active league card is clicked', async () => {
+  it('navigates to league detail when an active league row is clicked', async () => {
     render(<Dashboard onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Lega Test')).toBeInTheDocument()
+      expect(screen.getAllByText('Lega Test').length).toBeGreaterThan(0)
     })
 
-    // Click on the league card text
-    const leagueCard = screen.getByText('Lega Test').closest('div[class*="cursor-pointer"]')
-    expect(leagueCard).toBeTruthy()
-    if (leagueCard) {
-      await userEvent.click(leagueCard)
+    // Click sulla riga mobile del tabellone (il nome compare sia nella tabella desktop sia nella riga mobile)
+    const leagueName = screen.getAllByText('Lega Test')[1]
+    const leagueRow = leagueName?.closest('div[class*="cursor-pointer"]')
+    expect(leagueRow).toBeTruthy()
+    if (leagueRow) {
+      await userEvent.click(leagueRow)
       expect(mockOnNavigate).toHaveBeenCalledWith('leagueDetail', { leagueId: 'l1' })
     }
   })
@@ -213,11 +203,11 @@ describe('Dashboard', () => {
     render(<Dashboard onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      expect(screen.getByText(/in attesa di approvazione/i)).toBeInTheDocument()
+      expect(screen.getAllByText(/in attesa di approvazione/i).length).toBeGreaterThan(0)
     })
   })
 
-  it('surfaces a league with trade offers in the attention section', async () => {
+  it('surfaces a league with trade offers in the tabellone', async () => {
     mockGetDashboardSummary.mockResolvedValue({
       success: true,
       data: {
@@ -237,7 +227,7 @@ describe('Dashboard', () => {
     render(<Dashboard onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Richiede la tua attenzione')).toBeInTheDocument()
+      expect(screen.getAllByText('📨 2').length).toBeGreaterThan(0)
     })
 
     // Primary CTA for the trade-offers signal
@@ -268,11 +258,8 @@ describe('Dashboard', () => {
     render(<Dashboard onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Richiede la tua attenzione')).toBeInTheDocument()
+      expect(screen.getAllByText('🔴 Tocca a te').length).toBeGreaterThan(0)
     })
-
-    expect(screen.getByText('🔴 Tocca a te')).toBeInTheDocument()
-    expect(screen.getByText('È il tuo turno')).toBeInTheDocument()
 
     const cta = screen.getByText('Entra →')
     await userEvent.click(cta)
@@ -285,7 +272,7 @@ describe('Dashboard', () => {
     render(<Dashboard onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Lega Test')).toBeInTheDocument()
+      expect(screen.getAllByText('Lega Test').length).toBeGreaterThan(0)
     })
 
     const searchButton = screen.getByText('Cerca Leghe')

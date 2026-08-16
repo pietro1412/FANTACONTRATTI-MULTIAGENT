@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup 4/5 — Dashboard · Gruppi Collassabili</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=Oswald:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0a0b; --card:#1a1c20; --elev:#111214; --hover:#252830;
+    --border:#2d3139; --primary:#3b82f6; --secondary:#22c55e;
+    --gold:#f59e0b; --gold2:#fbbf24; --danger:#ef4444; --passion:#ea580c;
+    --t1:#f9fafb; --t2:#9ca3af; --t3:#8b919d;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--t1);font-family:'Inter',sans-serif;padding:40px 0 80px;}
+  button{font:inherit;}
+  h1.page{font-family:'Outfit',sans-serif;font-size:22px;font-weight:700;text-align:center;margin-bottom:6px;}
+  p.sub{text-align:center;color:var(--t3);font-size:13px;margin-bottom:36px;max-width:1040px;margin-left:auto;margin-right:auto;}
+  p.sub b{color:var(--t2);}
+  .frames{display:flex;flex-direction:column;align-items:center;gap:56px;}
+  .frame-label{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--t3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;text-align:center;}
+  .micro{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);}
+
+  .frame{width:1280px;border:1px solid var(--border);border-radius:16px;background:var(--bg);overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.55);}
+  .topbar{height:46px;background:var(--elev);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 18px;gap:14px;}
+  .logo{width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,#1e40af,#3b82f6);}
+  .tnav{display:flex;gap:14px;margin-left:6px;font-size:12px;color:var(--t3);}
+  .tnav a.on{color:var(--t1);font-weight:600;}
+
+  .phead{display:flex;align-items:center;gap:14px;padding:20px 24px 18px;border-bottom:1px solid var(--border);}
+  .pt{font-family:'Outfit';font-size:22px;font-weight:800;}
+  .ps{font-size:12.5px;color:var(--t3);margin-top:3px;}
+  .ph-actions{margin-left:auto;display:flex;gap:8px;}
+  .btn{font-size:12.5px;font-weight:600;border:none;border-radius:9px;padding:9px 16px;cursor:pointer;}
+  .btn.ghost{background:var(--card);color:var(--t2);border:1px solid var(--border);}
+  .btn.solid{background:var(--primary);color:#fff;}
+
+  .body{max-width:860px;margin:0 auto;padding:26px 24px;}
+
+  /* gruppi collassabili */
+  details{background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:12px;overflow:hidden;}
+  summary{display:flex;align-items:center;gap:11px;padding:14px 18px;cursor:pointer;list-style:none;user-select:none;}
+  summary::-webkit-details-marker{display:none;}
+  summary .sw{color:var(--t3);font-size:11px;transition:transform .18s;width:14px;flex-shrink:0;text-align:center;}
+  details[open] summary .sw{transform:rotate(90deg);color:var(--primary);}
+  .g-title{font-family:'Outfit';font-size:14px;font-weight:800;letter-spacing:.04em;}
+  .g-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+  .g-dot.green{background:var(--secondary);box-shadow:0 0 0 3px rgba(34,197,94,.16);}
+  .g-dot.gray{background:var(--border);}
+  .g-cnt{font-family:'JetBrains Mono';font-size:10px;font-weight:700;color:var(--t3);background:var(--elev);border:1px solid var(--border);border-radius:999px;padding:2px 9px;}
+  .g-cnt.live{color:#fca5a5;background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.4);}
+  .g-meta{margin-left:auto;font-size:11px;color:var(--t3);}
+
+  .g-body{border-top:1px solid var(--border);}
+  .row{display:flex;align-items:center;gap:13px;padding:12px 18px;cursor:pointer;}
+  .row+.row{border-top:1px solid rgba(45,49,57,.45);}
+  .row:hover{background:var(--hover);}
+  .row .crest{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:'Outfit';font-weight:800;font-size:12px;color:#fff;flex-shrink:0;}
+  .r-nm{font-family:'Outfit';font-size:14px;font-weight:700;}
+  .r-meta{font-size:11px;color:var(--t3);margin-top:1px;}
+  .r-fase{margin-left:auto;display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--t2);}
+  .r-fase .dot{width:6px;height:6px;border-radius:50%;background:var(--secondary);box-shadow:0 0 0 3px rgba(34,197,94,.14);}
+  .r-fase .dot.off{background:var(--border);box-shadow:none;}
+  .r-bud{font-family:'Oswald';font-size:16px;font-weight:600;color:var(--gold2);margin-left:18px;font-variant-numeric:tabular-nums;}
+  .r-go{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;background:var(--elev);border:1px solid var(--border);color:var(--t2);font-size:14px;flex-shrink:0;margin-left:6px;}
+
+  .legend{max-width:1000px;margin:30px auto 0;font-size:12px;color:var(--t2);line-height:1.7;padding:0 20px;}
+  .legend b{color:var(--gold2);}
+  .legend ul{margin:8px 0 0 18px;}
+
+  /* mobile */
+  .mobile{width:390px;border:1px solid var(--border);border-radius:30px;background:var(--bg);overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.55);}
+  .m-g{margin:0;}
+  .m-g .m-sum{display:flex;align-items:center;gap:9px;padding:13px 16px;border-bottom:1px solid rgba(45,49,57,.45);cursor:pointer;}
+  .m-row{display:flex;align-items:center;gap:11px;padding:12px 16px;border-bottom:1px solid rgba(45,49,57,.45);cursor:pointer;}
+  .m-row:active{background:var(--hover);}
+  .m-row .crest{width:32px;height:32px;border-radius:8px;font-size:11px;}
+  .m-lega{flex:1;min-width:0;}
+  .m-lega .nm{font-family:'Outfit';font-size:13.5px;font-weight:700;}
+  .m-lega .fs{font-size:11px;color:var(--t3);}
+  .m-bud{font-family:'Oswald';font-size:16px;font-weight:600;color:var(--gold2);margin-left:8px;}
+</style>
+</head>
+<body>
+
+<h1 class="page">Dashboard — Mockup 4 · Gruppi Collassabili</h1>
+<p class="sub">Le leghe sono <b>raggruppate per stato</b> in sezioni a testata compatta e righe monolinea. La sezione "In gioco" è aperta di default, le altre si chiudono: <b>scanning verticale velocissimo</b>, zero rumore orizzontale, e la lista non "spaventa" più per lunghezza.</p>
+
+<div class="frames">
+
+  <!-- DESKTOP -->
+  <div>
+    <div class="frame-label">Desktop · sezioni per stato, righe monolinea, budget solo per le leghe in gioco</div>
+    <div class="frame">
+      <div class="topbar"><span class="logo"></span><div class="tnav"><a class="on">Hub</a><a>Rose</a><a>Giocatori</a><a>Scambi</a><a>Finanze</a></div></div>
+
+      <div class="phead">
+        <div>
+          <div class="pt">Le mie Leghe</div>
+          <div class="ps">3 leghe in gioco · 2 con la tua attenzione</div>
+        </div>
+        <div class="ph-actions">
+          <button class="btn ghost">🔍 Cerca Leghe</button>
+          <button class="btn solid">+ Crea Nuova Lega</button>
+        </div>
+      </div>
+
+      <div class="body">
+
+        <details open>
+          <summary>
+            <span class="sw">▶</span>
+            <span class="g-dot green"></span>
+            <span class="g-title">IN GIOCO</span>
+            <span class="g-cnt live">3</span>
+            <span class="g-meta">2 con attenzione</span>
+          </summary>
+          <div class="g-body">
+            <div class="row">
+              <span class="crest" style="background:linear-gradient(135deg,#f59e0b,#b45309);">FT</span>
+              <div><div class="r-nm">Fantacontratti Test</div><div class="r-meta">Presidente · Rubata</div></div>
+              <div class="r-fase"><span class="dot"></span>Tuo turno</div>
+              <span class="r-bud">12M</span>
+              <span class="r-go">→</span>
+            </div>
+            <div class="row">
+              <span class="crest" style="background:linear-gradient(135deg,#3b82f6,#1e40af);">CC</span>
+              <div><div class="r-nm">Capolista City</div><div class="r-meta">DG · Asta</div></div>
+              <div class="r-fase"><span class="dot"></span>2 offerte</div>
+              <span class="r-bud">4M</span>
+              <span class="r-go">→</span>
+            </div>
+            <div class="row">
+              <span class="crest" style="background:linear-gradient(135deg,#22c55e,#15803d);">DR</span>
+              <div><div class="r-nm">Dinamo Rossi</div><div class="r-meta">DG · Rubata</div></div>
+              <div class="r-fase"><span class="dot off"></span>A riposo</div>
+              <span class="r-bud">7M</span>
+              <span class="r-go">→</span>
+            </div>
+          </div>
+        </details>
+
+        <details>
+          <summary>
+            <span class="sw">▶</span>
+            <span class="g-dot gray"></span>
+            <span class="g-title">IN PREPARAZIONE</span>
+            <span class="g-cnt">1</span>
+            <span class="g-meta"></span>
+          </summary>
+          <div class="g-body">
+            <div class="row">
+              <span class="crest" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9);">AP</span>
+              <div><div class="r-nm">Asso di Picche</div><div class="r-meta">Presidente · 5/12 manager</div></div>
+              <div class="r-fase"><span class="dot off"></span>In attesa di avvio</div>
+              <span class="r-go">→</span>
+            </div>
+          </div>
+        </details>
+
+        <details>
+          <summary>
+            <span class="sw">▶</span>
+            <span class="g-dot gray"></span>
+            <span class="g-title">IN ATTESA</span>
+            <span class="g-cnt">1</span>
+            <span class="g-meta"></span>
+          </summary>
+          <div class="g-body">
+            <div class="row">
+              <span class="crest" style="background:linear-gradient(135deg,#ec4899,#be185d);">RM</span>
+              <div><div class="r-nm">Real Mapei</div><div class="r-meta">Richiesta in attesa</div></div>
+              <div class="r-fase"><span class="dot off"></span>In attesa di approvazione</div>
+              <span class="r-go">→</span>
+            </div>
+          </div>
+        </details>
+
+        <details>
+          <summary>
+            <span class="sw">▶</span>
+            <span class="g-dot gray"></span>
+            <span class="g-title">CONCLUSE</span>
+            <span class="g-cnt">1</span>
+            <span class="g-meta"></span>
+          </summary>
+          <div class="g-body">
+            <div class="row">
+              <span class="crest" style="background:linear-gradient(135deg,#0ea5e9,#0369a1);">VG</span>
+              <div><div class="r-nm">Vecchia Gloria</div><div class="r-meta">Scudetto 2025</div></div>
+              <div class="r-fase"><span class="dot off"></span>Stagione conclusa</div>
+              <span class="r-go">→</span>
+            </div>
+          </div>
+        </details>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- MOBILE -->
+  <div>
+    <div class="frame-label">Mobile · stessi gruppi, righe monolinea</div>
+    <div class="mobile">
+      <div class="topbar" style="height:44px;"><span class="logo"></span><div class="tnav"><a class="on">Hub</a></div></div>
+      <div class="m-head" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);">
+        <span class="micro">Le mie leghe</span><span style="font-size:11px;color:var(--t3);">3 in gioco</span>
+      </div>
+      <div class="m-g">
+        <div class="m-sum"><span class="g-dot green"></span><span class="g-title" style="font-size:12.5px;">IN GIOCO</span><span class="g-cnt live">3</span></div>
+        <div class="m-row">
+          <span class="crest" style="background:linear-gradient(135deg,#f59e0b,#b45309);">FT</span>
+          <div class="m-lega"><div class="nm">Fantacontratti Test</div><div class="fs">Rubata · tuo turno</div></div>
+          <span class="m-bud">12M</span>
+        </div>
+        <div class="m-row">
+          <span class="crest" style="background:linear-gradient(135deg,#3b82f6,#1e40af);">CC</span>
+          <div class="m-lega"><div class="nm">Capolista City</div><div class="fs">Asta · 2 offerte</div></div>
+          <span class="m-bud">4M</span>
+        </div>
+        <div class="m-row">
+          <span class="crest" style="background:linear-gradient(135deg,#22c55e,#15803d);">DR</span>
+          <div class="m-lega"><div class="nm">Dinamo Rossi</div><div class="fs">Rubata</div></div>
+          <span class="m-bud">7M</span>
+        </div>
+      </div>
+      <div class="m-g">
+        <div class="m-sum"><span class="g-dot gray"></span><span class="g-title" style="font-size:12.5px;">IN PREPARAZIONE</span><span class="g-cnt">1</span></div>
+        <div class="m-row">
+          <span class="crest" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9);">AP</span>
+          <div class="m-lega"><div class="nm">Asso di Picche</div><div class="fs">In attesa di avvio</div></div>
+        </div>
+      </div>
+      <div class="m-g">
+        <div class="m-sum"><span class="g-dot gray"></span><span class="g-title" style="font-size:12.5px;">IN ATTESA</span><span class="g-cnt">1</span></div>
+        <div class="m-row">
+          <span class="crest" style="background:linear-gradient(135deg,#ec4899,#be185d);">RM</span>
+          <div class="m-lega"><div class="nm">Real Mapei</div><div class="fs">In attesa di approvazione</div></div>
+        </div>
+      </div>
+      <div class="m-g">
+        <div class="m-sum"><span class="g-dot gray"></span><span class="g-title" style="font-size:12.5px;">CONCLUSE</span><span class="g-cnt">1</span></div>
+        <div class="m-row">
+          <span class="crest" style="background:linear-gradient(135deg,#0ea5e9,#0369a1);">VG</span>
+          <div class="m-lega"><div class="nm">Vecchia Gloria</div><div class="fs">Scudetto 2025</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="legend">
+  <b>Cosa cambia rispetto alle card attuali</b>
+  <ul>
+    <li><b>Raggruppamento per stato</b>: In gioco / In preparazione / In attesa / Concluse. La sezione attiva è aperta di default, le altre collassabili (pattern <i>details</i> nativo, zero JS).</li>
+    <li><b>Righe monolinea</b>: crest + nome + fase in una riga; il budget solo per le leghe in gioco. L'altezza complessiva scende e la pagina "respira".</li>
+    <li><b>Il contatore dice tutto</b>: "3 in gioco, 2 con attenzione" nel sottotitolo e nel badge live della sezione — nessuna card che lo ripete.</li>
+    <li><b>Gerarchia visiva</b> (Assioma 6 declinato): gruppo → lega → fase → budget. Mobile: stessa struttura, niente troncamenti (Assioma 2).</li>
+    <li><b>È il mockup più "silenzioso"</b>: quando tutto è a riposo, la dashboard occupa 4 righe e basta.</li>
+  </ul>
+</div>
+
+</body>
+</html>
