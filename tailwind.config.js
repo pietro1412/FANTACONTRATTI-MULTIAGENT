@@ -128,10 +128,10 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
-        mono: ['JetBrains Mono', 'monospace'],
-        display: ['Outfit', 'Inter', 'system-ui', 'sans-serif'],
-        sport: ['Oswald', 'Inter', 'system-ui', 'sans-serif'], // Stadium scoreboard style
+        sans: ['"Helvetica Neue"', 'Helvetica', 'Arial', 'sans-serif'],
+        mono: ['"Helvetica Neue"', 'Helvetica', 'Arial', 'sans-serif'],
+        display: ['"Helvetica Neue"', 'Helvetica', 'Arial', 'sans-serif'],
+        sport: ['"Helvetica Neue"', 'Helvetica', 'Arial', 'sans-serif'],
       },
       backgroundImage: {
         'pitch-gradient': 'linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%)',
