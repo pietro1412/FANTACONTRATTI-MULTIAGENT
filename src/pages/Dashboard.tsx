@@ -338,15 +338,23 @@ export function Dashboard({ onNavigate }: DashboardProps) {
           <>
             {/* ===== Tabellone desktop (md+) ===== */}
             <div className="hidden md:block bg-surface-200 border border-surface-50/20 rounded-2xl overflow-hidden">
-              <table className="w-full">
+              <table className="w-full" style={{ tableLayout: 'fixed' }}>
+                <colgroup>
+                  <col className="w-12" />
+                  <col className="w-[34%]" />
+                  <col className="w-[22%]" />
+                  <col className="w-[16%]" />
+                  <col className="w-20" />
+                  <col className="w-[120px]" />
+                </colgroup>
                 <thead>
                   <tr className="border-b border-surface-50/30 bg-surface-300">
-                    <th className="w-12 text-left pl-4 pr-2 py-3 micro-label">#</th>
+                    <th className="text-left pl-4 pr-2 py-3 micro-label">#</th>
                     <th className="text-left px-3 py-3 micro-label">Lega</th>
                     <th className="text-left px-3 py-3 micro-label">Fase</th>
                     <th className="text-left px-3 py-3 micro-label">Azioni</th>
                     <th className="text-right px-3 py-3 micro-label">Budget</th>
-                    <th className="w-28 text-right pr-4 pl-2 py-3"></th>
+                    <th className="text-right pr-4 pl-2 py-3"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -366,7 +374,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                             </span>
                           </span>
                         </td>
-                        <td className="py-3 px-3 align-middle">
+                        <td className="py-3 px-3 align-middle overflow-hidden">
                           <div className="flex items-center gap-3 min-w-0">
                             <LeagueCrest name={league.name} imageUrl={league.imageUrl} size="sm" />
                             <div className="min-w-0">
@@ -378,13 +386,13 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                             </div>
                           </div>
                         </td>
-                        <td className="py-3 px-3 align-middle">
+                        <td className="py-3 px-3 align-middle overflow-hidden">
                           <span className="inline-flex items-center gap-2 text-xs text-gray-300 whitespace-nowrap">
                             <span className={`w-1.5 h-1.5 rounded-full ${row.phaseActive ? 'bg-secondary-400 shadow-[0_0_0_3px_rgba(34,197,94,0.14)]' : 'bg-surface-50'}`} />
                             {row.phase}
                           </span>
                         </td>
-                        <td className="py-3 px-3 align-middle">
+                        <td className="py-3 px-3 align-middle overflow-hidden">
                           {row.chip && (
                             <span className={`inline-block text-[10px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap ${row.chip.cls}`}>
                               {row.chip.label}
@@ -396,11 +404,12 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                             ? <span className="font-mono font-bold text-accent-400">{row.budget}</span>
                             : <span className="text-gray-500">—</span>}
                         </td>
-                        <td className="py-3 pl-2 pr-4 align-middle text-right">
+                        <td className="py-3 pr-4 pl-2 align-middle text-right">
                           {row.cta ? (
                             <Button
                               variant="primary"
                               size="sm"
+                              className="w-full text-xs truncate"
                               onClick={(e) => { e.stopPropagation(); row.cta?.go() }}
                             >
                               {row.cta.label}
@@ -418,7 +427,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
               </table>
             </div>
 
-            {/* ===== Tabellone mobile (righe monolinea, niente troncamenti) ===== */}
+            {/* ===== Tabellone mobile (3 zone, niente troncamenti) ===== */}
             <div className="md:hidden bg-surface-200 border border-surface-50/20 rounded-2xl divide-y divide-surface-50/10">
               {rows.map(row => {
                 const { league, membership } = row.ld
@@ -428,22 +437,33 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                     onClick={row.nav}
                     className="flex items-center gap-3 px-4 py-3 cursor-pointer active:bg-surface-100 transition-colors"
                   >
-                    <LeagueCrest name={league.name} imageUrl={league.imageUrl} size="sm" />
-                    <div className="flex-1 min-w-0">
-                      <p className={`font-display font-bold leading-tight ${row.dim ? 'text-gray-300' : 'text-white'}`}>
-                        {league.name}
-                      </p>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        {row.phase}
-                        {league.status === 'ACTIVE' && <> · {membership.role === 'ADMIN' ? 'Presidente' : 'DG'}</>}
-                      </p>
+                    {/* Zona sinistra: Crest + Nome */}
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <LeagueCrest name={league.name} imageUrl={league.imageUrl} size="sm" />
+                      <div className="min-w-0">
+                        <p className={`font-display font-bold leading-tight ${row.dim ? 'text-gray-300' : 'text-white'}`}>
+                          {league.name}
+                        </p>
+                      </div>
                     </div>
-                    <div className="text-right flex-shrink-0 ml-2">
-                      {row.live && row.chip && (
-                        <p className="text-[10px] font-bold text-danger-400 leading-tight">{row.chip.label}</p>
+                    {/* Zona centrale: Fase + Ruolo */}
+                    <div className="flex-shrink-0 max-w-[35%]">
+                      {row.live && row.chip ? (
+                        <span className={`inline-block text-[10px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap ${row.chip.cls}`}>
+                          {row.chip.label}
+                        </span>
+                      ) : (
+                        <p className="text-[11px] text-gray-400 leading-tight">
+                          {row.phase}
+                          {league.status === 'ACTIVE' && <>{' '}<span className="text-gray-500">{membership.role === 'ADMIN' ? 'Presidente' : 'DG'}</span></>}
+                        </p>
                       )}
-                      {row.budget && <p className="font-mono font-bold text-accent-400">{row.budget}</p>}
-                      {!row.budget && !row.live && <span className="text-gray-500">→</span>}
+                    </div>
+                    {/* Zona destra: Budget + Arrow */}
+                    <div className="w-16 flex-shrink-0 text-right">
+                      {row.budget
+                        ? <span className="font-mono font-bold text-accent-400">{row.budget}</span>
+                        : <span className="text-gray-500">→</span>}
                     </div>
                   </div>
                 )
