@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D1 — Stadium Nights (attuale)</title>
+<style>
+  :root {
+    --bg-body: #0a0a0b;
+    --bg-card: #1a1c20;
+    --bg-header: #111214;
+    --bg-hover: #252830;
+    --border: rgba(45,49,57,0.35);
+    --text-1: #ffffff;
+    --text-2: #9ca3af;
+    --text-3: #6b7280;
+    --text-phase: #d1d5db;
+    --accent: #fbbf24;
+    --danger: #f87171;
+    --primary: #60a5fa;
+    --primary-bg: rgba(59,130,246,0.12);
+    --primary-border: rgba(59,130,246,0.35);
+    --secondary: #4ade80;
+    --secondary-bg: rgba(34,197,94,0.12);
+    --secondary-border: rgba(34,197,94,0.3);
+    --gray-bg: rgba(45,49,57,0.25);
+    --gray-border: rgba(45,49,57,0.4);
+    --crest-a: #06b6d4; --crest-b: #2563eb;
+    --crest-c: #8b5cf6; --crest-d: #6d28d9;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:"Helvetica Neue",Helvetica,Arial,sans-serif; background:var(--bg-body); color:var(--text-1); min-height:100vh; padding:24px; }
+  .frame { max-width:1280px; margin:0 auto; }
+  .frame-mobile { max-width:390px; margin:40px auto 0; }
+  .label { font-size:11px; font-weight:700; letter-spacing:0.13em; text-transform:uppercase; color:var(--text-3); margin-bottom:12px; }
+  .card { background:var(--bg-card); border:1px solid var(--border); border-radius:16px; overflow:hidden; }
+  table { width:100%; table-layout:fixed; }
+  th { font-size:10.5px; font-weight:700; letter-spacing:0.13em; text-transform:uppercase; color:var(--text-3); text-align:left; padding:12px; background:var(--bg-header); border-bottom:1px solid var(--border); }
+  th:last-child { text-align:right; }
+  td { padding:12px; border-bottom:1px solid var(--border); vertical-align:middle; }
+  tr:last-child td { border-bottom:none; }
+  tr:hover td { background:var(--bg-hover); }
+  .rank { font-size:18px; font-weight:600; font-variant-numeric:tabular-nums; color:var(--text-3); }
+  .rank-live { color:var(--accent); }
+  .live-dot { width:8px; height:8px; border-radius:50%; background:var(--danger); animation:pulse 2s infinite; display:inline-block; margin-right:6px; vertical-align:middle; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .crest { width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#fff; flex-shrink:0; }
+  .name { font-weight:700; font-size:14px; color:var(--text-1); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .role-badge { display:inline-block; font-size:9px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; padding:2px 6px; border-radius:4px; background:rgba(251,191,36,0.12); color:var(--accent); border:1px solid rgba(251,191,36,0.25); }
+  .meta { font-size:11px; color:var(--text-2); margin-top:2px; }
+  .phase { font-size:12px; color:var(--text-phase); white-space:nowrap; }
+  .phase-dot { width:6px; height:6px; border-radius:50%; display:inline-block; margin-right:6px; vertical-align:middle; }
+  .phase-dot-active { background:var(--secondary); box-shadow:0 0 0 3px rgba(34,197,94,0.14); }
+  .phase-dot-inactive { background:var(--surface-50, #2d3139); }
+  .chip { display:inline-block; font-size:10px; font-weight:700; padding:4px 10px; border-radius:9999px; white-space:nowrap; }
+  .chip-primary { background:var(--primary-bg); color:var(--primary); border:1px solid var(--primary-border); }
+  .chip-rest { background:var(--secondary-bg); color:var(--secondary); border:1px solid var(--secondary-border); }
+  .chip-gray { background:var(--gray-bg); color:var(--text-2); border:1px solid var(--gray-border); }
+  .budget { font-size:14px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--accent); text-align:right; }
+  .budget-na { color:var(--text-3); text-align:right; }
+  .cta-btn { display:block; width:100%; padding:6px 12px; font-size:12px; font-weight:600; text-align:center; border-radius:8px; border:none; cursor:pointer; background:linear-gradient(135deg,#3b82f6,#2563eb); color:#fff; }
+  .chevron { display:flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:8px; background:var(--bg-header); border:1px solid var(--border); color:var(--text-2); font-size:14px; margin-left:auto; }
+  .dim { opacity:.6; }
+  .dim:hover { opacity:1; }
+  /* Mobile */
+  .mobile-row { display:flex; align-items:center; gap:12px; padding:12px 16px; border-bottom:1px solid var(--border); cursor:pointer; }
+  .mobile-row:last-child { border-bottom:none; }
+  .mobile-row:active { background:var(--bg-hover); }
+  .mobile-left { display:flex; align-items:center; gap:12px; min-width:0; flex:1; }
+  .mobile-center { flex-shrink:0; max-width:35%; }
+  .mobile-right { width:64px; flex-shrink:0; text-align:right; }
+  .mobile-chip { font-size:10px; font-weight:700; padding:4px 10px; border-radius:9999px; white-space:nowrap; }
+  .mobile-meta { font-size:11px; color:var(--text-2); line-height:1.3; }
+  .mobile-meta span { color:var(--text-3); }
+  h1 { font-size:24px; font-weight:700; margin-bottom:4px; }
+  .subtitle { font-size:14px; color:var(--text-2); margin-bottom:24px; }
+  .theme-tag { display:inline-block; font-size:11px; font-weight:600; padding:4px 10px; border-radius:6px; background:var(--primary-bg); color:var(--primary); border:1px solid var(--primary-border); margin-bottom:16px; }
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="theme-tag">Tema DARK #1</div>
+  <h1>Le mie Leghe</h1>
+  <p class="subtitle">2 leghe in gioco · <b style="color:var(--danger)">1</b> con la tua attenzione</p>
+
+  <div class="label">Desktop (1280px)</div>
+  <div class="card">
+    <table>
+      <colgroup><col style="width:48px"><col style="width:34%"><col style="width:22%"><col style="width:16%"><col style="width:80px"><col style="width:120px"></colgroup>
+      <thead><tr><th style="padding-left:16px">#</th><th>Lega</th><th>Fase</th><th>Azioni</th><th style="text-align:right">Budget</th><th></th></tr></thead>
+      <tbody>
+        <tr>
+          <td style="padding-left:16px"><span class="live-dot"></span><span class="rank rank-live">1</span></td>
+          <td><div style="display:flex;align-items:center;gap:12px;min-width:0"><div class="crest" style="background:linear-gradient(135deg,var(--crest-a),var(--crest-b))">LT</div><div style="min-width:0"><div class="name">Lega Test</div><div class="meta"><span class="role-badge">Presidente</span> 8 manager</div></div></div></td>
+          <td><span class="phase"><span class="phase-dot phase-dot-active"></span>Offerte pre-rinnovo</span></td>
+          <td><span class="chip chip-primary">📨 2</span></td>
+          <td class="budget">350M</td>
+          <td><button class="cta-btn">Valuta offerte →</button></td>
+        </tr>
+        <tr>
+          <td style="padding-left:16px"><span class="live-dot"></span><span class="rank rank-live">2</span></td>
+          <td><div style="display:flex;align-items:center;gap:12px;min-width:0"><div class="crest" style="background:linear-gradient(135deg,var(--crest-c),var(--crest-d))">FL</div><div style="min-width:0"><div class="name">Fanta League</div><div class="meta"><span class="role-badge">DG</span> 10 manager</div></div></div></td>
+          <td><span class="phase"><span class="phase-dot phase-dot-active"></span>Asta libera</span></td>
+          <td><span class="chip chip-primary">🔴 Tocca a te</span></td>
+          <td class="budget">280M</td>
+          <td><button class="cta-btn">Entra →</button></td>
+        </tr>
+        <tr class="dim">
+          <td style="padding-left:16px"><span class="rank">3</span></td>
+          <td><div style="display:flex;align-items:center;gap:12px;min-width:0"><div class="crest" style="background:linear-gradient(135deg,#64748b,#475569)">SC</div><div style="min-width:0"><div class="name">Serie Classica</div><div class="meta"><span class="role-badge">DG</span> 6 manager</div></div></div></td>
+          <td><span class="phase"><span class="phase-dot phase-dot-inactive"></span>Offerte pre-rinnovo</span></td>
+          <td><span class="chip chip-rest">A riposo</span></td>
+          <td class="budget">420M</td>
+          <td><div class="chevron">→</div></td>
+        </tr>
+        <tr class="dim">
+          <td style="padding-left:16px"><span class="rank">4</span></td>
+          <td><div style="display:flex;align-items:center;gap:12px;min-width:0"><div class="crest" style="background:linear-gradient(135deg,#78716c,#57534e)">LP</div><div style="min-width:0"><div class="name">Lega Pending</div><div class="meta"><span class="role-badge">DG</span> 1 manager</div></div></div></td>
+          <td><span class="phase"><span class="phase-dot phase-dot-inactive"></span>In attesa di approvazione</span></td>
+          <td><span class="chip chip-gray">In attesa</span></td>
+          <td class="budget-na">—</td>
+          <td><div class="chevron">→</div></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="frame-mobile">
+  <div class="label" style="margin-top:40px">Mobile (390px)</div>
+  <div class="card">
+    <div class="mobile-row">
+      <div class="mobile-left">
+        <div class="crest" style="background:linear-gradient(135deg,var(--crest-a),var(--crest-b))">LT</div>
+        <div style="min-width:0"><div class="name">Lega Test</div></div>
+      </div>
+      <div class="mobile-center"><span class="mobile-chip chip-primary">📨 2</span></div>
+      <div class="mobile-right"><span class="budget">350M</span></div>
+    </div>
+    <div class="mobile-row">
+      <div class="mobile-left">
+        <div class="crest" style="background:linear-gradient(135deg,var(--crest-c),var(--crest-d))">FL</div>
+        <div style="min-width:0"><div class="name">Fanta League</div></div>
+      </div>
+      <div class="mobile-center"><span class="mobile-chip chip-primary">🔴 Tocca a te</span></div>
+      <div class="mobile-right"><span class="budget">280M</span></div>
+    </div>
+    <div class="mobile-row dim">
+      <div class="mobile-left">
+        <div class="crest" style="background:linear-gradient(135deg,#64748b,#475569)">SC</div>
+        <div style="min-width:0"><div class="name">Serie Classica</div></div>
+      </div>
+      <div class="mobile-center"><div class="mobile-meta">Offerte pre-rinnovo<br><span>DG</span></div></div>
+      <div class="mobile-right"><span class="budget">420M</span></div>
+    </div>
+    <div class="mobile-row dim">
+      <div class="mobile-left">
+        <div class="crest" style="background:linear-gradient(135deg,#78716c,#57534e)">LP</div>
+        <div style="min-width:0"><div class="name">Lega Pending</div></div>
+      </div>
+      <div class="mobile-center"><div class="mobile-meta">In attesa di approvazione</div></div>
+      <div class="mobile-right"><span class="budget-na">→</span></div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
