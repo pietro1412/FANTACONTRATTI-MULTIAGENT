@@ -1,3 +1,4 @@
+import { ArrowLeftRight } from 'lucide-react'
 import { PlayerRoleBadge } from './PlayerRoleBadge'
 import { TeamLogo } from '@/components/ui/TeamLogo'
 import { formatStat, NOT_DISPONIBILE } from '@/utils/stat-format'
@@ -6,6 +7,8 @@ import type { RosterEntry } from './types'
 export interface RosterPlayerCardProps {
   entry: RosterEntry
   onPlayerClick: () => void
+  /** Se presente, mostra il bottone "Proponi scambio" (visibile solo in fase Offerte/Scambi). */
+  onProposeTrade?: () => void
 }
 
 const CREDIT_UNIT = 'M'
@@ -25,7 +28,7 @@ function ContractStat({ label, value, tone }: { label: string; value: string; to
  * Financial data rendered as a 4-column cockpit grid (salary/duration/clause/
  * rubata) with rubata — the most decision-relevant figure — in accent gold.
  */
-export function RosterPlayerCard({ entry, onPlayerClick }: RosterPlayerCardProps) {
+export function RosterPlayerCard({ entry, onPlayerClick, onProposeTrade }: RosterPlayerCardProps) {
   const { player, contract } = entry
   const clause = contract?.rescissionClause ?? null
   const rubata = clause !== null && contract ? clause + contract.salary : null
@@ -52,6 +55,17 @@ export function RosterPlayerCard({ entry, onPlayerClick }: RosterPlayerCardProps
             </span>
           </div>
         </div>
+        {onProposeTrade && (
+          <button
+            type="button"
+            onClick={onProposeTrade}
+            className="flex-shrink-0 w-8 h-8 rounded-lg bg-surface-300 border border-surface-50 text-gray-400 hover:text-secondary-400 hover:border-secondary-500/40 flex items-center justify-center transition-colors"
+            title="Proponi scambio"
+            aria-label={`Proponi scambio per ${player.name}`}
+          >
+            <ArrowLeftRight size={14} aria-hidden="true" />
+          </button>
+        )}
       </div>
 
       {contract ? (

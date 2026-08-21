@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
-import { leagueApi, tradeApi } from '@/services/api'
+import { leagueApi, tradeApi, auctionApi } from '@/services/api'
+import { ProposeTradeModal } from '@/components/players/ProposeTradeModal'
 import { Navigation } from '@/components/Navigation'
 import { CockpitShell } from '@/components/cockpit/CockpitShell'
 import { BottomSheet } from '@/components/ui/BottomSheet'
@@ -78,7 +79,23 @@ export function Rose({ onNavigate }: RoseProps) {
   // Ongoing trades indicator (anonymized, not involving the user)
   const [ongoingTradesCount, setOngoingTradesCount] = useState(0)
 
+  // Fase 1.1b step 1: "Proponi scambio" contestuale (solo in fase Offerte/Scambi)
+  const [canProposeTrade, setCanProposeTrade] = useState(false)
+  const [tradeModalTarget, setTradeModalTarget] = useState<{
+    partnerMemberId?: string
+    offeredRosterId?: string
+    requestedRosterId?: string
+  } | null>(null)
+
   const [selectedPlayerStats, setSelectedPlayerStats] = useState<PlayerInfo | null>(null)
+
+  const openProposeTrade = useCallback((entry: RosterEntry, ownRoster: boolean, partnerId: string) => {
+    setTradeModalTarget(
+      ownRoster
+        ? { offeredRosterId: entry.id }
+        : { partnerMemberId: partnerId, requestedRosterId: entry.id }
+    )
+  }, [])
 
   const openPlayerStats = useCallback((entry: RosterEntry) => {
     setSelectedPlayerStats({
@@ -100,10 +117,19 @@ export function Rose({ onNavigate }: RoseProps) {
     setLoading(true)
 
     try {
-      const [res, ongoingRes] = await Promise.all([
+      const [res, ongoingRes, sessionsRes] = await Promise.all([
         leagueApi.getAllRosters(leagueId),
         tradeApi.getOngoingIndicator(leagueId).catch((): { success: boolean; data?: unknown } => ({ success: false })),
+        auctionApi.getSessions(leagueId).catch((): { success: boolean; data?: unknown } => ({ success: false })),
       ])
+
+      if (sessionsRes.success && sessionsRes.data) {
+        const sessions = sessionsRes.data as { status: string; currentPhase: string }[]
+        const active = sessions.find(s => s.status === 'ACTIVE')
+        setCanProposeTrade(
+          !!active && (active.currentPhase === 'OFFERTE_PRE_RINNOVO' || active.currentPhase === 'OFFERTE_POST_ASTA_SVINCOLATI')
+        )
+      }
       if (res.success && res.data) {
         const data = res.data as LeagueData
         setLeagueData(data)
@@ -532,7 +558,12 @@ export function Rose({ onNavigate }: RoseProps) {
       </div>
       <div className="lg:panel-scroll lg:flex-1 lg:min-h-0">
         {filteredPlayers.length === 0 ? emptyState : filteredPlayers.map(entry => (
-          <RosterTableRow key={entry.id} entry={entry} onPlayerClick={() => { openPlayerStats(entry); }} />
+          <RosterTableRow
+            key={entry.id}
+            entry={entry}
+            onPlayerClick={() => { openPlayerStats(entry); }}
+            onProposeTrade={canProposeTrade ? () => { openProposeTrade(entry, isOwnRoster, selectedMemberId); } : undefined}
+          />
         ))}
       </div>
       <div className="px-4 py-2 border-t border-surface-50 bg-surface-300/30 flex-shrink-0 flex justify-between font-mono text-[10.5px] text-gray-500">
@@ -573,7 +604,12 @@ export function Rose({ onNavigate }: RoseProps) {
               {filteredPlayers.length === 0
                 ? emptyState
                 : filteredPlayers.map(entry => (
-                    <RosterPlayerCard key={entry.id} entry={entry} onPlayerClick={() => { openPlayerStats(entry); }} />
+                    <RosterPlayerCard
+                      key={entry.id}
+                      entry={entry}
+                      onPlayerClick={() => { openPlayerStats(entry); }}
+                      onProposeTrade={canProposeTrade ? () => { openProposeTrade(entry, isOwnRoster, selectedMemberId); } : undefined}
+                    />
                   ))}
             </div>
 
@@ -664,6 +700,20 @@ export function Rose({ onNavigate }: RoseProps) {
         player={selectedPlayerStats}
         leagueId={leagueId}
       />
+
+      {/* Proponi scambio (Fase 1.1b step 1). Smontata quando chiusa: ogni apertura
+          rimonta con lo stato iniziale corretto per il nuovo giocatore/partner target. */}
+      {leagueId && tradeModalTarget && (
+        <ProposeTradeModal
+          leagueId={leagueId}
+          isOpen
+          onClose={() => { setTradeModalTarget(null); }}
+          initialPartnerMemberId={tradeModalTarget.partnerMemberId}
+          initialOfferedRosterId={tradeModalTarget.offeredRosterId}
+          initialRequestedRosterId={tradeModalTarget.requestedRosterId}
+          onSuccess={() => { void loadData(); }}
+        />
+      )}
     </div>
   )
 }
