@@ -1,4 +1,3 @@
-import { ArrowLeftRight } from 'lucide-react'
 import { PlayerRoleBadge } from './PlayerRoleBadge'
 import { TeamLogo } from '@/components/ui/TeamLogo'
 import { formatStat, NOT_DISPONIBILE } from '@/utils/stat-format'
@@ -7,8 +6,6 @@ import type { RosterEntry } from './types'
 export interface RosterTableRowProps {
   entry: RosterEntry
   onPlayerClick: () => void
-  /** Se presente, mostra il bottone "Proponi scambio" (visibile solo in fase Offerte/Scambi). */
-  onProposeTrade?: () => void
 }
 
 const CREDIT_UNIT = 'M'
@@ -47,7 +44,7 @@ function FinancialValue({
  * Financial values always carry identifying labels (Axiom 9); rubata is the
  * most decision-relevant figure, rendered in accent gold.
  */
-export function RosterTableRow({ entry, onPlayerClick, onProposeTrade }: RosterTableRowProps) {
+export function RosterTableRow({ entry, onPlayerClick }: RosterTableRowProps) {
   const { player, contract } = entry
   const clause = contract?.rescissionClause ?? null
   const rubata = clause !== null && contract ? clause + contract.salary : null
@@ -74,17 +71,6 @@ export function RosterTableRow({ entry, onPlayerClick, onProposeTrade }: RosterT
             </span>
           </div>
         </div>
-        {onProposeTrade && (
-          <button
-            type="button"
-            onClick={onProposeTrade}
-            className="ml-auto flex-shrink-0 w-7 h-7 rounded-lg bg-surface-300 border border-surface-50 text-gray-400 hover:text-secondary-400 hover:border-secondary-500/40 flex items-center justify-center transition-colors"
-            title="Proponi scambio"
-            aria-label={`Proponi scambio per ${player.name}`}
-          >
-            <ArrowLeftRight size={13} aria-hidden="true" />
-          </button>
-        )}
       </div>
 
       {/* Salary */}

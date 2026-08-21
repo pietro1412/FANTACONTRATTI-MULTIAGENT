@@ -120,16 +120,9 @@ vi.mock('../services/api', () => ({
     getReceived: vi.fn().mockResolvedValue({ success: true, data: [] }),
     getOngoingIndicator: (...args: unknown[]) => mockGetOngoingIndicator(...args),
   },
-  auctionApi: {
-    getSessions: vi.fn().mockResolvedValue({ success: true, data: [] }),
-  },
   userApi: {
     getMyPendingInvites: vi.fn().mockResolvedValue({ success: true, data: [] }),
   },
-}))
-
-vi.mock('../components/players/ProposeTradeModal', () => ({
-  ProposeTradeModal: () => null,
 }))
 
 // Mock child components that are not under test
