@@ -1,8 +1,8 @@
 # HANDOFF — FantaContratti Dynasty Platform
 
 > File di passaggio per prendere in carico lo sviluppo. Generato: 2026-07-27.
-> Aggiornato: 2026-08-13 (Livello 2 raccolta evidenze beta su `feature/1.x-raccolta-evidenze-beta`, WIP non ancora fuso).
-> Aggiornato solo su conferma dello stato effettivo.
+> Aggiornato: 2026-08-21 — pulizia repository + consolidamento documentale (Fase 1.0). Questo è ora l'**unico documento di stato corrente** (sostituisce `PROJECT-STATUS.md` e `COMPLETAMENTO-BACKLOG.md`, archiviati in `docs/archive/`).
+> Aggiornato solo su conferma dello stato effettivo — non lasciare sezioni storiche mescolate a quelle vive: se una parte diventa superata, spostarla in `docs/archive/` invece di lasciarla qui contraddittoria.
 
 ---
 
@@ -38,39 +38,27 @@
 
 ---
 
-## 3. Stato Git
+## 3. Stato Git (verificato 2026-08-21)
 
 ### Branch attuale
-- **HEAD su `feature/1.x-raccolta-evidenze-beta`** (base `04705c7` = allineato a `main`/`develop`/`opencode_luglio`)
-- `main` = `develop` = `opencode_luglio` = `04705c7` (**allineati — divergenza risolta 2026-08-13**)
-- Working tree con modifiche WIP del Livello 2 raccolta evidenze (non ancora committate)
-- Script dev committati: `scripts/avvia-piattaforma.ps1` (launcher idempotente API :3003 + client :5174), `scripts/setup-scambi-test.ts` (seed dati scambi per test), `scripts/_create-sim-league.ts`, `scripts/_stress-test*.mjs`
+- **HEAD su `REVIEW_PRE_BETA`** — 4 commit avanti al proprio remoto (`origin/REVIEW_PRE_BETA`), 12 commit avanti a `main`/`develop`.
+- I 12 commit sono rework grafico "less is more": tabellone dashboard proporzionale, minimalismo dashboard, font unico Helvetica (rimossi Inter/Oswald/JetBrains), fix contratti pre-rinnovo in Rose/Giocatori, 10 mockup tema colore (dark+light) ancora **da scegliere** (`docs/reviews/mockups/24-themes/`).
+- Working tree pulito dopo la pulizia documentale di oggi.
 
 ### Branch locali
 | Branch | Stato |
 |--------|-------|
-| `feature/1.x-raccolta-evidenze-beta` | ✅ HEAD attivo, WIP Livello 2 (da committare e fondere) |
-| `opencode_luglio` | ✅ == `main` |
+| `REVIEW_PRE_BETA` | ✅ HEAD attivo, 12 commit avanti a main/develop (rework UI in corso) |
 | `develop` | ✅ allineato a `main` |
-| `main` | ✅ produzione, aggiornato |
-| `feature/1.x-prod-hardening` | Locale, da valutare |
-| `MOBILE-ANDROID` | Locale, stato da valutare |
+| `main` | ✅ produzione |
 
-### Branch remote
-- `origin/develop`, `origin/main`, `origin/opencode_luglio`, `origin/feature/1.x-prod-hardening`, `origin/feature/2.x-mobile-admin-features`, `origin/MOBILE-ANDROID`
+`main` = `develop` = `91addae` (allineati). Eliminati oggi (già confluiti in `main`, zero commit esclusivi): `fix/smoke-beta-prod`, `feature/1.x-raccolta-evidenze-beta` (la sua Livello-2 raccolta-evidenze-beta risulta quindi **confluita in main**, non più WIP).
 
-### ⚠️ Divergenza develop/main
-**Risolto il 2026-08-13**: `develop` è stato riallineato a `main` (fast-forward a `2cf6d06`). Nessuna divergenza residua.
+### Branch remoti da valutare
+`origin/feature/1.x-raccolta-evidenze-beta` e `origin/fix/smoke-beta-prod` sono ancora su GitHub (stessa situazione: già mergiati) — non cancellati automaticamente perché tocca stato condiviso. Eliminabili con `git push origin --delete <nome>` quando confermato.
 
-### Branch fusi (eliminabili)
-Il branch `feature/1.x-gap-analysis` (che conteneva Sprint A+B) **non esiste più** — è stato fuso in `develop`. Gli 9 sprint branch elencati nel PROJECT-STATUS come "da eliminare" sono già stati puliti.
-
-### Stash (10)
-10 stash presenti su branch storici ormai fusi. Candidati alla pulizia:
-```
-stash@{0}: feature/1.x-fantastrategy-hub — stash before branch alignment
-stash@{1-9}: WIP su branch vari (master, fix/*, feature/*)
-```
+### Stash
+Nessuno (ripulito).
 
 ---
 
@@ -81,143 +69,90 @@ stash@{1-9}: WIP su branch vari (master, fix/*, feature/*)
 src/
 ├── api/                  # Backend Express (app.ts, index.ts, vercel-entry.ts)
 │   ├── middleware/        # auth, request-logger, turnstile (3 file)
-│   └── routes/           # 22 route file (~261 endpoint)
-├── components/           # 19 sottocartelle + 13 file radice
-│   ├── ui/               # 36 componenti UI condivisi
-│   ├── auction-room-v2/  # 20 file (layout asta attivo)
-│   ├── rubata/           # 19 file
-│   ├── finance/          # 11 file
-│   ├── players/          # 12 file
-│   ├── league-detail/    # 13 file
-│   ├── cockpit/          # CockpitShell (1 file)
-│   └── ... (altre feature)
-├── hooks/                # 10 custom hooks
-├── modules/              # Solo identity/ (DDD residuo, isola cablata)
-├── pages/                # 30 pagine/route
-├── services/             # 30 service file (business logic)
+│   └── routes/           # ~15 route file (~261 endpoint)
+├── components/           # sottocartelle per feature + file radice
+│   ├── ui/               # componenti UI condivisi
+│   ├── auction-room-v2/  # layout asta attivo
+│   ├── auction-room/     # legacy — ancora importato da Svincolati.tsx, consolidamento da fare (debito noto)
+│   ├── rubata/, finance/, players/, league-detail/, cockpit/, ...
+├── hooks/                # custom hooks
+├── modules/              # Solo identity/ (DDD residuo, isola cablata — confermato, nessun altro modulo residuo)
+├── pages/                # ~34 pagine/route
+├── services/             # ~27 service file (business logic)
 ├── shared/               # domain/, infrastructure/, types/service-result.ts
-├── types/                # 5 file
-└── utils/                # 14 file
+├── types/                # types condivisi
+└── utils/                # utility
 ```
 
-**Totale**: 414 file .ts/.tsx in `src/`, 69 test in `src/__tests__/`.
+**Totale**: 344 file `.ts`/`.tsx` in `src/` (esclusi test), 71 file di test in `src/__tests__/`.
 
 ### Database (Prisma)
-17 schema modulari attivi in `prisma/schemas/`:
-`_base`, `admin`, `app-log`, `auction`, `chat`, `contract-history`, `feedback`, `identity`, `league`, `market-session`, `movement`, `player`, `prize`, `roster`, `rubata`, `svincolati`, `trade`
+Schema modulare in `prisma/schemas/` (16 file): `_base`, `admin`, `app-log`, `auction`, `chat`, `contract-history`, `feedback`, `identity`, `league`, `market-session`, `movement`, `player`, `prize`, `roster`, `rubata`, `svincolati`, `trade`.
 
 Dopo modifiche: `db:build-schema` → merge in `schema.generated.prisma` → `db:generate` → `db:push`.
 
-### Pagine principali (30)
-`AdminPanel`, `AuctionRoom`, `Contracts`, `CreateLeague`, `Dashboard`, `FeedbackHub`, `History`, `LeagueDetail`, `LeagueFinancials`, `Login`, `Movements`, `Players`, `PrizePhasePage`, `Profile`, `Prophecies`, `Register`, `Rose`, `Rubata`, `Rules`, `StrategieRubata`, `SuperAdmin`, `Svincolati`, `Trades`, + pagine auth/utility.
+### Service critici (business logic — non modificare senza conferma)
+| File | Righe | Responsabilità |
+|------|-------|---------------|
+| `auction.service.ts` | ~5870 | Motore asta (primo mercato, timer, reopen) |
+| `rubata.service.ts` | ~4240 | Fase rubata |
+| `svincolati.service.ts` | ~2520 | Fase svincolati |
+| `contract.service.ts` | ~2240 | Contratti, clausole, rinnovi, spalma, consolidamento, KEEP/RELEASE |
+| `prize-phase.service.ts` | — | Fase premi e indennizzi |
 
-### Service critici (business logic)
-| File | Responsabilità |
-|------|---------------|
-| `contract.service.ts` | Contratti, clausole, rinnovi, spalma, consolidamento, KEEP/RELEASE |
-| `auction.service.ts` | Motore asta (primo mercato, timer, reopen) |
-| `rubata.service.ts` | Fase rubata |
-| `svincolati.service.ts` | Fase svincolati |
-| `prize-phase.service.ts` | Fase premi e indennizzi |
-| `trade.service.ts` | Scambi tra manager |
+I 5 service più grandi del progetto sono anche i 5 dichiarati critici — complessità concentrata lì, nessun marker di incompletezza al loro interno (verificato via grep TODO/FIXME/501: zero occorrenze in tutto `src/`).
 
 ### API unica frontend
 `src/services/api.ts` con `request<T>()` — oggetti domain-grouped (`tradeApi`, `leagueApi`, etc.). Mai fetch diretto nei componenti.
 
 ---
 
-## 5. Salute tecnica
+## 5. Salute tecnica (verificata 2026-08-21)
 
 | Check | Stato |
 |-------|-------|
 | Typecheck (`tsc --noEmit`) | ✅ 0 errori |
-| Test (1751) | ✅ Tutti verdi (81 file, ~63s) |
-| Build (`npm run build` + `build:api`) | ✅ Verificata 2026-08-13 |
-| Lint | ✅ 0 errori (1204 warning pre-esistenti, nessuno nuovo) |
+| Test (`npm run test:all`) | ✅ **1757 test, 81 file, tutti verdi** (~64s) |
+| Build (`npm run build`) | ✅ OK (bundle PWA generato, 70 entry precache) |
+| Lint | ✅ 0 errori, 1232 warning pre-esistenti (`no-non-null-assertion`, nessuna nuova regressione) |
+| `: any` / `as any` in `src/` | 1 sola occorrenza (`src/api/routes/contracts.ts`) — tipizzazione molto disciplinata |
+| `console.log`/`console.error` nei service | 2, entrambe in `app-log.service.ts` (il service di logging stesso — intenzionale) |
 | CI/CD | GitHub Actions: lint + typecheck + test + build su PR (`.github/workflows/pr-validation.yml`) |
 | Deploy | Vercel automatico su push a `develop`/`main` |
+
+**Conclusione**: il motore di gioco è tecnicamente sano. Non ci sono bug bloccanti noti né feature incomplete marcate nel codice. Il lavoro aperto è su UI/navigazione (vedi §6) e su un piccolo debito di consolidamento (`auction-room` v1/v2).
 
 ---
 
 ## 6. Stato implementazione — cosa è fatto e cosa manca
 
-### ✅ COMPLETATO (Sprint A + B + Polish UX)
+### ✅ COMPLETATO
+- **Sprint A** (pulizia & coerenza): dead code `src/modules/` rimosso, riserva-1-credito uniformata a Bibbie, bug minori chiusi, Bibbie aggiornate.
+- **Sprint B** (feature di gioco, backend + UI): statistiche estese, auto-scadenza offerte scambio, Pusher real-time Svincolati, Lega Pubblica/Privata (toggle + badge), controfferta completa, indicatore trattativa ai terzi.
+- **Polish UX web**: componenti condivisi (`Textarea`/`Tabs`/`ErrorState`), WCAG separatori, pattern cockpit (`CockpitShell`, `TimerDisplay`, `BidControlsShared`, ecc.), **10 Assiomi UI/UX** implementati (vedi CLAUDE.md), navigazione unificata + barra-fase + glossario + Players mobile card.
+- **Hardening produzione**: factory `createApp()` condivisa dev/prod, via debug da prod, JWT fail-fast, deploy hardening già **in produzione** dal 2026-07-12 (smoke prod verde: helmet attivo, route montate, login reale funzionante).
+- **Raccolta evidenze beta (Livello 2)**: reporter errori globali frontend, contesto sessione nelle segnalazioni, workflow conferma fix, creazione issue GitHub dal superadmin (richiede env `GH_PAT` su Vercel — verificare se impostata), smoke suite beta dedicata (`tests/e2e/smoke-beta.spec.ts`). **Confluito in `main`** (branch eliminato oggi, zero commit esclusivi residui).
+- **Rework grafico "less is more"** (in corso su `REVIEW_PRE_BETA`, non ancora mergiato): dashboard minimalista, font unico Helvetica, fix contratti Rose/Giocatori.
 
-**Sprint A — Pulizia & coerenza:**
-- Dead code `src/modules/` rimosso (9 moduli + barrel)
-- Pagina Indennizzi + route residui rimossi (T5-D)
-- Riserva 1 credito uniformata a Bibbie (T6-1, T7-1)
-- Bug minori: msg semestri, route pause, reset preConsolidation, indennizzo custom, legacy svincolati
-- Bibbie aggiornate (esteri, bilancio, statistiche JSON, rinnovo post-trade)
+### ⬜ MANCANTE / APERTO
 
-**Sprint B — Feature di gioco (backend completo):**
-- Statistiche `duelsWon` + `foulsCommitted` (T8-2)
-- Auto-scadenza offerte di scambio attivata (T3-3)
-- Eventi Pusher real-time Svincolati backend (T7-2)
-- Lega Pubblica/Privata: schema + service + validation (T1-1 backend)
-- Riepilogo eventi apertura per-manager (T2-3)
-- Correzioni admin post-finalize premi (T4-1)
-- Annulla-fine-asta / reopen (T1-2)
-
-**Polish UX web (2026-06-06):**
-- Componenti condivisi: `Textarea`, `Tabs`, `ErrorState`
-- WCAG: separatori decorativi `aria-hidden`
-- Modal shared: `AuctionConfirmModal` migrata
-- Cockpit pattern: `CockpitShell`, `TimerDisplay`, `BidControlsShared`, `BidChips`, `ManagerListRow`, `MemberReadyChips`, `Monogram`, `PanelTabs`
-- Assiomi UI 1-10 implementati (tabelle proporzionate, mobile no-truncation, stile Finanze, nome cliccabile, carriera in modale, label ingaggio/durata, grafici chiari)
-- Navigazione unificata (P1), barra-fase (P2), help+glossario (P3), Players mobile (P4)
-
-**Hardening:**
-- Factory `createApp()` condivisa dev/prod + hardening produzione
-- CORS dev accetta IP LAN
-- E2E parametrizzati (env + baseURL)
-- Runbook rilascio beta + guida onboarding beta
-
-**Livello 2 — Raccolta evidenze beta (2026-08-13, branch `feature/1.x-raccolta-evidenze-beta`, WIP):**
-- Schema: `metadata Json?` su `UserFeedback` + stato `CHIUSA` (feedback.prisma)
-- Reporter errori globali frontend (`src/utils/frontend-error-reporter.ts`): `window.onerror` + `unhandledrejection` → POST `/api/logs` con severity ERROR, versione build, UA, auth da `getAccessToken()`
-- Contesto sessione auto: `src/utils/app-meta.ts` (`buildSessionMetadata`/`getPageContext`); `FeedbackForm` invia metadata, `FeedbackHub` passa `pageContext`
-- Backend: `submitFeedback` salva metadata; `getFeedbackById` include `relatedLogs` (ultimi 10 AppLog autore a −15 min, admin-only)
-- Workflow conferma fix: `confirmFeedbackFix` (RISOLTA→CHIUSA) + `reopenFeedback` (→APERTA, azzera `resolvedAt`); bottoni owner in `FeedbackDetail`
-- Issue GitHub dal superadmin: `createGitHubIssue` (usa `GH_PAT`, label da categoria, link all'issue esistente); route `POST /api/feedback/:id/github` + bottone admin
-- Test: feedback.service +28 (49 totali), app-meta (5), frontend-error-reporter (4) — tutti verdi; tsc e lint puliti
-- **Smoke suite beta**: `tests/e2e/smoke-beta.spec.ts` + `playwright.beta.config.ts` (read-only, env-driven, 6 test) — verificata 3x su stack locale
-- ⚠️ **Da fare su Vercel**: settare env `GH_PAT` (Personal Access Token con scope `repo`/`issues`) per abilitare la creazione issue GitHub dal pannello Feedback del superadmin
-
-### ⬜ MANCANTE — Sprint B UI (da implementare)
-
-**Completato il 2026-08-13** (commit `e91901b` + sessione corrente):
-
-| ID | Feature | Stato |
-|----|---------|-------|
-| T1-1 UI | Toggle Pubblica/Privata in creazione lega + badge ricerca | ✅ FATTO — `CreateLeague.tsx` toggle + badge in `Dashboard.tsx` |
-| T3-1 | Indicatore "trattativa in corso" ai terzi | ✅ FATTO — chip su rose altrui in `Rose.tsx` (solo visibilità, no dettagli) + conteggio in `Trades.tsx` |
-| T3-2 | Controfferta UI completa in `Trades.tsx` | ✅ FATTO — `CounterOfferModal`; il giro contro-controofferta è garantito dal backend (`counterOffer` crea nuova offerta PENDING scambiata) |
-| T7-2 UI | Collegare eventi Pusher Svincolati a `useSvincolatiState` | ✅ FATTO — handler completi in `useSvincolatiState.ts` (6 eventi, optimistic update + reconcile) |
-
-### ⬜ MANCANTE — Sprint C (bloccato / da decidere)
-
-| ID | Feature | Blocco |
-|----|---------|--------|
-| T4-2 + T5-A | Formula indennizzo ESTERO | **In attesa input da Pietro** — oggi default 50M |
-| T8-1 | Stato fine mercato esplicito | Basso impatto, da valutare |
-| Nice-to-have | OAuth, ordine chiamata random, admin-solo, vincoli creazione lega | Rinvio post-beta |
-
-### ⬜ MANCANTE — Altri ritardi
-
-- **Split `Contracts.tsx`** (#15): file grande, task dedicato
-- **Migrazione modali inline**: ~7 pagine con modali non-condivise (alto rischio regressione)
-- **App mobile nativa** (`MOBILE-ANDROID`): 14/24 schermate stub, API URL hardcoded, tema non allineato (scope settimane)
+| Area | Cosa manca | Blocco |
+|------|-----------|--------|
+| Sprint C — Formula indennizzo ESTERO | Default arbitrario 50M, formula definitiva non fornita | **In attesa input Pietro** |
+| Tema colore | 10 mockup pronti (`docs/reviews/mockups/24-themes/`), nessuna scelta fatta | In attesa decisione Pietro |
+| `auction-room` v1 | Ancora importato da `Svincolati.tsx`, coesiste con `auction-room-v2` attivo | Consolidamento da fare |
+| Semplificazione UI/IA | Verifica live mai fatta su diversi lotti già codificati (assiomi, navigazione); LeagueDetail ha un WIP di semplificazione da riprendere | In corso — vedi piano Fase 1.1 |
+| App mobile nativa (`MOBILE-ANDROID`) | 14/24 schermate stub, API URL hardcoded, tema non allineato | Scope di settimane, non prioritario per la beta web |
+| Split `Contracts.tsx` / migrazione modali inline (~7 pagine) | Debito minore, non bloccante | Da valutare |
 
 ---
 
 ## 7. Decisioni aperte (richiedono input da Pietro)
 
-1. **Formula indennizzo ESTERO** — Blocca T4-2 e T5-A. Senza formula, il default resta 50M. **Unico blocco rimasto a Sprint C.**
-2. ~~Riallineamento develop/main~~ — **RISOLTO 2026-08-13** (FF-merge, branch allineati su `2cf6d06`).
-3. **Stash** — 10 stash storici. Eliminare tutti o verificarne qualcuno?
-4. **Branch `MOBILE-ANDROID`** — Stato attuale? Proseguire o archiviare?
-5. **Branch `feature/1.x-prod-hardening`** — 1 commit avanti develop (ora contenuto). Mergiare o eliminare?
+1. **Formula indennizzo ESTERO** — unico blocco residuo per chiudere Sprint C. Default oggi: 50M.
+2. **Tema colore** — 10 mockup pronti, nessuno scelto.
+3. **Branch remoti mergiati** (`origin/feature/1.x-raccolta-evidenze-beta`, `origin/fix/smoke-beta-prod`) — confermare cancellazione su GitHub.
+4. **`REVIEW_PRE_BETA` → merge strategy**: quando confluisce in `develop`/`main`? (dopo Fase 1.1 semplificazione UI, secondo il piano corrente)
 
 ---
 
@@ -277,19 +212,17 @@ npm run deploy:main      # Backup + merge develop → main + push
 | File | Contenuto |
 |------|-----------|
 | `CLAUDE.md` | Istruzioni sempre attive, convenzioni, regole |
-| `docs/PROJECT-STATUS.md` | Stato consolidato + roadmap |
-| `docs/COMPLETAMENTO-BACKLOG.md` | Backlog dettagliato per fase di gioco |
-| `docs/SESSION-CONTEXT.md` | Storico decisioni (fermo a 2026-02-06) |
-| `docs/GAP-ANALYSIS-REPORT.md` | Bug e feature mancanti |
+| `docs/HANDOFF.md` | **Questo file** — unico documento di stato corrente |
 | `docs/bibbie/` | 10 documenti regolamento + INDEX |
-| `docs/reviews/` | Report UX/mobile + 43 mockup HTML |
-| `docs/guides/` | Onboarding beta, runbook, quotazioni |
+| `docs/reviews/` | Report UX/mobile + mockup HTML (incl. `mockups/24-themes/` in attesa di scelta) |
+| `docs/guides/` | Onboarding beta, runbook lancio, quotazioni |
+| `docs/archive/` | Storico non aggiornato: `PROJECT-STATUS.md`, `COMPLETAMENTO-BACKLOG.md`, `SESSION-CONTEXT.md`, `GAP-ANALYSIS-REPORT.md`, `milestones/`, `sprint-briefs/`, `html/` |
 
 ### Gerarchia fonti di verità
 1. Regole di gioco → `docs/bibbie/`
 2. Architettura/convenzioni → `CLAUDE.md`
-3. Stato & roadmap → `docs/PROJECT-STATUS.md` + `docs/COMPLETAMENTO-BACKLOG.md`
-4. Storici (non aggiornare) → `docs/SESSION-CONTEXT.md`, `docs/GAP-ANALYSIS-REPORT.md`
+3. Stato & roadmap → `docs/HANDOFF.md` (questo file)
+4. Storici (non aggiornare) → `docs/archive/`
 
 ---
 

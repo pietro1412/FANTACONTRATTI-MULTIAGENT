@@ -227,6 +227,5 @@ Gerarchia delle fonti di verità (in caso di conflitto, vince la fonte più in a
 
 - **Regole di gioco** → `docs/bibbie/` — **10 documenti** di regolamento ("Bibbie"). Ordine di lettura e dipendenze in `docs/bibbie/INDEX.md`.
 - **Architettura, convenzioni, comandi** → questo file (`CLAUDE.md`).
-- **Stato & roadmap** → `docs/PROJECT-STATUS.md` (stato consolidato) + `docs/COMPLETAMENTO-BACKLOG.md` (backlog per fase di gioco: cosa fatto/rinviato).
-- **Storici** (solo reference, NON aggiornare) → `docs/SESSION-CONTEXT.md`, `docs/GAP-ANALYSIS-REPORT.md` (decisioni e gap fermi a febbraio 2026).
-- **Archivio** (obsoleto) → `docs/archive/` (es. `fantacontratti-prompt-v2-final.md`, schema DB superato).
+- **Stato & roadmap** → `docs/HANDOFF.md` — documento unico di stato corrente (git, architettura, salute tecnica, cosa è fatto/manca, decisioni aperte). Aggiornare questo file, non ricrearne altri paralleli.
+- **Archivio** (storico, solo reference, NON aggiornare) → `docs/archive/` (es. `SESSION-CONTEXT.md`, `GAP-ANALYSIS-REPORT.md`, `PROJECT-STATUS.md`/`COMPLETAMENTO-BACKLOG.md` superati da `HANDOFF.md`, `fantacontratti-prompt-v2-final.md`, schema DB superato).
