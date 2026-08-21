@@ -2,7 +2,7 @@
 
 > Fonte di verita per il sistema di ricorsi durante l'asta.
 > Permette ai manager di contestare un'assegnazione e all'admin di annullarla o confermarla.
-> Ultima revisione: 2026-02-11
+> Ultima revisione: 2026-08-21 — chiarito che il sistema copre anche la fase Rubata (era gia' vero nel codice, mancava nella bibbia)
 
 ---
 
@@ -14,7 +14,7 @@ Il sistema di ricorsi consente a qualsiasi manager di contestare l'esito di un'a
 
 - Solo su aste con status `COMPLETED` (dopo che il vincitore e stato determinato)
 - Il ricorso si presenta dalla modale di conferma (acknowledgment)
-- Funziona sia nel Primo Mercato sia nella fase Svincolati
+- Funziona in tutte e 3 le aste del gioco: Primo Mercato, fase Rubata (durante PENDING_ACK, vedi `RUBATA.md §6`) e fase Svincolati
 
 ### 1.2 Chi Puo Presentare Ricorso
 
