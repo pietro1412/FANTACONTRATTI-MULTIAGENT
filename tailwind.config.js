@@ -7,13 +7,13 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Dark backgrounds - Stadium Nights theme (deeper, more immersive)
+        // Dark backgrounds - Broadcast theme (near-black with a cool blue cast)
         dark: {
-          50: '#252830',   // Lighter surface
-          100: '#1a1c20',  // Card background
-          200: '#111214',  // Elevated elements
-          300: '#0a0a0b',  // Body background (main)
-          400: '#050506',
+          50: '#1a2029',   // Lighter surface
+          100: '#0c1119',  // Card background
+          200: '#10161f',  // Elevated elements
+          300: '#05080d',  // Body background (main)
+          400: '#030509',
           500: '#000000',
           // Legacy mappings for compatibility
           600: '#08090e',
@@ -35,19 +35,19 @@ export default {
           900: '#1e3a8a',
           950: '#172554',
         },
-        // Secondary - Verde Campo (THE football color)
+        // Secondary - Verde Acido Broadcast (accento "live"/azione principale)
         secondary: {
-          50: '#f0fdf4',
-          100: '#dcfce7',
-          200: '#bbf7d0',
-          300: '#86efac',
-          400: '#4ade80',
-          500: '#22c55e',
-          600: '#16a34a',
-          700: '#15803d',
-          800: '#166534',
-          900: '#14532d',
-          950: '#052e16',
+          50: '#e6fff2',
+          100: '#b3ffdb',
+          200: '#80ffc4',
+          300: '#4dffad',
+          400: '#33ff9e',
+          500: '#00e87f',
+          600: '#00b863',
+          700: '#00994f',
+          800: '#007a3d',
+          900: '#005c2e',
+          950: '#003d1f',
         },
         // Accent - Oro Trofeo (trophies, prestige, victories)
         accent: {
@@ -110,14 +110,14 @@ export default {
           900: '#1f2937',
           950: '#111827',
         },
-        // Surface colors for cards (adjusted for Stadium Nights)
+        // Surface colors for cards (Broadcast: near-black, cool blue cast)
         surface: {
-          50: '#2d3139',   // Border color
-          100: '#252830',  // Hover states
-          200: '#1a1c20',  // Card background
-          300: '#111214',  // Elevated elements
-          400: '#0a0a0b',  // Body background
-          500: '#050506',
+          50: '#232a35',   // Border color
+          100: '#1a2029',  // Hover states
+          200: '#0c1119',  // Card background
+          300: '#10161f',  // Elevated elements
+          400: '#05080d',  // Body background
+          500: '#030509',
           600: '#000000',
         },
         // Legacy teal colors for gradual transition (deprecated)
@@ -128,10 +128,11 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['"Helvetica Neue"', 'Helvetica', 'Arial', 'sans-serif'],
+        // Broadcast theme: Barlow (body) + Barlow Condensed (display/numbers)
+        sans: ['"Barlow"', '"Helvetica Neue"', 'Helvetica', 'Arial', 'sans-serif'],
         mono: ['"Helvetica Neue"', 'Helvetica', 'Arial', 'sans-serif'],
-        display: ['"Helvetica Neue"', 'Helvetica', 'Arial', 'sans-serif'],
-        sport: ['"Helvetica Neue"', 'Helvetica', 'Arial', 'sans-serif'],
+        display: ['"Barlow Condensed"', '"Helvetica Neue"', 'Helvetica', 'Arial', 'sans-serif'],
+        sport: ['"Barlow Condensed"', '"Helvetica Neue"', 'Helvetica', 'Arial', 'sans-serif'],
       },
       backgroundImage: {
         'pitch-gradient': 'linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%)',

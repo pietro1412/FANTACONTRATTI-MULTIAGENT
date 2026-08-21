@@ -65,7 +65,7 @@ export function PhaseBar({ leagueId, currentPhase, activeSessionId, onNavigate }
 
   return (
     <div
-      className="border-b border-surface-50/20 bg-gradient-to-r from-accent-500/10 via-surface-300/30 to-surface-300/10"
+      className="corner-cut border-b border-surface-50/20 bg-gradient-to-r from-accent-500/10 via-surface-300/30 to-surface-300/10"
       data-testid="phase-bar"
     >
       <div className="max-w-full mx-auto px-4 py-2 flex items-center gap-3">

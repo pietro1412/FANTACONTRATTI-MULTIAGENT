@@ -285,23 +285,23 @@
 
   /* Stadium scoreboard number style */
   .stat-number {
-    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-family: "Barlow Condensed", "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-weight: 700;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.01em;
     font-variant-numeric: tabular-nums;
   }
 
   /* Large timer display in sport style */
   .timer-sport {
-    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-family: "Barlow Condensed", "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-weight: 700;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.03em;
     font-variant-numeric: tabular-nums;
   }
 
   /* Budget display style */
   .budget-display {
-    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-family: "Barlow Condensed", "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
   }
@@ -310,14 +310,21 @@
      Linguaggio mockup v2 (rubata) — componenti di tema condivisi
      ============================================================ */
 
-  /* Panel/section micro header: Helvetica Neue uppercase wide-tracked */
+  /* Panel/section micro header: Barlow uppercase wide-tracked */
   .micro-label {
-    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-family: "Barlow", "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 10.5px;
     font-weight: 700;
     letter-spacing: 0.13em;
     text-transform: uppercase;
     color: #8b919d; /* gray-500 */
+  }
+
+  /* Broadcast signature notch: cuts the bottom-left corner of a bounded bar
+     (header, phase bar) instead of rounding it — reserved for a small set of
+     brand-signal surfaces, not applied globally (see CLAUDE.md §Stili). */
+  .corner-cut {
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 18px 100%, 0 calc(100% - 18px));
   }
 
   /* Contracts cockpit row grid (8 columns). The player column dominates and every

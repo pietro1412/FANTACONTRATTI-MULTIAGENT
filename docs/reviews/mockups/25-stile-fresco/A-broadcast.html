@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A — Broadcast (grafica sportiva live TV)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #05080d;
+    --card: #0c1119;
+    --card-2: #10161f;
+    --header: #080b11;
+    --border: rgba(0,255,135,0.12);
+    --border-soft: rgba(255,255,255,0.06);
+    --text-1: #f4f7f6;
+    --text-2: #8b96a3;
+    --text-3: #5b6675;
+    --accent: #00ff87;
+    --accent-dim: rgba(0,255,135,0.14);
+    --cyan: #00d4ff;
+    --gold: #ffb020;
+    --red: #ff3b5c;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:"Barlow",Arial,sans-serif; background:var(--bg); color:var(--text-1); min-height:100vh; padding:28px; }
+  .frame { max-width:1180px; margin:0 auto; }
+  .num { font-family:"Barlow Condensed",Arial,sans-serif; font-weight:700; }
+  .label { font-size:11px; font-weight:700; letter-spacing:0.16em; text-transform:uppercase; color:var(--text-3); }
+  .topbar { display:flex; align-items:center; justify-content:space-between; padding:14px 20px; background:var(--header); border:1px solid var(--border-soft); clip-path:polygon(0 0,100% 0,100% 100%,12px 100%,0 calc(100% - 12px)); margin-bottom:16px; }
+  .brand { display:flex; align-items:center; gap:10px; }
+  .brand-mark { width:30px; height:30px; background:var(--accent); clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%); }
+  .brand-name { font-family:"Barlow Condensed"; font-weight:800; font-size:19px; letter-spacing:0.02em; }
+  .phase-pill { display:flex; align-items:center; gap:8px; padding:6px 14px; background:var(--accent-dim); border:1px solid var(--accent); clip-path:polygon(8px 0,100% 0,100% 100%,0 100%,0 8px); }
+  .live-dot { width:7px; height:7px; border-radius:50%; background:var(--red); animation:pulse 1.4s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+  .phase-text { font-size:12px; font-weight:600; color:var(--accent); letter-spacing:0.04em; text-transform:uppercase; }
+  .tabs { display:flex; gap:6px; margin-bottom:16px; overflow-x:auto; }
+  .tab { padding:8px 16px; background:var(--card); border:1px solid var(--border-soft); font-size:13px; font-weight:600; color:var(--text-2); white-space:nowrap; clip-path:polygon(6px 0,100% 0,100% 100%,0 100%,0 6px); }
+  .tab.active { background:var(--accent); color:#03130a; border-color:var(--accent); }
+  .grid { display:grid; grid-template-columns:1fr 250px; gap:16px; }
+  .card { background:var(--card); border:1px solid var(--border-soft); overflow:hidden; }
+  table { width:100%; border-collapse:collapse; }
+  th { font-size:10px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:var(--text-3); text-align:left; padding:11px 14px; background:var(--card-2); border-bottom:1px solid var(--border-soft); }
+  th.r { text-align:right; }
+  td { padding:11px 14px; border-bottom:1px solid var(--border-soft); vertical-align:middle; }
+  tr:last-child td { border-bottom:none; }
+  tr:hover td { background:rgba(0,255,135,0.03); }
+  .role { display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; font-size:11px; font-weight:800; font-family:"Barlow Condensed"; color:#03130a; flex-shrink:0; }
+  .role-P { background:var(--gold); } .role-D { background:var(--cyan); } .role-C { background:var(--accent); } .role-A { background:var(--red); color:#fff; }
+  .pname { display:flex; align-items:center; gap:10px; }
+  .pinfo .name { font-weight:600; font-size:14px; color:var(--text-1); }
+  .pinfo .meta { font-size:11px; color:var(--text-2); margin-top:1px; }
+  .val { text-align:right; font-family:"Barlow Condensed"; font-weight:700; font-size:16px; }
+  .val .u { font-size:11px; color:var(--text-3); font-weight:600; margin-left:1px; }
+  .val.gold { color:var(--gold); }
+  .actions { text-align:right; }
+  .swap-btn { display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; background:transparent; border:1px solid var(--border-soft); color:var(--text-2); cursor:pointer; }
+  .swap-btn:hover { border-color:var(--accent); color:var(--accent); }
+  .side-card { background:var(--card); border:1px solid var(--border-soft); padding:16px; margin-bottom:12px; }
+  .side-title { font-size:11px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:var(--text-2); margin-bottom:12px; }
+  .comp-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .comp-row:last-child { margin-bottom:0; }
+  .comp-bar-bg { flex:1; height:6px; background:var(--card-2); }
+  .comp-bar { height:100%; }
+  .comp-count { font-family:"Barlow Condensed"; font-weight:700; font-size:14px; width:20px; text-align:right; }
+  .budget-num { font-family:"Barlow Condensed"; font-weight:800; font-size:32px; color:var(--accent); }
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="topbar">
+    <div class="brand"><div class="brand-mark"></div><div class="brand-name">LEGA TEST · ROSE</div></div>
+    <div class="phase-pill"><div class="live-dot"></div><span class="phase-text">Fase 1 · Offerte e scambi</span></div>
+  </div>
+  <div class="tabs">
+    <div class="tab active">Profeti (tu)</div>
+    <div class="tab">Diego Team</div>
+    <div class="tab">Emiliano Team</div>
+    <div class="tab">Emmanuele Team</div>
+    <div class="tab">Marco Team</div>
+  </div>
+  <div class="grid">
+    <div class="card">
+      <table>
+        <thead><tr><th>Giocatore</th><th class="r">Ingaggio</th><th class="r">Durata</th><th class="r">Clausola</th><th class="r">Rubata</th><th class="r">Azioni</th></tr></thead>
+        <tbody>
+          <tr><td><div class="pname"><div class="role role-P">P</div><div class="pinfo"><div class="name">Audero</div><div class="meta">Cremonese · 29 anni</div></div></div></td><td class="val">2<span class="u">M</span></td><td class="val">3<span class="u">s</span></td><td class="val">18<span class="u">M</span></td><td class="val gold">20<span class="u">M</span></td><td class="actions"><button class="swap-btn">⇄</button></td></tr>
+          <tr><td><div class="pname"><div class="role role-P">P</div><div class="pinfo"><div class="name">Padelli</div><div class="meta">Udinese · 40 anni</div></div></div></td><td class="val">1<span class="u">M</span></td><td class="val">3<span class="u">s</span></td><td class="val">9<span class="u">M</span></td><td class="val gold">10<span class="u">M</span></td><td class="actions"><button class="swap-btn">⇄</button></td></tr>
+          <tr><td><div class="pname"><div class="role role-D">D</div><div class="pinfo"><div class="name">Britschgi</div><div class="meta">Parma · 24 anni</div></div></div></td><td class="val">1<span class="u">M</span></td><td class="val">3<span class="u">s</span></td><td class="val">9<span class="u">M</span></td><td class="val gold">10<span class="u">M</span></td><td class="actions"><button class="swap-btn">⇄</button></td></tr>
+          <tr><td><div class="pname"><div class="role role-C">C</div><div class="pinfo"><div class="name">Cambiaso</div><div class="meta">Juventus · 25 anni</div></div></div></td><td class="val">3<span class="u">M</span></td><td class="val">2<span class="u">s</span></td><td class="val">21<span class="u">M</span></td><td class="val gold">24<span class="u">M</span></td><td class="actions"><button class="swap-btn">⇄</button></td></tr>
+          <tr><td><div class="pname"><div class="role role-A">A</div><div class="pinfo"><div class="name">Vardy</div><div class="meta">Cremonese · 38 anni</div></div></div></td><td class="val">2<span class="u">M</span></td><td class="val">3<span class="u">s</span></td><td class="val">18<span class="u">M</span></td><td class="val gold">20<span class="u">M</span></td><td class="actions"><button class="swap-btn">⇄</button></td></tr>
+          <tr><td><div class="pname"><div class="role role-A">A</div><div class="pinfo"><div class="name">Yildiz</div><div class="meta">Juventus · 20 anni</div></div></div></td><td class="val">4<span class="u">M</span></td><td class="val">1<span class="u">s</span></td><td class="val">12<span class="u">M</span></td><td class="val gold">16<span class="u">M</span></td><td class="actions"><button class="swap-btn">⇄</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <div class="side-card">
+        <div class="side-title">Budget residuo</div>
+        <div class="budget-num">268<span style="font-size:16px;">M</span></div>
+      </div>
+      <div class="side-card">
+        <div class="side-title">Composizione rosa</div>
+        <div class="comp-row"><div class="label" style="width:14px;color:var(--gold)">P</div><div class="comp-bar-bg"><div class="comp-bar" style="width:100%;background:var(--gold)"></div></div><div class="comp-count">3</div></div>
+        <div class="comp-row"><div class="label" style="width:14px;color:var(--cyan)">D</div><div class="comp-bar-bg"><div class="comp-bar" style="width:100%;background:var(--cyan)"></div></div><div class="comp-count">8</div></div>
+        <div class="comp-row"><div class="label" style="width:14px;color:var(--accent)">C</div><div class="comp-bar-bg"><div class="comp-bar" style="width:100%;background:var(--accent)"></div></div><div class="comp-count">8</div></div>
+        <div class="comp-row"><div class="label" style="width:14px;color:var(--red)">A</div><div class="comp-bar-bg"><div class="comp-bar" style="width:75%;background:var(--red)"></div></div><div class="comp-count">6</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

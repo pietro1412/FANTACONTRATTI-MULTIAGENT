@@ -21,7 +21,7 @@ const POSITION_CONFIG: Record<Position, {
   P: {
     label: 'Portiere',
     shortLabel: 'P',
-    colors: 'bg-gradient-to-r from-amber-500 to-amber-600 text-black',
+    colors: 'bg-gradient-to-r from-accent-500 to-accent-600 text-black',
     // Glove icon (circle shape for accessibility)
     icon: (
       <svg className="w-full h-full" viewBox="0 0 24 24" fill="currentColor">
@@ -32,7 +32,7 @@ const POSITION_CONFIG: Record<Position, {
   D: {
     label: 'Difensore',
     shortLabel: 'D',
-    colors: 'bg-gradient-to-r from-blue-500 to-blue-600 text-white',
+    colors: 'bg-gradient-to-r from-primary-500 to-primary-600 text-white',
     // Shield icon (square shape for accessibility)
     icon: (
       <svg className="w-full h-full" viewBox="0 0 24 24" fill="currentColor">
@@ -43,7 +43,7 @@ const POSITION_CONFIG: Record<Position, {
   C: {
     label: 'Centrocampista',
     shortLabel: 'C',
-    colors: 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white',
+    colors: 'bg-gradient-to-r from-secondary-500 to-secondary-600 text-black',
     // Gear/hexagon icon for accessibility
     icon: (
       <svg className="w-full h-full" viewBox="0 0 24 24" fill="currentColor">
@@ -54,7 +54,7 @@ const POSITION_CONFIG: Record<Position, {
   A: {
     label: 'Attaccante',
     shortLabel: 'A',
-    colors: 'bg-gradient-to-r from-red-500 to-red-600 text-white',
+    colors: 'bg-gradient-to-r from-danger-500 to-danger-600 text-white',
     // Lightning/triangle icon for accessibility
     icon: (
       <svg className="w-full h-full" viewBox="0 0 24 24" fill="currentColor">
@@ -171,10 +171,10 @@ export const POSITION_NAMES: Record<string, string> = {
  * Use this for circular/pill badges displaying the position letter
  */
 export const POSITION_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  P: { bg: 'bg-gradient-to-r from-amber-500 to-amber-600', text: 'text-white', border: '' },
-  D: { bg: 'bg-gradient-to-r from-blue-500 to-blue-600', text: 'text-white', border: '' },
-  C: { bg: 'bg-gradient-to-r from-emerald-500 to-emerald-600', text: 'text-white', border: '' },
-  A: { bg: 'bg-gradient-to-r from-red-500 to-red-600', text: 'text-white', border: '' },
+  P: { bg: 'bg-gradient-to-r from-accent-500 to-accent-600', text: 'text-black', border: '' },
+  D: { bg: 'bg-gradient-to-r from-primary-500 to-primary-600', text: 'text-white', border: '' },
+  C: { bg: 'bg-gradient-to-r from-secondary-500 to-secondary-600', text: 'text-black', border: '' },
+  A: { bg: 'bg-gradient-to-r from-danger-500 to-danger-600', text: 'text-white', border: '' },
 }
 
 /**
@@ -182,30 +182,30 @@ export const POSITION_COLORS: Record<string, { bg: string; text: string; border:
  * Use this for toggleable filter buttons
  */
 export const POSITION_FILTER_COLORS: Record<string, string> = {
-  P: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-  D: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-  C: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-  A: 'bg-red-500/20 text-red-400 border-red-500/30',
+  P: 'bg-accent-500/20 text-accent-400 border-accent-500/30',
+  D: 'bg-primary-500/20 text-primary-400 border-primary-500/30',
+  C: 'bg-secondary-500/20 text-secondary-400 border-secondary-500/30',
+  A: 'bg-danger-500/20 text-danger-400 border-danger-500/30',
 }
 
 /**
  * Position text colors only (for inline text coloring)
  */
 export const POSITION_TEXT_COLORS: Record<string, string> = {
-  P: 'text-amber-400',
-  D: 'text-blue-400',
-  C: 'text-emerald-400',
-  A: 'text-red-400',
+  P: 'text-accent-400',
+  D: 'text-primary-400',
+  C: 'text-secondary-400',
+  A: 'text-danger-400',
 }
 
 /**
  * Position gradient strings (for custom bg-gradient-to-* usage)
  */
 export const POSITION_GRADIENTS: Record<string, string> = {
-  P: 'from-amber-500 to-amber-600',
-  D: 'from-blue-500 to-blue-600',
-  C: 'from-emerald-500 to-emerald-600',
-  A: 'from-red-500 to-red-600',
+  P: 'from-accent-500 to-accent-600',
+  D: 'from-primary-500 to-primary-600',
+  C: 'from-secondary-500 to-secondary-600',
+  A: 'from-danger-500 to-danger-600',
 }
 
 export default PositionBadge
