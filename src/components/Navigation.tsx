@@ -113,8 +113,10 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
   )
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false)
+  const [moreDropdownOpen, setMoreDropdownOpen] = useState(false)
   const [pusherConnected, setPusherConnected] = useState(false)
   const profileDropdownRef = useRef<HTMLDivElement>(null)
+  const moreDropdownRef = useRef<HTMLDivElement>(null)
   const mobileMenuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -186,6 +188,17 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
     return () => { document.removeEventListener('mousedown', handleClickOutside); }
   }, [])
 
+  // Close "Altro" dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (moreDropdownRef.current && !moreDropdownRef.current.contains(event.target as Node)) {
+        setMoreDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => { document.removeEventListener('mousedown', handleClickOutside); }
+  }, [])
+
   // Close mobile menu when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -207,6 +220,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
       if (event.key === 'Escape') {
         setMobileMenuOpen(false)
         setProfileDropdownOpen(false)
+        setMoreDropdownOpen(false)
       }
     }
     document.addEventListener('keydown', handleEscape)
@@ -246,6 +260,19 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
 
   // Voci di menu derivate dalla fase corrente (sorgente unica condivisa con BottomNavBar)
   const visibleMenuItems = getVisibleNavItems(currentPhase, null, Boolean(isLeagueAdmin))
+
+  // Barra desktop: nucleo sempre visibile + dropdown "Altro" per le voci a
+  // bassa frequenza, altrimenti il menu sfora orizzontalmente anche a
+  // larghezze laptop normali (13 voci senza gestione overflow). Le aste live
+  // (isPhase: true) restano sempre nel nucleo: sono la ragione per cui
+  // l'utente è sul sito in quel momento. Il drawer mobile non si divide,
+  // scrolla verticalmente senza problemi.
+  const CORE_NAV_KEYS = new Set([
+    'leagueDetail', 'adminPanel', 'rose', 'trades', 'contracts', 'financials', 'history',
+  ])
+  const coreMenuItems = visibleMenuItems.filter(item => item.isPhase || CORE_NAV_KEYS.has(item.key))
+  const moreMenuItems = visibleMenuItems.filter(item => !item.isPhase && !CORE_NAV_KEYS.has(item.key))
+  const moreHasCurrentOrLive = moreMenuItems.some(item => item.isCurrent || item.isLive)
 
   // Barra-fase persistente: in ogni sezione di lega tranne i cockpit live (P2)
   const showPhaseBar = Boolean(leagueId) && !COCKPIT_PAGES.has(currentPage)
@@ -399,7 +426,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
           {/* Desktop Navigation - League Menu */}
           {leagueId && (
             <nav className="hidden lg:flex items-center gap-1 bg-surface-300/60 rounded-xl p-1 shadow-inner shadow-black/20 backdrop-blur-sm" data-testid="desktop-nav-league">
-              {visibleMenuItems.map(item => (
+              {coreMenuItems.map(item => (
                 <NavButton
                   key={item.key}
                   label={item.label}
@@ -412,6 +439,50 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
                   live={item.isLive}
                 />
               ))}
+
+              {moreMenuItems.length > 0 && (
+                <div className="relative" ref={moreDropdownRef}>
+                  <button
+                    onClick={() => { setMoreDropdownOpen(!moreDropdownOpen); }}
+                    className={`relative px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-300 whitespace-nowrap flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-primary-400/50 ${
+                      moreMenuItems.some(item => isActive(item.key)) || moreHasCurrentOrLive
+                        ? 'text-accent-400 hover:bg-accent-500/15'
+                        : 'text-gray-300 hover:text-white hover:bg-surface-300/80'
+                    }`}
+                    aria-expanded={moreDropdownOpen}
+                    aria-haspopup="true"
+                    data-testid="nav-more-dropdown"
+                  >
+                    Altro
+                    {moreHasCurrentOrLive && <span className="w-1.5 h-1.5 rounded-full bg-accent-400" />}
+                    <ChevronDown size={14} className={`text-gray-400 transition-transform duration-200 ${moreDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  <div
+                    className={`absolute right-0 mt-2 w-56 bg-surface-200 border border-surface-50/30 rounded-xl shadow-2xl shadow-black/40 overflow-hidden z-50 p-1.5 flex flex-col gap-0.5 transition-all duration-200 origin-top-right ${
+                      moreDropdownOpen
+                        ? 'opacity-100 scale-100 translate-y-0'
+                        : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'
+                    }`}
+                    data-testid="nav-more-menu"
+                    role="menu"
+                    aria-orientation="vertical"
+                  >
+                    {moreMenuItems.map(item => (
+                      <NavButton
+                        key={item.key}
+                        label={item.label}
+                        active={isActive(item.key)}
+                        onClick={() => { onNavigate(item.key, navParamsFor(item.key)); setMoreDropdownOpen(false); }}
+                        isAdmin={item.adminOnly}
+                        iconKey={item.icon}
+                        current={item.isCurrent}
+                        live={item.isLive}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
             </nav>
           )}
 
