@@ -262,9 +262,10 @@ export function useSvincolatiState(leagueId: string) {
       leagueApi.getById(leagueId),
     ])
 
+    let boardData: BoardState | null = null
     if (boardRes.success && boardRes.data) {
-      const data = boardRes.data as BoardState
-      setBoard(data)
+      boardData = boardRes.data as BoardState
+      setBoard(boardData)
     }
 
     // Always load members for turn order draft if in SETUP or no turn order
@@ -277,14 +278,26 @@ export function useSvincolatiState(leagueId: string) {
       const allMembers = leagueData.league?.members || []
       const activeMembers = allMembers.filter(m => m.status === 'ACTIVE')
 
-      // Set turn order draft from members
+      // Set turn order draft from members. Se il backend conosce gia' l'ordine
+      // di default (inverso della rubata, SVINCOLATI.md §2.1) lo usiamo per
+      // precompilare la bozza; l'admin resta libero di trascinare per modificarlo.
       if (activeMembers.length > 0) {
-        setTurnOrderDraft(activeMembers.map(m => ({
-          id: m.id,
-          username: m.user.username,
-          budget: m.currentBudget,
-          hasPassed: false,
-        })))
+        const membersById = new Map(activeMembers.map(m => [m.id, m]))
+        const defaultOrder = boardData?.defaultTurnOrder?.filter(id => membersById.has(id)) || []
+        const orderedIds = [
+          ...defaultOrder,
+          ...activeMembers.filter(m => !defaultOrder.includes(m.id)).map(m => m.id),
+        ]
+
+        setTurnOrderDraft(orderedIds.map(id => {
+          const m = membersById.get(id)!
+          return {
+            id: m.id,
+            username: m.user.username,
+            budget: m.currentBudget,
+            hasPassed: false,
+          }
+        }))
       }
     }
 

@@ -588,12 +588,21 @@ export async function getSvincolatiBoard(
   // Get connection status for all managers
   const connectionStatus = getSvincolatiConnectionStatus(leagueId)
 
+  // Default turn order for the setup UI (admin drag&drop): inverso della rubata
+  // (SVINCOLATI.md §2.1). Usato dal frontend solo per precompilare la bozza
+  // quando l'ordine non e' ancora stato impostato; l'admin puo' sempre modificarlo.
+  const sessionRubataOrder = (activeSession.rubataOrder as string[] | null) || null
+  const defaultTurnOrder = sessionRubataOrder && sessionRubataOrder.length > 0
+    ? [...sessionRubataOrder].reverse()
+    : null
+
   return {
     success: true,
     data: {
       sessionId: activeSession.id,
       isActive: true,
       state: activeSession.svincolatiState || 'SETUP',
+      defaultTurnOrder,
       turnOrder: orderedMembers.map(m => ({
         id: m!.id,
         username: m!.user.username,

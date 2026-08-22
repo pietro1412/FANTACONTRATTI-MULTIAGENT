@@ -75,6 +75,7 @@ export interface BoardState {
   sessionId: string
   isActive: boolean
   state: string
+  defaultTurnOrder?: string[] | null
   turnOrder: TurnMember[]
   currentTurnIndex: number
   currentTurnMemberId: string | null
