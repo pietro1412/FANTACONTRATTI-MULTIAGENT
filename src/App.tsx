@@ -28,7 +28,6 @@ const StrategieRubata = lazy(() => import('./pages/StrategieRubata').then(m => (
 const Svincolati = lazy(() => import('./pages/Svincolati').then(m => ({ default: m.Svincolati })))
 const Players = lazy(() => import('./pages/Players').then(m => ({ default: m.Players })))
 const AdminPanel = lazy(() => import('./pages/AdminPanel').then(m => ({ default: m.AdminPanel })))
-const Movements = lazy(() => import('./pages/Movements').then(m => ({ default: m.Movements })))
 const History = lazy(() => import('./pages/History').then(m => ({ default: m.History })))
 const Prophecies = lazy(() => import('./pages/Prophecies').then(m => ({ default: m.Prophecies })))
 const LeagueFinancials = lazy(() => import('./pages/LeagueFinancials'))
@@ -225,7 +224,8 @@ function createLeagueNavigator(navigate: ReturnType<typeof useNavigate>, leagueI
         if (params?.tab) void navigate(`/leagues/${lid}/admin?tab=${params.tab}`)
         else void navigate(`/leagues/${lid}/admin`)
         break
-      case 'movements': void navigate(`/leagues/${lid}/movements`); break
+      // 'movements' rimosso: pagina duplicata di History, eliminata (redirect a history)
+      case 'movements':
       case 'history': void navigate(`/leagues/${lid}/history`); break
       case 'prophecies': void navigate(`/leagues/${lid}/prophecies`); break
       case 'playerStats': void navigate(`/leagues/${lid}/stats`); break
@@ -342,15 +342,6 @@ function AdminPanelWrapper() {
   return <AdminPanel leagueId={leagueId} initialTab={initialTab} onNavigate={onNavigate} />
 }
 
-function MovementsWrapper() {
-  const navigate = useNavigate()
-  const { leagueId } = useParams<{ leagueId: string }>()
-  const onNavigate = useCallback(createLeagueNavigator(navigate, leagueId), [navigate, leagueId])
-
-  if (!leagueId) return <Navigate to="/dashboard" replace />
-  return <Movements leagueId={leagueId} onNavigate={onNavigate} />
-}
-
 function HistoryWrapper() {
   const navigate = useNavigate()
   const { leagueId } = useParams<{ leagueId: string }>()
@@ -358,6 +349,13 @@ function HistoryWrapper() {
 
   if (!leagueId) return <Navigate to="/dashboard" replace />
   return <History leagueId={leagueId} onNavigate={onNavigate} />
+}
+
+/** Redirect da /movements (pagina duplicata eliminata) a /history, preservando l'id lega. */
+function MovementsRedirect() {
+  const { leagueId } = useParams<{ leagueId: string }>()
+  if (!leagueId) return <Navigate to="/dashboard" replace />
+  return <Navigate to={`/leagues/${leagueId}/history`} replace />
 }
 
 function PrizePhasePageWrapper() {
@@ -574,13 +572,8 @@ function AppRoutes() {
           </Suspense>
         </ProtectedRoute>
       } />
-      <Route path="/leagues/:leagueId/movements" element={
-        <ProtectedRoute>
-          <Suspense fallback={<PageLoader />}>
-            <MovementsWrapper />
-          </Suspense>
-        </ProtectedRoute>
-      } />
+      {/* /movements: pagina duplicata di History, eliminata — redirect per bookmark/link vecchi */}
+      <Route path="/leagues/:leagueId/movements" element={<MovementsRedirect />} />
       <Route path="/leagues/:leagueId/history" element={
         <ProtectedRoute>
           <Suspense fallback={<PageLoader />}>

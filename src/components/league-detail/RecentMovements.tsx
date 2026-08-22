@@ -39,7 +39,7 @@ export function RecentMovements({ movements, onNavigate, leagueId }: RecentMovem
       <div className="p-5 border-b border-surface-50/20 flex items-center justify-between">
         <span className="micro-label text-gray-400">\uD83D\uDCDC Movimenti recenti</span>
         <button
-          onClick={() => { onNavigate('movements', { leagueId }); }}
+          onClick={() => { onNavigate('history', { leagueId }); }}
           className="text-xs text-primary-400 hover:text-primary-300 transition-colors font-medium"
         >
           Tutti &rarr;

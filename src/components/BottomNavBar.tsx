@@ -188,7 +188,6 @@ function getActiveTab(pathAfterLeague: string): string {
   ) return 'giocatori'
   if (
     pathAfterLeague.startsWith('/financials') ||
-    pathAfterLeague.startsWith('/movements') ||
     pathAfterLeague.startsWith('/history')
   ) return 'finanze'
   return 'home' // default
