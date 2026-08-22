@@ -65,6 +65,7 @@ export interface AuctionViewProps {
   teamDropdownOpen: boolean
   setTeamDropdownOpen: (open: boolean) => void
   onNominatePlayer: (playerId: string) => void
+  isNominating?: boolean
 
   // Actions
   onSelectManager: (manager: ManagerData) => void

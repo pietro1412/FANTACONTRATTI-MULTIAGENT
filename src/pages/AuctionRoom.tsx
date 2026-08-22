@@ -86,7 +86,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
     isLoading, error, setError, successMessage, setSuccessMessage,
     marketProgress, timeLeft, timerSetting,
     firstMarketStatus, turnOrderDraft,
-    readyStatus, markingReady,
+    readyStatus, markingReady, isNominating,
     pendingAck,
     lastReopenableAuction,
     prophecyContent, setProphecyContent,
@@ -252,6 +252,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
           teamDropdownOpen={teamDropdownOpen}
           setTeamDropdownOpen={setTeamDropdownOpen}
           onNominatePlayer={(playerId: string) => void handleNominatePlayer(playerId)}
+          isNominating={isNominating}
           onSelectManager={setSelectedManager}
           onCloseAuction={() => void handleCloseAuction()}
           onReopenAuction={() => void handleReopenAuction()}

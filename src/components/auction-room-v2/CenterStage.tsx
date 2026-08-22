@@ -108,6 +108,7 @@ export function CenterStage(props: CenterStageProps) {
             onNominatePlayer={props.onNominatePlayer}
             marketProgress={props.marketProgress}
             isPrimoMercato={props.isPrimoMercato}
+            isNominating={props.isNominating}
             leagueId={props.leagueId}
           />
         )}

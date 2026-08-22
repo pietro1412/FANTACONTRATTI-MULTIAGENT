@@ -65,6 +65,10 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
   const [readyStatus, setReadyStatus] = useState<ReadyStatus | null>(null)
   const [markingReady, setMarkingReady] = useState(false)
 
+  // Nomination submission guard (anti-race: click rapidi su giocatori diversi)
+  const [isNominating, setIsNominating] = useState(false)
+  const nominatingPlayerIdRef = useRef<string | null>(null)
+
   const [pendingAck, setPendingAck] = useState<PendingAcknowledgment | null>(null)
   const pendingAckLockedRef = useRef<string | null>(null) // Holds auctionId when locally created
   // Ultima asta riapribile (= annulla ultimo movimento), indip. da pendingAck. test-session #28
@@ -613,9 +617,21 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
   }
 
   async function handleNominatePlayer(playerId: string) {
+    // Guardia anti-race (audit): click rapidi su giocatori diversi potevano
+    // far partire due setPendingNomination in parallelo, disallineando nome/
+    // quotazione nello step di conferma se le risposte arrivavano fuori
+    // ordine. Blocchiamo nuove richieste finche' quella in corso non risolve
+    // e correliamo la risposta al playerId richiesto, cosi' una risposta
+    // ormai superata non sovrascrive uno stato piu' recente.
+    if (isNominating) return
     setError('')
     setSuccessMessage('')
+    setIsNominating(true)
+    nominatingPlayerIdRef.current = playerId
     const result = await auctionApi.setPendingNomination(sessionId, playerId)
+    const isStillCurrent = nominatingPlayerIdRef.current === playerId
+    setIsNominating(false)
+    if (!isStillCurrent) return
     if (result.success) {
       setSuccessMessage('Giocatore selezionato! Conferma o cambia.')
       void loadReadyStatus()
@@ -1189,6 +1205,7 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     turnOrderDraft,
     readyStatus,
     markingReady,
+    isNominating,
     pendingAck,
     lastReopenableAuction,
     prophecyContent, setProphecyContent,

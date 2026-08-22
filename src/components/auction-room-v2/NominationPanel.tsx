@@ -22,6 +22,10 @@ interface NominationPanelProps {
   isPrimoMercato: boolean
   /** When true, players are visible but not clickable (not my turn) */
   disabled?: boolean
+  /** When true, a nomination request is already in flight: blocca nuove
+   *  selezioni/submit per evitare la race di click rapidi su giocatori
+   *  diversi (nome/quotazione disallineati nello step di conferma). */
+  isNominating?: boolean
   /** League id — enables the "Carriera Lega" tab in the player stats modal */
   leagueId?: string
 }
@@ -75,6 +79,7 @@ export function NominationPanel({
   marketProgress,
   isPrimoMercato,
   disabled = false,
+  isNominating = false,
   leagueId,
 }: NominationPanelProps) {
   const [focalPlayer, setFocalPlayer] = useState<Player | null>(null)
@@ -98,11 +103,14 @@ export function NominationPanel({
   }, [players, selectedRole])
 
   const handlePlayerClick = (player: Player) => {
+    // Blocca il cambio di selezione mentre una nomina e' gia' in corso, per
+    // evitare la race di click rapidi su giocatori diversi.
+    if (isNominating) return
     setFocalPlayer(player)
   }
 
   const handleNominate = () => {
-    if (focalPlayer && !disabled) {
+    if (focalPlayer && !disabled && !isNominating) {
       onNominatePlayer(focalPlayer.id)
       setFocalPlayer(null)
     }
@@ -337,17 +345,19 @@ export function NominationPanel({
               {!disabled && (
                 <button
                   onClick={handleNominate}
-                  className="flex-1 px-4 py-3 bg-gradient-to-r from-teal-500 to-emerald-600 text-base font-black text-white hover:from-teal-400 hover:to-emerald-500 transition-all flex items-center justify-center gap-2"
+                  disabled={isNominating}
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-teal-500 to-emerald-600 text-base font-black text-white hover:from-teal-400 hover:to-emerald-500 transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                   </svg>
-                  PORTA IN ASTA
+                  {isNominating ? 'Attendi...' : 'PORTA IN ASTA'}
                 </button>
               )}
               <button
                 onClick={() => { setFocalPlayer(null); }}
-                className="flex-1 px-4 py-3 bg-surface-100/40 text-sm font-semibold text-gray-400 hover:bg-surface-100/60 hover:text-white transition-all flex items-center justify-center gap-1.5 border-l border-surface-50"
+                disabled={isNominating}
+                className="flex-1 px-4 py-3 bg-surface-100/40 text-sm font-semibold text-gray-400 hover:bg-surface-100/60 hover:text-white transition-all flex items-center justify-center gap-1.5 border-l border-surface-50 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
