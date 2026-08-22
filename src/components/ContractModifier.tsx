@@ -1,14 +1,11 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Button } from './ui/Button'
+import { NumberStepper } from './ui/NumberStepper'
+import { DURATION_MULTIPLIERS } from '@/components/contracts/shared'
 
-// Duration multipliers for rescission clause calculation
-const DURATION_MULTIPLIERS: Record<number, number> = {
-  4: 11,
-  3: 9,
-  2: 7,
-  1: 3,
-}
-
+// Rescission clause: same duration->multiplier table used across the client
+// (src/components/contracts/shared.tsx, reused by RenewalItem/PendingItem/
+// renewal-logic.ts) so this never silently drifts from the shared source.
 function calculateRescissionClause(salary: number, duration: number): number {
   const multiplier = DURATION_MULTIPLIERS[duration] || 3
   return salary * multiplier
@@ -134,24 +131,26 @@ export function ContractModifier({
   isSvincolatiMode = false,
   increaseOnly = false,
 }: ContractModifierProps) {
-  const [newSalary, setNewSalary] = useState(contract.salary.toString())
+  const [newSalary, setNewSalary] = useState(contract.salary)
   const [newDuration, setNewDuration] = useState(contract.duration)
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Calculate minimum duration based on mode
   const minDuration = isSvincolatiMode ? 3 : increaseOnly ? contract.duration : 1
+  // Minimum salary based on mode (no decrease allowed in svincolati/increaseOnly modes)
+  const minSalary = (isSvincolatiMode || increaseOnly) ? contract.salary : 1
 
   // Reset when contract changes
   useEffect(() => {
-    setNewSalary(contract.salary.toString())
+    setNewSalary(contract.salary)
     setNewDuration(contract.duration)
     setError(null)
   }, [contract.salary, contract.duration])
 
   // Calculate preview values
   const preview = useMemo(() => {
-    const salary = parseInt(newSalary) || contract.salary
+    const salary = newSalary
     const duration = newDuration
 
     const validation = isValidModification(
@@ -252,57 +251,24 @@ export function ContractModifier({
 
         {/* Modification Inputs */}
         <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Nuovo Ingaggio (M)
-            </label>
-            <div className="flex items-center">
-              <button
-                type="button"
-                onClick={() => {
-                  const current = parseInt(newSalary) || contract.salary
-                  const minSalary = (isSvincolatiMode || increaseOnly) ? contract.salary : 1
-                  setNewSalary(String(Math.max(minSalary, current - 1)))
-                }}
-                disabled={isLoading || isSubmitting || (parseInt(newSalary) || contract.salary) <= ((isSvincolatiMode || increaseOnly) ? contract.salary : 1)}
-                className="px-3 py-2 bg-surface-300 border border-primary-500/30 rounded-l-lg text-white font-bold disabled:opacity-30 hover:bg-surface-300/80 transition-colors"
-              >−</button>
-              <div className="flex-1 px-2 py-2 bg-surface-300 border-y border-primary-500/30 text-white text-center font-medium">
-                {parseInt(newSalary) || contract.salary}M
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  const current = parseInt(newSalary) || contract.salary
-                  setNewSalary(String(current + 1))
-                }}
-                disabled={isLoading || isSubmitting}
-                className="px-3 py-2 bg-surface-300 border border-primary-500/30 rounded-r-lg text-white font-bold disabled:opacity-30 hover:bg-surface-300/80 transition-colors"
-              >+</button>
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Nuova Durata (semestri)
-            </label>
-            <div className="flex items-center">
-              <button
-                type="button"
-                onClick={() => { setNewDuration(Math.max(minDuration, newDuration - 1)); }}
-                disabled={isLoading || isSubmitting || newDuration <= minDuration}
-                className="px-3 py-2 bg-surface-300 border border-primary-500/30 rounded-l-lg text-white font-bold disabled:opacity-30 hover:bg-surface-300/80 transition-colors"
-              >−</button>
-              <div className="flex-1 px-2 py-2 bg-surface-300 border-y border-primary-500/30 text-white text-center font-medium">
-                {newDuration}s
-              </div>
-              <button
-                type="button"
-                onClick={() => { setNewDuration(Math.min(4, newDuration + 1)); }}
-                disabled={isLoading || isSubmitting || newDuration >= 4}
-                className="px-3 py-2 bg-surface-300 border border-primary-500/30 rounded-r-lg text-white font-bold disabled:opacity-30 hover:bg-surface-300/80 transition-colors"
-              >+</button>
-            </div>
-          </div>
+          <NumberStepper
+            label="Nuovo Ingaggio (M)"
+            value={newSalary}
+            onChange={setNewSalary}
+            min={minSalary}
+            max={Infinity}
+            unit="M"
+            disabled={isLoading || isSubmitting}
+          />
+          <NumberStepper
+            label="Nuova Durata (semestri)"
+            value={newDuration}
+            onChange={setNewDuration}
+            min={minDuration}
+            max={4}
+            unit="s"
+            disabled={isLoading || isSubmitting}
+          />
         </div>
 
         {/* Preview */}

@@ -9,6 +9,10 @@ interface NumberStepperProps {
   className?: string
   size?: 'sm' | 'md' | 'lg'
   showValue?: boolean
+  /** Suffix rendered after the value (e.g. "M", "s"). */
+  unit?: string
+  /** Dims the control and disables both buttons regardless of min/max. */
+  disabled?: boolean
 }
 
 export function NumberStepper({
@@ -22,6 +26,8 @@ export function NumberStepper({
   className = '',
   size = 'md',
   showValue = true,
+  unit,
+  disabled = false,
 }: NumberStepperProps) {
   const handleDecrement = () => {
     const newValue = value - step
@@ -37,8 +43,8 @@ export function NumberStepper({
     }
   }
 
-  const isMinDisabled = value <= min
-  const isMaxDisabled = value >= max
+  const isMinDisabled = disabled || value <= min
+  const isMaxDisabled = disabled || value >= max
 
   const sizeClasses = {
     sm: {
@@ -90,6 +96,7 @@ export function NumberStepper({
         {showValue && (
           <span className={`font-bold text-white text-center tabular-nums ${sizeClasses[size].value}`}>
             {value}
+            {unit && <span className="text-gray-500 text-[0.7em] ml-0.5">{unit}</span>}
           </span>
         )}
 
