@@ -105,7 +105,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
     sensors, handleDragEnd,
     handleSetTurnOrder, handleNominatePlayer,
     handleConfirmNomination, handleCancelNomination,
-    handleMarkReady, handleForceAllReady,
+    handleMarkReady,
     handleBotBid, handleBotNominate, handleBotConfirmNomination,
     handleForceAcknowledgeAll, handleSimulateAppeal,
     handleAcknowledgeAppealDecision, handleReadyToResume,
@@ -262,7 +262,6 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
           onBotNominate={() => void handleBotNominate()}
           onBotConfirmNomination={() => void handleBotConfirmNomination()}
           onBotBid={() => void handleBotBid()}
-          onForceAllReady={() => void handleForceAllReady()}
           onForceAcknowledgeAll={() => void handleForceAcknowledgeAll()}
           onCompleteAllSlots={() => void handleCompleteAllSlots()}
           onResetFirstMarket={() => void handleResetFirstMarket()}

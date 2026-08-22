@@ -9,8 +9,6 @@ interface ReadyCheckPanelProps {
   onCancelNomination: () => void
   onMarkReady: () => void
   markingReady: boolean
-  isAdmin: boolean
-  onForceAllReady?: () => void
 }
 
 export function ReadyCheckPanel({
@@ -19,8 +17,6 @@ export function ReadyCheckPanel({
   onCancelNomination,
   onMarkReady,
   markingReady,
-  isAdmin,
-  onForceAllReady,
 }: ReadyCheckPanelProps) {
   return (
     <div className="mb-6">
@@ -86,15 +82,8 @@ export function ReadyCheckPanel({
               <div className="space-y-3">
                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-500/10 border border-green-500/30">
                   <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                  <span className="text-sm text-green-400 font-medium">Confermato — In attesa degli altri</span>
+                  <span className="text-sm text-green-400 font-medium">Confermato — Avvio asta...</span>
                 </div>
-                {isAdmin && onForceAllReady && (
-                  <div>
-                    <Button size="sm" variant="outline" onClick={onForceAllReady} className="border-accent-500/50 text-accent-400 text-sms">
-                      [TEST] Forza Tutti Pronti
-                    </Button>
-                  </div>
-                )}
               </div>
             )}
 
@@ -114,14 +103,7 @@ export function ReadyCheckPanel({
                 ) : (
                   <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-500/10 border border-green-500/30">
                     <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                    <span className="text-sm text-green-400 font-medium">Pronto — In attesa degli altri</span>
-                  </div>
-                )}
-                {isAdmin && onForceAllReady && (
-                  <div>
-                    <Button size="sm" variant="outline" onClick={onForceAllReady} className="border-accent-500/50 text-accent-400 text-sms">
-                      [TEST] Forza Tutti Pronti
-                    </Button>
+                    <span className="text-sm text-green-400 font-medium">Pronto — Avvio asta...</span>
                   </div>
                 )}
               </div>

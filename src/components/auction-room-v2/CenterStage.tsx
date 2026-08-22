@@ -71,8 +71,6 @@ export function CenterStage(props: CenterStageProps) {
             onCancelNomination={props.onCancelNomination}
             onMarkReady={props.onMarkReady}
             markingReady={props.markingReady}
-            isAdmin={props.isAdmin}
-            onForceAllReady={props.onForceAllReady}
           />
         )}
 

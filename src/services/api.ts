@@ -699,9 +699,6 @@ export const auctionApi = {
   forceAcknowledgeAll: (sessionId: string) =>
     request(`/api/auctions/sessions/${sessionId}/force-acknowledge-all`, { method: 'POST' }),
 
-  forceAllReady: (sessionId: string) =>
-    request(`/api/auctions/sessions/${sessionId}/force-all-ready`, { method: 'POST' }),
-
   triggerBotBid: (auctionId: string) =>
     request(`/api/auctions/${auctionId}/bot-bid`, { method: 'POST' }),
 

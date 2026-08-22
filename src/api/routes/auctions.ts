@@ -29,7 +29,6 @@ import {
   getMyRosterSlots,
   getManagersStatus,
   forceAcknowledgeAll,
-  forceAllReady,
   registerHeartbeat,
   submitAppeal,
   getAppeals,
@@ -665,24 +664,6 @@ router.post('/auctions/sessions/:sessionId/force-acknowledge-all', authMiddlewar
     res.json(result)
   } catch (error) {
     console.error('Force acknowledge all error:', error)
-    res.status(500).json({ success: false, message: 'Errore interno del server' })
-  }
-})
-
-// POST /api/auctions/sessions/:sessionId/force-all-ready - Force all managers ready (TEST)
-router.post('/auctions/sessions/:sessionId/force-all-ready', authMiddleware, async (req: Request, res: Response) => {
-  try {
-    const sessionId = req.params.sessionId as string
-    const result = await forceAllReady(sessionId, req.user!.userId)
-
-    if (!result.success) {
-      res.status(result.message === 'Non autorizzato' ? 403 : 400).json(result)
-      return
-    }
-
-    res.json(result)
-  } catch (error) {
-    console.error('Force all ready error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })

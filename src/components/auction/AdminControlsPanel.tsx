@@ -17,7 +17,6 @@ interface AdminControlsPanelProps {
   onBotNominate?: () => void
   onBotConfirmNomination?: () => void
   onBotBid?: () => void
-  onForceAllReady?: () => void
   onForceAcknowledgeAll?: () => void
   onCompleteAllSlots?: () => void
   onResetFirstMarket?: () => void
@@ -29,7 +28,6 @@ export function AdminControlsPanel({
   onBotNominate,
   onBotConfirmNomination,
   onBotBid,
-  onForceAllReady,
   onForceAcknowledgeAll,
   onCompleteAllSlots,
   onResetFirstMarket
@@ -79,17 +77,6 @@ export function AdminControlsPanel({
               className="w-full text-xs border-primary-500/50 text-primary-400 hover:bg-primary-500/10"
             >
               💰 Simula Offerta Bot
-            </Button>
-          )}
-
-          {onForceAllReady && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={onForceAllReady}
-              className="w-full text-xs border-accent-500/50 text-accent-400 hover:bg-accent-500/10"
-            >
-              Forza Tutti Pronti
             </Button>
           )}
 

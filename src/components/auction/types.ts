@@ -176,7 +176,6 @@ export interface AuctionLayoutProps {
   onBotNominate?: () => void
   onBotConfirmNomination?: () => void
   onBotBid?: () => void
-  onForceAllReady?: () => void
   onForceAcknowledgeAll?: () => void
   onCompleteAllSlots?: () => void
   onResetFirstMarket?: () => void

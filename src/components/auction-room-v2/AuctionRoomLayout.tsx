@@ -140,7 +140,6 @@ export function AuctionRoomLayout(props: AuctionViewProps) {
           onBotNominate={props.onBotNominate}
           onBotConfirmNomination={props.onBotConfirmNomination}
           onBotBid={props.onBotBid}
-          onForceAllReady={props.onForceAllReady}
           onForceAcknowledgeAll={props.onForceAcknowledgeAll}
           onCompleteAllSlots={props.onCompleteAllSlots}
           onResetFirstMarket={props.onResetFirstMarket}

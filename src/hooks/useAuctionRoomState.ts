@@ -664,17 +664,6 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     }
   }
 
-  async function handleForceAllReady() {
-    const result = await auctionApi.forceAllReady(sessionId)
-    if (result.success) {
-      setSuccessMessage('Asta avviata!')
-      void loadReadyStatus()
-      void loadCurrentAuction()
-    } else {
-      setError(result.message || 'Errore')
-    }
-  }
-
   async function handleBotBid() {
     if (!auction) return
     const result = await auctionApi.triggerBotBid(auction.id)
@@ -1247,7 +1236,6 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     handleConfirmNomination,
     handleCancelNomination,
     handleMarkReady,
-    handleForceAllReady,
     handleBotBid,
     handleBotNominate,
     handleBotConfirmNomination,

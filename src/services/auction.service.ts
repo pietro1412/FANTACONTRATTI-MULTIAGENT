@@ -3523,63 +3523,14 @@ export async function forceAcknowledgeAll(
   }
 }
 
-/**
- * Force all managers ready for pending nomination (TEST ONLY)
- */
-export async function forceAllReady(
-  sessionId: string,
-  adminUserId: string
-): Promise<ServiceResult> {
-  const session = await prisma.marketSession.findUnique({
-    where: { id: sessionId },
-    include: { league: true },
-  })
-
-  if (!session) {
-    return { success: false, message: 'Sessione non trovata' }
-  }
-
-  // Verify admin
-  const admin = await prisma.leagueMember.findFirst({
-    where: {
-      leagueId: session.leagueId,
-      userId: adminUserId,
-      role: MemberRole.ADMIN,
-      status: MemberStatus.ACTIVE,
-    },
-  })
-
-  if (!admin) {
-    return { success: false, message: 'Non autorizzato' }
-  }
-
-  if (!session.pendingNominationPlayerId) {
-    return { success: false, message: 'Nessuna nomination in attesa' }
-  }
-
-  // Get all member IDs
-  const allMembers = await prisma.leagueMember.findMany({
-    where: {
-      leagueId: session.leagueId,
-      status: MemberStatus.ACTIVE,
-    },
-  })
-
-  const allMemberIds = allMembers.map(m => m.id)
-
-  // Set all as ready
-  await prisma.marketSession.update({
-    where: { id: sessionId },
-    data: {
-      readyMembers: allMemberIds,
-    },
-  })
-
-  // Now start the auction
-  return await startPendingAuction(sessionId)
-}
-
 // ==================== READY CHECK SYSTEM ====================
+//
+// NOTA: la vecchia forceAllReady() (TEST ONLY) e' stata rimossa (PRIMO-MERCATO.md
+// §2.5 richiede solo la conferma anti-misclick del nominatore, non il consenso
+// collettivo): confirmNomination() ora avvia l'asta subito dopo la conferma,
+// quindi il ready-check multi-manager sotto (markReady/getReadyStatus) non
+// blocca piu' l'avvio ma resta come stato informativo per il breve istante
+// tra "nomina" e "conferma".
 
 /**
  * Store a pending nomination (player nominated but waiting for ready check)
@@ -3846,24 +3797,10 @@ export async function confirmNomination(
     timestamp: new Date().toISOString(),
   })
 
-  // Check if we're the only member or IN_PRESENCE mode (auto-start)
-  const totalMembers = await prisma.leagueMember.count({
-    where: {
-      leagueId: session.leagueId,
-      status: MemberStatus.ACTIVE,
-    },
-  })
-
-  if (totalMembers === 1 || session.auctionMode === 'IN_PRESENCE') {
-    // Solo member or in-presence mode: start auction immediately (skip ready-check)
-    return await startPendingAuction(sessionId)
-  }
-
-  return {
-    success: true,
-    message: `Scelta confermata! In attesa che gli altri siano pronti.`,
-    data: { player: session.pendingNominationPlayer },
-  }
+  // PRIMO-MERCATO.md §2.5: la conferma richiesta e' solo quella del nominatore
+  // (anti-misclick), NON un consenso collettivo degli altri manager. Avvia
+  // l'asta subito dopo la conferma, per tutte le modalita' (REMOTE/IN_PRESENCE).
+  return await startPendingAuction(sessionId)
 }
 
 /**
