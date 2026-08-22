@@ -1,5 +1,10 @@
 import { useState } from 'react'
 import { Button } from './ui/Button'
+import {
+  getPhasesForSessionType,
+  isPhaseValidForSessionType,
+  type MarketPhaseKey,
+} from '@/lib/phaseSteps'
 
 interface MarketSession {
   id: string
@@ -24,13 +29,16 @@ interface PhaseConfig {
   description: string
   actions: string[]
   exitCondition?: string
-  onlyFirst?: boolean
-  onlyRecurrent?: boolean
 }
 
-const PRIMO_MERCATO_PHASES: PhaseConfig[] = [
-  {
-    id: 'ASTA_LIBERA',
+// Contenuto testuale per fase (icona/descrizione/azioni/condizione di uscita).
+// L'elenco e l'ORDINE delle fasi valide per tipo di sessione arrivano invece
+// dalla fonte canonica (@/lib/phaseSteps) — vedi buildPhases sotto — per non
+// duplicare la struttura fase→sessione che ha causato il bug (#audit fase).
+type PhaseMeta = Omit<PhaseConfig, 'id'>
+
+const FIRST_MARKET_PHASE_META: Record<'ASTA_LIBERA', PhaseMeta> = {
+  ASTA_LIBERA: {
     label: 'Asta Primo Mercato',
     icon: '🔨',
     description: 'Costruzione delle rose. I manager acquistano giocatori seguendo la sequenza: Portieri → Difensori → Centrocampisti → Attaccanti.',
@@ -41,13 +49,11 @@ const PRIMO_MERCATO_PHASES: PhaseConfig[] = [
       'Al completamento di un ruolo, passa automaticamente al successivo'
     ],
     exitCondition: 'Tutte le rose devono essere complete (3P + 8D + 8C + 6A)',
-    onlyFirst: true
-  }
-]
+  },
+}
 
-const MERCATO_RICORRENTE_PHASES: PhaseConfig[] = [
-  {
-    id: 'OFFERTE_PRE_RINNOVO',
+const RECURRENT_PHASE_META: Record<Exclude<MarketPhaseKey, 'ASTA_LIBERA'>, PhaseMeta> = {
+  OFFERTE_PRE_RINNOVO: {
     label: 'Scambi Pre-Rinnovo',
     icon: '🔄',
     description: 'Prima finestra di scambi. I manager possono scambiarsi giocatori e budget prima di rinnovare i contratti.',
@@ -56,10 +62,8 @@ const MERCATO_RICORRENTE_PHASES: PhaseConfig[] = [
       'Accettano o rifiutano offerte',
       'Possono includere budget negli scambi'
     ],
-    onlyRecurrent: true
   },
-  {
-    id: 'PREMI',
+  PREMI: {
     label: 'Premi Budget',
     icon: '🏆',
     description: 'Assegnazione premi budget. L\'admin configura il re-incremento base, l\'indennizzo partenza estero e premi personalizzati.',
@@ -71,10 +75,8 @@ const MERCATO_RICORRENTE_PHASES: PhaseConfig[] = [
       'Finalizza per accreditare i budget'
     ],
     exitCondition: 'I premi devono essere finalizzati',
-    onlyRecurrent: true
   },
-  {
-    id: 'CONTRATTI',
+  CONTRATTI: {
     label: 'Rinnovo Contratti',
     icon: '📝',
     description: 'Gestione contratti. I manager devono impostare i contratti per i nuovi acquisti e possono rinnovare quelli esistenti.',
@@ -85,10 +87,8 @@ const MERCATO_RICORRENTE_PHASES: PhaseConfig[] = [
       'Consolidamento obbligatorio prima di procedere'
     ],
     exitCondition: 'Tutti i manager devono consolidare i contratti',
-    onlyRecurrent: true
   },
-  {
-    id: 'RUBATA',
+  RUBATA: {
     label: 'Rubata',
     icon: '🎯',
     description: 'Aste forzate. A turno, ogni manager mette all\'asta un proprio giocatore che gli altri possono "rubare" pagando la clausola rescissoria.',
@@ -98,10 +98,8 @@ const MERCATO_RICORRENTE_PHASES: PhaseConfig[] = [
       'Gli altri manager fanno offerte',
       'Il cedente incassa la clausola rescissoria'
     ],
-    onlyRecurrent: true
   },
-  {
-    id: 'ASTA_SVINCOLATI',
+  ASTA_SVINCOLATI: {
     label: 'Asta Svincolati',
     icon: '📋',
     description: 'Acquisto giocatori liberi. I manager possono acquistare giocatori dal pool degli svincolati per completare le rose.',
@@ -110,10 +108,8 @@ const MERCATO_RICORRENTE_PHASES: PhaseConfig[] = [
       'I manager fanno offerte (base = 1 credito)',
       'Chi vince acquisisce il giocatore'
     ],
-    onlyRecurrent: true
   },
-  {
-    id: 'OFFERTE_POST_ASTA_SVINCOLATI',
+  OFFERTE_POST_ASTA_SVINCOLATI: {
     label: 'Scambi Finali',
     icon: '🔄',
     description: 'Ultima finestra di scambi prima della chiusura del mercato. Ultima opportunità per aggiustare le rose.',
@@ -122,9 +118,25 @@ const MERCATO_RICORRENTE_PHASES: PhaseConfig[] = [
       'Accettano o rifiutano offerte',
       'Chiudi la sessione quando tutti sono pronti'
     ],
-    onlyRecurrent: true
+  },
+}
+
+/**
+ * Costruisce l'elenco ordinato di PhaseConfig per il tipo di sessione indicato,
+ * combinando l'ordine canonico (@/lib/phaseSteps) con il contenuto testuale locale.
+ */
+function buildPhases(sessionType: 'PRIMO_MERCATO' | 'MERCATO_RICORRENTE'): PhaseConfig[] {
+  if (sessionType === 'PRIMO_MERCATO') {
+    return getPhasesForSessionType(sessionType).map((p) => ({
+      id: p.key,
+      ...FIRST_MARKET_PHASE_META[p.key as 'ASTA_LIBERA'],
+    }))
   }
-]
+  return getPhasesForSessionType(sessionType).map((p) => ({
+    id: p.key,
+    ...RECURRENT_PHASE_META[p.key as Exclude<MarketPhaseKey, 'ASTA_LIBERA'>],
+  }))
+}
 
 interface MarketPhaseManagerProps {
   session: MarketSession | null
@@ -149,10 +161,10 @@ export function MarketPhaseManager({
 }: MarketPhaseManagerProps) {
   const [showCloseConfirm, setShowCloseConfirm] = useState(false)
 
-  // Determina le fasi in base al tipo di sessione
-  const phases = session?.type === 'PRIMO_MERCATO'
-    ? PRIMO_MERCATO_PHASES
-    : MERCATO_RICORRENTE_PHASES
+  // Determina le fasi in base al tipo di sessione (ordine dalla fonte canonica)
+  const phases = session ? buildPhases(session.type) : []
+
+  const sessionPhaseIsValid = !session || isPhaseValidForSessionType(session.type, session.currentPhase)
 
   const currentPhaseIndex = phases.findIndex(p => p.id === session?.currentPhase)
   const currentPhase = phases[currentPhaseIndex]
@@ -199,7 +211,7 @@ export function MarketPhaseManager({
             Fasi del {hasCompletedFirstMarket ? 'Mercato Ricorrente' : 'Primo Mercato'}
           </h3>
           <div className="space-y-3">
-            {(hasCompletedFirstMarket ? MERCATO_RICORRENTE_PHASES : PRIMO_MERCATO_PHASES).map((phase, idx) => (
+            {buildPhases(hasCompletedFirstMarket ? 'MERCATO_RICORRENTE' : 'PRIMO_MERCATO').map((phase, idx) => (
               <div key={phase.id} className="flex items-center gap-3 text-gray-300">
                 <span className="w-8 h-8 rounded-full bg-surface-50/10 flex items-center justify-center text-lg">
                   {phase.icon}
@@ -218,6 +230,27 @@ export function MarketPhaseManager({
         >
           {hasCompletedFirstMarket ? 'Avvia Mercato Ricorrente' : 'Avvia Primo Mercato'}
         </Button>
+      </div>
+    )
+  }
+
+  // Sessione con dati incoerenti (type/currentPhase non compatibili tra loro,
+  // es. artefatto di seed di test): stato d'errore esplicito invece di un
+  // bottone di avanzamento disabilitato senza spiegazione.
+  if (!sessionPhaseIsValid) {
+    return (
+      <div className="bg-danger-500/10 border-2 border-danger-500/40 rounded-2xl p-8 text-center">
+        <div className="w-16 h-16 rounded-full bg-danger-500/20 flex items-center justify-center mx-auto mb-4">
+          <span className="text-4xl">⚠️</span>
+        </div>
+        <h2 className="text-xl font-bold text-danger-400 mb-2">Stato sessione non valido</h2>
+        <p className="text-gray-400 max-w-lg mx-auto mb-4">
+          La sessione ha una combinazione di tipo e fase non consentita e non può essere gestita da qui.
+          Contatta il supporto tecnico se il problema persiste.
+        </p>
+        <p className="text-xs font-mono text-gray-500">
+          sessionId: {session.id} · type: {session.type} · currentPhase: {session.currentPhase ?? 'null'}
+        </p>
       </div>
     )
   }

@@ -1,5 +1,6 @@
 import { Button } from '../ui/Button'
 import { Badge } from '../ui/Badge'
+import { isPhaseValidForSessionType, type MarketPhaseKey } from '@/lib/phaseSteps'
 
 interface Session {
   id: string
@@ -19,7 +20,10 @@ interface AdminBannerProps {
   onOpenAuctionClick: () => void
 }
 
-const PHASE_LABELS: Record<string, string> = {
+// Testo del banner per fase (elenco chiavi vincolato a MarketPhaseKey — fonte
+// canonica @/lib/phaseSteps — così che un cambio dell'enum forzi anche qui
+// l'aggiornamento a compile-time).
+const PHASE_LABELS = {
   ASTA_LIBERA: 'Asta Primo Mercato',
   PREMI: 'Assegnazione Premi Budget',
   OFFERTE_PRE_RINNOVO: 'Scambi e Offerte',
@@ -27,6 +31,11 @@ const PHASE_LABELS: Record<string, string> = {
   RUBATA: 'Rubata',
   ASTA_SVINCOLATI: 'Asta Svincolati',
   OFFERTE_POST_ASTA_SVINCOLATI: 'Scambi Finali',
+} as const satisfies Record<MarketPhaseKey, string>
+
+/** Lookup difensivo: `phase` può arrivare da dati anomali non presenti nella mappa. */
+function getPhaseLabel(phase: string): string {
+  return (PHASE_LABELS as Record<string, string>)[phase] ?? phase
 }
 
 function getPhaseNavTarget(phase: string, sessionId: string, leagueId: string): { page: string; params: Record<string, string> } {
@@ -134,6 +143,34 @@ export function AdminBanner({
 
   // Active session - clickable phase banner
   if (activeSession) {
+    // Sessione con dati incoerenti (type/currentPhase non compatibili, es.
+    // artefatto di seed di test): niente CTA/etichetta indovinata a caso \u2192
+    // stato d'errore esplicito.
+    if (!isPhaseValidForSessionType(activeSession.type, activeSession.currentPhase)) {
+      return (
+        <div className="bg-danger-500/10 border-2 border-danger-500/40 rounded-2xl p-4 sm:p-6 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-danger-500/20 flex items-center justify-center flex-shrink-0">
+              <span className="text-2xl sm:text-3xl">{'\u26A0\uFE0F'}</span>
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-lg sm:text-xl font-bold text-danger-400">Stato sessione non valido</h2>
+              <p className="text-gray-300 text-sm">
+                {isAdmin
+                  ? `Combinazione tipo/fase non consentita (type: ${activeSession.type}, currentPhase: ${activeSession.currentPhase}). Contatta il supporto tecnico se il problema persiste.`
+                  : "Problema con la sessione di mercato in corso. L'admin di lega \u00E8 stato informato."}
+              </p>
+            </div>
+          </div>
+          {isAdmin && (
+            <Button size="lg" onClick={() => { onNavigate('admin', { leagueId }); }} className="flex-shrink-0">
+              Pannello Admin
+            </Button>
+          )}
+        </div>
+      )
+    }
+
     const phase = activeSession.currentPhase || 'ASTA_LIBERA'
     const isFirstMarket = activeSession.type === 'PRIMO_MERCATO'
     const config = PHASE_CONFIG[phase] || { icon: '\uD83D\uDD28', color: 'secondary' }
@@ -141,7 +178,7 @@ export function AdminBanner({
     const nav = getPhaseNavTarget(phase, activeSession.id, leagueId)
     const showButton = !(config.adminOnly && !isAdmin)
 
-    const phaseTitle = phase === 'ASTA_LIBERA' && isFirstMarket ? 'Asta Primo Mercato' : (PHASE_LABELS[phase] || phase)
+    const phaseTitle = phase === 'ASTA_LIBERA' && isFirstMarket ? 'Asta Primo Mercato' : getPhaseLabel(phase)
 
     const content = (
       <>
