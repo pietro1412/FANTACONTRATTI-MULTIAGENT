@@ -1074,6 +1074,14 @@ export async function getAllRosters(leagueId: string, userId: string): Promise<S
   })
   const inContrattiPhase = !!activeContrattiSession
 
+  // Il Primo Mercato è concluso se esiste almeno una sessione MERCATO_RICORRENTE:
+  // queste vengono create solo dopo la fine dell'asta libera iniziale.
+  const recurrentSession = await prisma.marketSession.findFirst({
+    where: { leagueId, type: 'MERCATO_RICORRENTE' },
+    select: { id: true },
+  })
+  const firstMarketConcluded = !!recurrentSession
+
   const league = await prisma.league.findUnique({
     where: { id: leagueId },
     select: {
@@ -1189,6 +1197,7 @@ export async function getAllRosters(leagueId: string, userId: string): Promise<S
       currentUserId: userId,
       isAdmin: membership.role === MemberRole.ADMIN,
       inContrattiPhase,
+      firstMarketConcluded,
     },
   }
 }

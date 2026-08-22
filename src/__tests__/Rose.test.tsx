@@ -292,6 +292,50 @@ describe('Rose Page', () => {
     })
   })
 
+  it('shows the auction invite message for an empty own roster while first market is in progress', async () => {
+    // Own roster (m1) is empty but another member (m2) already has players:
+    // the first market auction is in progress, just not yet this member's turn.
+    const dataInProgress = {
+      ...mockLeagueData,
+      firstMarketConcluded: false,
+      members: [
+        { ...mockLeagueData.members[0]!, roster: [] },
+        { ...mockLeagueData.members[1]!, roster: mockLeagueData.members[0]!.roster },
+      ],
+    }
+    mockGetAllRosters.mockResolvedValue({ success: true, data: dataInProgress })
+
+    render(<Rose onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(
+        screen.getAllByText("Non hai ancora acquistato giocatori. Partecipa a un'asta per costruire la tua squadra!").length
+      ).toBeGreaterThan(0)
+    })
+  })
+
+  it('shows a neutral empty-roster message when the first market has already concluded', async () => {
+    const dataConcluded = {
+      ...mockLeagueData,
+      firstMarketConcluded: true,
+      members: [
+        { ...mockLeagueData.members[0]!, roster: [] },
+        { ...mockLeagueData.members[1]!, roster: mockLeagueData.members[0]!.roster },
+      ],
+    }
+    mockGetAllRosters.mockResolvedValue({ success: true, data: dataConcluded })
+
+    render(<Rose onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Nessun giocatore in rosa.').length).toBeGreaterThan(0)
+    })
+
+    expect(
+      screen.queryByText("Non hai ancora acquistato giocatori. Partecipa a un'asta per costruire la tua squadra!")
+    ).not.toBeInTheDocument()
+  })
+
   it('renders the composition ranking with the selected member highlighted', async () => {
     mockGetAllRosters.mockResolvedValue({ success: true, data: mockLeagueData })
 

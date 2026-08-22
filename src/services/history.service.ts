@@ -1150,6 +1150,16 @@ export async function getTimelineEvents(
 // ==================== CARRIERA GIOCATORE ====================
 
 /**
+ * Etichetta leggibile per una sessione di mercato (es. "Primo Mercato 25/26").
+ * Stessa convenzione di formattazione usata in TimelineView.tsx (baseYear = 24 + season).
+ */
+function formatSessionLabel(type: string, season: number): string {
+  const sessionName = type === 'PRIMO_MERCATO' ? 'Primo Mercato' : 'Mercato Ricorrente'
+  const baseYear = 24 + season
+  return `${sessionName} ${baseYear}/${baseYear + 1}`
+}
+
+/**
  * Ottieni la carriera completa di un giocatore nella lega
  */
 export async function getPlayerCareer(
@@ -1271,7 +1281,7 @@ export async function getPlayerCareer(
           ? { salary: m.newSalary, duration: m.newDuration, clause: m.newClause }
           : null,
         session: m.marketSession
-          ? `${m.marketSession.type} S${m.marketSession.season}`
+          ? formatSessionLabel(m.marketSession.type, m.marketSession.season)
           : null,
       })),
       stats: {

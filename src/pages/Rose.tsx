@@ -42,6 +42,7 @@ interface LeagueData {
   members: Member[]
   currentUserId: string
   inContrattiPhase?: boolean
+  firstMarketConcluded?: boolean
   isAdmin?: boolean
 }
 
@@ -472,9 +473,11 @@ export function Rose({ onNavigate }: RoseProps) {
             <p className="text-gray-500 text-sm mt-1">
               {isOwnRoster && firstMarketNotStarted
                 ? "La rosa si comporrà al primo mercato: quando parte l'asta costruirai la tua squadra!"
-                : isOwnRoster
-                  ? "Non hai ancora acquistato giocatori. Partecipa a un'asta per costruire la tua squadra!"
-                  : 'Questo manager non ha ancora acquistato giocatori.'}
+                : isOwnRoster && leagueData?.firstMarketConcluded
+                  ? 'Nessun giocatore in rosa.'
+                  : isOwnRoster
+                    ? "Non hai ancora acquistato giocatori. Partecipa a un'asta per costruire la tua squadra!"
+                    : 'Questo manager non ha ancora acquistato giocatori.'}
             </p>
           </div>
           {isOwnRoster && leagueId && (

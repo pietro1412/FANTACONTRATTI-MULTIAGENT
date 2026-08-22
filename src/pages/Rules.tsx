@@ -517,7 +517,7 @@ export function Rules() {
                   { duration: 4, multiplier: 11 },
                   { duration: 3, multiplier: 9 },
                   { duration: 2, multiplier: 7 },
-                  { duration: 1, multiplier: 4 },
+                  { duration: 1, multiplier: 3 },
                 ].map(({ duration, multiplier }) => (
                   <div key={duration} className="bg-surface-300 border border-surface-50 rounded-xl p-4 text-center">
                     <div className="stat-number text-3xl leading-none text-primary-300">×{multiplier}</div>

@@ -63,7 +63,7 @@ describe('Rules Page', () => {
     expect(screen.getByText(/×11/)).toBeInTheDocument()
     expect(screen.getByText(/×9/)).toBeInTheDocument()
     expect(screen.getByText(/×7/)).toBeInTheDocument()
-    expect(screen.getByText(/×4/)).toBeInTheDocument()
+    expect(screen.getByText(/×3/)).toBeInTheDocument()
   })
 
   it('shows "Vai alla Dashboard" for authenticated users', () => {

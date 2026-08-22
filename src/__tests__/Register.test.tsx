@@ -2,6 +2,17 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Register } from '../pages/Register'
+import { ToastProvider } from '../components/ui/Toast'
+
+// Render helper: Register consumes useToast, which requires ToastProvider in
+// the tree (mounted globally in App.tsx).
+function renderRegister(props: { onNavigate: (page: string, params?: Record<string, string>) => void }) {
+  return render(
+    <ToastProvider>
+      <Register {...props} />
+    </ToastProvider>
+  )
+}
 
 // Mock useAuth hook
 const mockRegister = vi.fn()
@@ -44,14 +55,14 @@ describe('Register Page', () => {
   })
 
   it('renders without crashing', () => {
-    render(<Register onNavigate={mockOnNavigate} />)
+    renderRegister({ onNavigate: mockOnNavigate })
 
     expect(screen.getByText('Crea il tuo account')).toBeInTheDocument()
     expect(screen.getByText('Unisciti alla lega dei tuoi amici')).toBeInTheDocument()
   })
 
   it('shows expected UI elements', () => {
-    render(<Register onNavigate={mockOnNavigate} />)
+    renderRegister({ onNavigate: mockOnNavigate })
 
     // Inputs
     expect(screen.getByPlaceholderText('mario@email.com')).toBeInTheDocument()
@@ -69,7 +80,7 @@ describe('Register Page', () => {
 
   it('validates email on blur', async () => {
     const user = userEvent.setup()
-    render(<Register onNavigate={mockOnNavigate} />)
+    renderRegister({ onNavigate: mockOnNavigate })
 
     const emailInput = screen.getByPlaceholderText('mario@email.com')
 
@@ -84,7 +95,7 @@ describe('Register Page', () => {
 
   it('validates invalid email format on blur', async () => {
     const user = userEvent.setup()
-    render(<Register onNavigate={mockOnNavigate} />)
+    renderRegister({ onNavigate: mockOnNavigate })
 
     const emailInput = screen.getByPlaceholderText('mario@email.com')
 
@@ -98,7 +109,7 @@ describe('Register Page', () => {
 
   it('validates empty username on blur', async () => {
     const user = userEvent.setup()
-    render(<Register onNavigate={mockOnNavigate} />)
+    renderRegister({ onNavigate: mockOnNavigate })
 
     const usernameInput = screen.getByPlaceholderText('MisterRossi')
 
@@ -112,7 +123,7 @@ describe('Register Page', () => {
 
   it('validates short username on blur', async () => {
     const user = userEvent.setup()
-    render(<Register onNavigate={mockOnNavigate} />)
+    renderRegister({ onNavigate: mockOnNavigate })
 
     const usernameInput = screen.getByPlaceholderText('MisterRossi')
 
@@ -126,7 +137,7 @@ describe('Register Page', () => {
 
   it('validates empty password on blur', async () => {
     const user = userEvent.setup()
-    render(<Register onNavigate={mockOnNavigate} />)
+    renderRegister({ onNavigate: mockOnNavigate })
 
     const passwordInputs = screen.getAllByPlaceholderText('••••••••')
     const passwordInput = passwordInputs[0] as HTMLElement
@@ -141,7 +152,7 @@ describe('Register Page', () => {
 
   it('validates short password on blur', async () => {
     const user = userEvent.setup()
-    render(<Register onNavigate={mockOnNavigate} />)
+    renderRegister({ onNavigate: mockOnNavigate })
 
     const passwordInputs = screen.getAllByPlaceholderText('••••••••')
     const passwordInput = passwordInputs[0] as HTMLElement
@@ -156,7 +167,7 @@ describe('Register Page', () => {
 
   it('validates password missing uppercase on blur', async () => {
     const user = userEvent.setup()
-    render(<Register onNavigate={mockOnNavigate} />)
+    renderRegister({ onNavigate: mockOnNavigate })
 
     const passwordInputs = screen.getAllByPlaceholderText('••••••••')
     const passwordInput = passwordInputs[0] as HTMLElement
@@ -171,7 +182,7 @@ describe('Register Page', () => {
 
   it('validates password missing number on blur', async () => {
     const user = userEvent.setup()
-    render(<Register onNavigate={mockOnNavigate} />)
+    renderRegister({ onNavigate: mockOnNavigate })
 
     const passwordInputs = screen.getAllByPlaceholderText('••••••••')
     const passwordInput = passwordInputs[0] as HTMLElement
@@ -186,7 +197,7 @@ describe('Register Page', () => {
 
   it('shows password mismatch error on submit', async () => {
     const user = userEvent.setup()
-    render(<Register onNavigate={mockOnNavigate} />)
+    renderRegister({ onNavigate: mockOnNavigate })
 
     await user.type(screen.getByPlaceholderText('mario@email.com'), 'test@test.com')
     await user.type(screen.getByPlaceholderText('MisterRossi'), 'TestUser')
@@ -210,7 +221,7 @@ describe('Register Page', () => {
   it('calls register with correct data on successful submit', async () => {
     mockRegister.mockResolvedValueOnce({ success: true })
     const user = userEvent.setup()
-    render(<Register onNavigate={mockOnNavigate} />)
+    renderRegister({ onNavigate: mockOnNavigate })
 
     await user.type(screen.getByPlaceholderText('mario@email.com'), 'test@test.com')
     await user.type(screen.getByPlaceholderText('MisterRossi'), 'TestUser')
@@ -237,7 +248,7 @@ describe('Register Page', () => {
   it('navigates to login on successful registration', async () => {
     mockRegister.mockResolvedValueOnce({ success: true })
     const user = userEvent.setup()
-    render(<Register onNavigate={mockOnNavigate} />)
+    renderRegister({ onNavigate: mockOnNavigate })
 
     await user.type(screen.getByPlaceholderText('mario@email.com'), 'test@test.com')
     await user.type(screen.getByPlaceholderText('MisterRossi'), 'TestUser')
@@ -251,6 +262,10 @@ describe('Register Page', () => {
     await user.click(screen.getByRole('button', { name: 'Crea Account' }))
 
     await waitFor(() => {
+      expect(screen.getByText('Registrazione completata! Benvenuto su FantaContratti.')).toBeInTheDocument()
+    })
+
+    await waitFor(() => {
       expect(mockOnNavigate).toHaveBeenCalledWith('login')
     })
   })
@@ -261,7 +276,7 @@ describe('Register Page', () => {
       message: 'Email gia in uso',
     })
     const user = userEvent.setup()
-    render(<Register onNavigate={mockOnNavigate} />)
+    renderRegister({ onNavigate: mockOnNavigate })
 
     await user.type(screen.getByPlaceholderText('mario@email.com'), 'existing@test.com')
     await user.type(screen.getByPlaceholderText('MisterRossi'), 'TestUser')
@@ -287,7 +302,7 @@ describe('Register Page', () => {
       ],
     })
     const user = userEvent.setup()
-    render(<Register onNavigate={mockOnNavigate} />)
+    renderRegister({ onNavigate: mockOnNavigate })
 
     await user.type(screen.getByPlaceholderText('mario@email.com'), 'test@test.com')
     await user.type(screen.getByPlaceholderText('MisterRossi'), 'TakenUser')
@@ -307,7 +322,7 @@ describe('Register Page', () => {
 
   it('navigates to login when "Accedi" link is clicked', async () => {
     const user = userEvent.setup()
-    render(<Register onNavigate={mockOnNavigate} />)
+    renderRegister({ onNavigate: mockOnNavigate })
 
     await user.click(screen.getByText('Accedi'))
 
@@ -316,7 +331,7 @@ describe('Register Page', () => {
 
   it('shows password strength indicator', async () => {
     const user = userEvent.setup()
-    render(<Register onNavigate={mockOnNavigate} />)
+    renderRegister({ onNavigate: mockOnNavigate })
 
     const passwordInputs = screen.getAllByPlaceholderText('••••••••')
     const passwordInput = passwordInputs[0] as HTMLElement
@@ -331,7 +346,7 @@ describe('Register Page', () => {
 
   it('shows invite banner when invite token is present', () => {
     mockSearchParams.set('invite', 'some-invite-token')
-    render(<Register onNavigate={mockOnNavigate} />)
+    renderRegister({ onNavigate: mockOnNavigate })
 
     expect(screen.getByText("Sei stato invitato a una lega! Registrati per accettare l'invito.")).toBeInTheDocument()
   })
@@ -340,7 +355,7 @@ describe('Register Page', () => {
     mockSearchParams.set('invite', 'invite-123')
     mockRegister.mockResolvedValueOnce({ success: true })
     const user = userEvent.setup()
-    render(<Register onNavigate={mockOnNavigate} />)
+    renderRegister({ onNavigate: mockOnNavigate })
 
     await user.type(screen.getByPlaceholderText('mario@email.com'), 'test@test.com')
     await user.type(screen.getByPlaceholderText('MisterRossi'), 'TestUser')

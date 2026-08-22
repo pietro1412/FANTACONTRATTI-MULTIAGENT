@@ -2,6 +2,7 @@ import { useState, useCallback, type FormEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { useApiFieldErrors } from '@/hooks/useApiFieldErrors'
+import { useToast } from '@/components/ui/Toast'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Turnstile } from '@/components/ui/Turnstile'
@@ -18,6 +19,7 @@ type RegisterField = 'email' | 'username' | 'password' | 'confirmPassword'
 
 export function Register({ onNavigate }: RegisterProps) {
   const { register } = useAuth()
+  const { toast } = useToast()
   const [searchParams] = useSearchParams()
   const inviteToken = searchParams.get('invite')
   const [email, setEmail] = useState('')
@@ -69,6 +71,7 @@ export function Register({ onNavigate }: RegisterProps) {
     const result = await register(email, username, password, confirmPassword, turnstileToken)
 
     if (result.success) {
+      toast.success('Registrazione completata! Benvenuto su FantaContratti.')
       if (inviteToken) {
         onNavigate('inviteDetail', { token: inviteToken })
       } else {

@@ -932,6 +932,45 @@ describe('League Service', () => {
       expect(data.members[0]!.roster[0]!.contract!.salary).toBe(8)
       expect(data.members[0]!.roster[0]!.contract!.duration).toBe(2)
     })
+
+    it('flags firstMarketConcluded true when a MERCATO_RICORRENTE session exists', async () => {
+      mockPrisma.leagueMember.findFirst.mockResolvedValue({ id: 'member-1', role: 'MEMBER' })
+      // First call: active CONTRATTI session check → none active.
+      // Second call: any MERCATO_RICORRENTE session ever created → found.
+      mockPrisma.marketSession.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ id: 'sess-recurrent' })
+      mockPrisma.league.findUnique.mockResolvedValue({
+        id: 'league-1',
+        name: 'Test League',
+        members: [],
+      })
+
+      const result = await leagueService.getAllRosters('league-1', 'user-1')
+
+      expect(result.success).toBe(true)
+      const data = result.data as { inContrattiPhase: boolean; firstMarketConcluded: boolean }
+      expect(data.inContrattiPhase).toBe(false)
+      expect(data.firstMarketConcluded).toBe(true)
+    })
+
+    it('flags firstMarketConcluded false when no MERCATO_RICORRENTE session ever existed', async () => {
+      mockPrisma.leagueMember.findFirst.mockResolvedValue({ id: 'member-1', role: 'MEMBER' })
+      mockPrisma.marketSession.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null)
+      mockPrisma.league.findUnique.mockResolvedValue({
+        id: 'league-1',
+        name: 'Test League',
+        members: [],
+      })
+
+      const result = await leagueService.getAllRosters('league-1', 'user-1')
+
+      expect(result.success).toBe(true)
+      const data = result.data as { firstMarketConcluded: boolean }
+      expect(data.firstMarketConcluded).toBe(false)
+    })
   })
 
   // ==================== getPendingJoinRequests ====================
