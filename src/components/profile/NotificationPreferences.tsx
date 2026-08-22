@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Switch } from '@/components/ui/Switch'
+import { useToast } from '@/components/ui/Toast'
 import { pushApi } from '@/services/api'
 
 interface NotifPrefs {
@@ -29,6 +30,7 @@ const NOTIF_OPTIONS: { key: keyof Omit<NotifPrefs, 'pushEnabled'>; label: string
 
 /** Notifiche: master push toggle (con flusso permission) + 4 preferenze, via Switch. */
 export function NotificationPreferences() {
+  const { toast } = useToast()
   const [prefs, setPrefs] = useState<NotifPrefs>(DEFAULT_NOTIF_PREFS)
   const [pushStatus, setPushStatus] = useState<PushStatus>('default')
   const [vapidKey, setVapidKey] = useState<string | null>(null)
@@ -92,10 +94,22 @@ export function NotificationPreferences() {
   }, [prefs, pushStatus, vapidKey])
 
   const toggle = useCallback(async (key: keyof Omit<NotifPrefs, 'pushEnabled'>) => {
-    const updated = { [key]: !prefs[key] }
+    const previousValue = prefs[key]
+    const updated = { [key]: !previousValue }
     setPrefs(p => ({ ...p, ...updated }))
-    await pushApi.updatePreferences(updated).catch(() => {})
-  }, [prefs])
+    try {
+      const result = await pushApi.updatePreferences(updated)
+      if (result.success) {
+        toast.success('Preferenza aggiornata')
+      } else {
+        setPrefs(p => ({ ...p, [key]: previousValue }))
+        toast.error(result.message || 'Errore nel salvataggio della preferenza')
+      }
+    } catch {
+      setPrefs(p => ({ ...p, [key]: previousValue }))
+      toast.error('Errore di connessione, riprova')
+    }
+  }, [prefs, toast])
 
   const pushDisabled = pushStatus === 'unsupported' || pushStatus === 'denied' || !vapidKey
   const pushDescription =

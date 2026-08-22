@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Profile } from '../pages/Profile'
 
@@ -121,18 +121,19 @@ describe('Profile Page', () => {
     expect(screen.getAllByText('test@test.com').length).toBeGreaterThanOrEqual(1)
   })
 
-  it('displays user account information section', async () => {
+  it('displays identity card with username and email once in the page content', async () => {
     render(<Profile onNavigate={mockOnNavigate} />)
 
+    const main = await screen.findByRole('main')
+
     await waitFor(() => {
-      expect(screen.getByText('Informazioni account')).toBeInTheDocument()
+      expect(within(main).getByText('TestUser')).toBeInTheDocument()
     })
 
-    const usernames = screen.getAllByText('TestUser')
-    expect(usernames.length).toBeGreaterThanOrEqual(1)
-
-    const emails = screen.getAllByText('test@test.com')
-    expect(emails.length).toBeGreaterThanOrEqual(1)
+    // Consolidated identity card: username/email appear exactly once within <main>
+    // (Navigation renders the username separately outside <main>, that's expected)
+    expect(within(main).getAllByText('TestUser')).toHaveLength(1)
+    expect(within(main).getAllByText('test@test.com')).toHaveLength(1)
   })
 
   it('displays league memberships', async () => {
@@ -356,14 +357,13 @@ describe('Profile Page', () => {
     expect(mockOnNavigate).toHaveBeenCalledWith('dashboard')
   })
 
-  it('shows Foto profilo section with change button', async () => {
+  it('shows change photo action within the identity card', async () => {
     render(<Profile onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Foto profilo')).toBeInTheDocument()
+      expect(screen.getByText('Cambia foto')).toBeInTheDocument()
     })
 
-    expect(screen.getByText('Cambia foto')).toBeInTheDocument()
     expect(screen.getByText(/max 500KB/)).toBeInTheDocument()
   })
 
@@ -376,7 +376,7 @@ describe('Profile Page', () => {
     render(<Profile onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Informazioni account')).toBeInTheDocument()
+      expect(screen.getAllByText('TestUser').length).toBeGreaterThanOrEqual(1)
     })
 
     expect(screen.queryByText('Le mie squadre')).not.toBeInTheDocument()
