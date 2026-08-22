@@ -57,7 +57,7 @@ export function CockpitRailAdminBar({
   const railStepBase = 'inline-flex items-center gap-1 font-mono text-[10px] font-bold tracking-[0.07em] rounded-full border px-2.5 py-0.5 whitespace-nowrap'
 
   return (
-    <div className="relative flex items-center gap-2 bg-surface-300 border border-surface-50 rounded-xl px-3 py-1.5 min-h-[40px]">
+    <div className="relative flex items-center gap-2 flex-wrap bg-surface-300 border border-surface-50 rounded-xl px-3 py-1.5 min-h-[40px]">
       {/* Rail ruoli compressa */}
       {hasRail && marketProgress && (
         <>
