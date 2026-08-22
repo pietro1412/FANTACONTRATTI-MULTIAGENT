@@ -576,15 +576,20 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                 </div>
               )}
 
-              {/* Admin: Test button */}
+              {/* Admin: Test button — separato visivamente dai bottoni utente
+                  (Conferma/Ricorso) sopra per evitare misclick tra azione
+                  reale e scorciatoia di test (audit: click accidentale). */}
               {isAdmin && !isAppealMode && (
-                <Button
-                  onClick={() => void handleSimulateAppeal()}
-                  variant="outline"
-                  className="w-full mt-3 text-xs border-accent-500/50 text-accent-400 hover:bg-accent-500/10"
-                >
-                  [TEST] Simula ricorso di un DG
-                </Button>
+                <div className="mt-4 pt-3 border-t border-surface-50/40">
+                  <p className="micro-label text-warning-500 mb-2">Solo admin · test</p>
+                  <Button
+                    onClick={() => void handleSimulateAppeal()}
+                    variant="outline"
+                    className="w-full text-xs border-accent-500/50 text-accent-400 hover:bg-accent-500/10"
+                  >
+                    [TEST] Simula ricorso di un DG
+                  </Button>
+                </div>
               )}
             </div>
           </div>

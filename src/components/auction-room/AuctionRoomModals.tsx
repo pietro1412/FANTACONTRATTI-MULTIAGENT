@@ -367,11 +367,14 @@ export function AcknowledgmentModal({
             </div>
           )}
 
-          {/* Admin: Simula ricorso */}
+          {/* Admin: Simula ricorso — separato visivamente dai bottoni utente
+              (Conferma/Ricorso) sopra per evitare misclick tra azione reale
+              e scorciatoia di test (audit: click accidentale registrato). */}
           {isAdmin && (
-            <>
+            <div className="mt-4 pt-3 border-t border-surface-50/40">
+              <p className="micro-label text-warning-500 mb-2">Solo admin · test</p>
               {error && (
-                <div className="mt-3 p-2 bg-danger-500/20 border border-danger-500/50 rounded text-danger-400 text-xs">
+                <div className="mb-2 p-2 bg-danger-500/20 border border-danger-500/50 rounded text-danger-400 text-xs">
                   {error}
                   {/* #13: la gestione ricorsi avviene inline (pannello Azioni Admin /
                       AppealReviewModal), non più reindirizzando alla pagina admin. */}
@@ -386,11 +389,11 @@ export function AcknowledgmentModal({
                 onClick={onSimulateAppeal}
                 size="sm"
                 variant="outline"
-                className="w-full mt-3 text-xs border-accent-500/50 text-accent-400 hover:bg-accent-500/10"
+                className="w-full text-xs border-accent-500/50 text-accent-400 hover:bg-accent-500/10"
               >
                 [TEST] Simula ricorso di un DG
               </Button>
-            </>
+            </div>
           )}
         </div>
       </div>
