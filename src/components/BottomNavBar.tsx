@@ -30,9 +30,11 @@ export function BottomNavBar({ onMenuOpen, leaguePhase, activeSessionId }: Botto
   const leagueMatch = location.pathname.match(/^\/leagues\/([^/]+)/)
   const leagueId = leagueMatch?.[1]
 
-  // Detect current page from URL
+  // Detect current page from URL (query param ?view= distingue le tab della
+  // pagina unica /rose: bare = Rosa, ?view=players = Giocatori, ?view=stats = Statistiche)
   const pathAfterLeague = leagueMatch ? location.pathname.slice(leagueMatch[0].length) : ''
-  const currentTab = getActiveTab(pathAfterLeague)
+  const viewParam = new URLSearchParams(location.search).get('view')
+  const currentTab = getActiveTab(pathAfterLeague, viewParam)
 
   // Scroll hide/show
   const handleScroll = useCallback(() => {
@@ -64,7 +66,7 @@ export function BottomNavBar({ onMenuOpen, leaguePhase, activeSessionId }: Botto
   const tabs: TabDef[] = [
     { key: 'home', label: 'Home', icon: Home, path: `/leagues/${leagueId}` },
     phaseTab,
-    { key: 'giocatori', label: 'Giocatori', icon: UserPlus, path: `/leagues/${leagueId}/players` },
+    { key: 'giocatori', label: 'Giocatori', icon: UserPlus, path: `/leagues/${leagueId}/rose?view=players` },
     { key: 'finanze', label: 'Finanze', icon: CircleDollarSign, path: `/leagues/${leagueId}/financials` },
     { key: 'menu', label: 'Menu', icon: Menu, path: '' },
   ]
@@ -171,8 +173,12 @@ function getPhaseTab(
   }
 }
 
-/** Map URL path segment to active tab key */
-function getActiveTab(pathAfterLeague: string): string {
+/**
+ * Map URL path segment (+ query ?view=) to active tab key. La pagina unica
+ * /rose ha 3 tab: bare = Rosa, ?view=players = Giocatori, ?view=stats resta
+ * "Giocatori" (nessuna tab dedicata in bottom-nav per le Statistiche).
+ */
+function getActiveTab(pathAfterLeague: string, viewParam: string | null): string {
   if (!pathAfterLeague || pathAfterLeague === '/') return 'home'
   if (
     pathAfterLeague.startsWith('/auction') ||
@@ -181,11 +187,10 @@ function getActiveTab(pathAfterLeague: string): string {
     pathAfterLeague.startsWith('/rubata') ||
     pathAfterLeague.startsWith('/contracts')
   ) return 'phase'
-  if (pathAfterLeague.startsWith('/rose')) return 'rosa'
-  if (
-    pathAfterLeague.startsWith('/players') ||
-    pathAfterLeague.startsWith('/strategie-rubata')
-  ) return 'giocatori'
+  if (pathAfterLeague.startsWith('/rose')) {
+    return viewParam === 'players' || viewParam === 'stats' ? 'giocatori' : 'rosa'
+  }
+  if (pathAfterLeague.startsWith('/strategie-rubata')) return 'giocatori'
   if (
     pathAfterLeague.startsWith('/financials') ||
     pathAfterLeague.startsWith('/history')

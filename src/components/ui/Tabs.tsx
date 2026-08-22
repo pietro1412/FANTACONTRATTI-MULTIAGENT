@@ -58,6 +58,7 @@ export function Tabs({ tabs, value, onChange, className = '', ariaLabel }: TabsP
             role="tab"
             type="button"
             aria-selected={isActive}
+            aria-label={tab.label}
             onClick={() => { onChange(tab.id); }}
             className={`flex items-center gap-1.5 px-4 py-3 text-sm md:text-base font-semibold border-b-2 transition-colors ${
               isActive ? activeText[accent] : 'border-transparent text-gray-400 hover:text-gray-300'
@@ -66,11 +67,11 @@ export function Tabs({ tabs, value, onChange, className = '', ariaLabel }: TabsP
             {tab.icon}
             {tab.mobileLabel ? (
               <>
-                <span className="hidden sm:inline">{tab.label}</span>
-                <span className="sm:hidden">{tab.mobileLabel}</span>
+                <span className="hidden sm:inline" aria-hidden="true">{tab.label}</span>
+                <span className="sm:hidden" aria-hidden="true">{tab.mobileLabel}</span>
               </>
             ) : (
-              <span>{tab.label}</span>
+              <span aria-hidden="true">{tab.label}</span>
             )}
             {tab.badge !== undefined && tab.badge > 0 && (
               <span

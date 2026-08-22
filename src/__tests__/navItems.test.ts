@@ -76,8 +76,15 @@ describe('navItems — sorgente unica di navigazione (P1)', () => {
       expect(tiles.length).toBeGreaterThan(0)
       expect(tiles.every((t) => t.tile && !t.adminOnly)).toBe(true)
       expect(tiles.map((t) => t.key)).toEqual(
-        expect.arrayContaining(['rose', 'trades', 'contracts', 'financials', 'strategie-rubata', 'playerStats']),
+        expect.arrayContaining(['rose', 'trades', 'contracts', 'financials', 'strategie-rubata']),
       )
+    })
+  })
+
+  describe('fusione Rose/Giocatori/Statistiche (2026-08): allPlayers/playerStats non sono più voci di menu separate', () => {
+    it('non mostra allPlayers/playerStats nel menu — sono tab di "rose"', () => {
+      expect(keys(null)).not.toContain('allPlayers')
+      expect(keys(null)).not.toContain('playerStats')
     })
   })
 })

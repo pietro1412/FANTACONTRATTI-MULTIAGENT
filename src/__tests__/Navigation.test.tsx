@@ -105,7 +105,7 @@ describe('Navigation Component', () => {
 
       // Check non-admin menu items are visible
       expect(screen.getByTestId('nav-dashboard')).toBeInTheDocument()
-      expect(screen.getByTestId('nav-giocatori')).toBeInTheDocument()
+      expect(screen.getByTestId('nav-rose')).toBeInTheDocument()
       expect(screen.getByTestId('nav-finanze')).toBeInTheDocument()
       expect(screen.getByTestId('nav-storico')).toBeInTheDocument()
       expect(screen.getByTestId('nav-profezie')).toBeInTheDocument()
@@ -261,8 +261,8 @@ describe('Navigation Component', () => {
         )
       })
 
-      await user.click(screen.getByTestId('nav-giocatori'))
-      expect(mockOnNavigate).toHaveBeenCalledWith('allPlayers', { leagueId: 'league-123' })
+      await user.click(screen.getByTestId('nav-rose'))
+      expect(mockOnNavigate).toHaveBeenCalledWith('rose', { leagueId: 'league-123' })
     })
 
     it('calls onNavigate when back to leagues button is clicked', async () => {
@@ -392,14 +392,14 @@ describe('Navigation Component', () => {
       })
 
       // Click a navigation item
-      await user.click(screen.getByTestId('mobile-nav-giocatori'))
+      await user.click(screen.getByTestId('mobile-nav-rose'))
 
       // Menu should close (element removed from DOM)
       await waitFor(() => {
         expect(screen.queryByTestId('mobile-menu')).not.toBeInTheDocument()
       })
 
-      expect(mockOnNavigate).toHaveBeenCalledWith('allPlayers', { leagueId: 'league-123' })
+      expect(mockOnNavigate).toHaveBeenCalledWith('rose', { leagueId: 'league-123' })
     })
 
     it('shows mobile logout button and handles logout', async () => {
@@ -434,19 +434,19 @@ describe('Navigation Component', () => {
       act(() => {
         render(
           <Navigation
-            currentPage="allPlayers"
+            currentPage="rose"
             leagueId="league-123"
             onNavigate={mockOnNavigate}
           />
         )
       })
 
-      const giocatoriButton = screen.getByTestId('nav-giocatori')
+      const roseButton = screen.getByTestId('nav-rose')
       const dashboardButton = screen.getByTestId('nav-dashboard')
 
       // Active button should have active styling (contains gradient classes)
-      expect(giocatoriButton).toHaveClass('bg-gradient-to-r')
-      expect(giocatoriButton).toHaveClass('from-primary-500/30')
+      expect(roseButton).toHaveClass('bg-gradient-to-r')
+      expect(roseButton).toHaveClass('from-primary-500/30')
 
       // Inactive button should not have active gradient
       expect(dashboardButton).not.toHaveClass('from-primary-500/30')
@@ -477,7 +477,7 @@ describe('Navigation Component', () => {
       act(() => {
         render(
           <Navigation
-            currentPage="allPlayers"
+            currentPage="rose"
             leagueId="league-123"
             onNavigate={mockOnNavigate}
           />
@@ -491,11 +491,11 @@ describe('Navigation Component', () => {
         expect(screen.getByTestId('mobile-menu')).toBeInTheDocument()
       })
 
-      const mobileGiocatoriButton = screen.getByTestId('mobile-nav-giocatori')
+      const mobileRoseButton = screen.getByTestId('mobile-nav-rose')
 
       // Check for active styling (border-l-3 for active state)
-      expect(mobileGiocatoriButton).toHaveClass('border-l-3')
-      expect(mobileGiocatoriButton).toHaveClass('border-primary-400')
+      expect(mobileRoseButton).toHaveClass('border-l-3')
+      expect(mobileRoseButton).toHaveClass('border-primary-400')
     })
 
     it('applies correct styles for superadmin active tabs', async () => {

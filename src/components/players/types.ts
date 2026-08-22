@@ -24,11 +24,14 @@ export interface RosterPlayer {
 }
 
 export interface RosterContract {
-  id: string
+  /** Not needed by the row/card presentational components — optional so the
+   * "Tutti i giocatori" tab (RoseGiocatori) can build a RosterEntry from the
+   * lighter contract shape returned alongside the player database. */
+  id?: string
   salary: number
   duration: number
   rescissionClause: number | null
-  signedAt: string
+  signedAt?: string
 }
 
 export interface RosterEntry {
@@ -39,3 +42,12 @@ export interface RosterEntry {
   player: RosterPlayer
   contract?: RosterContract | null
 }
+
+/**
+ * Free-agent / owner status column — shown only when provided. Rose omits it
+ * (every entry there is always "in rosa" by definition); the "Tutti i
+ * giocatori" tab passes it to distinguish free agents from rostered players.
+ */
+export type RosterRowStatus =
+  | { free: true }
+  | { free: false; ownerName: string }

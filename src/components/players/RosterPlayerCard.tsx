@@ -1,11 +1,16 @@
 import { PlayerRoleBadge } from './PlayerRoleBadge'
 import { TeamLogo } from '@/components/ui/TeamLogo'
+import { Monogram } from '@/components/ui/Monogram'
 import { formatStat, NOT_DISPONIBILE } from '@/utils/stat-format'
-import type { RosterEntry } from './types'
+import type { RosterEntry, RosterRowStatus } from './types'
 
 export interface RosterPlayerCardProps {
   entry: RosterEntry
   onPlayerClick: () => void
+  /** Free-agent/owner status badge — Rose omits it (always "in rosa"). */
+  status?: RosterRowStatus
+  /** Serie A listino quotation, shown inline with team/age — Rose omits it. */
+  showQuotation?: boolean
 }
 
 const CREDIT_UNIT = 'M'
@@ -25,7 +30,7 @@ function ContractStat({ label, value, tone }: { label: string; value: string; to
  * Financial data rendered as a 4-column cockpit grid (salary/duration/clause/
  * rubata) with rubata — the most decision-relevant figure — in accent gold.
  */
-export function RosterPlayerCard({ entry, onPlayerClick }: RosterPlayerCardProps) {
+export function RosterPlayerCard({ entry, onPlayerClick, status, showQuotation }: RosterPlayerCardProps) {
   const { player, contract } = entry
   const clause = contract?.rescissionClause ?? null
   const rubata = clause !== null && contract ? clause + contract.salary : null
@@ -43,14 +48,29 @@ export function RosterPlayerCard({ entry, onPlayerClick }: RosterPlayerCardProps
           >
             {player.name}
           </button>
-          <div className="flex items-center gap-1.5 text-[11px] text-gray-500 mt-0.5">
+          <div className="flex items-center gap-1.5 text-[11px] text-gray-500 mt-0.5 flex-wrap">
             <TeamLogo team={player.team} size="xs" />
             <span className="break-words">{player.team}</span>
             <span className="font-mono">· {player.age != null ? `${player.age} anni` : NOT_DISPONIBILE}</span>
+            {showQuotation && <span className="font-mono">· Quot {player.quotation}</span>}
             <span className="ml-auto font-mono text-[10px] text-gray-500">
               {formatStat(cs?.appearances)}P {formatStat(cs?.totalGoals)}G {formatStat(cs?.totalAssists)}A
             </span>
           </div>
+          {status !== undefined && (
+            <div className="mt-1">
+              {status.free ? (
+                <span className="inline-flex font-mono text-[9px] font-bold tracking-[0.06em] text-secondary-400 bg-secondary-500/10 border border-secondary-500/35 rounded-full px-2 py-0.5">
+                  LIBERO
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 text-[10.5px] text-gray-300">
+                  <Monogram name={status.ownerName} size="xs" />
+                  <span className="truncate">{status.ownerName}</span>
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

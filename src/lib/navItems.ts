@@ -56,12 +56,14 @@ export interface NavItem {
 }
 
 // --- Voci di consultazione: SEMPRE visibili, ordine canonico (= ordine fasi) ---
+// NB: 'allPlayers' e 'playerStats' NON compaiono più come voci separate — dal
+// 2026-08 sono tab della pagina unica "Rose" (Rose / Tutti i giocatori /
+// Statistiche, vedi src/pages/RoseGiocatori.tsx). Le chiavi restano nell'enum
+// NavItemKey solo per retrocompatibilità dei redirect (createLeagueNavigator).
 const ALWAYS_VISIBLE: NavItem[] = [
   { key: 'leagueDetail', label: 'Dashboard', icon: 'dashboard', adminOnly: false, isPhase: false },
   { key: 'adminPanel', label: 'Admin', icon: 'admin', adminOnly: true, isPhase: false },
-  { key: 'rose', label: 'Rose', icon: 'roster', adminOnly: false, isPhase: false, tile: { emoji: '👥', sub: 'La tua rosa e quelle avversarie' } },
-  { key: 'allPlayers', label: 'Giocatori', icon: 'allRosters', adminOnly: false, isPhase: false, tile: { emoji: '📊', sub: 'Anagrafica e ricerca' } },
-  { key: 'playerStats', label: 'Statistiche', icon: 'stats', adminOnly: false, isPhase: false, tile: { emoji: '📈', sub: 'Giocatori e rendimento' } },
+  { key: 'rose', label: 'Rose', icon: 'roster', adminOnly: false, isPhase: false, tile: { emoji: '👥', sub: 'Rose, giocatori e statistiche' } },
   { key: 'trades', label: 'Scambi', icon: 'trades', adminOnly: false, isPhase: false, tile: { emoji: '🤝', sub: 'Offerte e controfferte' } },
   { key: 'contracts', label: 'Contratti', icon: 'contracts', adminOnly: false, isPhase: false, tile: { emoji: '📋', sub: 'Rinnovi e consolidamento' } },
   { key: 'strategie-rubata', label: 'Strategie', icon: 'strategy', adminOnly: false, isPhase: false, tile: { emoji: '🎯', sub: 'Watchlist e priorità' } },

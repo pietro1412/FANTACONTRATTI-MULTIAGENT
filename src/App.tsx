@@ -20,13 +20,12 @@ const CreateLeague = lazy(() => import('./pages/CreateLeague').then(m => ({ defa
 const Profile = lazy(() => import('./pages/Profile').then(m => ({ default: m.Profile })))
 const LeagueDetail = lazy(() => import('./pages/LeagueDetail').then(m => ({ default: m.LeagueDetail })))
 const AuctionRoom = lazy(() => import('./pages/AuctionRoom').then(m => ({ default: m.AuctionRoom })))
-const Rose = lazy(() => import('./pages/Rose').then(m => ({ default: m.Rose })))
+const RoseGiocatori = lazy(() => import('./pages/RoseGiocatori').then(m => ({ default: m.RoseGiocatori })))
 const Contracts = lazy(() => import('./pages/Contracts').then(m => ({ default: m.Contracts })))
 const Trades = lazy(() => import('./pages/Trades').then(m => ({ default: m.Trades })))
 const Rubata = lazy(() => import('./pages/Rubata').then(m => ({ default: m.Rubata })))
 const StrategieRubata = lazy(() => import('./pages/StrategieRubata').then(m => ({ default: m.StrategieRubata })))
 const Svincolati = lazy(() => import('./pages/Svincolati').then(m => ({ default: m.Svincolati })))
-const Players = lazy(() => import('./pages/Players').then(m => ({ default: m.Players })))
 const AdminPanel = lazy(() => import('./pages/AdminPanel').then(m => ({ default: m.AdminPanel })))
 const History = lazy(() => import('./pages/History').then(m => ({ default: m.History })))
 const Prophecies = lazy(() => import('./pages/Prophecies').then(m => ({ default: m.Prophecies })))
@@ -216,8 +215,8 @@ function createLeagueNavigator(navigate: ReturnType<typeof useNavigate>, leagueI
       case 'svincolati': void navigate(`/leagues/${lid}/svincolati`); break
       case 'prizes': void navigate(`/leagues/${lid}/prizes`); break
       case 'allPlayers':
-        if (params?.team) void navigate(`/leagues/${lid}/players?team=${encodeURIComponent(params.team)}`)
-        else void navigate(`/leagues/${lid}/players`)
+        if (params?.team) void navigate(`/leagues/${lid}/rose?view=players&team=${encodeURIComponent(params.team)}`)
+        else void navigate(`/leagues/${lid}/rose?view=players`)
         break
       case 'admin':
       case 'adminPanel':
@@ -228,7 +227,7 @@ function createLeagueNavigator(navigate: ReturnType<typeof useNavigate>, leagueI
       case 'movements':
       case 'history': void navigate(`/leagues/${lid}/history`); break
       case 'prophecies': void navigate(`/leagues/${lid}/prophecies`); break
-      case 'playerStats': void navigate(`/leagues/${lid}/stats`); break
+      case 'playerStats': void navigate(`/leagues/${lid}/rose?view=stats`); break
       case 'financials': void navigate(`/leagues/${lid}/financials`); break
       case 'patchNotes': void navigate(`/leagues/${lid}/patch-notes`); break
       case 'feedbackHub':
@@ -265,10 +264,14 @@ function AuctionRoomWrapper() {
 function RoseWrapper() {
   const navigate = useNavigate()
   const { leagueId } = useParams<{ leagueId: string }>()
+  const [searchParams] = useSearchParams()
+  const viewParam = searchParams.get('view')
+  const initialView: 'rose' | 'players' | 'stats' = viewParam === 'players' || viewParam === 'stats' ? viewParam : 'rose'
+  const teamFilter = searchParams.get('team') || undefined
   const onNavigate = useCallback(createLeagueNavigator(navigate, leagueId), [navigate, leagueId])
 
   if (!leagueId) return <Navigate to="/dashboard" replace />
-  return <Rose onNavigate={onNavigate} />
+  return <RoseGiocatori onNavigate={onNavigate} initialView={initialView} initialTeamFilter={teamFilter} />
 }
 
 function ContractsWrapper() {
@@ -320,15 +323,14 @@ function SvincolatiWrapper() {
   return <Svincolati leagueId={leagueId} onNavigate={onNavigate} />
 }
 
-function PlayersListWrapper() {
-  const navigate = useNavigate()
+/** Redirect da /players (fusa nella pagina Rose unica) a /rose?view=players, preservando ?team= (deep-link da Finanze). */
+function PlayersRedirect() {
   const { leagueId } = useParams<{ leagueId: string }>()
   const [searchParams] = useSearchParams()
-  const teamFilter = searchParams.get('team') || undefined
-  const onNavigate = useCallback(createLeagueNavigator(navigate, leagueId), [navigate, leagueId])
-
   if (!leagueId) return <Navigate to="/dashboard" replace />
-  return <Players leagueId={leagueId} onNavigate={onNavigate} initialView="list" initialTeamFilter={teamFilter} />
+  const team = searchParams.get('team')
+  const query = team ? `?view=players&team=${encodeURIComponent(team)}` : '?view=players'
+  return <Navigate to={`/leagues/${leagueId}/rose${query}`} replace />
 }
 
 function AdminPanelWrapper() {
@@ -376,13 +378,11 @@ function PropheciesWrapper() {
   return <Prophecies leagueId={leagueId} onNavigate={onNavigate} />
 }
 
-function PlayersStatsWrapper() {
-  const navigate = useNavigate()
+/** Redirect da /stats (fusa nella pagina Rose unica) a /rose?view=stats. */
+function StatsRedirect() {
   const { leagueId } = useParams<{ leagueId: string }>()
-  const onNavigate = useCallback(createLeagueNavigator(navigate, leagueId), [navigate, leagueId])
-
   if (!leagueId) return <Navigate to="/dashboard" replace />
-  return <Players leagueId={leagueId} onNavigate={onNavigate} initialView="stats" />
+  return <Navigate to={`/leagues/${leagueId}/rose?view=stats`} replace />
 }
 
 function LeagueFinancialsWrapper() {
@@ -558,13 +558,8 @@ function AppRoutes() {
           </Suspense>
         </ProtectedRoute>
       } />
-      <Route path="/leagues/:leagueId/players" element={
-        <ProtectedRoute>
-          <Suspense fallback={<PageLoader />}>
-            <PlayersListWrapper />
-          </Suspense>
-        </ProtectedRoute>
-      } />
+      {/* /players: fusa nella pagina Rose unica (tab "Tutti i giocatori") — redirect per bookmark/link vecchi */}
+      <Route path="/leagues/:leagueId/players" element={<PlayersRedirect />} />
       <Route path="/leagues/:leagueId/admin" element={
         <ProtectedRoute>
           <Suspense fallback={<PageLoader />}>
@@ -588,13 +583,8 @@ function AppRoutes() {
           </Suspense>
         </ProtectedRoute>
       } />
-      <Route path="/leagues/:leagueId/stats" element={
-        <ProtectedRoute>
-          <Suspense fallback={<PageLoader />}>
-            <PlayersStatsWrapper />
-          </Suspense>
-        </ProtectedRoute>
-      } />
+      {/* /stats: fusa nella pagina Rose unica (tab "Statistiche") — redirect per bookmark/link vecchi */}
+      <Route path="/leagues/:leagueId/stats" element={<StatsRedirect />} />
       <Route path="/leagues/:leagueId/financials" element={
         <ProtectedRoute>
           <Suspense fallback={<PageLoader />}>
