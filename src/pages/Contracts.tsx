@@ -657,29 +657,6 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
             {effectivePlayerCount}<span className="text-xs text-gray-500">/{MAX_ROSTER_SIZE}</span>
           </div>
         </div>
-        <div className="w-px h-7 bg-surface-50" />
-        <div className="text-right">
-          <div className="micro-label text-[9px] flex items-center justify-end gap-1">
-            Budget
-            <InfoTooltip content={GLOSSARY.budget!.short} label={GLOSSARY.budget!.term} align="right" />
-          </div>
-          <div className="budget-display text-lg sm:text-xl text-accent-400 leading-tight">{memberBudget}<span className="text-xs text-gray-500">M</span></div>
-        </div>
-        <div className="hidden sm:block w-px h-7 bg-surface-50" />
-        <div className="hidden sm:block text-right">
-          <div className="micro-label text-[9px] flex items-center justify-end gap-1">
-            Ingaggi
-            <InfoTooltip content={GLOSSARY.monteIngaggi!.short} label={GLOSSARY.monteIngaggi!.term} align="right" />
-          </div>
-          <div className="budget-display text-lg sm:text-xl text-white leading-tight">{projectedSalaries}<span className="text-xs text-gray-500">M</span></div>
-        </div>
-        <div className="hidden md:block w-px h-7 bg-surface-50" />
-        <div className="hidden md:block text-right">
-          <div className="micro-label text-[9px]">Residuo</div>
-          <div className={`budget-display text-lg sm:text-xl leading-tight ${residuoContratti < 0 ? 'text-danger-400' : 'text-secondary-400'}`}>
-            {residuoContratti >= 0 ? '+' : ''}{residuoContratti}<span className="text-xs text-gray-500">M</span>
-          </div>
-        </div>
       </div>
     </div>
   )

@@ -76,13 +76,11 @@ export function FinanceDashboard({ data, leagueId, myTeamId, onTeamClick, onNavi
             label="Budget medio per squadra"
             value={`${avgBudget}`}
             unit="M"
-            note={myTeam ? `il tuo: ${myTeam.budget}M` : undefined}
           />
           <LeagueKpi
             label="Monte ingaggi medio"
             value={`${avgContracts}`}
             unit="M/anno"
-            note={myTeam ? `il tuo: ${myTeam.annualContractCost}M/anno` : undefined}
           />
           <LeagueKpi
             label="Volume scambi"
