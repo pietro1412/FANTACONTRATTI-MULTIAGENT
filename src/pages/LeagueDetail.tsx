@@ -11,7 +11,6 @@ import {
   LeagueDetailHeader,
   AdminBanner,
   AttentionRail,
-  QuickAccessTiles,
   FinancialKPIs,
   StrategySummary,
   RecentMovements,
@@ -338,13 +337,6 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
           leagueId={leagueId}
           onNavigate={onNavigate}
           onOpenAuctionClick={() => { setShowAuctionConfirm(true); }}
-        />
-
-        {/* Smistatore: accessi rapidi alle sezioni */}
-        <QuickAccessTiles
-          leagueId={leagueId}
-          onNavigate={onNavigate}
-          tradeOffers={summary?.tradeOffersReceived ?? 0}
         />
 
         {/* Main grid: 2/3 content + 1/3 sidebar */}

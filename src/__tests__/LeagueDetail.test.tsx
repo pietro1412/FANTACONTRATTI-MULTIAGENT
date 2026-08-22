@@ -68,7 +68,6 @@ vi.mock('../components/league-detail', () => ({
   AttentionRail: ({ summary }: { summary: unknown; leagueId: string; onNavigate: unknown }) => (
     summary ? <div data-testid="attention-rail">Attention</div> : null
   ),
-  QuickAccessTiles: () => <div data-testid="quick-access-tiles">Accessi rapidi</div>,
   FinancialKPIs: () => <div data-testid="financial-kpis">KPIs</div>,
   StrategySummary: () => <div data-testid="strategy-summary">Strategy</div>,
   RecentMovements: () => <div data-testid="recent-movements">Movements</div>,
