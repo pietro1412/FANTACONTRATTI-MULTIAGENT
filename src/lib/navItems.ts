@@ -61,8 +61,10 @@ const ALWAYS_VISIBLE: NavItem[] = [
   { key: 'adminPanel', label: 'Admin', icon: 'admin', adminOnly: true, isPhase: false },
   { key: 'rose', label: 'Rose', icon: 'roster', adminOnly: false, isPhase: false, tile: { emoji: '👥', sub: 'La tua rosa e quelle avversarie' } },
   { key: 'allPlayers', label: 'Giocatori', icon: 'allRosters', adminOnly: false, isPhase: false, tile: { emoji: '📊', sub: 'Anagrafica e ricerca' } },
+  { key: 'playerStats', label: 'Statistiche', icon: 'stats', adminOnly: false, isPhase: false, tile: { emoji: '📈', sub: 'Giocatori e rendimento' } },
   { key: 'trades', label: 'Scambi', icon: 'trades', adminOnly: false, isPhase: false, tile: { emoji: '🤝', sub: 'Offerte e controfferte' } },
   { key: 'contracts', label: 'Contratti', icon: 'contracts', adminOnly: false, isPhase: false, tile: { emoji: '📋', sub: 'Rinnovi e consolidamento' } },
+  { key: 'strategie-rubata', label: 'Strategie', icon: 'strategy', adminOnly: false, isPhase: false, tile: { emoji: '🎯', sub: 'Watchlist e priorità' } },
   { key: 'financials', label: 'Finanze', icon: 'financials', adminOnly: false, isPhase: false, tile: { emoji: '💰', sub: 'Bilanci, ingaggi, storia' } },
   { key: 'prizes', label: 'Premi', icon: 'prizes', adminOnly: false, isPhase: false, tile: { emoji: '🏆', sub: 'Premi ricevuti e in palio' } },
   { key: 'history', label: 'Storico', icon: 'history', adminOnly: false, isPhase: false, tile: { emoji: '📜', sub: 'Movimenti e stagioni' } },
@@ -70,12 +72,10 @@ const ALWAYS_VISIBLE: NavItem[] = [
   { key: 'feedbackHub', label: 'Feedback', icon: 'feedbackHub', adminOnly: false, isPhase: false },
 ]
 
-// Voci solo-tile (accesso rapido nell'hub, non nell'header per non affollarlo):
-// Strategie Rubata e Statistiche sono approfondimenti "per appassionati".
-const TILE_ONLY: NavItem[] = [
-  { key: 'strategie-rubata', label: 'Strategie', icon: 'strategy', adminOnly: false, isPhase: false, tile: { emoji: '🎯', sub: 'Watchlist e priorità' } },
-  { key: 'playerStats', label: 'Statistiche', icon: 'stats', adminOnly: false, isPhase: false, tile: { emoji: '📈', sub: 'Giocatori e rendimento' } },
-]
+// Nessuna voce "solo-tile": ogni voce di consultazione è ora sempre visibile
+// nel menu principale (QuickAccessTiles, l'unico consumatore di TILE_ONLY, è
+// stato rimosso per ridondanza con la navigazione — vedi commit 426be9d).
+const TILE_ONLY: NavItem[] = []
 
 // Posizione fissa in cui inserire la voce asta-live nell'header (dopo "Contratti").
 const PHASE_LIVE_ANCHOR: NavItemKey = 'contracts'
