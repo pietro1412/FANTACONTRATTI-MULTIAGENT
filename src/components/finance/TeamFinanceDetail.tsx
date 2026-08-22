@@ -243,7 +243,10 @@ export function TeamFinanceDetail({ team, data, leagueId, onBack, onNavigateToPl
                   </span>
                   <span className="flex-1 min-w-0">
                     <PlayerName
-                      player={{ name: player.name, team: player.team, position: player.position, quotation: player.quotation, age: player.age, apiFootballId: player.apiFootballId }}
+                      player={{
+                        name: player.name, team: player.team, position: player.position, quotation: player.quotation, age: player.age, apiFootballId: player.apiFootballId,
+                        contract: { salary: player.salary, duration: player.duration, clause: player.clause },
+                      }}
                       leagueId={leagueId}
                       leaguePlayerId={player.id}
                       truncate
@@ -293,7 +296,10 @@ export function TeamFinanceDetail({ team, data, leagueId, onBack, onNavigateToPl
                       </span>
                       <span className="flex-1 min-w-0">
                         <PlayerName
-                          player={{ name: player.name, team: player.team, position: player.position, quotation: player.quotation, age: player.age, apiFootballId: player.apiFootballId }}
+                          player={{
+                            name: player.name, team: player.team, position: player.position, quotation: player.quotation, age: player.age, apiFootballId: player.apiFootballId,
+                            contract: { salary: player.salary, duration: player.duration, clause: player.clause },
+                          }}
                           leagueId={leagueId}
                           leaguePlayerId={player.id}
                           truncate
@@ -361,7 +367,10 @@ export function TeamFinanceDetail({ team, data, leagueId, onBack, onNavigateToPl
                     <tr key={player.id} className="hover:bg-surface-100/20">
                       <td className="px-2 md:px-3 py-2 text-white">
                         <PlayerName
-                          player={{ name: player.name, team: player.team, position: player.position, quotation: player.quotation, age: player.age, apiFootballId: player.apiFootballId }}
+                          player={{
+                            name: player.name, team: player.team, position: player.position, quotation: player.quotation, age: player.age, apiFootballId: player.apiFootballId,
+                            contract: { salary: player.salary, duration: player.duration, clause: player.clause },
+                          }}
                           leagueId={leagueId}
                           leaguePlayerId={player.id}
                         />

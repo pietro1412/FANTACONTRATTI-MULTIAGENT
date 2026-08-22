@@ -152,7 +152,10 @@ export function MyTeamHero({
                     className="inline-flex items-center gap-1 rounded-lg border border-accent-500/30 bg-surface-600/30 px-2 py-1 font-mono text-[11px] font-bold text-white"
                   >
                     <PlayerName
-                      player={{ name: p.name, team: p.team, position: p.position, quotation: p.quotation, age: p.age, apiFootballId: p.apiFootballId }}
+                      player={{
+                        name: p.name, team: p.team, position: p.position, quotation: p.quotation, age: p.age, apiFootballId: p.apiFootballId,
+                        contract: { salary: p.salary, duration: p.duration, clause: p.clause },
+                      }}
                       leagueId={leagueId}
                       leaguePlayerId={p.id}
                       className="text-[11px]"

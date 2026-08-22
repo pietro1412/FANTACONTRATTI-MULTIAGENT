@@ -445,6 +445,9 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
       computedStats: p.computedStats,
       statsSyncedAt: p.statsSyncedAt,
       leaguePlayerId: p.id,
+      contract: p.contract
+        ? { salary: p.contract.salary, duration: p.contract.duration, clause: p.contract.rescissionClause ?? null }
+        : null,
     })
   }
 

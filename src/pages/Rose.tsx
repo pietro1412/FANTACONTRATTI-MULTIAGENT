@@ -92,6 +92,9 @@ export function Rose({ onNavigate }: RoseProps) {
       computedStats: entry.player.computedStats,
       statsSyncedAt: entry.player.statsSyncedAt,
       leaguePlayerId: entry.player.id,
+      contract: entry.contract
+        ? { salary: entry.contract.salary, duration: entry.contract.duration, clause: entry.contract.rescissionClause }
+        : null,
     })
   }, [])
 

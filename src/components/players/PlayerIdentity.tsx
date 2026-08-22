@@ -68,6 +68,11 @@ export function PlayerIdentity({
   const isCard = layout === 'card'
   const inlineVariant = isCard ? 'compact' : 'full'
 
+  // Also surface the contract in the stats modal opened by PlayerName (Axiom
+  // 6): the row already shows it via ContractInline below, this makes it
+  // visible again inside the modal without digging into "Carriera Lega".
+  const playerForModal = contract ? { ...player, contract } : player
+
   return (
     <div className={`flex ${isCard ? 'flex-col gap-1.5' : 'items-center gap-2.5'} min-w-0 ${className}`}>
       {/* 1. Role + 2. Name + 3. Team + 4. Age */}
@@ -75,7 +80,7 @@ export function PlayerIdentity({
         <PositionBadge position={player.position} size="sm" />
         <div className="min-w-0">
           <PlayerName
-            player={player}
+            player={playerForModal}
             leagueId={leagueId}
             leaguePlayerId={leaguePlayerId}
             truncate={!isCard}

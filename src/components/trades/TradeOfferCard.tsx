@@ -49,7 +49,12 @@ function PlayerChips({ players, budget, accent, leagueId }: { players: Player[];
               {p.position}
             </span>
             <PlayerName
-              player={{ name: p.name, team: p.team, position: p.position, quotation: p.quotation, age: p.age, apiFootballId: p.apiFootballId }}
+              player={{
+                name: p.name, team: p.team, position: p.position, quotation: p.quotation, age: p.age, apiFootballId: p.apiFootballId,
+                contract: p.contract
+                  ? { salary: p.contract.salary, duration: p.contract.duration, clause: p.contract.rescissionClause ?? null }
+                  : null,
+              }}
               leagueId={leagueId}
               leaguePlayerId={p.id}
               className="text-[11.5px] font-semibold"

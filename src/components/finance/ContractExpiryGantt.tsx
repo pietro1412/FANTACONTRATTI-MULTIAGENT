@@ -80,7 +80,10 @@ export function ContractExpiryGantt({ players, leagueId }: ContractExpiryGanttPr
                   {player.position}
                 </span>
                 <PlayerName
-                  player={{ name: player.name, team: player.team, position: player.position, quotation: player.quotation, age: player.age, apiFootballId: player.apiFootballId }}
+                  player={{
+                    name: player.name, team: player.team, position: player.position, quotation: player.quotation, age: player.age, apiFootballId: player.apiFootballId,
+                    contract: { salary: player.salary, duration: player.duration, clause: player.clause },
+                  }}
                   leagueId={leagueId}
                   leaguePlayerId={player.id}
                   truncate

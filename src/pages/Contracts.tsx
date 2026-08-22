@@ -910,7 +910,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                 isConsolidated={isConsolidated}
                 onKeep={() => { setExitDecisions(prev => { const next = new Map(prev); next.set(c.id, 'KEEP'); return next }) }}
                 onRelease={() => { setExitDecisions(prev => { const next = new Map(prev); next.set(c.id, 'RELEASE'); return next }) }}
-                onViewStats={() => { setSelectedPlayer(playerInfo(c.roster.player)) }}
+                onViewStats={() => { setSelectedPlayer(playerInfo(c.roster.player, { salary: c.salary, duration: c.duration, rescissionClause: c.rescissionClause })) }}
               />
             ))}
           </div>
@@ -1001,7 +1001,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                   onDurationChange={(v) => { updateLocalEdit(c.id, 'newDuration', String(v)) }}
                   onToggleRelease={() => { toggleRelease(c.id) }}
                   onRemoveKept={() => { setExitDecisions(prev => { const next = new Map(prev); next.delete(c.id); return next }) }}
-                  onViewStats={() => { setSelectedPlayer(playerInfo(c.roster.player)) }}
+                  onViewStats={() => { setSelectedPlayer(playerInfo(c.roster.player, { salary: c.salary, duration: c.duration, rescissionClause: c.rescissionClause })) }}
                 />
               )
             })}
@@ -1082,7 +1082,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
 
 // ===== Small local presentational helpers =====
 
-function playerInfo(p: Player): PlayerInfo {
+function playerInfo(p: Player, contract?: { salary: number; duration: number; rescissionClause: number } | null): PlayerInfo {
   return {
     name: p.name,
     team: p.team,
@@ -1091,6 +1091,9 @@ function playerInfo(p: Player): PlayerInfo {
     apiFootballId: p.apiFootballId,
     computedStats: p.computedStats,
     leaguePlayerId: p.id,
+    contract: contract
+      ? { salary: contract.salary, duration: contract.duration, clause: contract.rescissionClause }
+      : null,
   }
 }
 

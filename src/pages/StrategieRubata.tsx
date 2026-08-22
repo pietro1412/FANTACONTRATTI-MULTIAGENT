@@ -705,6 +705,9 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
       apiFootballId: player.playerApiFootballId,
       computedStats: player.playerComputedStats,
       leaguePlayerId: player.playerId,
+      contract: player.type === 'svincolato'
+        ? null
+        : { salary: player.contractSalary, duration: player.contractDuration, clause: player.contractClause },
     })
   }, [])
 

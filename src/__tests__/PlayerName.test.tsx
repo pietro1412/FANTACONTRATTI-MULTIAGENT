@@ -36,4 +36,33 @@ describe('PlayerName', () => {
     render(<PlayerName player={minimal} />)
     expect(screen.getByRole('button', { name: 'Solo Nome' })).toBeInTheDocument()
   })
+
+  // Axioms 6 + 9: ingaggio/durata/clausola/prezzo rubata always shown WITH
+  // labels, prominently in the modal (not buried in "Carriera Lega").
+  it('should show ingaggio/durata/clausola/rubata with explicit labels when a contract is provided', async () => {
+    const user = userEvent.setup()
+    const withContract: PlayerInfo = { ...player, contract: { salary: 12, duration: 3, clause: 84 } }
+    render(<PlayerName player={withContract} />)
+    await user.click(screen.getByRole('button', { name: 'Mario Rossi' }))
+
+    expect(screen.getByText('Contratto')).toBeInTheDocument()
+    expect(screen.getByText('Ingaggio')).toBeInTheDocument()
+    expect(screen.getByText('12M')).toBeInTheDocument()
+    expect(screen.getByText('Durata')).toBeInTheDocument()
+    expect(screen.getByText('3 sem')).toBeInTheDocument()
+    expect(screen.getByText('Clausola')).toBeInTheDocument()
+    expect(screen.getByText('84M')).toBeInTheDocument()
+    expect(screen.getByText('Rubata')).toBeInTheDocument()
+    // Prezzo rubata = clausola + ingaggio
+    expect(screen.getByText('96M')).toBeInTheDocument()
+  })
+
+  it('should hide the contract block gracefully when no contract is available', async () => {
+    const user = userEvent.setup()
+    render(<PlayerName player={player} />)
+    await user.click(screen.getByRole('button', { name: 'Mario Rossi' }))
+
+    expect(screen.getByText('Panoramica')).toBeInTheDocument()
+    expect(screen.queryByText('Contratto')).not.toBeInTheDocument()
+  })
 })

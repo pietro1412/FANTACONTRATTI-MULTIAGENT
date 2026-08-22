@@ -12,7 +12,7 @@ import type {
   ActiveAuction,
   BoardPlayerWithPreference,
 } from '../../types/rubata.types'
-import type { ComputedSeasonStats } from '../PlayerStatsModal'
+import type { ComputedSeasonStats, PlayerContractInfo } from '../PlayerStatsModal'
 
 interface PlayerStatsInfo {
   name: string
@@ -23,6 +23,7 @@ interface PlayerStatsInfo {
   apiFootballId?: number | null
   computedStats?: ComputedSeasonStats | null
   leaguePlayerId?: string
+  contract?: PlayerContractInfo | null
 }
 
 export interface HeroPlayerCardProps {
@@ -135,6 +136,7 @@ export const HeroPlayerCard = memo(function HeroPlayerCard({
                       apiFootballId: player.playerApiFootballId,
                       computedStats: player.playerComputedStats,
                       leaguePlayerId: player.playerId,
+                      contract: { salary: player.contractSalary, duration: player.contractDuration, clause: player.contractClause },
                     }); }}
                     className="text-2xl sm:text-[28px] lg:text-[26px] font-display font-bold text-white hover:text-accent-300 truncate leading-tight"
                     title="Clicca per vedere statistiche"

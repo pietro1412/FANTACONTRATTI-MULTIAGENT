@@ -425,7 +425,8 @@ export function Players({ leagueId, onNavigate, initialView = 'list', initialTea
 
   // =============== SHARED ===============
 
-  const openPlayerStats = useCallback((p: { id: string; name: string; team: string; position: string; quotation: number; apiFootballId?: number | null; statsSyncedAt?: string | null; age?: number | null; computedStats?: ComputedSeasonStats | null }) => {
+  const openPlayerStats = useCallback((p: { id: string; name: string; team: string; position: string; quotation: number; apiFootballId?: number | null; statsSyncedAt?: string | null; age?: number | null; computedStats?: ComputedSeasonStats | null; rosterInfo?: RosterInfo }) => {
+    const contract = p.rosterInfo?.contract
     setSelectedPlayerStats({
       name: p.name,
       team: p.team,
@@ -436,6 +437,9 @@ export function Players({ leagueId, onNavigate, initialView = 'list', initialTea
       computedStats: p.computedStats,
       statsSyncedAt: p.statsSyncedAt,
       leaguePlayerId: p.id,
+      contract: contract
+        ? { salary: contract.salary, duration: contract.duration, clause: contract.rescissionClause }
+        : null,
     })
   }, [])
 

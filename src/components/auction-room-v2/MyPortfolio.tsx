@@ -188,6 +188,9 @@ export function MyPortfolio({ myRosterSlots, budget: _budget, leagueId }: MyPort
           age: selectedPlayer.player.age,
           apiFootballId: selectedPlayer.player.apiFootballId,
           leaguePlayerId: selectedPlayer.player.playerId,
+          contract: selectedPlayer.player.contract
+            ? { salary: selectedPlayer.player.contract.salary, duration: selectedPlayer.player.contract.duration, clause: selectedPlayer.player.contract.rescissionClause }
+            : null,
         } as PlayerInfo : null}
         leagueId={leagueId}
       />

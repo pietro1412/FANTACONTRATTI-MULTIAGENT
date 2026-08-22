@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Modal, ModalHeader, ModalBody } from './ui/Modal'
 import { POSITION_GRADIENTS } from './ui/PositionBadge'
+import { ContractInline } from './ui/ContractInline'
 import { getPlayerPhotoUrl, getTeamLogoUrl } from '../utils/player-images'
 import { historyApi } from '../services/api'
 import { NOT_DISPONIBILE } from '../utils/stat-format'
@@ -102,6 +103,20 @@ export interface ComputedSeasonStats {
   matchesInSquad: number
 }
 
+/**
+ * Axioms 6 + 9: current contract snapshot (ingaggio/durata/clausola), shown
+ * prominently in the modal with explicit labels via ContractInline. Rubata
+ * price (clausola + ingaggio) is derived at render time, not stored here.
+ */
+export interface PlayerContractInfo {
+  /** Ingaggio (salary) in crediti. */
+  salary: number
+  /** Durata contratto in semestri. */
+  duration: number
+  /** Clausola rescissoria in crediti. Null/undefined se non applicabile. */
+  clause?: number | null
+}
+
 export interface PlayerInfo {
   name: string
   team: string
@@ -113,6 +128,12 @@ export interface PlayerInfo {
   statsSyncedAt?: string | null
   /** League SerieAPlayer id — enables the "Carriera Lega" tab when paired with leagueId */
   leaguePlayerId?: string
+  /**
+   * Current contract (ingaggio/durata/clausola), when known by the caller.
+   * Optional — some contexts (free agents, players without a signed
+   * contract yet) legitimately have none: the section is simply hidden.
+   */
+  contract?: PlayerContractInfo | null
 }
 
 interface PlayerStatsModalProps {
@@ -281,6 +302,21 @@ export function PlayerStatsModal({ isOpen, onClose, player, leagueId, leaguePlay
       </ModalHeader>
 
       <ModalBody className="max-h-[70vh]">
+        {/* Axioms 6 + 9: contract block always visible, above the tabs */}
+        {player.contract && (
+          <div className="mb-4 bg-surface-100/50 rounded-xl p-4">
+            <div className="micro-label text-gray-500 mb-2">Contratto</div>
+            <ContractInline
+              salary={player.contract.salary}
+              duration={player.contract.duration}
+              clause={player.contract.clause}
+              rubataPrice={player.contract.clause != null ? player.contract.clause + player.contract.salary : null}
+              variant="full"
+              className="text-base"
+            />
+          </div>
+        )}
+
         {/* T-025: Tab bar */}
         <div className="flex gap-1 mb-4 bg-surface-300/50 rounded-lg p-1">
           <button

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { PlayerIdentity } from '@/components/players/PlayerIdentity'
 import type { PlayerInfo } from '@/components/PlayerStatsModal'
 
@@ -67,5 +68,19 @@ describe('PlayerIdentity', () => {
   it('should hide the age when showAge is false', () => {
     render(<PlayerIdentity player={player} showAge={false} />)
     expect(screen.queryByText('27 anni')).not.toBeInTheDocument()
+  })
+
+  it('should forward the contract to the stats modal opened via the name', async () => {
+    const user = userEvent.setup()
+    render(
+      <PlayerIdentity
+        player={player}
+        contract={{ salary: 12, duration: 3, clause: 84, rubataPrice: 96 }}
+      />
+    )
+    await user.click(screen.getByRole('button', { name: 'Mario Rossi' }))
+    // The modal shows its own labelled "Contratto" block (Axioms 6 + 9),
+    // not just the compact inline row rendered next to the name.
+    expect(screen.getByText('Contratto')).toBeInTheDocument()
   })
 })

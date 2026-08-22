@@ -4,7 +4,7 @@ import { Monogram } from '@/components/ui/Monogram'
 import { POSITION_COLORS } from '../../types/rubata.types'
 import { getWatchlistCategory } from '@/types/watchlist.types'
 import type { BoardPlayer, RubataPreference } from '../../types/rubata.types'
-import type { ComputedSeasonStats } from '../PlayerStatsModal'
+import type { ComputedSeasonStats, PlayerContractInfo } from '../PlayerStatsModal'
 
 interface PlayerStatsInfo {
   name: string
@@ -15,6 +15,7 @@ interface PlayerStatsInfo {
   apiFootballId?: number | null
   computedStats?: ComputedSeasonStats | null
   leaguePlayerId?: string
+  contract?: PlayerContractInfo | null
 }
 
 export interface BoardRowProps {
@@ -72,6 +73,7 @@ export const BoardRow = memo(function BoardRow({
       apiFootballId: player.playerApiFootballId,
       computedStats: player.playerComputedStats,
       leaguePlayerId: player.playerId,
+      contract: { salary: player.contractSalary, duration: player.contractDuration, clause: player.contractClause },
     })
   }
 
