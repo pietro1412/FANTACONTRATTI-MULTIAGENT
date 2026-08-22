@@ -20,7 +20,7 @@ import { PlayerRoleFilter } from '@/components/players/PlayerRoleFilter'
 import { TeamLogo } from '@/components/ui/TeamLogo'
 import { ManagerStrip, type ManagerStripMember } from '@/components/players/ManagerStrip'
 import { RosterFilters } from '@/components/players/RosterFilters'
-import { RosterTableRow, ROSTER_ROW_GRID_EXTRA } from '@/components/players/RosterTableRow'
+import { RosterTableRow, ROSTER_ROW_GRID_BASE, ROSTER_ROW_GRID_EXTRA } from '@/components/players/RosterTableRow'
 import { RosterPlayerCard } from '@/components/players/RosterPlayerCard'
 import { RosterSidebar, type CompositionRankingRow } from '@/components/players/RosterSidebar'
 import type { RosterEntry, RosterRowStatus } from '@/components/players/types'
@@ -951,7 +951,7 @@ export function RoseGiocatori({ onNavigate, initialView = 'rose', initialTeamFil
 
   const roseTablePanel = (
     <div className="bg-surface-200 border border-surface-50 rounded-xl overflow-hidden flex flex-col lg:h-full lg:min-h-0">
-      <div className="grid grid-cols-[1.4fr_80px_64px_80px_80px_120px] gap-2.5 px-4 py-2.5 border-b border-surface-50 bg-surface-300/40 flex-shrink-0">
+      <div className={`grid ${ROSTER_ROW_GRID_BASE} gap-2.5 px-4 py-2.5 border-b border-surface-50 bg-surface-300/40 flex-shrink-0`}>
         {roseSortableHeaders.map(col => (
           <button
             key={col.key}

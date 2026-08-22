@@ -1,8 +1,8 @@
 import { PlayerRoleBadge } from './PlayerRoleBadge'
 import { TeamLogo } from '@/components/ui/TeamLogo'
 import { Monogram } from '@/components/ui/Monogram'
-import { formatStat, NOT_DISPONIBILE } from '@/utils/stat-format'
-import type { RosterEntry, RosterRowStatus } from './types'
+import { formatSeasonStats, NOT_DISPONIBILE } from '@/utils/stat-format'
+import type { ComputedSeasonStats, RosterEntry, RosterRowStatus } from './types'
 
 export interface RosterTableRowProps {
   entry: RosterEntry
@@ -16,34 +16,60 @@ export interface RosterTableRowProps {
 const CREDIT_UNIT = 'M'
 
 /** Base grid (Rose: identity + 4 contract fields + stats). */
-export const ROSTER_ROW_GRID_BASE = 'grid-cols-[1.4fr_80px_64px_80px_80px_120px]'
+export const ROSTER_ROW_GRID_BASE = 'grid-cols-[1.35fr_88px_64px_88px_92px_100px]'
 /** Extended grid with status + quotation columns ("Tutti i giocatori" tab). */
-export const ROSTER_ROW_GRID_EXTRA = 'grid-cols-[1.05fr_92px_56px_80px_64px_80px_80px_120px]'
+export const ROSTER_ROW_GRID_EXTRA = 'grid-cols-[1.0fr_92px_56px_88px_64px_88px_92px_100px]'
 
-function MiniStat({ label, value }: { label: string; value: string | number }) {
+function MiniStat({ label, value }: { label: string; value: string }) {
   return (
     <div className="text-center">
-      <div className="micro-label text-[8px] leading-none">{label}</div>
-      <div className="stat-number text-[13px] text-gray-300 leading-tight mt-0.5">{value}</div>
+      <div className="micro-label text-[7.5px] leading-none text-gray-700">{label}</div>
+      <div className="stat-number text-[12px] text-gray-600 leading-tight mt-0.5">{value}</div>
+    </div>
+  )
+}
+
+/** Season mini-stats (PR/G/A/VT), collapsed into a single muted note when all 4 are ND. */
+function SeasonStats({ cs }: { cs: ComputedSeasonStats | null | undefined }) {
+  const stats = formatSeasonStats(cs)
+
+  if (stats.allMissing) {
+    return (
+      <div className="flex justify-end">
+        <span className="font-mono text-[9px] text-gray-700">stats non sync.</span>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex gap-2 justify-end">
+      <MiniStat label="PR" value={stats.appearances} />
+      <MiniStat label="G" value={stats.goals} />
+      <MiniStat label="A" value={stats.assists} />
+      <MiniStat label="VT" value={stats.rating} />
     </div>
   )
 }
 
 function FinancialValue({
-  label,
   ariaLabel,
   value,
   tone = 'text-white',
+  emphasis = false,
 }: {
-  label: string
   ariaLabel: string
   value: string
   tone?: string
+  emphasis?: boolean
 }) {
   return (
     <div className="text-right">
-      <div className="micro-label text-[8px] leading-none text-gray-500">{label}</div>
-      <div className={`stat-number text-[14px] leading-tight mt-0.5 ${tone}`} aria-label={ariaLabel}>{value}</div>
+      <div
+        className={`stat-number ${emphasis ? 'text-[18px]' : 'text-[17px]'} leading-tight ${tone}`}
+        aria-label={ariaLabel}
+      >
+        {value}
+      </div>
     </div>
   )
 }
@@ -51,18 +77,19 @@ function FinancialValue({
 /**
  * Single desktop roster row (cockpit grid). Columns: player identity, salary,
  * duration, clause, rubata cost (clause + salary), season mini-stats.
- * Financial values always carry identifying labels (Axiom 9); rubata is the
- * most decision-relevant figure, rendered in accent gold.
+ * The persistent column header (RoseGiocatori) is the sole label source for
+ * the financial values — Axiom 9 is satisfied structurally by the header
+ * instead of a per-cell label (see CLAUDE.md §Assiomi UI/UX, punto 9).
+ * Rubata is the most decision-relevant figure, rendered larger in accent gold.
  */
 export function RosterTableRow({ entry, onPlayerClick, status, showQuotation }: RosterTableRowProps) {
   const { player, contract } = entry
   const clause = contract?.rescissionClause ?? null
   const rubata = clause !== null && contract ? clause + contract.salary : null
-  const cs = player.computedStats
   const hasExtra = status !== undefined || showQuotation
 
   return (
-    <div className={`grid ${hasExtra ? ROSTER_ROW_GRID_EXTRA : ROSTER_ROW_GRID_BASE} gap-2.5 items-center px-4 py-2.5 border-b border-surface-50/10 hover:bg-surface-100/60 transition-colors`}>
+    <div className={`grid ${hasExtra ? ROSTER_ROW_GRID_EXTRA : ROSTER_ROW_GRID_BASE} gap-2.5 items-center px-4 py-[11px] border-b border-surface-50/10 hover:bg-surface-100/60 transition-colors`}>
       {/* Player identity */}
       <div className="flex items-center gap-2.5 min-w-0">
         <PlayerRoleBadge position={player.position} />
@@ -109,7 +136,6 @@ export function RosterTableRow({ entry, onPlayerClick, status, showQuotation }: 
 
       {/* Salary */}
       <FinancialValue
-        label="Ing"
         ariaLabel={contract ? `Ingaggio ${contract.salary}M` : 'Nessun ingaggio'}
         value={contract ? `${contract.salary}${CREDIT_UNIT}` : '-'}
         tone={contract ? 'text-white' : 'text-gray-500'}
@@ -117,7 +143,6 @@ export function RosterTableRow({ entry, onPlayerClick, status, showQuotation }: 
 
       {/* Duration */}
       <FinancialValue
-        label="Dur"
         ariaLabel={contract ? `Durata ${contract.duration} s` : 'Nessuna durata'}
         value={contract ? `${contract.duration} s` : '-'}
         tone={contract ? 'text-white' : 'text-gray-500'}
@@ -125,7 +150,6 @@ export function RosterTableRow({ entry, onPlayerClick, status, showQuotation }: 
 
       {/* Clause */}
       <FinancialValue
-        label="Cls"
         ariaLabel={clause !== null ? `Clausola ${clause}M` : 'Nessuna clausola'}
         value={clause !== null ? `${clause}${CREDIT_UNIT}` : '-'}
         tone={clause !== null ? 'text-white' : 'text-gray-500'}
@@ -133,19 +157,14 @@ export function RosterTableRow({ entry, onPlayerClick, status, showQuotation }: 
 
       {/* Rubata cost (clause + salary) — most decision-relevant figure */}
       <FinancialValue
-        label="Rub"
         ariaLabel={rubata !== null ? `Prezzo rubata ${rubata}M` : 'Nessun prezzo rubata'}
         value={rubata !== null ? `${rubata}${CREDIT_UNIT}` : '-'}
         tone={rubata !== null ? 'text-accent-400' : 'text-gray-500'}
+        emphasis
       />
 
       {/* Season mini-stats */}
-      <div className="flex gap-2.5 justify-end">
-        <MiniStat label="PR" value={formatStat(cs?.appearances)} />
-        <MiniStat label="G" value={formatStat(cs?.totalGoals)} />
-        <MiniStat label="A" value={formatStat(cs?.totalAssists)} />
-        <MiniStat label="VT" value={formatStat(cs?.avgRating, { decimals: 1 })} />
-      </div>
+      <SeasonStats cs={player.computedStats} />
     </div>
   )
 }

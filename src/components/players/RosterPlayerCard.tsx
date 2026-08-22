@@ -1,8 +1,8 @@
 import { PlayerRoleBadge } from './PlayerRoleBadge'
 import { TeamLogo } from '@/components/ui/TeamLogo'
 import { Monogram } from '@/components/ui/Monogram'
-import { formatStat, NOT_DISPONIBILE } from '@/utils/stat-format'
-import type { RosterEntry, RosterRowStatus } from './types'
+import { formatSeasonStats, NOT_DISPONIBILE } from '@/utils/stat-format'
+import type { ComputedSeasonStats, RosterEntry, RosterRowStatus } from './types'
 
 export interface RosterPlayerCardProps {
   entry: RosterEntry
@@ -24,17 +24,52 @@ function ContractStat({ label, value, tone }: { label: string; value: string; to
   )
 }
 
+function StatCell({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="text-center flex-1">
+      <div className="micro-label text-[7.5px] leading-none text-gray-700">{label}</div>
+      <div className="stat-number text-[12px] text-gray-600 mt-0.5">{value}</div>
+    </div>
+  )
+}
+
+/**
+ * Season mini-stats (PR/G/A/VT) in a dedicated strip below the contract grid
+ * (kept out of the identity row, where they used to run together unspaced —
+ * e.g. "NDPNDGNDA" — when data was missing). Collapses into a single muted
+ * note when all 4 are ND, mirroring RosterTableRow on desktop.
+ */
+function SeasonStatsStrip({ cs }: { cs: ComputedSeasonStats | null | undefined }) {
+  const stats = formatSeasonStats(cs)
+
+  return (
+    <div className="flex mt-2 pt-2 border-t border-dashed border-surface-50/30">
+      {stats.allMissing ? (
+        <span className="mx-auto font-mono text-[9px] text-gray-700">Statistiche non sincronizzate</span>
+      ) : (
+        <div className="flex justify-between w-full">
+          <StatCell label="PR" value={stats.appearances} />
+          <StatCell label="G" value={stats.goals} />
+          <StatCell label="A" value={stats.assists} />
+          <StatCell label="VT" value={stats.rating} />
+        </div>
+      )}
+    </div>
+  )
+}
+
 /**
  * Mobile roster card (Rose / Giocatori cluster). Shown in normal flow below lg;
  * the desktop cockpit table uses RosterTableRow.
  * Financial data rendered as a 4-column cockpit grid (salary/duration/clause/
  * rubata) with rubata — the most decision-relevant figure — in accent gold.
+ * The contract grid keeps its per-cell labels (Axiom 9 in full: no persistent
+ * header sits above a card in a scrolled/virtualized list).
  */
 export function RosterPlayerCard({ entry, onPlayerClick, status, showQuotation }: RosterPlayerCardProps) {
   const { player, contract } = entry
   const clause = contract?.rescissionClause ?? null
   const rubata = clause !== null && contract ? clause + contract.salary : null
-  const cs = player.computedStats
 
   return (
     <div className="bg-surface-300/40 rounded-xl p-3 border border-surface-50/10">
@@ -53,9 +88,6 @@ export function RosterPlayerCard({ entry, onPlayerClick, status, showQuotation }
             <span className="break-words">{player.team}</span>
             <span className="font-mono">· {player.age != null ? `${player.age} anni` : NOT_DISPONIBILE}</span>
             {showQuotation && <span className="font-mono">· Quot {player.quotation}</span>}
-            <span className="ml-auto font-mono text-[10px] text-gray-500">
-              {formatStat(cs?.appearances)}P {formatStat(cs?.totalGoals)}G {formatStat(cs?.totalAssists)}A
-            </span>
           </div>
           {status !== undefined && (
             <div className="mt-1">
@@ -84,6 +116,8 @@ export function RosterPlayerCard({ entry, onPlayerClick, status, showQuotation }
       ) : (
         <div className="text-center text-gray-500 text-xs py-1">Nessun contratto</div>
       )}
+
+      <SeasonStatsStrip cs={player.computedStats} />
     </div>
   )
 }

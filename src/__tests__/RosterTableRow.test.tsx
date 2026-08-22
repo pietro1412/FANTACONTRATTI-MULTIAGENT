@@ -47,9 +47,34 @@ describe('RosterTableRow', () => {
     expect(screen.getByText(/N\.D\./)).toBeInTheDocument()
   })
 
-  it('should render missing season stats as ND, not 0 or - (Axiom 6)', () => {
+  it('should collapse season mini-stats into a muted note when all 4 are missing (Axiom 6)', () => {
     render(<RosterTableRow entry={makeEntry({ computedStats: null })} onPlayerClick={() => {}} />)
-    // PR / G / A / VT all fall back to ND when stats are absent
-    expect(screen.getAllByText('ND').length).toBeGreaterThanOrEqual(4)
+    // All 4 (PR/G/A/VT) missing collapses into a single note instead of 4 "ND" cells
+    expect(screen.getByText('stats non sync.')).toBeInTheDocument()
+    expect(screen.queryByText('ND')).not.toBeInTheDocument()
+  })
+
+  it('should show individual mini-stats, including ND for missing ones, when at least one is present (Axiom 6)', () => {
+    render(
+      <RosterTableRow
+        entry={makeEntry({
+          computedStats: {
+            season: '2025-2026',
+            appearances: 18,
+            totalMinutes: 1500,
+            avgRating: null,
+            totalGoals: 3,
+            totalAssists: 4,
+            startingXI: 15,
+            matchesInSquad: 20,
+          },
+        })}
+        onPlayerClick={() => {}}
+      />
+    )
+    expect(screen.getByText('18')).toBeInTheDocument()
+    expect(screen.getByText('3')).toBeInTheDocument()
+    expect(screen.getByText('4')).toBeInTheDocument()
+    expect(screen.getByText('ND')).toBeInTheDocument()
   })
 })

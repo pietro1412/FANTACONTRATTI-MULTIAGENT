@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Mockup — Redesign tabella Rose (prima/dopo)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=Oswald:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0a0b; --card:#1a1c20; --elev:#111214; --hover:#252830;
+    --border:#2d3139; --primary:#3b82f6; --secondary:#22c55e;
+    --gold:#f59e0b; --gold2:#fbbf24; --danger:#ef4444;
+    --t1:#f9fafb; --t2:#9ca3af; --t3:#6b7280; --t4:#4b5563;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--t1);font-family:'Inter',sans-serif;padding:40px 20px 100px;}
+  h1.page{font-family:'Outfit',sans-serif;font-size:22px;font-weight:700;text-align:center;margin-bottom:6px;}
+  p.sub{text-align:center;color:var(--t3);font-size:13px;margin:0 auto 40px;max-width:900px;line-height:1.6;}
+  .wrap{max-width:1160px;margin:0 auto;}
+  .section-label{display:flex;align-items:center;gap:10px;margin:52px 0 14px;}
+  .section-label .tag{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:4px 12px;border-radius:999px;}
+  .tag.prima{color:#fca5a5;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4);}
+  .tag.dopo{color:#86efac;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.4);}
+  .section-label .ln{flex:1;height:1px;background:var(--border);}
+  .section-label h2{font-family:'Outfit',sans-serif;font-size:16px;font-weight:700;}
+  .note{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--t3);margin:0 0 14px;line-height:1.7;}
+  .note b{color:var(--t2);}
+
+  /* ===== DESKTOP TABLE ===== */
+  .panel{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+
+  /* -- PRIMA: grid replica RosterTableRow attuale -- */
+  .thead-prima{display:grid;grid-template-columns:1.4fr 80px 64px 80px 80px 120px;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--elev);}
+  .thead-prima span{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);}
+  .thead-prima span.r{text-align:right;} .thead-prima span.c{text-align:center;}
+  .row-prima{display:grid;grid-template-columns:1.4fr 80px 64px 80px 80px 120px;gap:10px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--border);}
+  .row-prima:last-child{border-bottom:none;}
+
+  /* -- DOPO: grid ridisegnata (colonne leggermente più larghe su Ing/Cls/Rub) -- */
+  .thead-dopo{display:grid;grid-template-columns:1.35fr 88px 64px 88px 92px 100px;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--elev);}
+  .thead-dopo span{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);}
+  .thead-dopo span.r{text-align:right;} .thead-dopo span.c{text-align:center;}
+  .row-dopo{display:grid;grid-template-columns:1.35fr 88px 64px 88px 92px 100px;gap:10px;align-items:center;padding:11px 16px;border-bottom:1px solid var(--border);}
+  .row-dopo:last-child{border-bottom:none;}
+
+  .role-badge{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-weight:800;font-size:11.5px;flex-shrink:0;}
+  .role-P{background:rgba(245,158,11,.14);color:var(--gold2);border:1px solid rgba(245,158,11,.4);}
+  .role-D{background:rgba(59,130,246,.15);color:var(--primary);border:1px solid rgba(59,130,246,.4);}
+  .role-C{background:rgba(34,197,94,.14);color:var(--secondary);border:1px solid rgba(34,197,94,.4);}
+  .role-A{background:rgba(239,68,68,.15);color:var(--danger);border:1px solid rgba(239,68,68,.4);}
+  .pl{display:flex;align-items:center;gap:10px;min-width:0;}
+  .tlogo{width:16px;height:16px;border-radius:4px;background:var(--hover);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:7px;color:var(--t3);font-family:'JetBrains Mono',monospace;font-weight:700;}
+  .pl .nm{font-family:'Outfit',sans-serif;font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--t1);}
+  .pl .sb{font-size:10px;color:var(--t3);display:flex;align-items:center;gap:5px;margin-top:2px;}
+  .pl .sb .agend{color:#454b56;font-family:'JetBrains Mono',monospace;}
+
+  /* PRIMA — cella con micro-label sopra + numero */
+  .cv-prima{text-align:right;}
+  .cv-prima .lbl{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#5b6270;line-height:1;}
+  .cv-prima .val{font-family:'Oswald',sans-serif;font-size:14px;font-weight:600;color:var(--t1);margin-top:2px;font-variant-numeric:tabular-nums;}
+  .cv-prima .val.gold{color:var(--gold2);}
+  .ms-prima{display:flex;gap:9px;justify-content:flex-end;}
+  .ms-prima .cell{text-align:center;}
+  .ms-prima .lbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:#5b6270;}
+  .ms-prima .val{font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;color:#9aa1ad;margin-top:2px;}
+
+  /* DOPO — solo numero, centrato verticalmente, più grande. Header è l'unica label. */
+  .cv-dopo{text-align:right;}
+  .cv-dopo .val{font-family:'Oswald',sans-serif;font-size:17px;font-weight:600;color:var(--t1);font-variant-numeric:tabular-nums;}
+  .cv-dopo .val.gold{color:var(--gold2);font-size:18px;}
+  .ms-dopo{display:flex;gap:8px;justify-content:flex-end;}
+  .ms-dopo .cell{text-align:center;}
+  .ms-dopo .lbl{font-family:'JetBrains Mono',monospace;font-size:7.5px;color:#454b56;}
+  .ms-dopo .val{font-family:'Oswald',sans-serif;font-size:12px;font-weight:600;color:#6b7280;margin-top:1px;}
+  .ms-dopo.collapsed{justify-content:flex-end;align-items:center;}
+  .ms-dopo.collapsed .stub{font-family:'JetBrains Mono',monospace;font-size:9px;color:#454b56;font-style:normal;letter-spacing:.02em;}
+
+  /* ===== MOBILE CARDS ===== */
+  .mobile-row{display:flex;gap:22px;flex-wrap:wrap;margin-top:6px;}
+  .phone{width:340px;}
+  .phone-label{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;}
+
+  .card{background:rgba(37,40,48,.4);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px;}
+  .card-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;}
+  .card-id{flex:1;min-width:0;}
+  .card-id .nm{font-family:'Outfit',sans-serif;font-weight:700;font-size:14px;color:var(--t1);}
+  .card-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:10.5px;color:var(--t3);margin-top:3px;}
+  .card-meta .agend{font-family:'JetBrains Mono',monospace;color:#454b56;}
+
+  /* PRIMA mobile — stat run-on bug (NDP NDG NDA) */
+  .card-meta .statrun{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;color:#5b6270;}
+
+  .contract-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+  .cstat{background:rgba(26,28,32,.6);border-radius:9px;padding:7px 4px;text-align:center;}
+  .cstat .lbl{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#5b6270;}
+  .cstat .val{font-family:'Oswald',sans-serif;font-size:14px;font-weight:600;color:var(--t1);margin-top:3px;}
+  .cstat .val.gold{color:var(--gold2);}
+
+  /* DOPO mobile — riga mini-stat dedicata sotto, coerente col desktop */
+  .stat-strip{display:flex;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);}
+  .stat-strip .cell{text-align:center;flex:1;}
+  .stat-strip .lbl{font-family:'JetBrains Mono',monospace;font-size:7.5px;color:#454b56;}
+  .stat-strip .val{font-family:'Oswald',sans-serif;font-size:12px;font-weight:600;color:#6b7280;margin-top:2px;}
+  .stat-strip.collapsed{justify-content:center;}
+  .stat-strip.collapsed .stub{font-family:'JetBrains Mono',monospace;font-size:9px;color:#454b56;}
+
+  .callout{display:inline-flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:9.5px;color:#fca5a5;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.35);border-radius:6px;padding:3px 8px;margin-top:6px;}
+  .callout.good{color:#86efac;background:rgba(34,197,94,.1);border-color:rgba(34,197,94,.35);}
+
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:10px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--t3);}
+  .legend b{color:var(--t2);}
+</style>
+</head>
+<body>
+
+<h1 class="page">Redesign tabella Rose — Prima / Dopo</h1>
+<p class="sub">
+  Confronto diretto sui componenti condivisi <b>RosterTableRow</b> (riga desktop) e <b>RosterPlayerCard</b> (card mobile), usati sia in Rose sia in "Tutti i giocatori".
+  Dati reali: Barella (Inter, C, 29a) con statistiche parzialmente disponibili; Leao (Milan, A, 26a) e Falcone (Lecce, P, N.D.) con statistiche non sincronizzate (ND) — il caso più frequente nel DB attuale.
+</p>
+
+<div class="wrap">
+
+  <!-- ============ DESKTOP ============ -->
+  <div class="section-label"><span class="tag prima">Prima</span><span class="ln"></span><h2>Riga desktop — oggi</h2></div>
+  <p class="note">Ogni cella ripete una micro-label (<b>Ing / Dur / Cls / Rub</b>) identica all'header colonna sovrastante. Le 4 mini-statistiche hanno lo stesso peso visivo dei dati contrattuali, anche quando sono tutte "ND".</p>
+  <div class="panel">
+    <div class="thead-prima">
+      <span>Giocatore</span><span class="r">Ingaggio</span><span class="r">Durata</span><span class="r">Clausola</span><span class="r">Rubata</span><span class="c">Rendimento</span>
+    </div>
+
+    <div class="row-prima">
+      <div class="pl"><div class="role-badge role-C">C</div><div><div class="nm">Nicolò Barella</div><div class="sb"><span class="tlogo">INT</span>Inter · 29 anni</div></div></div>
+      <div class="cv-prima"><div class="lbl">Ing</div><div class="val">3M</div></div>
+      <div class="cv-prima"><div class="lbl">Dur</div><div class="val">3 s</div></div>
+      <div class="cv-prima"><div class="lbl">Cls</div><div class="val">27M</div></div>
+      <div class="cv-prima"><div class="lbl">Rub</div><div class="val gold">30M</div></div>
+      <div class="ms-prima">
+        <div class="cell"><div class="lbl">PR</div><div class="val">18</div></div>
+        <div class="cell"><div class="lbl">G</div><div class="val">3</div></div>
+        <div class="cell"><div class="lbl">A</div><div class="val">4</div></div>
+        <div class="cell"><div class="lbl">VT</div><div class="val">6.7</div></div>
+      </div>
+    </div>
+
+    <div class="row-prima">
+      <div class="pl"><div class="role-badge role-A">A</div><div><div class="nm">Rafael Leão</div><div class="sb"><span class="tlogo">MIL</span>Milan · 26 anni</div></div></div>
+      <div class="cv-prima"><div class="lbl">Ing</div><div class="val">3M</div></div>
+      <div class="cv-prima"><div class="lbl">Dur</div><div class="val">3 s</div></div>
+      <div class="cv-prima"><div class="lbl">Cls</div><div class="val">27M</div></div>
+      <div class="cv-prima"><div class="lbl">Rub</div><div class="val gold">30M</div></div>
+      <div class="ms-prima">
+        <div class="cell"><div class="lbl">PR</div><div class="val">ND</div></div>
+        <div class="cell"><div class="lbl">G</div><div class="val">ND</div></div>
+        <div class="cell"><div class="lbl">A</div><div class="val">ND</div></div>
+        <div class="cell"><div class="lbl">VT</div><div class="val">ND</div></div>
+      </div>
+    </div>
+
+    <div class="row-prima">
+      <div class="pl"><div class="role-badge role-P">P</div><div><div class="nm">Wladimiro Falcone</div><div class="sb"><span class="tlogo">LEC</span>Lecce · <span class="agend">N.D.</span></div></div></div>
+      <div class="cv-prima"><div class="lbl">Ing</div><div class="val">1M</div></div>
+      <div class="cv-prima"><div class="lbl">Dur</div><div class="val">3 s</div></div>
+      <div class="cv-prima"><div class="lbl">Cls</div><div class="val">9M</div></div>
+      <div class="cv-prima"><div class="lbl">Rub</div><div class="val gold">10M</div></div>
+      <div class="ms-prima">
+        <div class="cell"><div class="lbl">PR</div><div class="val">ND</div></div>
+        <div class="cell"><div class="lbl">G</div><div class="val">ND</div></div>
+        <div class="cell"><div class="lbl">A</div><div class="val">ND</div></div>
+        <div class="cell"><div class="lbl">VT</div><div class="val">ND</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label"><span class="tag dopo">Dopo</span><span class="ln"></span><h2>Riga desktop — proposta</h2></div>
+  <p class="note">Label per-cella rimosse: <b>l'header colonna sortabile è l'unica fonte del label</b> (Assioma 9 soddisfatto strutturalmente). Il numero diventa l'elemento dominante (+3px), Rubata ancora più marcata. Quando tutte le mini-stat sono ND, collassano in un'unica dicitura muted invece di 4 riquadri "ND".</p>
+  <div class="panel">
+    <div class="thead-dopo">
+      <span>Giocatore</span><span class="r">Ingaggio</span><span class="r">Durata</span><span class="r">Clausola</span><span class="r">Rubata</span><span class="c">Rendimento</span>
+    </div>
+
+    <div class="row-dopo">
+      <div class="pl"><div class="role-badge role-C">C</div><div><div class="nm">Nicolò Barella</div><div class="sb"><span class="tlogo">INT</span>Inter · 29 anni</div></div></div>
+      <div class="cv-dopo"><div class="val">3M</div></div>
+      <div class="cv-dopo"><div class="val">3 s</div></div>
+      <div class="cv-dopo"><div class="val">27M</div></div>
+      <div class="cv-dopo"><div class="val gold">30M</div></div>
+      <div class="ms-dopo">
+        <div class="cell"><div class="lbl">PR</div><div class="val">18</div></div>
+        <div class="cell"><div class="lbl">G</div><div class="val">3</div></div>
+        <div class="cell"><div class="lbl">A</div><div class="val">4</div></div>
+        <div class="cell"><div class="lbl">VT</div><div class="val">6.7</div></div>
+      </div>
+    </div>
+
+    <div class="row-dopo">
+      <div class="pl"><div class="role-badge role-A">A</div><div><div class="nm">Rafael Leão</div><div class="sb"><span class="tlogo">MIL</span>Milan · 26 anni</div></div></div>
+      <div class="cv-dopo"><div class="val">3M</div></div>
+      <div class="cv-dopo"><div class="val">3 s</div></div>
+      <div class="cv-dopo"><div class="val">27M</div></div>
+      <div class="cv-dopo"><div class="val gold">30M</div></div>
+      <div class="ms-dopo collapsed"><span class="stub">stats non sync.</span></div>
+    </div>
+
+    <div class="row-dopo">
+      <div class="pl"><div class="role-badge role-P">P</div><div><div class="nm">Wladimiro Falcone</div><div class="sb"><span class="tlogo">LEC</span>Lecce · <span class="agend">N.D.</span></div></div></div>
+      <div class="cv-dopo"><div class="val">1M</div></div>
+      <div class="cv-dopo"><div class="val">3 s</div></div>
+      <div class="cv-dopo"><div class="val">9M</div></div>
+      <div class="cv-dopo"><div class="val gold">10M</div></div>
+      <div class="ms-dopo collapsed"><span class="stub">stats non sync.</span></div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <span><b>Invariato:</b> ordine colonne, sort per header, badge ruolo, gold solo su Rubata, N.D. su età bassa enfasi</span>
+    <span><b>Cambiato:</b> label per-cella → header-only, numero +3px, mini-stat collassate se tutte ND</span>
+  </div>
+
+  <!-- ============ MOBILE ============ -->
+  <div class="section-label" style="margin-top:64px;"><span class="tag prima">Prima</span><span class="ln"></span><h2>Card mobile — oggi</h2></div>
+  <p class="note">Il rendimento (P/G/A) è incollato nella riga anagrafica senza separatore: con dati ND il risultato è <b>"NDPNDGNDA"</b> — illeggibile. Il voto (VT) non è mostrato affatto su mobile, a differenza del desktop.</p>
+  <div class="mobile-row">
+
+    <div class="phone">
+      <div class="phone-label">Barella — statistiche parziali disponibili</div>
+      <div class="card">
+        <div class="card-top">
+          <div class="role-badge role-C">C</div>
+          <div class="card-id">
+            <div class="nm">Nicolò Barella</div>
+            <div class="card-meta"><span class="tlogo">INT</span>Inter <span class="agend">· 29 anni</span><span class="statrun">18P 3G 4A</span></div>
+          </div>
+        </div>
+        <div class="contract-grid">
+          <div class="cstat"><div class="lbl">Ing</div><div class="val">3M</div></div>
+          <div class="cstat"><div class="lbl">Dur</div><div class="val">3 s</div></div>
+          <div class="cstat"><div class="lbl">Cls</div><div class="val">27M</div></div>
+          <div class="cstat"><div class="lbl">Rub</div><div class="val gold">30M</div></div>
+        </div>
+      </div>
+      <div class="callout">⚠ voto (VT) assente su mobile, presente su desktop</div>
+    </div>
+
+    <div class="phone">
+      <div class="phone-label">Leão — statistiche non sincronizzate</div>
+      <div class="card">
+        <div class="card-top">
+          <div class="role-badge role-A">A</div>
+          <div class="card-id">
+            <div class="nm">Rafael Leão</div>
+            <div class="card-meta"><span class="tlogo">MIL</span>Milan <span class="agend">· 26 anni</span><span class="statrun">NDPNDGNDA</span></div>
+          </div>
+        </div>
+        <div class="contract-grid">
+          <div class="cstat"><div class="lbl">Ing</div><div class="val">3M</div></div>
+          <div class="cstat"><div class="lbl">Dur</div><div class="val">3 s</div></div>
+          <div class="cstat"><div class="lbl">Cls</div><div class="val">27M</div></div>
+          <div class="cstat"><div class="lbl">Rub</div><div class="val gold">30M</div></div>
+        </div>
+      </div>
+      <div class="callout">⚠ bug reale: formatStat('ND') + 'P' senza spazio → "NDPNDGNDA"</div>
+    </div>
+
+    <div class="phone">
+      <div class="phone-label">Falcone — età e statistiche non disponibili</div>
+      <div class="card">
+        <div class="card-top">
+          <div class="role-badge role-P">P</div>
+          <div class="card-id">
+            <div class="nm">Wladimiro Falcone</div>
+            <div class="card-meta"><span class="tlogo">LEC</span>Lecce <span class="agend">· N.D.</span><span class="statrun">NDPNDGNDA</span></div>
+          </div>
+        </div>
+        <div class="contract-grid">
+          <div class="cstat"><div class="lbl">Ing</div><div class="val">1M</div></div>
+          <div class="cstat"><div class="lbl">Dur</div><div class="val">3 s</div></div>
+          <div class="cstat"><div class="lbl">Cls</div><div class="val">9M</div></div>
+          <div class="cstat"><div class="lbl">Rub</div><div class="val gold">10M</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label"><span class="tag dopo">Dopo</span><span class="ln"></span><h2>Card mobile — proposta</h2></div>
+  <p class="note">Griglia contratto con label <b>invariata</b> (già conforme all'Assioma 9: nessun header persistente sopra una card in lista scrollata/virtualizzata). Le mini-statistiche escono dalla riga anagrafica e diventano una riga dedicata sotto il contratto, identica al desktop (stesse 4 sigle, stesso collasso se tutte ND) — coerenza totale fra le due viste, bug di concatenazione risolto.</p>
+  <div class="mobile-row">
+
+    <div class="phone">
+      <div class="phone-label">Barella — statistiche parziali disponibili</div>
+      <div class="card">
+        <div class="card-top">
+          <div class="role-badge role-C">C</div>
+          <div class="card-id">
+            <div class="nm">Nicolò Barella</div>
+            <div class="card-meta"><span class="tlogo">INT</span>Inter <span class="agend">· 29 anni</span></div>
+          </div>
+        </div>
+        <div class="contract-grid">
+          <div class="cstat"><div class="lbl">Ing</div><div class="val">3M</div></div>
+          <div class="cstat"><div class="lbl">Dur</div><div class="val">3 s</div></div>
+          <div class="cstat"><div class="lbl">Cls</div><div class="val">27M</div></div>
+          <div class="cstat"><div class="lbl">Rub</div><div class="val gold">30M</div></div>
+        </div>
+        <div class="stat-strip">
+          <div class="cell"><div class="lbl">PR</div><div class="val">18</div></div>
+          <div class="cell"><div class="lbl">G</div><div class="val">3</div></div>
+          <div class="cell"><div class="lbl">A</div><div class="val">4</div></div>
+          <div class="cell"><div class="lbl">VT</div><div class="val">6.7</div></div>
+        </div>
+      </div>
+      <div class="callout good">✓ VT ora presente anche su mobile</div>
+    </div>
+
+    <div class="phone">
+      <div class="phone-label">Leão — statistiche non sincronizzate</div>
+      <div class="card">
+        <div class="card-top">
+          <div class="role-badge role-A">A</div>
+          <div class="card-id">
+            <div class="nm">Rafael Leão</div>
+            <div class="card-meta"><span class="tlogo">MIL</span>Milan <span class="agend">· 26 anni</span></div>
+          </div>
+        </div>
+        <div class="contract-grid">
+          <div class="cstat"><div class="lbl">Ing</div><div class="val">3M</div></div>
+          <div class="cstat"><div class="lbl">Dur</div><div class="val">3 s</div></div>
+          <div class="cstat"><div class="lbl">Cls</div><div class="val">27M</div></div>
+          <div class="cstat"><div class="lbl">Rub</div><div class="val gold">30M</div></div>
+        </div>
+        <div class="stat-strip collapsed"><span class="stub">Statistiche non sincronizzate</span></div>
+      </div>
+      <div class="callout good">✓ bug "NDPNDGNDA" risolto</div>
+    </div>
+
+    <div class="phone">
+      <div class="phone-label">Falcone — età e statistiche non disponibili</div>
+      <div class="card">
+        <div class="card-top">
+          <div class="role-badge role-P">P</div>
+          <div class="card-id">
+            <div class="nm">Wladimiro Falcone</div>
+            <div class="card-meta"><span class="tlogo">LEC</span>Lecce <span class="agend">· N.D.</span></div>
+          </div>
+        </div>
+        <div class="contract-grid">
+          <div class="cstat"><div class="lbl">Ing</div><div class="val">1M</div></div>
+          <div class="cstat"><div class="lbl">Dur</div><div class="val">3 s</div></div>
+          <div class="cstat"><div class="lbl">Cls</div><div class="val">9M</div></div>
+          <div class="cstat"><div class="lbl">Rub</div><div class="val gold">10M</div></div>
+        </div>
+        <div class="stat-strip collapsed"><span class="stub">Statistiche non sincronizzate</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <span><b>Invariato:</b> griglia contratto a 4 celle con label, tono gold su Rubata, nome cliccabile</span>
+    <span><b>Cambiato:</b> mini-stat spostate in riga dedicata, VT aggiunto, collasso "non sincronizzate" se tutte ND, bug concatenazione risolto</span>
+  </div>
+
+</div>
+</body>
+</html>
