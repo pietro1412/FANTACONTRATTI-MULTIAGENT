@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { historyApi, leagueApi } from '../services/api'
 import { Navigation } from '../components/Navigation'
 import { SessionView } from '../components/history/SessionView'
@@ -42,6 +42,53 @@ interface PlayerInfo {
   isActive: boolean
 }
 
+interface SeasonTotals {
+  season: number
+  label: string
+  sessionsCount: number
+  auctions: number
+  movements: number
+  trades: number
+  prizes: number
+}
+
+/**
+ * Aggrega le sessioni per stagione sportiva (Assioma 5 — CLAUDE.md §Assiomi UI/UX):
+ * i due semestri di un campionato condividono lo stesso campo `season` (Int) sul
+ * MarketSession, quindi raggrupparle per `season` produce già l'aggregazione
+ * corretta a cavallo dell'anno solare (es. "2025-2026").
+ * Stessa convenzione di formattazione di TimelineView.tsx: baseYear = 24 + season.
+ */
+function computeSeasonTotals(sessions: SessionSummary[]): SeasonTotals[] {
+  const bySeasons = new Map<number, SeasonTotals>()
+
+  for (const session of sessions) {
+    const baseYear = 24 + session.season
+    const label = `${2000 + baseYear}-${2000 + baseYear + 1}`
+    const existing = bySeasons.get(session.season)
+
+    if (existing) {
+      existing.sessionsCount += 1
+      existing.auctions += session.counts.auctions
+      existing.movements += session.counts.movements
+      existing.trades += session.counts.trades
+      existing.prizes += session.counts.prizes
+    } else {
+      bySeasons.set(session.season, {
+        season: session.season,
+        label,
+        sessionsCount: 1,
+        auctions: session.counts.auctions,
+        movements: session.counts.movements,
+        trades: session.counts.trades,
+        prizes: session.counts.prizes,
+      })
+    }
+  }
+
+  return [...bySeasons.values()].sort((a, b) => b.season - a.season)
+}
+
 export function History({ leagueId, onNavigate }: HistoryProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [viewMode, setViewMode] = useState<'sessions' | 'timeline'>('sessions')
@@ -53,6 +100,8 @@ export function History({ leagueId, onNavigate }: HistoryProps) {
   const [isSearching, setIsSearching] = useState(false)
   const [error, setError] = useState('')
   const [isLeagueAdmin, setIsLeagueAdmin] = useState(false)
+
+  const seasonTotals = useMemo(() => computeSeasonTotals(sessions), [sessions])
 
   useEffect(() => {
     void loadData()
@@ -262,6 +311,27 @@ export function History({ leagueId, onNavigate }: HistoryProps) {
             </div>
           </div>
         </div>
+
+        {/* Totali per Stagione Sportiva (Assioma 5: i due semestri di un campionato
+            sono a cavallo dell'anno solare, quindi si aggregano insieme) */}
+        {seasonTotals.length > 0 && !selectedPlayer && (
+          <div className="bg-surface-200 rounded-xl border border-surface-50/20 p-4 mb-6">
+            <h2 className="text-sm font-semibold text-gray-300 mb-3 uppercase tracking-wide">Totali per Stagione Sportiva</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {seasonTotals.map(st => (
+                <div key={st.season} className="bg-surface-300/50 rounded-lg p-3">
+                  <p className="text-white font-bold mb-2">{st.label}</p>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                    <span className="text-gray-400">Aste <span className="text-white font-medium">{st.auctions}</span></span>
+                    <span className="text-gray-400">Scambi <span className="text-white font-medium">{st.trades}</span></span>
+                    <span className="text-gray-400">Movimenti <span className="text-white font-medium">{st.movements}</span></span>
+                    <span className="text-gray-400">Premi <span className="text-white font-medium">{st.prizes}</span></span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Player Career Panel (when player is selected) */}
         {selectedPlayer && (
