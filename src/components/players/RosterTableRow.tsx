@@ -16,9 +16,16 @@ export interface RosterTableRowProps {
 const CREDIT_UNIT = 'M'
 
 /** Base grid (Rose: identity + age + 4 contract fields + stats). */
-export const ROSTER_ROW_GRID_BASE = 'grid-cols-[1.3fr_52px_88px_64px_88px_92px_100px]'
+export const ROSTER_ROW_GRID_BASE = 'grid-cols-[1.3fr_60px_88px_64px_88px_92px_100px]'
 /** Extended grid with age + status + quotation columns ("Tutti i giocatori" tab). */
-export const ROSTER_ROW_GRID_EXTRA = 'grid-cols-[0.95fr_52px_92px_56px_88px_64px_88px_92px_100px]'
+export const ROSTER_ROW_GRID_EXTRA = 'grid-cols-[0.95fr_60px_92px_56px_88px_64px_88px_92px_100px]'
+/**
+ * Shared column gap for both grids above — kept as one constant so the header
+ * row (RoseGiocatori) and the data rows never drift apart. Wider than the
+ * previous gap-2.5 (10px) to give tight neighboring columns (e.g. Età →
+ * Stato) visible breathing room instead of reading as glued together.
+ */
+export const ROSTER_ROW_GAP = 'gap-3.5'
 
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (
@@ -92,7 +99,7 @@ export function RosterTableRow({ entry, onPlayerClick, status, showQuotation }: 
   const hasExtra = status !== undefined || showQuotation
 
   return (
-    <div className={`grid ${hasExtra ? ROSTER_ROW_GRID_EXTRA : ROSTER_ROW_GRID_BASE} gap-2.5 items-center px-4 py-[11px] border-b border-surface-50/10 hover:bg-surface-100/60 transition-colors`}>
+    <div className={`grid ${hasExtra ? ROSTER_ROW_GRID_EXTRA : ROSTER_ROW_GRID_BASE} ${ROSTER_ROW_GAP} items-center px-4 py-[11px] border-b border-surface-50/10 hover:bg-surface-100/60 transition-colors`}>
       {/* Player identity: photo (with role badge) + team crest, same size, then name alone */}
       <div className="flex items-center gap-2.5 min-w-0">
         <div className="flex items-center gap-1.5 flex-shrink-0">
