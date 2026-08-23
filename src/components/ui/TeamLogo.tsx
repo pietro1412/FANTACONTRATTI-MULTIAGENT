@@ -16,13 +16,15 @@ const SIZES = {
 /**
  * Single shared Serie A team logo (consolidates the previous duplicated
  * implementations in Rose, Contracts and rubata). Renders the crest on a
- * theme surface tile — no glassmorphism — and hides itself gracefully when the
- * logo fails to load.
+ * fixed near-white tile — never a theme dark surface — so every crest stays
+ * legible regardless of its own colors (dark crests like Juventus' black
+ * stripes disappear against dark surfaces otherwise). No glassmorphism, and
+ * hides itself gracefully when the logo fails to load.
  */
 export function TeamLogo({ team, size = 'sm', className = '' }: TeamLogoProps) {
   return (
     <span
-      className={`${SIZES[size]} flex items-center justify-center rounded bg-surface-100 p-0.5 flex-shrink-0 ${className}`}
+      className={`${SIZES[size]} flex items-center justify-center rounded bg-gray-50 p-0.5 flex-shrink-0 ${className}`}
     >
       <img
         src={getTeamLogo(team)}
