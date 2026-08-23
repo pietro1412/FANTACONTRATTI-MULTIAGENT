@@ -1236,10 +1236,10 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                       {/* Contract / stats chips */}
                       {!isSvincolato && (dataViewMode === 'contracts' || dataViewMode === 'merge') && (
                         <div className="grid grid-cols-4 gap-1.5 text-center mb-2">
-                          <StatChip label="Ing." value={`${player.contractSalary}`} className="text-accent-400" />
-                          <StatChip label="Dur." value={`${player.contractDuration}`} className="text-gray-300" />
-                          <StatChip label="Cls" value={`${player.contractClause}`} className="text-passion-400" />
-                          <StatChip label="Rub." value={`${player.rubataPrice}`} className="text-warning-400" />
+                          <StatChip label="Ing." value={`${player.contractSalary}M`} className="text-accent-400" />
+                          <StatChip label="Dur." value={`${player.contractDuration} s`} className="text-gray-300" />
+                          <StatChip label="Cls" value={`${player.contractClause}M`} className="text-passion-400" />
+                          <StatChip label="Rub." value={`${player.rubataPrice}M`} className="text-warning-400" />
                         </div>
                       )}
                       {(dataViewMode === 'stats' || dataViewMode === 'merge') && (
