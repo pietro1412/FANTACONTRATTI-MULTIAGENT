@@ -14,7 +14,6 @@ import { PlayerStatsModal, type PlayerInfo } from '@/components/PlayerStatsModal
 import { ShareButton } from '@/components/ShareButton'
 import { getTeamLogo } from '@/utils/teamLogos'
 import { POSITION_FILTER_COLORS } from '@/components/ui/PositionBadge'
-import { PlayerRoleBadge } from '@/components/players/PlayerRoleBadge'
 import { PlayerPhoto } from '@/components/players/PlayerPhoto'
 import { PlayerRoleFilter } from '@/components/players/PlayerRoleFilter'
 import { TeamLogo } from '@/components/ui/TeamLogo'
@@ -1332,7 +1331,7 @@ export function RoseGiocatori({ onNavigate, initialView = 'rose', initialTeamFil
               <tr>
                 <th
                   scope="col"
-                  className="sticky left-0 top-0 z-20 bg-surface-300 text-left min-w-[200px] px-3 py-2.5 border-b border-surface-50 cursor-pointer"
+                  className="sticky left-0 top-0 z-20 bg-surface-300 text-left min-w-[230px] px-3 py-2.5 border-b border-surface-50 cursor-pointer"
                   onClick={() => { handleStatsSort('name'); }}
                 >
                   <span className={`micro-label text-[9px] ${statsSortBy === 'name' ? 'text-accent-400' : ''}`}>
@@ -1378,20 +1377,17 @@ export function RoseGiocatori({ onNavigate, initialView = 'rose', initialTeamFil
                           onClick={(e) => { e.stopPropagation(); }}
                           aria-label={`Seleziona ${player.name} per il confronto`}
                         />
-                        <PlayerRoleBadge position={player.position} size="sm" />
-                        <div className="min-w-0">
-                          <button
-                            type="button"
-                            onClick={() => { openStatsPlayerStats(player); }}
-                            className="block font-display font-bold text-[13px] text-white leading-tight truncate text-left hover:text-primary-400 transition-colors max-w-[150px]"
-                          >
-                            {player.name}
-                          </button>
-                          <span className="flex items-center gap-1.5 text-[10px] text-gray-500 mt-0.5">
-                            <TeamLogo team={player.team} size="xs" />
-                            <span className="truncate">{player.team}</span>
-                          </span>
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          <PlayerPhoto apiFootballId={player.apiFootballId} name={player.name} position={player.position} size="sm" showRoleBadge />
+                          <TeamLogo team={player.team} size="md" />
                         </div>
+                        <button
+                          type="button"
+                          onClick={() => { openStatsPlayerStats(player); }}
+                          className="font-display font-bold text-[13px] text-white leading-tight truncate block text-left min-w-0 hover:text-primary-400 transition-colors max-w-[150px]"
+                        >
+                          {player.name}
+                        </button>
                       </div>
                     </td>
                     <td className="text-right px-2.5 py-2 border-b border-surface-50/10 stat-number text-sm text-white">
@@ -1438,7 +1434,10 @@ export function RoseGiocatori({ onNavigate, initialView = 'rose', initialTeamFil
                     onChange={() => { statsTogglePlayerForCompare(player.id); }}
                     aria-label={`Seleziona ${player.name} per il confronto`}
                   />
-                  <PlayerRoleBadge position={player.position} size="sm" />
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <PlayerPhoto apiFootballId={player.apiFootballId} name={player.name} position={player.position} size="sm" showRoleBadge />
+                    <TeamLogo team={player.team} size="md" />
+                  </div>
                   <div className="min-w-0 flex-1">
                     <button
                       type="button"
@@ -1447,10 +1446,6 @@ export function RoseGiocatori({ onNavigate, initialView = 'rose', initialTeamFil
                     >
                       {player.name}
                     </button>
-                    <span className="flex items-center gap-1.5 text-[11px] text-gray-500 mt-0.5">
-                      <TeamLogo team={player.team} size="xs" />
-                      <span className="truncate">{player.team}</span>
-                    </span>
                   </div>
                   <div className="text-right flex-shrink-0">
                     <span className="micro-label text-[8px] text-gray-500 block">Quot</span>
