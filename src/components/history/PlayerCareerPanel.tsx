@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { historyApi } from '../../services/api'
 import { PlayerName } from '@/components/players/PlayerName'
 import { POSITION_FILTER_COLORS } from '@/components/ui/PositionBadge'
+import { ContractInline } from '@/components/ui/ContractInline'
 
 interface PlayerCareerPanelProps {
   leagueId: string
@@ -170,14 +171,13 @@ export function PlayerCareerPanel({ leagueId, playerId, playerName, onClose }: P
             {career.currentOwner.contract && (
               <div className="text-right">
                 <p className="text-sm text-gray-400">Contratto</p>
-                <p className="font-medium text-primary-400">
-                  {career.currentOwner.contract.salary}M / {career.currentOwner.contract.duration}a
-                </p>
-                {career.currentOwner.contract.rescissionClause && (
-                  <p className="text-xs text-yellow-500">
-                    RC: {career.currentOwner.contract.rescissionClause}M
-                  </p>
-                )}
+                <ContractInline
+                  salary={career.currentOwner.contract.salary}
+                  duration={career.currentOwner.contract.duration}
+                  clause={career.currentOwner.contract.rescissionClause}
+                  variant="compact"
+                  className="justify-end"
+                />
               </div>
             )}
           </div>
@@ -288,19 +288,26 @@ export function PlayerCareerPanel({ leagueId, playerId, playerName, onClose }: P
 
                         {/* Contract Change */}
                         {(event.oldContract || event.newContract) && (
-                          <div className="text-xs text-gray-500 mt-1">
+                          <div className="flex items-center gap-1 mt-1">
                             {event.oldContract && (
-                              <span>
-                                {event.oldContract.salary}M/{event.oldContract.duration}a
-                              </span>
+                              <ContractInline
+                                salary={event.oldContract.salary}
+                                duration={event.oldContract.duration}
+                                clause={event.oldContract.clause}
+                                variant="compact"
+                              />
                             )}
                             {event.oldContract && event.newContract && (
-                              <span className="mx-1">→</span>
+                              <span className="text-gray-500 mx-1">→</span>
                             )}
                             {event.newContract && (
-                              <span className="text-primary-400">
-                                {event.newContract.salary}M/{event.newContract.duration}a
-                              </span>
+                              <ContractInline
+                                salary={event.newContract.salary}
+                                duration={event.newContract.duration}
+                                clause={event.newContract.clause}
+                                variant="compact"
+                                className="text-primary-400"
+                              />
                             )}
                           </div>
                         )}

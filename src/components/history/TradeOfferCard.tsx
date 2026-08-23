@@ -1,4 +1,5 @@
 import { POSITION_FILTER_COLORS } from '@/components/ui/PositionBadge'
+import { ContractInline } from '@/components/ui/ContractInline'
 
 interface TradeOfferCardProps {
   trade: {
@@ -172,12 +173,13 @@ function PlayerRow({ player }: {
         <span className="text-xs text-gray-500">{player.team}</span>
       </div>
       {player.contract && (
-        <div className="text-xs text-gray-400">
-          {player.contract.salary}M / {player.contract.duration}a
-          {player.contract.rescissionClause && (
-            <span className="ml-1 text-yellow-500">RC:{player.contract.rescissionClause}M</span>
-          )}
-        </div>
+        <ContractInline
+          salary={player.contract.salary}
+          duration={player.contract.duration}
+          clause={player.contract.rescissionClause}
+          variant="compact"
+          className="text-xs text-gray-400"
+        />
       )}
     </div>
   )

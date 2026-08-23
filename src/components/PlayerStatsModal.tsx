@@ -417,14 +417,13 @@ export function PlayerStatsModal({ isOpen, onClose, player, leagueId, leaguePlay
                 {career.currentOwner?.contract && (
                   <div className="text-right">
                     <div className="micro-label text-gray-500 mb-1">Contratto</div>
-                    <div className="font-mono font-semibold text-primary-400">
-                      {career.currentOwner.contract.salary}M / {career.currentOwner.contract.duration}a
-                    </div>
-                    {career.currentOwner.contract.rescissionClause != null && (
-                      <div className="text-xs text-accent-400 font-mono">
-                        RC: {career.currentOwner.contract.rescissionClause}M
-                      </div>
-                    )}
+                    <ContractInline
+                      salary={career.currentOwner.contract.salary}
+                      duration={career.currentOwner.contract.duration}
+                      clause={career.currentOwner.contract.rescissionClause}
+                      variant="compact"
+                      className="justify-end text-primary-400"
+                    />
                   </div>
                 )}
               </div>
