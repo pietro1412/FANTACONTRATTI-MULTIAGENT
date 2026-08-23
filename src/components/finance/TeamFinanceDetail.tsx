@@ -5,6 +5,7 @@ import { WaterfallChart } from './WaterfallChart'
 import { ContractExpiryGantt } from './ContractExpiryGantt'
 import { KPICard } from './KPICard'
 import { PlayerName } from '@/components/players/PlayerName'
+import { ContractInline } from '@/components/ui/ContractInline'
 import { NOT_DISPONIBILE } from '@/utils/stat-format'
 import {
   type TeamData, type FinancialsData,
@@ -253,8 +254,7 @@ export function TeamFinanceDetail({ team, data, leagueId, onBack, onNavigateToPl
                       className="text-xs font-medium"
                     />
                   </span>
-                  <span className="text-[10px] text-gray-500">{player.salary}M x{player.duration}</span>
-                  <span className="text-[10px] text-gray-500">cl.{player.clause}</span>
+                  <ContractInline salary={player.salary} duration={player.duration} clause={player.clause} variant="compact" className="text-[10px] text-gray-500" />
                   <div className="w-20 h-3 bg-surface-100/30 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-accent-500/60 rounded-full"

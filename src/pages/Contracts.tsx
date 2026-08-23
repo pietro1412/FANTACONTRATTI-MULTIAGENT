@@ -12,6 +12,7 @@ import { RenewalItem } from '@/components/contracts/RenewalItem'
 import { PendingItem } from '@/components/contracts/PendingItem'
 import { ExitedCard } from '@/components/contracts/ExitedCard'
 import { RoleBadge, TeamLogo, getRoleStyle, getRoleAccentText, MAX_ROSTER_SIZE, type ContractPlayer } from '@/components/contracts/shared'
+import { ContractInline } from '@/components/ui/ContractInline'
 import haptic from '@/utils/haptics'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import { GLOSSARY } from '@/components/help/Glossary'
@@ -994,7 +995,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                     <RoleBadge position={player.playerPosition} size="sm" />
                     <div className="w-6 h-6 bg-white rounded p-0.5 flex-shrink-0"><TeamLogo team={player.playerTeam} /></div>
                     <span className="font-display font-bold text-sm text-gray-400 line-through flex-1 truncate">{player.playerName}</span>
-                    <span className="stat-number text-sm text-gray-500">{player.salary}×{player.duration}</span>
+                    <ContractInline salary={player.salary} duration={player.duration} variant="compact" className="text-gray-500" />
                     <span className="stat-number text-sm text-danger-400 w-16 text-right">−{player.releaseCost}M</span>
                     <span className="font-mono text-[9.5px] w-24 text-right">
                       {player.releaseType === 'RELEASE_ESTERO' && player.indemnityAmount

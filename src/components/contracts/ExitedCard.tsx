@@ -1,4 +1,5 @@
 import { RoleBadge, TeamLogo, type ContractPlayer } from './shared'
+import { ContractInline } from '@/components/ui/ContractInline'
 
 export interface ExitedCardProps {
   player: ContractPlayer
@@ -74,7 +75,7 @@ export function ExitedCard({
       <div className="flex gap-5 mb-3">
         <div>
           <div className="micro-label">Contratto</div>
-          <div className="stat-number text-base text-white">{salary}×{duration}</div>
+          <ContractInline salary={salary} duration={duration} variant="compact" />
         </div>
         <div>
           <div className="micro-label">{isEstero ? 'Indennizzo se tieni' : 'Rilascio'}</div>

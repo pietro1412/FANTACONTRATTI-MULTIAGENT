@@ -1,6 +1,7 @@
 import { PositionBadge } from '@/components/ui/PositionBadge'
 import { Monogram } from '@/components/ui/Monogram'
 import { AmountStepper } from '@/components/ui/AmountStepper'
+import { ContractInline } from '@/components/ui/ContractInline'
 import { getTeamLogo } from '@/utils/teamLogos'
 
 interface IndemnityPlayer {
@@ -120,7 +121,9 @@ export function IndemnityTable({
                     {player.quotation}
                   </td>
                   <td className="py-2.5 px-2 text-right font-mono text-gray-400 hidden sm:table-cell">
-                    {player.contract ? `${player.contract.salary}×${player.contract.duration}` : '-'}
+                    {player.contract
+                      ? <ContractInline salary={player.contract.salary} duration={player.contract.duration} variant="compact" className="justify-end" />
+                      : '-'}
                   </td>
                   <td className="py-2.5 px-2 text-center">
                     <span className={`inline-block text-[10px] font-mono font-bold uppercase rounded-md px-2 py-0.5 border ${exit.chip}`}>
