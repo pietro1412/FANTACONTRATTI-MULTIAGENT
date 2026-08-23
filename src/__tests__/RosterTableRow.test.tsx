@@ -37,13 +37,14 @@ describe('RosterTableRow', () => {
     expect(screen.getByLabelText('Durata 3 s')).toBeInTheDocument()
   })
 
-  it('should show the age in years when present (Axiom 6)', () => {
+  it('should show the age in its own dedicated column when present (Axiom 6)', () => {
     render(<RosterTableRow entry={makeEntry({ age: 24 })} onPlayerClick={() => {}} />)
-    expect(screen.getByText(/24 anni/)).toBeInTheDocument()
+    expect(screen.getByLabelText('Età 24 anni')).toBeInTheDocument()
   })
 
-  it('should fall back to N.D. when the age is missing (Axiom 6)', () => {
+  it('should fall back to N.D. in the age column when the age is missing (Axiom 6)', () => {
     render(<RosterTableRow entry={makeEntry({ age: null })} onPlayerClick={() => {}} />)
+    expect(screen.getByLabelText('Età non disponibile')).toBeInTheDocument()
     expect(screen.getByText(/N\.D\./)).toBeInTheDocument()
   })
 

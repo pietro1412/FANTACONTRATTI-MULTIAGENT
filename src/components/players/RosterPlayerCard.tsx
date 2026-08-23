@@ -1,4 +1,4 @@
-import { PlayerRoleBadge } from './PlayerRoleBadge'
+import { PlayerPhoto } from './PlayerPhoto'
 import { TeamLogo } from '@/components/ui/TeamLogo'
 import { Monogram } from '@/components/ui/Monogram'
 import { formatSeasonStats, NOT_DISPONIBILE } from '@/utils/stat-format'
@@ -61,8 +61,10 @@ function SeasonStatsStrip({ cs }: { cs: ComputedSeasonStats | null | undefined }
 /**
  * Mobile roster card (Rose / Giocatori cluster). Shown in normal flow below lg;
  * the desktop cockpit table uses RosterTableRow.
- * Financial data rendered as a 4-column cockpit grid (salary/duration/clause/
- * rubata) with rubata — the most decision-relevant figure — in accent gold.
+ * Financial data rendered as a 5-column cockpit grid (age/salary/duration/
+ * clause/rubata) with rubata — the most decision-relevant figure — in accent
+ * gold. Age sits first, ahead of the contract fields (Axiom 6 ordering), and
+ * always shows even for entries without a contract (free agents).
  * The contract grid keeps its per-cell labels (Axiom 9 in full: no persistent
  * header sits above a card in a scrolled/virtualized list).
  */
@@ -74,7 +76,10 @@ export function RosterPlayerCard({ entry, onPlayerClick, status, showQuotation }
   return (
     <div className="bg-surface-300/40 rounded-xl p-3 border border-surface-50/10">
       <div className="flex items-center gap-2.5 mb-2">
-        <PlayerRoleBadge position={player.position} />
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          <PlayerPhoto apiFootballId={player.apiFootballId} name={player.name} position={player.position} size="sm" showRoleBadge />
+          <TeamLogo team={player.team} size="md" />
+        </div>
         <div className="flex-1 min-w-0 leading-tight">
           <button
             type="button"
@@ -83,12 +88,9 @@ export function RosterPlayerCard({ entry, onPlayerClick, status, showQuotation }
           >
             {player.name}
           </button>
-          <div className="flex items-center gap-1.5 text-[11px] text-gray-500 mt-0.5 flex-wrap">
-            <TeamLogo team={player.team} size="xs" />
-            <span className="break-words">{player.team}</span>
-            <span className="font-mono">· {player.age != null ? `${player.age} anni` : NOT_DISPONIBILE}</span>
-            {showQuotation && <span className="font-mono">· Quot {player.quotation}</span>}
-          </div>
+          {showQuotation && (
+            <div className="text-[11px] text-gray-500 font-mono mt-0.5">Quot {player.quotation}</div>
+          )}
           {status !== undefined && (
             <div className="mt-1">
               {status.free ? (
@@ -106,16 +108,19 @@ export function RosterPlayerCard({ entry, onPlayerClick, status, showQuotation }
         </div>
       </div>
 
-      {contract ? (
-        <div className="grid grid-cols-4 gap-2">
-          <ContractStat label="Ing" value={`${contract.salary}${CREDIT_UNIT}`} tone="text-white" />
-          <ContractStat label="Dur" value={`${contract.duration} s`} tone="text-white" />
-          <ContractStat label="Cls" value={clause !== null ? `${clause}${CREDIT_UNIT}` : '-'} tone="text-white" />
-          <ContractStat label="Rub" value={rubata !== null ? `${rubata}${CREDIT_UNIT}` : '-'} tone="text-accent-400" />
-        </div>
-      ) : (
-        <div className="text-center text-gray-500 text-xs py-1">Nessun contratto</div>
-      )}
+      <div className="grid grid-cols-5 gap-2">
+        <ContractStat label="Età" value={player.age != null ? `${player.age}` : NOT_DISPONIBILE} tone="text-gray-300" />
+        {contract ? (
+          <>
+            <ContractStat label="Ing" value={`${contract.salary}${CREDIT_UNIT}`} tone="text-white" />
+            <ContractStat label="Dur" value={`${contract.duration} s`} tone="text-white" />
+            <ContractStat label="Cls" value={clause !== null ? `${clause}${CREDIT_UNIT}` : '-'} tone="text-white" />
+            <ContractStat label="Rub" value={rubata !== null ? `${rubata}${CREDIT_UNIT}` : '-'} tone="text-accent-400" />
+          </>
+        ) : (
+          <div className="col-span-4 flex items-center justify-center text-gray-500 text-xs">Nessun contratto</div>
+        )}
+      </div>
 
       <SeasonStatsStrip cs={player.computedStats} />
     </div>

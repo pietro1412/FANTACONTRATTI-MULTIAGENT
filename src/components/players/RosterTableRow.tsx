@@ -1,4 +1,4 @@
-import { PlayerRoleBadge } from './PlayerRoleBadge'
+import { PlayerPhoto } from './PlayerPhoto'
 import { TeamLogo } from '@/components/ui/TeamLogo'
 import { Monogram } from '@/components/ui/Monogram'
 import { formatSeasonStats, NOT_DISPONIBILE } from '@/utils/stat-format'
@@ -15,10 +15,10 @@ export interface RosterTableRowProps {
 
 const CREDIT_UNIT = 'M'
 
-/** Base grid (Rose: identity + 4 contract fields + stats). */
-export const ROSTER_ROW_GRID_BASE = 'grid-cols-[1.35fr_88px_64px_88px_92px_100px]'
-/** Extended grid with status + quotation columns ("Tutti i giocatori" tab). */
-export const ROSTER_ROW_GRID_EXTRA = 'grid-cols-[1.0fr_92px_56px_88px_64px_88px_92px_100px]'
+/** Base grid (Rose: identity + age + 4 contract fields + stats). */
+export const ROSTER_ROW_GRID_BASE = 'grid-cols-[1.3fr_52px_88px_64px_88px_92px_100px]'
+/** Extended grid with age + status + quotation columns ("Tutti i giocatori" tab). */
+export const ROSTER_ROW_GRID_EXTRA = 'grid-cols-[0.95fr_52px_92px_56px_88px_64px_88px_92px_100px]'
 
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (
@@ -75,12 +75,15 @@ function FinancialValue({
 }
 
 /**
- * Single desktop roster row (cockpit grid). Columns: player identity, salary,
- * duration, clause, rubata cost (clause + salary), season mini-stats.
+ * Single desktop roster row (cockpit grid). Columns: player identity, age,
+ * salary, duration, clause, rubata cost (clause + salary), season mini-stats.
  * The persistent column header (RoseGiocatori) is the sole label source for
- * the financial values — Axiom 9 is satisfied structurally by the header
+ * the age/financial values — Axiom 9 is satisfied structurally by the header
  * instead of a per-cell label (see CLAUDE.md §Assiomi UI/UX, punto 9).
  * Rubata is the most decision-relevant figure, rendered larger in accent gold.
+ * The role (Axiom 6's top-priority field) is carried by the role badge
+ * overlaid on the player photo, since the photo replaces the position-tinted
+ * fallback tile that used to convey it on its own.
  */
 export function RosterTableRow({ entry, onPlayerClick, status, showQuotation }: RosterTableRowProps) {
   const { player, contract } = entry
@@ -90,25 +93,29 @@ export function RosterTableRow({ entry, onPlayerClick, status, showQuotation }: 
 
   return (
     <div className={`grid ${hasExtra ? ROSTER_ROW_GRID_EXTRA : ROSTER_ROW_GRID_BASE} gap-2.5 items-center px-4 py-[11px] border-b border-surface-50/10 hover:bg-surface-100/60 transition-colors`}>
-      {/* Player identity */}
+      {/* Player identity: photo (with role badge) + team crest, same size, then name alone */}
       <div className="flex items-center gap-2.5 min-w-0">
-        <PlayerRoleBadge position={player.position} />
-        <div className="min-w-0">
-          <button
-            type="button"
-            onClick={onPlayerClick}
-            className="font-display font-bold text-[13px] text-white leading-tight truncate block text-left max-w-full hover:text-primary-400 transition-colors"
-          >
-            {player.name}
-          </button>
-          <div className="flex items-center gap-1.5 text-[10px] text-gray-500 mt-0.5 min-w-0">
-            <TeamLogo team={player.team} size="xs" />
-            <span className="truncate">{player.team}</span>
-            <span className="text-gray-600 font-mono">
-              · {player.age != null ? `${player.age} anni` : NOT_DISPONIBILE}
-            </span>
-          </div>
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          <PlayerPhoto apiFootballId={player.apiFootballId} name={player.name} position={player.position} size="sm" showRoleBadge />
+          <TeamLogo team={player.team} size="md" />
         </div>
+        <button
+          type="button"
+          onClick={onPlayerClick}
+          className="font-display font-bold text-[13px] text-white leading-tight truncate block text-left min-w-0 flex-1 hover:text-primary-400 transition-colors"
+        >
+          {player.name}
+        </button>
+      </div>
+
+      {/* Age — own column (Axiom 6) */}
+      <div className="text-right">
+        <span
+          className="stat-number text-sm text-gray-300"
+          aria-label={player.age != null ? `Età ${player.age} anni` : 'Età non disponibile'}
+        >
+          {player.age != null ? player.age : NOT_DISPONIBILE}
+        </span>
       </div>
 
       {/* Status (free agent / owner) — "Tutti i giocatori" tab only */}

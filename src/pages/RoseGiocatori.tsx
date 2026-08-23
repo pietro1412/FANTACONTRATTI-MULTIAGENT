@@ -67,7 +67,7 @@ interface LeagueData {
   isAdmin?: boolean
 }
 
-type SortColumn = 'position' | 'salary' | 'duration' | 'clause' | 'rubata' | 'appearances' | 'goals' | 'assists' | 'rating'
+type SortColumn = 'position' | 'age' | 'salary' | 'duration' | 'clause' | 'rubata' | 'appearances' | 'goals' | 'assists' | 'rating'
 
 // ----- "Tutti i giocatori" tab (database) -----
 
@@ -439,6 +439,9 @@ export function RoseGiocatori({ onNavigate, initialView = 'rose', initialTeamFil
           if (cmp === 0) cmp = a.player.name.localeCompare(b.player.name)
           break
         }
+        case 'age':
+          cmp = (a.player.age ?? -1) - (b.player.age ?? -1)
+          break
         case 'appearances':
           cmp = (a.player.computedStats?.appearances ?? 0) - (b.player.computedStats?.appearances ?? 0)
           break
@@ -942,6 +945,7 @@ export function RoseGiocatori({ onNavigate, initialView = 'rose', initialTeamFil
 
   const roseSortableHeaders: { key: SortColumn; label: string; align: string }[] = [
     { key: 'position', label: 'Giocatore', align: 'text-left' },
+    { key: 'age', label: 'Età', align: 'text-right' },
     { key: 'salary', label: 'Ingaggio', align: 'text-right' },
     { key: 'duration', label: 'Durata', align: 'text-right' },
     { key: 'clause', label: 'Clausola', align: 'text-right' },
@@ -1151,6 +1155,7 @@ export function RoseGiocatori({ onNavigate, initialView = 'rose', initialTeamFil
     <div className="bg-surface-200 border border-surface-50 rounded-xl overflow-hidden flex flex-col lg:h-full lg:min-h-0">
       <div className={`hidden lg:grid ${ROSTER_ROW_GRID_EXTRA} gap-2.5 px-4 py-2.5 border-b border-surface-50 bg-surface-300/40 flex-shrink-0`}>
         <span className="micro-label text-[9px]">Giocatore</span>
+        <span className="micro-label text-[9px] text-right">Età</span>
         <span className="micro-label text-[9px]">Stato</span>
         <span className="micro-label text-[9px] text-right">Quot</span>
         <span className="micro-label text-[9px] text-right">Ing</span>
