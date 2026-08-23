@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '../ui/Button'
 import { Textarea } from '../ui/Textarea'
+import { ContractInline } from '../ui/ContractInline'
 import { POSITION_NAMES } from '../ui/PositionBadge'
 import { getTeamLogo } from '../../utils/teamLogos'
 import { POSITION_COLORS } from '../../types/auctionroom.types'
@@ -169,11 +170,18 @@ export function ManagerDetailModal({ selectedManager, onClose, rosterMode = 'slo
                         </span>
                         <span className="flex-1 min-w-0 text-sm text-gray-200 font-semibold truncate">{p.playerName}</span>
                         {p.contract && (
-                          <span className="text-sm font-mono text-gray-500 flex-shrink-0" title={`Ingaggio ${p.contract.salary}M · Durata ${p.contract.duration} anni · Clausola ${p.contract.rescissionClause}M`}>
-                            ing {p.contract.salary} · {p.contract.duration}a · <span className="text-primary-400">cl {p.contract.rescissionClause}</span>
-                          </span>
+                          <ContractInline
+                            variant="compact"
+                            salary={p.contract.salary}
+                            duration={p.contract.duration}
+                            clause={p.contract.rescissionClause}
+                            rubataPrice={p.contract.rescissionClause != null ? p.contract.rescissionClause + p.contract.salary : null}
+                            className="flex-shrink-0 text-xs"
+                          />
                         )}
-                        <span className={`text-sms font-mono font-bold flex-shrink-0 ${style.text}`}>{p.acquisitionPrice}M</span>
+                        <span className={`text-sms font-mono font-bold flex-shrink-0 ${style.text}`} title={`Acquistato a ${p.acquisitionPrice}M`}>
+                          <span className="text-[9px] text-gray-500 mr-0.5">Acq</span>{p.acquisitionPrice}M
+                        </span>
                       </div>
                     ))}
                     {!countOnly && freeSlots > 0 && (
