@@ -54,8 +54,8 @@ function PositionChips({ counts, slotLimits }: { counts: PositionCounts; slotLim
   return (
     <div className="flex flex-wrap gap-1.5">
       {POSITIONS.map(pos => (
-        <span key={pos} className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11.5px] font-bold font-mono ${POS_STYLE[pos]}`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${POS_DOT[pos]}`} aria-hidden="true" />
+        <span key={pos} className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-bold font-mono ${POS_STYLE[pos]}`}>
+          <span className={`w-2 h-2 rounded-full ${POS_DOT[pos]}`} aria-hidden="true" />
           {pos} {counts[pos]}<span className="opacity-50 font-semibold">/{slotLimits[pos]}</span>
         </span>
       ))}
@@ -93,17 +93,17 @@ export function RosterOverview({ rosters, myMemberId, slotLimits, leagueId, onNa
                 <Monogram name={mine.teamName || mine.username} size="md" />
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="font-display text-sm font-bold text-white">{mine.teamName || mine.username}</span>
-                    <span className="text-[9px] font-bold text-secondary-400 border border-secondary-500/50 rounded px-1.5 py-px tracking-wide">TU</span>
+                    <span className="font-display text-base font-bold text-white">{mine.teamName || mine.username}</span>
+                    <span className="text-xs font-bold text-secondary-400 border border-secondary-500/50 rounded px-1.5 py-px tracking-wide">TU</span>
                     {mine.role === 'ADMIN' && <RoleTag role={mine.role} />}
                   </div>
-                  <p className="text-[11px] text-gray-500 mt-0.5">{mine.playerCount}/{totalSlots} slot occupati</p>
+                  <p className="text-sm text-gray-500 mt-0.5">{mine.playerCount}/{totalSlots} slot occupati</p>
                 </div>
               </div>
               <div className="text-right flex-shrink-0">
                 <p className="micro-label text-gray-500">Budget disponibile</p>
-                <p className="budget-display text-2xl text-accent-400 leading-none mt-1">
-                  {computeAvailableBudget(mine)}<span className="text-sm text-gray-500 ml-0.5">M</span>
+                <p className="budget-display text-3xl text-accent-400 leading-none mt-1">
+                  {computeAvailableBudget(mine)}<span className="text-base text-gray-500 ml-0.5">M</span>
                 </p>
               </div>
             </div>
@@ -118,23 +118,23 @@ export function RosterOverview({ rosters, myMemberId, slotLimits, leagueId, onNa
       {others.length > 0 && (
         <div>
           <span className="micro-label text-gray-400">Rose degli avversari</span>
-          <div className="mt-2 space-y-1.5">
+          <div className="mt-2 space-y-2">
             {others.map(r => (
               <button
                 key={r.memberId}
                 onClick={() => { onNavigate('rose', { leagueId, memberId: r.memberId }); }}
-                className="w-full flex items-center gap-3 bg-surface-200 border border-surface-50/20 rounded-lg px-3.5 py-2.5 hover:border-primary-500/50 hover:bg-surface-100/30 transition-colors text-left"
+                className="w-full flex items-center gap-3 bg-surface-200 border border-surface-50/20 rounded-lg px-4 py-3 hover:border-primary-500/50 hover:bg-surface-100/30 transition-colors text-left"
               >
-                <Monogram name={r.teamName || r.username} size="sm" />
-                <span className="text-[12.5px] font-bold text-white flex-shrink-0 w-28 truncate flex items-center gap-1.5">
+                <Monogram name={r.teamName || r.username} size="md" />
+                <span className="text-sm font-bold text-white flex-shrink-0 w-32 truncate flex items-center gap-1.5">
                   {r.teamName || r.username}
                   {r.role === 'ADMIN' && <RoleTag role={r.role} />}
                 </span>
                 <span className="flex-1 min-w-0">
                   <PositionChips counts={countByPosition(r.players)} slotLimits={slotLimits} />
                 </span>
-                <span className="text-[11px] text-gray-500 font-mono flex-shrink-0">{r.playerCount}/{totalSlots}</span>
-                <span className="text-gray-500 text-sm flex-shrink-0" aria-hidden="true">›</span>
+                <span className="text-sm text-gray-500 font-mono flex-shrink-0">{r.playerCount}/{totalSlots}</span>
+                <span className="text-gray-500 text-base flex-shrink-0" aria-hidden="true">›</span>
               </button>
             ))}
           </div>
