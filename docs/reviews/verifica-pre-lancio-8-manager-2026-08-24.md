@@ -175,7 +175,23 @@ Effetto collaterale utile dei fix #1/#7: `apiFootballId` mancava nel roster invi
    - **Stesso pattern trovato e corretto preventivamente in altre 5 pagine cockpit** (stessa struttura di griglia, stesso rischio non ancora osservato perché mai testate a piena capacità): `SvincolatiCockpit.tsx`, `Contracts.tsx`, `RoseGiocatori.tsx`, `Rubata.tsx`, `Trades.tsx`. Decisione Pietro: fix preventivo su tutte, non aspettare di incontrarlo di nuovo pagina per pagina.
 2. **Modale rosa avversario ("Simulato 3") con dati sovrapposti** — causato dal MIO fix precedente: avevo cambiato il layout da colonna singola a griglia 2 colonne per "ridurre il disordine verticale", ma a metà larghezza modale ogni riga (foto+logo+nome+contratto inline a 4 campi+prezzo acquisto) non ci stava e si accavallava visivamente. Fix: tornato a colonna singola (`space-y-4`), mantenendo la modale allargata (`max-w-2xl`, dal fix precedente) che da sola dà lo spazio in più richiesto senza bisogno del multi-colonna.
 
-**Verifica**: typecheck 0 errori, test:all 1765/1765 verdi, lint 0 errori. File toccati in questo secondo giro: `AuctionRoomLayout.tsx`, `SvincolatiCockpit.tsx`, `Contracts.tsx`, `RoseGiocatori.tsx`, `Rubata.tsx`, `Trades.tsx`, `AuctionRoomModals.tsx` (revert griglia→colonna singola). **Da riverificare sul preview**: Pietro deve confermare che budget disponibile e modale rosa avversario siano ora corretti, e idealmente controllare almeno una delle altre pagine cockpit corrette preventivamente (Contratti/Rose sono le prossime fasi naturali del playthrough).
+**Verifica**: typecheck 0 errori, test:all 1765/1765 verdi, lint 0 errori. File toccati in questo secondo giro: `AuctionRoomLayout.tsx`, `SvincolatiCockpit.tsx`, `Contracts.tsx`, `RoseGiocatori.tsx`, `Rubata.tsx`, `Trades.tsx`, `AuctionRoomModals.tsx` (revert griglia→colonna singola).
+
+### Push su `main` (produzione) — decisione esplicita di Pietro, fuori sequenza dal piano
+
+Pietro ha chiesto di pushare `develop`→`main` a questo punto (prima delle Fasi 5-6 complete) per verificare i fix direttamente sull'ambiente di produzione reale, invece che sul preview. **Deviazione consapevole dal piano**: normalmente il Go/No-Go per `main` è condizionato a Fasi 4-6 verdi (Fase 7). Rischio comunicato e accettato: porta in prod l'intero rework di `REVIEW_PRE_BETA` (38+ commit), non solo i fix di oggi.
+- **Backup pre-deploy eseguito** (`npm run db:backup` con `.env.vercel`): 23.111 record (PlayerMatchRating, PlayerRoster, PlayerContract, LeagueMember, SerieAPlayer) in `scripts/backups/pre-deploy/`.
+- **Verificato**: nessuna modifica a `prisma/` tra `main` e `develop` (diff vuoto) → zero rischio schema/migrazioni.
+- Merge fast-forward pulito, push su `main` (commit `ad4a4a0`), deploy prod READY.
+- `main` e `develop` ora allineati.
+
+### Falso allarme: "non vedo ancora il fix" era cache di una tab già aperta, non un bug
+
+Dopo il deploy in prod, Pietro segnalava di nuovo budget/modale rotti. **Diagnosi verificata empiricamente** (non solo ipotizzata): script Playwright standalone, browser pulito, stesso URL prod/account/lega → **il fix funziona correttamente** (footer "Budget disponibile" visibile e pinnato in fondo al pannello anche a viewport ridotto fino a 650px, modale rosa avversario a colonna singola senza overlap). Causa: la tab del browser di Pietro era rimasta aperta da prima del deploy — un'app SPA non rifetcha il bundle JS su semplice navigazione client-side, serve un reload vero o una tab nuova. Il badge Vercel "master@\<sha\>" (overlay esterno al nostro codice, non generato da React) mostrava il commit giusto ma non garantisce che il JS già in memoria nella tab sia aggiornato — fuorviante in questo contesto. **Risolto chiudendo la tab e aprendone una nuova.**
+
+### Finding aggiuntivo da screenshot (non un bug, richiesta di enfasi visiva)
+
+A fine Primo Mercato (tutti gli slot di ruolo pieni, fase ATTESA), la colonna Manager mostrava un trattino "—" grande in oro/bianco (ex "offerta max", non più significativo) mentre il **budget residuo** — l'unico dato ancora rilevante in quello stato — restava in piccolo grigio sotto. Fix: quando lo slot del ruolo corrente è pieno, il budget diventa il valore grande in oro al posto del trattino (`FinancialDashboard.tsx`, righe con `bigValue`/`bigUnit`/`bigValueGold`/`smallValue` condizionati su `roleFull`). Verificato: typecheck 0 errori, test:all 1765/1765 verdi.
 
 ---
 
