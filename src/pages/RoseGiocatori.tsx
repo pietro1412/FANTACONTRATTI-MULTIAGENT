@@ -42,6 +42,8 @@ interface RoseGiocatoriProps {
   initialView?: RoseView
   /** Deep-link da Finanze: apre "Tutti i giocatori" filtrata per quella squadra (in rosa). */
   initialTeamFilter?: string
+  /** Deep-link dall'Hub Lega: apre la tab Rose con la rosa di questo manager selezionata invece della propria. */
+  initialMemberId?: string
 }
 
 // ----- Rose tab -----
@@ -256,7 +258,7 @@ const TAB_ITEMS: TabItem[] = [
 
 // ==================== COMPONENT ====================
 
-export function RoseGiocatori({ onNavigate, initialView = 'rose', initialTeamFilter }: RoseGiocatoriProps) {
+export function RoseGiocatori({ onNavigate, initialView = 'rose', initialTeamFilter, initialMemberId }: RoseGiocatoriProps) {
   const { leagueId } = useParams<{ leagueId: string }>()
   const [, setSearchParams] = useSearchParams()
   const [tab, setTab] = useState<RoseView>(initialView)
@@ -351,8 +353,11 @@ export function RoseGiocatori({ onNavigate, initialView = 'rose', initialTeamFil
           setRoseOngoingTradesCount(typeof ongoingData.count === 'number' ? ongoingData.count : 0)
         }
 
+        const requestedMember = initialMemberId ? data.members.find(m => m.id === initialMemberId) : undefined
         const myMember = data.members.find(m => m.userId === data.currentUserId)
-        if (myMember) {
+        if (requestedMember) {
+          setRoseSelectedMemberId(requestedMember.id)
+        } else if (myMember) {
           setRoseSelectedMemberId(myMember.id)
         } else if (data.members.length > 0 && data.members[0]) {
           setRoseSelectedMemberId(data.members[0].id)
@@ -363,7 +368,7 @@ export function RoseGiocatori({ onNavigate, initialView = 'rose', initialTeamFil
     } finally {
       setRoseLoading(false)
     }
-  }, [leagueId])
+  }, [leagueId, initialMemberId])
 
   // Caricata sempre (indipendentemente dalla tab attiva): alimenta anche
   // l'header globale (nome lega/admin) usato da Navigation su tutte le tab.

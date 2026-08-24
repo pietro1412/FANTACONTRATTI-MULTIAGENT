@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>B — La fase guida (Dashboard di lega)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#05080d; --card:#0c1119; --elev:#10161f; --hover:#1a2029; --border:#232a35; --border-soft:rgba(255,255,255,.06);
+    --primary-400:#60a5fa; --primary-500:#3b82f6; --primary-600:#2563eb;
+    --secondary-400:#33ff9e; --secondary-500:#00e87f; --secondary-600:#00b863;
+    --accent-400:#fbbf24; --accent-500:#f59e0b; --accent-600:#d97706;
+    --danger-400:#f87171; --danger-500:#ef4444;
+    --t1:#f9fafb; --t2:#9ca3af; --t3:#8b919d; --t4:#6b7280;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--t1);font-family:'Inter',"Helvetica Neue",Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;}
+  .micro-label{font-size:10.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--t3);}
+  .stat-number{font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums;}
+  .budget-display{font-weight:600;font-variant-numeric:tabular-nums;}
+
+  .variant-flag{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:center;gap:10px;background:linear-gradient(90deg,#d97706,#f59e0b);color:#1a1204;font-size:12px;font-weight:800;padding:8px 14px;letter-spacing:.03em;}
+  .variant-flag b{background:rgba(0,0,0,.18);padding:2px 9px;border-radius:999px;}
+
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 22px;background:#080b11;border-bottom:1px solid var(--border-soft);}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:15px;}
+  .brand .dot{width:8px;height:8px;border-radius:50%;background:var(--secondary-500);box-shadow:0 0 8px var(--secondary-500);}
+  .navlinks{display:flex;gap:22px;font-size:13px;color:var(--t3);font-weight:600;}
+  .navlinks span.active{color:var(--t1);}
+  .navuser{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--t2);font-weight:600;}
+  .avatar{width:28px;height:28px;border-radius:50%;background:var(--hover);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;}
+
+  .frame{max-width:1080px;margin:0 auto;padding:22px 20px 80px;}
+
+  .lg-header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:16px;flex-wrap:wrap;}
+  .lg-id{display:flex;align-items:center;gap:14px;}
+  .crest{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,var(--primary-600),var(--primary-400));display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex-shrink:0;}
+  .lg-title{font-size:18px;font-weight:800;line-height:1.15;}
+  .lg-meta{display:flex;align-items:center;gap:8px;margin-top:4px;flex-wrap:wrap;font-size:11px;color:var(--t3);}
+  .dim{color:#454b56;}
+  .my-budget-mini{text-align:right;}
+  .my-budget-mini .l{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--t4);}
+  .my-budget-mini .v{font-size:22px;font-weight:700;color:var(--accent-400);}
+
+  /* ===== FASE HERO — elemento dominante della pagina ===== */
+  .phase-hero{position:relative;overflow:hidden;border-radius:18px;border:2px solid rgba(245,158,11,.5);background:linear-gradient(135deg,rgba(245,158,11,.14),rgba(245,158,11,.03));padding:26px 28px;margin-bottom:22px;}
+  .ph-top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+  .ph-label{display:flex;align-items:center;gap:10px;}
+  .ph-pos{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-400);background:rgba(0,0,0,.25);border:1px solid rgba(245,158,11,.4);border-radius:999px;padding:4px 12px;}
+  .ph-title{font-size:28px;font-weight:800;margin-top:10px;display:flex;align-items:center;gap:12px;}
+  .ph-icon{width:46px;height:46px;border-radius:12px;background:rgba(245,158,11,.25);display:flex;align-items:center;justify-content:center;font-size:22px;}
+  .ph-desc{font-size:13.5px;color:#e9d8b4;margin-top:8px;max-width:560px;line-height:1.5;}
+  .ph-cta{flex-shrink:0;}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:11px;font-weight:800;font-size:13.5px;padding:0 22px;height:48px;cursor:pointer;border:none;text-decoration:none;}
+  .btn-gold{background:linear-gradient(90deg,var(--accent-500),var(--accent-600));color:#1a1204;box-shadow:0 4px 18px rgba(245,158,11,.35);}
+
+  /* stepper integrato dentro l'hero */
+  .ph-stepper{display:flex;gap:6px;margin-top:20px;overflow-x:auto;}
+  .ph-step{flex:1;min-width:80px;text-align:center;padding-bottom:8px;border-bottom:3px solid var(--border);}
+  .ph-step .n{font-size:10px;font-weight:800;color:var(--t4);}
+  .ph-step .l{font-size:11px;font-weight:700;color:var(--t3);margin-top:3px;}
+  .ph-step.done{border-color:var(--secondary-500);}
+  .ph-step.done .l{color:var(--secondary-400);}
+  .ph-step.current{border-color:var(--accent-500);}
+  .ph-step.current .l{color:var(--accent-400);font-weight:800;}
+  .ph-step.current .n{color:var(--accent-400);}
+
+  /* sotto-elenco attenzione, integrato nell'hero come lista compatta */
+  .ph-attn{margin-top:18px;padding-top:16px;border-top:1px dashed rgba(245,158,11,.3);display:flex;flex-direction:column;gap:8px;}
+  .ph-attn-item{display:flex;align-items:center;gap:9px;font-size:12.5px;color:#f3e6c8;}
+  .ph-attn-item .b{width:5px;height:5px;border-radius:50%;background:var(--accent-400);flex-shrink:0;}
+  .ph-attn-item a{margin-left:auto;font-size:11.5px;font-weight:800;color:var(--accent-400);text-decoration:none;flex-shrink:0;}
+
+  /* ===== riga inferiore: due colonne ===== */
+  .lower{display:grid;grid-template-columns:1fr 320px;gap:18px;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;}
+  .card + .card{margin-top:14px;}
+  .section-h{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--t3);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;}
+  .section-h a{font-size:11px;color:var(--primary-400);text-decoration:none;font-weight:700;text-transform:none;letter-spacing:0;}
+
+  /* i tuoi numeri: compatto, non dominante */
+  .mine-row{display:flex;align-items:center;gap:20px;flex-wrap:wrap;}
+  .mine-big{font-size:30px;font-weight:700;color:var(--secondary-400);}
+  .mine-big .u{font-size:15px;color:var(--secondary-500);}
+  .mine-stats{display:flex;gap:18px;}
+  .mine-stat .l{font-size:10px;color:var(--t4);text-transform:uppercase;font-weight:700;letter-spacing:.06em;}
+  .mine-stat .v{font-size:15px;font-weight:700;margin-top:2px;}
+  .mine-cta{margin-left:auto;}
+  .btn-sm{height:36px;padding:0 14px;font-size:12px;border-radius:9px;font-weight:800;}
+  .btn-outline{background:transparent;border:1px solid var(--border);color:var(--t2);}
+  .strat-chips{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;}
+  .chip{display:inline-flex;align-items:center;gap:5px;background:var(--elev);border:1px solid var(--border);border-radius:999px;padding:4px 10px;font-size:11px;font-weight:700;color:var(--t3);}
+  .chip b{font-weight:800;color:var(--t1);}
+
+  .movs{display:flex;flex-direction:column;}
+  .mov{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);}
+  .mov:last-child{border-bottom:none;}
+  .mov-icon{width:24px;height:24px;border-radius:6px;background:var(--elev);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;}
+  .mov-txt{flex:1;min-width:0;font-size:12px;}
+  .mov-txt b{font-weight:700;}
+  .mov-txt .sub{color:var(--t4);font-size:10.5px;}
+  .mov-time{font-size:10px;color:var(--t4);flex-shrink:0;}
+
+  .rank-row{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--border);}
+  .rank-row:last-child{border-bottom:none;}
+  .rank-row.me{background:rgba(245,158,11,.06);margin:0 -18px;padding:8px 18px;}
+  .rank-n{width:14px;text-align:center;font-size:11px;color:var(--t4);font-weight:700;}
+  .mono{width:24px;height:24px;border-radius:50%;background:var(--elev);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;flex-shrink:0;}
+  .rank-name{flex:1;min-width:0;font-size:12px;font-weight:700;display:flex;align-items:center;gap:5px;}
+  .admin-tag{font-size:8px;font-weight:800;color:var(--accent-400);background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);border-radius:4px;padding:1px 4px;}
+  .rank-bal{font-size:12px;font-weight:800;flex-shrink:0;}
+  .rank-bal.pos{color:var(--secondary-400);}
+  .rank-bal.neg{color:var(--danger-400);}
+
+  .gini-strip{display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:12px;border-top:1px dashed var(--border);font-size:11.5px;color:var(--t3);}
+  .gini-strip b{color:var(--secondary-400);}
+
+  #state-pre{display:none;}
+  .pre-hero{position:relative;overflow:hidden;border-radius:18px;border:2px solid rgba(59,130,246,.4);background:linear-gradient(135deg,rgba(59,130,246,.12),rgba(59,130,246,.02));padding:26px 28px;text-align:center;}
+  .pre-hero h3{font-size:20px;font-weight:800;margin:10px 0 6px;}
+  .pre-hero p{font-size:13px;color:var(--t3);max-width:480px;margin:0 auto 16px;line-height:1.6;}
+
+  .state-toggle{display:flex;justify-content:center;gap:8px;margin:0 0 20px;}
+  .state-btn{font-size:11.5px;font-weight:700;padding:7px 14px;border-radius:999px;border:1px solid var(--border);background:var(--card);color:var(--t3);cursor:pointer;}
+  .state-btn.active{background:var(--primary-500);color:#fff;border-color:var(--primary-500);}
+
+  @media (max-width:820px){
+    .lower{grid-template-columns:1fr;}
+    .navlinks{display:none;}
+    .ph-title{font-size:22px;}
+    .mine-row{flex-direction:column;align-items:flex-start;}
+    .mine-cta{margin-left:0;}
+  }
+</style>
+</head>
+<body>
+
+<div class="variant-flag">MOCKUP · VARIANTE B <b>La fase guida</b></div>
+
+<div class="topbar">
+  <div class="brand"><span class="dot"></span> FantaContratti</div>
+  <div class="navlinks">
+    <span class="active">Hub Lega</span><span>Rose</span><span>Finanze</span><span>Mercato</span><span>Scambi</span>
+  </div>
+  <div class="navuser"><div class="avatar">PS</div> Pietro</div>
+</div>
+
+<div class="frame">
+
+  <div class="state-toggle">
+    <button class="state-btn active" onclick="showState('active')">Mercato in corso (esempio principale)</button>
+    <button class="state-btn" onclick="showState('pre')">Pre-mercato (stato alternativo)</button>
+  </div>
+
+  <div id="state-active">
+    <div class="lg-header">
+      <div class="lg-id">
+        <div class="crest">FC</div>
+        <div>
+          <div class="lg-title">Fantacontratti Dynasty League</div>
+          <div class="lg-meta">Stagione 2026/27 <span class="dim">·</span> 8 manager <span class="dim">·</span> Sordillo FC (tu, admin)</div>
+        </div>
+      </div>
+      <div class="my-budget-mini">
+        <div class="l">Bilancio disponibile</div>
+        <div class="v budget-display">187M</div>
+      </div>
+    </div>
+
+    <!-- FASE HERO: risponde per primo e più forte a "dove siamo" e "cosa faccio ora" -->
+    <div class="phase-hero">
+      <div class="ph-top">
+        <div class="ph-label">
+          <div class="ph-pos">Fase 4 di 7 · Mercato Ricorrente</div>
+          <div class="ph-title"><span class="ph-icon">🎯</span> Rubata</div>
+          <div class="ph-desc">Ordine di classifica inversa: gli ultimi scelgono per primi. È il tuo turno — scegli il giocatore da rubare a un altro manager prima che scada il tempo.</div>
+        </div>
+        <div class="ph-cta"><button class="btn btn-gold">È il tuo turno → Vai alla Rubata</button></div>
+      </div>
+
+      <div class="ph-stepper">
+        <div class="ph-step done"><div class="n">✓</div><div class="l">Scambi</div></div>
+        <div class="ph-step done"><div class="n">✓</div><div class="l">Premi</div></div>
+        <div class="ph-step done"><div class="n">✓</div><div class="l">Contratti</div></div>
+        <div class="ph-step current"><div class="n">●</div><div class="l">Rubata</div></div>
+        <div class="ph-step"><div class="n">5</div><div class="l">Svincolati</div></div>
+        <div class="ph-step"><div class="n">6</div><div class="l">Post-asta</div></div>
+        <div class="ph-step"><div class="n">7</div><div class="l">Fine mercato</div></div>
+      </div>
+
+      <!-- attenzione: assorbita nell'hero come lista, non più blocchi separati -->
+      <div class="ph-attn">
+        <div class="ph-attn-item"><span class="b"></span>1 nuova offerta di scambio da Simulato 6 (Osimhen per Kvaratskhelia + 20M) <a href="#">Vedi →</a></div>
+      </div>
+    </div>
+
+    <!-- riga inferiore: i miei numeri (compatti) + colonna lega -->
+    <div class="lower">
+      <div>
+        <div class="card">
+          <div class="section-h">I tuoi numeri <a href="#">Vedi rosa completa →</a></div>
+          <div class="mine-row">
+            <div>
+              <div class="mine-big budget-display">187<span class="u">M</span></div>
+              <div style="font-size:11px;color:var(--t4);margin-top:2px;">320M budget − 133M ingaggi</div>
+            </div>
+            <div class="mine-stats">
+              <div class="mine-stat"><div class="l">Rank</div><div class="v">3°/8</div></div>
+              <div class="mine-stat"><div class="l">Rosa</div><div class="v">21/29</div></div>
+              <div class="mine-stat"><div class="l">Scadenze</div><div class="v" style="color:var(--accent-400);">2</div></div>
+            </div>
+            <div class="mine-cta">
+              <button class="btn btn-sm btn-outline">Storico movimenti</button>
+            </div>
+          </div>
+          <div class="strat-chips">
+            <span class="chip">🎯 <b>5</b> target</span>
+            <span class="chip">⭐ <b>2</b> top priorità</span>
+            <span class="chip">👁️ <b>8</b> sotto oss.</span>
+            <span class="chip">📤 <b>3</b> da cedere</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="section-h">Movimenti recenti di lega <a href="#">Tutti →</a></div>
+          <div class="movs">
+            <div class="mov"><div class="mov-icon">🎯</div><div class="mov-txt"><b>Leão</b> rubato — Simulato 5 → Simulato 2 <span class="sub">34M</span></div><div class="mov-time">2m fa</div></div>
+            <div class="mov"><div class="mov-icon">🎯</div><div class="mov-txt"><b>Barella</b> rubato — Tu → Simulato 7 <span class="sub">30M</span></div><div class="mov-time">12m fa</div></div>
+            <div class="mov"><div class="mov-icon">📤</div><div class="mov-txt"><b>Radu</b> svincolato — Simulato 4</div><div class="mov-time">8h fa</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card">
+          <div class="section-h">Classifica bilanci</div>
+          <div class="rank-row"><span class="rank-n">1</span><span class="mono">S4</span><span class="rank-name">Simulato 4</span><span class="rank-bal pos">+298M</span></div>
+          <div class="rank-row"><span class="rank-n">2</span><span class="mono">S7</span><span class="rank-name">Simulato 7</span><span class="rank-bal pos">+254M</span></div>
+          <div class="rank-row me"><span class="rank-n">3</span><span class="mono">PS</span><span class="rank-name">Tu <span class="admin-tag">ADMIN</span></span><span class="rank-bal pos">+187M</span></div>
+          <div class="rank-row"><span class="rank-n">4</span><span class="mono">S2</span><span class="rank-name">Simulato 2</span><span class="rank-bal pos">+140M</span></div>
+          <div class="rank-row"><span class="rank-n">5</span><span class="mono">S6</span><span class="rank-name">Simulato 6</span><span class="rank-bal pos">+96M</span></div>
+          <div class="rank-row"><span class="rank-n">6</span><span class="mono">S1</span><span class="rank-name">Simulato 1</span><span class="rank-bal pos">+58M</span></div>
+          <div class="rank-row"><span class="rank-n">7</span><span class="mono">S5</span><span class="rank-name">Simulato 5</span><span class="rank-bal neg">-12M</span></div>
+          <div class="rank-row"><span class="rank-n">8</span><span class="mono">S3</span><span class="rank-name">Simulato 3</span><span class="rank-bal neg">-40M</span></div>
+          <div class="gini-strip">Salute finanziaria lega <b>BUONA</b></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="state-pre">
+    <div class="lg-header">
+      <div class="lg-id">
+        <div class="crest" style="background:linear-gradient(135deg,#4b5563,#374151);">FC</div>
+        <div>
+          <div class="lg-title">Fantacontratti Dynasty League</div>
+          <div class="lg-meta">6/8 manager iscritti · In preparazione</div>
+        </div>
+      </div>
+    </div>
+    <div class="pre-hero">
+      <div class="ph-pos" style="color:var(--primary-400);border-color:rgba(59,130,246,.4);">Fase 1 di 3 · Pre-mercato</div>
+      <h3>📋 La lega non è ancora attiva</h3>
+      <p>Anche qui la fase resta il primo messaggio della pagina: "Pre-mercato" invece di "Rubata". Mancano 2 manager per raggiungere il minimo di 6 per l'avvio.</p>
+      <button class="btn btn-gold">Pannello Admin</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function showState(s){
+    document.getElementById('state-active').style.display = s === 'active' ? 'block' : 'none';
+    document.getElementById('state-pre').style.display = s === 'pre' ? 'block' : 'none';
+    document.querySelectorAll('.state-btn').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+  }
+</script>
+</body>
+</html>

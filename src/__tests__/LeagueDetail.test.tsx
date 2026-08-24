@@ -42,21 +42,6 @@ vi.mock('../components/ui/Button', () => ({
   ),
 }))
 
-// Mock finance types
-vi.mock('../components/finance/types', () => ({
-  computeLeagueTotals: vi.fn().mockReturnValue({
-    avgBudget: 350,
-    avgSalary: 100,
-    avgBalance: 250,
-    totalContracts: 40,
-    avgSlotsFilled: 10,
-    budgetRange: { min: 200, max: 500 },
-    salaryRange: { min: 50, max: 150 },
-    balanceRange: { min: 100, max: 400 },
-    giniIndex: 0.25,
-  }),
-}))
-
 // Mock league-detail sub-components
 vi.mock('../components/league-detail', () => ({
   LeagueDetailHeader: ({ leagueName }: { leagueName: string }) => (
@@ -65,17 +50,8 @@ vi.mock('../components/league-detail', () => ({
   AdminBanner: ({ isAdmin, onOpenAuctionClick }: { isAdmin: boolean; onOpenAuctionClick: () => void; leagueStatus: string; activeSession: unknown; isFirstMarketCompleted: boolean; leagueId: string; onNavigate: unknown }) => (
     isAdmin ? <div data-testid="admin-banner"><button onClick={onOpenAuctionClick}>Start Auction</button></div> : null
   ),
-  AttentionRail: ({ summary }: { summary: unknown; leagueId: string; onNavigate: unknown }) => (
-    summary ? <div data-testid="attention-rail">Attention</div> : null
-  ),
-  FinancialKPIs: () => <div data-testid="financial-kpis">KPIs</div>,
-  StrategySummary: () => <div data-testid="strategy-summary">Strategy</div>,
-  RecentMovements: () => <div data-testid="recent-movements">Movements</div>,
-  ManagersSidebar: ({ onLeaveLeague }: { onLeaveLeague: () => void; members: unknown[]; maxParticipants: number; leagueId: string; leagueStatus: string; isAdmin: boolean; isLeaving: boolean; totals: unknown }) => (
-    <div data-testid="managers-sidebar">
-      <button data-testid="leave-button" onClick={onLeaveLeague}>Leave</button>
-    </div>
-  ),
+  RosterOverview: () => <div data-testid="roster-overview">Rosters</div>,
+  PreMarketOverview: () => <div data-testid="pre-market-overview">Pre-market</div>,
   AuctionConfirmModal: ({ onConfirm, onCancel }: { onConfirm: () => void; onCancel: () => void; isRegularMarket: boolean; activeMembers: number; isCreating: boolean }) => (
     <div data-testid="auction-modal">
       <button data-testid="confirm-auction" onClick={onConfirm}>Confirm</button>
@@ -88,31 +64,23 @@ vi.mock('../components/league-detail', () => ({
 const mockGetById = vi.fn()
 const mockGetSessions = vi.fn()
 const mockGetStatus = vi.fn()
-const mockGetFinancials = vi.fn()
-const mockGetLeagueMovements = vi.fn()
-const mockGetStrategySummary = vi.fn()
-const mockGetDashboardSummary = vi.fn()
+const mockGetLeagueRosters = vi.fn()
 const mockCreateSession = vi.fn()
 const mockLeave = vi.fn()
 
 vi.mock('../services/api', () => ({
   leagueApi: {
     getById: (...args: unknown[]) => mockGetById(...args),
-    getFinancials: (...args: unknown[]) => mockGetFinancials(...args),
-    getStrategySummary: (...args: unknown[]) => mockGetStrategySummary(...args),
-    getDashboardSummary: (...args: unknown[]) => mockGetDashboardSummary(...args),
     leave: (...args: unknown[]) => mockLeave(...args),
     getPendingRequests: vi.fn().mockResolvedValue({ success: true, data: [] }),
   },
   auctionApi: {
     getSessions: (...args: unknown[]) => mockGetSessions(...args),
     createSession: (...args: unknown[]) => mockCreateSession(...args),
+    getLeagueRosters: (...args: unknown[]) => mockGetLeagueRosters(...args),
   },
   superadminApi: {
     getStatus: (...args: unknown[]) => mockGetStatus(...args),
-  },
-  movementApi: {
-    getLeagueMovements: (...args: unknown[]) => mockGetLeagueMovements(...args),
   },
   tradeApi: {
     getReceived: vi.fn().mockResolvedValue({ success: true, data: [] }),
@@ -156,10 +124,7 @@ describe('LeagueDetail', () => {
       data: { league: sampleLeague, isAdmin: true, userMembership: { id: 'm1', currentBudget: 350 } },
     })
     mockGetSessions.mockResolvedValue({ success: true, data: sampleSessions })
-    mockGetFinancials.mockResolvedValue({ success: true, data: { teams: [] } })
-    mockGetLeagueMovements.mockResolvedValue({ success: true, data: [] })
-    mockGetStrategySummary.mockResolvedValue({ success: true, data: { targets: 3, topPriority: 1, watching: 2, toSell: 0, total: 6 } })
-    mockGetDashboardSummary.mockResolvedValue({ success: true, data: { summaries: {} } })
+    mockGetLeagueRosters.mockResolvedValue({ success: true, data: [] })
   })
 
   it('shows initial loading spinner while checking superadmin', () => {
@@ -191,7 +156,10 @@ describe('LeagueDetail', () => {
       expect(screen.getByTestId('league-header')).toHaveTextContent('Lega Champions')
     })
 
-    expect(screen.getByTestId('managers-sidebar')).toBeInTheDocument()
+    // sampleSessions ha un PRIMO_MERCATO COMPLETED -> hasFinancialData true -> RosterOverview
+    await waitFor(() => {
+      expect(screen.getByTestId('roster-overview')).toBeInTheDocument()
+    })
   })
 
   it('lets superadmin open the league without membership', async () => {

@@ -1,20 +1,15 @@
 import { useState, useEffect } from 'react'
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { useToast } from '@/components/ui/Toast'
-import { leagueApi, auctionApi, superadminApi, movementApi } from '../services/api'
+import { leagueApi, auctionApi, superadminApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { SkeletonCard } from '../components/ui/Skeleton'
 import { Navigation } from '../components/Navigation'
-import { computeLeagueTotals, type LeagueTotals, type FinancialsData } from '../components/finance/types'
-import type { LeagueSummary } from '../components/league/attention'
 import {
   LeagueDetailHeader,
   AdminBanner,
-  AttentionRail,
-  FinancialKPIs,
-  StrategySummary,
-  RecentMovements,
-  ManagersSidebar,
+  RosterOverview,
+  type RosterMemberData,
   AuctionConfirmModal,
   MarketOpeningSummaryModal,
   type MarketOpeningSummary,
@@ -62,24 +57,6 @@ interface Session {
   phaseStartedAt: string | null
 }
 
-interface StrategySummaryData {
-  targets: number
-  topPriority: number
-  watching: number
-  toSell: number
-  total: number
-}
-
-interface MovementData {
-  id: string
-  type: string
-  player: { name: string; position: string; team: string }
-  from: { username: string } | null
-  to: { username: string } | null
-  price: number | null
-  createdAt: string
-}
-
 export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
   const { confirm: confirmDialog } = useConfirmDialog()
   const { toast } = useToast()
@@ -88,7 +65,6 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
   const [sessions, setSessions] = useState<Session[]>([])
   const [isAdmin, setIsAdmin] = useState(false)
   const [userMembership, setUserMembership] = useState<{ id: string; currentBudget: number } | null>(null)
-  const [summary, setSummary] = useState<LeagueSummary | undefined>(undefined)
   const [isLoading, setIsLoading] = useState(true)
   const [authExpired, setAuthExpired] = useState(false)
   const [isSuperAdmin, setIsSuperAdmin] = useState<boolean | null>(null)
@@ -99,10 +75,8 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
   const [isCreatingSession, setIsCreatingSession] = useState(false)
   const [marketOpeningSummary, setMarketOpeningSummary] = useState<MarketOpeningSummary | null>(null)
 
-  // Lazy-loaded data
-  const [leagueTotals, setLeagueTotals] = useState<LeagueTotals | null>(null)
-  const [recentMovements, setRecentMovements] = useState<MovementData[]>([])
-  const [strategySummary, setStrategySummary] = useState<StrategySummaryData | null>(null)
+  // Lazy-loaded data: rose di tutti i manager (mia + avversari), budget e composizione per ruolo.
+  const [rosters, setRosters] = useState<RosterMemberData[] | null>(null)
   const [lazyLoaded, setLazyLoaded] = useState(false)
 
   // Phase 1: Critical path load
@@ -122,12 +96,9 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
   }, [leagueId, onNavigate])
 
   async function loadCriticalData() {
-    // Per-league attention signals: stesso endpoint della Dashboard, filtrato sulla lega corrente.
-    // Failure non bloccante (la rotaia attenzione semplicemente non appare).
-    const [leagueResult, sessionsResult, summaryResult] = await Promise.all([
+    const [leagueResult, sessionsResult] = await Promise.all([
       leagueApi.getById(leagueId),
       auctionApi.getSessions(leagueId),
-      leagueApi.getDashboardSummary(),
     ])
 
     if (leagueResult.success && leagueResult.data) {
@@ -144,15 +115,11 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
       setSessions(sessionsResult.data as Session[])
     }
 
-    if (summaryResult.success && summaryResult.data) {
-      const data = summaryResult.data as { summaries?: Record<string, LeagueSummary> }
-      setSummary(data.summaries?.[leagueId])
-    }
-
     setIsLoading(false)
   }
 
-  // Phase 2: Lazy load after first render
+  // Phase 2: Lazy load after first render — rose di tutti i manager (budget +
+  // composizione per ruolo), uniche informazioni "post primo mercato" mostrate qui.
   useEffect(() => {
     if (!league || isLoading || lazyLoaded) return
 
@@ -164,22 +131,9 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
 
     setLazyLoaded(true)
 
-    void Promise.all([
-      leagueApi.getFinancials(leagueId),
-      movementApi.getLeagueMovements(leagueId, { limit: 5 }),
-      leagueApi.getStrategySummary(leagueId),
-    ]).then(([financialsResult, movementsResult, strategyResult]) => {
-      if (financialsResult.success && financialsResult.data) {
-        const totals = computeLeagueTotals(financialsResult.data as FinancialsData)
-        setLeagueTotals(totals)
-      }
-      if (movementsResult.success && movementsResult.data) {
-        const movements = movementsResult.data as MovementData[]
-        movements.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        setRecentMovements(movements.slice(0, 5))
-      }
-      if (strategyResult.success && strategyResult.data) {
-        setStrategySummary(strategyResult.data as StrategySummaryData)
+    void auctionApi.getLeagueRosters(leagueId).then(result => {
+      if (result.success && result.data) {
+        setRosters(result.data as RosterMemberData[])
       }
     })
   }, [league, isLoading, sessions, leagueId, lazyLoaded])
@@ -258,24 +212,10 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
   if (isLoading) {
     return (
       <div className="min-h-screen">
-        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-6 space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <SkeletonCard key={i} />
-            ))}
-          </div>
-          <div className="grid lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-4">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <SkeletonCard key={i} />
-              ))}
-            </div>
-            <div className="space-y-4">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <SkeletonCard key={i} />
-              ))}
-            </div>
-          </div>
+        <div className="max-w-[900px] mx-auto px-4 sm:px-6 py-6 space-y-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <SkeletonCard key={i} />
+          ))}
         </div>
       </div>
     )
@@ -324,11 +264,8 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
         userBudget={userMembership?.currentBudget || 0}
       />
 
-      <main className="max-w-[1600px] mx-auto px-4 sm:px-6 py-4 sm:py-8 space-y-6">
-        {/* Richiede la tua attenzione (per-lega, riuso getDashboardSummary) */}
-        <AttentionRail leagueId={leagueId} summary={summary} onNavigate={onNavigate} />
-
-        {/* CTA dell'azione corrente (fase attiva) */}
+      <main className="max-w-[900px] mx-auto px-4 sm:px-6 py-4 sm:py-8 space-y-6">
+        {/* CTA dell'azione corrente (fase attiva) — unica fonte "in che fase siamo/cosa fare ora" */}
         <AdminBanner
           leagueStatus={league.status}
           isAdmin={isAdmin}
@@ -339,68 +276,58 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
           onOpenAuctionClick={() => { setShowAuctionConfirm(true); }}
         />
 
-        {/* Main grid: 2/3 content + 1/3 sidebar */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left: main content */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Financial KPIs - only after first market */}
-            {hasFinancialData && leagueTotals && (
-              <FinancialKPIs
-                totals={leagueTotals}
-                initialBudget={league.initialBudget}
-                teamCount={activeMembers.length}
-              />
-            )}
+        {/* Rose: mia (budget + composizione) + avversari (solo composizione), ogni rosa cliccabile.
+            Nessuna classifica bilanci / KPI di lega / movimenti qui: vivono già in Finanze e Storico
+            (mockup docs/reviews/mockups/28-dashboard-lega/E-rose.html, scelto da Pietro). */}
+        {hasFinancialData && rosters && (
+          <RosterOverview
+            rosters={rosters}
+            myMemberId={userMembership?.id ?? null}
+            slotLimits={{
+              P: league.goalkeeperSlots,
+              D: league.defenderSlots,
+              C: league.midfielderSlots,
+              A: league.forwardSlots,
+            }}
+            leagueId={leagueId}
+            onNavigate={onNavigate}
+          />
+        )}
 
-            {/* Financial KPIs skeleton */}
-            {hasFinancialData && !leagueTotals && (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <SkeletonCard key={i} />
-                ))}
+        {hasFinancialData && !rosters && (
+          <div className="space-y-2">
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+          </div>
+        )}
+
+        {/* Pre-market: nessuna rosa esiste ancora */}
+        {!hasFinancialData && league && (
+          <>
+            <PreMarketOverview
+              initialBudget={league.initialBudget}
+              teamCount={activeMembers.length}
+              goalkeeperSlots={league.goalkeeperSlots}
+              defenderSlots={league.defenderSlots}
+              midfielderSlots={league.midfielderSlots}
+              forwardSlots={league.forwardSlots}
+              onNavigate={onNavigate}
+              leagueId={leagueId}
+            />
+            {!isAdmin && league.status === 'DRAFT' && (
+              <div className="text-center">
+                <button
+                  onClick={() => void handleLeaveLeague()}
+                  disabled={isLeaving}
+                  className="text-sm text-danger-400 hover:text-danger-300 font-medium disabled:opacity-50"
+                >
+                  {isLeaving ? 'Abbandono...' : 'Abbandona lega'}
+                </button>
               </div>
             )}
-
-            {/* Strategy Summary */}
-            {hasFinancialData && strategySummary && (
-              <StrategySummary data={strategySummary} onNavigate={onNavigate} leagueId={leagueId} />
-            )}
-
-            {/* Recent Movements */}
-            {hasFinancialData && (
-              <RecentMovements movements={recentMovements} onNavigate={onNavigate} leagueId={leagueId} />
-            )}
-
-            {/* Pre-market overview when no financial data yet */}
-            {!hasFinancialData && league && (
-              <PreMarketOverview
-                initialBudget={league.initialBudget}
-                teamCount={activeMembers.length}
-                goalkeeperSlots={league.goalkeeperSlots}
-                defenderSlots={league.defenderSlots}
-                midfielderSlots={league.midfielderSlots}
-                forwardSlots={league.forwardSlots}
-                onNavigate={onNavigate}
-                leagueId={leagueId}
-              />
-            )}
-          </div>
-
-          {/* Right: sidebar */}
-          <div>
-            <ManagersSidebar
-              members={league.members}
-              maxParticipants={league.maxParticipants}
-              leagueId={leagueId}
-              leagueStatus={league.status}
-              isAdmin={isAdmin}
-              isLeaving={isLeaving}
-              totals={leagueTotals}
-              inviteCode={league.inviteCode}
-              onLeaveLeague={() => void handleLeaveLeague()}
-            />
-          </div>
-        </div>
+          </>
+        )}
       </main>
 
       {/* Auction confirm modal */}

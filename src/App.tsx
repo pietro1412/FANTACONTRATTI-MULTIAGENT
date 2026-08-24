@@ -197,7 +197,10 @@ function createLeagueNavigator(navigate: ReturnType<typeof useNavigate>, leagueI
       case 'leagueDetail': void navigate(`/leagues/${lid}`); break
       case 'inviteDetail': void navigate(`/invite/${params?.token ?? ''}`); break
       case 'auction': void navigate(`/leagues/${lid}/auction/${params?.sessionId ?? ''}`); break
-      case 'rose': void navigate(`/leagues/${lid}/rose`); break
+      case 'rose':
+        if (params?.memberId) void navigate(`/leagues/${lid}/rose?member=${params.memberId}`)
+        else void navigate(`/leagues/${lid}/rose`)
+        break
       // Keep backward compatibility for old routes
       case 'roster': void navigate(`/leagues/${lid}/rose`); break
       case 'allRosters':
@@ -268,10 +271,11 @@ function RoseWrapper() {
   const viewParam = searchParams.get('view')
   const initialView: 'rose' | 'players' | 'stats' = viewParam === 'players' || viewParam === 'stats' ? viewParam : 'rose'
   const teamFilter = searchParams.get('team') || undefined
+  const initialMemberId = searchParams.get('member') || undefined
   const onNavigate = useCallback(createLeagueNavigator(navigate, leagueId), [navigate, leagueId])
 
   if (!leagueId) return <Navigate to="/dashboard" replace />
-  return <RoseGiocatori onNavigate={onNavigate} initialView={initialView} initialTeamFilter={teamFilter} />
+  return <RoseGiocatori onNavigate={onNavigate} initialView={initialView} initialTeamFilter={teamFilter} initialMemberId={initialMemberId} />
 }
 
 function ContractsWrapper() {
