@@ -347,7 +347,7 @@ export function useSvincolatiState(leagueId: string) {
       const res = await auctionApi.getMemberRoster(leagueId, member.id)
       if (res.success && res.data) {
         // API returns { member, roster: { P: [...], D: [...], C: [...], A: [...] }, totals, slots }
-        type RosterItem = { player: { id: string; name: string; team: string; position: string }; contract?: { salary: number; duration: number; rescissionClause: number } | null; acquisitionPrice: number }
+        type RosterItem = { player: { id: string; name: string; team: string; position: string; apiFootballId?: number | null }; contract?: { salary: number; duration: number; rescissionClause: number } | null; acquisitionPrice: number }
         const apiData = res.data as {
           member: { teamName?: string; user?: { username: string } }
           roster: { P: RosterItem[]; D: RosterItem[]; C: RosterItem[]; A: RosterItem[] }
@@ -364,6 +364,7 @@ export function useSvincolatiState(leagueId: string) {
           playerTeam: r.player.team,
           position: r.player.position,
           acquisitionPrice: r.acquisitionPrice || 0,
+          apiFootballId: r.player.apiFootballId ?? null,
           contract: r.contract ? {
             salary: r.contract.salary,
             duration: r.contract.duration,

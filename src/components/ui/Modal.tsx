@@ -180,17 +180,11 @@ export const Modal = forwardRef<HTMLDivElement, ModalProps>(
 
     const modalContent = (
       <div
-        className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${backdropAnimation}`}
+        className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-dark-900/80 backdrop-blur-sm ${backdropAnimation}`}
         onClick={handleBackdropClick}
         role="dialog"
         aria-modal="true"
       >
-        {/* Backdrop with blur */}
-        <div
-          className="absolute inset-0 bg-dark-900/80 backdrop-blur-sm"
-          aria-hidden="true"
-        />
-
         {/* Modal container */}
         <div
           ref={(node) => {

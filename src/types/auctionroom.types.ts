@@ -162,6 +162,7 @@ export interface ManagerRosterPlayer {
   position: string
   acquisitionPrice: number
   quotation?: number
+  apiFootballId?: number | null
   contract?: {
     salary: number
     duration: number

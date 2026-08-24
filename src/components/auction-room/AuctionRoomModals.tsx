@@ -4,6 +4,7 @@ import { Textarea } from '../ui/Textarea'
 import { ContractInline } from '../ui/ContractInline'
 import { POSITION_NAMES } from '../ui/PositionBadge'
 import { getTeamLogo } from '../../utils/teamLogos'
+import { getPlayerPhotoUrl } from '../../utils/player-images'
 import { POSITION_COLORS } from '../../types/auctionroom.types'
 import type { PendingAcknowledgment, AppealStatus } from '../../types/auctionroom.types'
 import { celebrateWin, celebrateBigWin } from '../../utils/confetti'
@@ -24,6 +25,7 @@ export interface ManagerDetailData {
     playerName: string
     playerTeam: string
     acquisitionPrice: number
+    apiFootballId?: number | null
     contract?: { salary: number; duration: number; rescissionClause: number } | null
   }>
 }
@@ -104,7 +106,7 @@ export function ManagerDetailModal({ selectedManager, onClose, rosterMode = 'slo
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-surface-200 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-surface-50" onClick={e => { e.stopPropagation(); }}>
+      <div className="bg-surface-200 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-surface-50" onClick={e => { e.stopPropagation(); }}>
         <div className="p-5">
           {/* Header: monogram + identity */}
           <div className="flex justify-between items-start mb-4">
@@ -138,8 +140,8 @@ export function ManagerDetailModal({ selectedManager, onClose, rosterMode = 'slo
             </div>
           </div>
 
-          {/* Roster rows — same language as "La mia rosa" */}
-          <div className="space-y-4">
+          {/* Roster rows — same language as "La mia rosa" — 2 colonne su schermi larghi, meno disordine verticale */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-4">
             {(['P', 'D', 'C', 'A'] as const).map(pos => {
               const slot = selectedManager.slotsByPosition[pos]
               const posPlayers = selectedManager.roster.filter(r => r.position === pos)
@@ -160,11 +162,26 @@ export function ManagerDetailModal({ selectedManager, onClose, rosterMode = 'slo
 
                   {/* Player rows */}
                   <div className="space-y-1">
-                    {posPlayers.map(p => (
+                    {posPlayers.map(p => {
+                      const photoUrl = getPlayerPhotoUrl(p.apiFootballId)
+                      return (
                       <div
                         key={p.id}
                         className={`flex items-center gap-2 ${style.bg} border ${style.border} rounded-lg px-2 py-1.5`}
                       >
+                        {photoUrl ? (
+                          <img
+                            src={photoUrl}
+                            alt={p.playerName}
+                            className="w-6 h-6 rounded-full object-cover bg-surface-100 flex-shrink-0"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement
+                              target.style.display = 'none'
+                              target.nextElementSibling?.classList.remove('hidden')
+                            }}
+                          />
+                        ) : null}
+                        <span className={`w-6 h-6 rounded-full bg-gradient-to-br ${POSITION_COLORS[pos] ?? ''} flex items-center justify-center text-white text-sm font-bold flex-shrink-0 ${photoUrl ? 'hidden' : ''}`}>{pos}</span>
                         <span className="w-4 h-4 bg-white/80 rounded flex items-center justify-center flex-shrink-0">
                           <img src={getTeamLogo(p.playerTeam)} alt={p.playerTeam} className="w-3 h-3 object-contain" />
                         </span>
@@ -183,7 +200,8 @@ export function ManagerDetailModal({ selectedManager, onClose, rosterMode = 'slo
                           <span className="text-[9px] text-gray-500 mr-0.5">Acq</span>{p.acquisitionPrice}M
                         </span>
                       </div>
-                    ))}
+                      )
+                    })}
                     {!countOnly && freeSlots > 0 && (
                       <div className={`flex items-center justify-center rounded-lg px-2 py-1.5 border border-dashed ${style.border} opacity-40`}>
                         <span className="text-sm text-gray-400">{freeSlots} slot liber{freeSlots === 1 ? 'o' : 'i'}</span>
@@ -259,7 +277,25 @@ export function AcknowledgmentModal({
             <h2 className="text-2xl font-bold text-white">{pendingAck.winner ? 'Transazione Completata' : 'Asta Conclusa'}</h2>
           </div>
           <div className="bg-surface-300 rounded-lg p-4 mb-4 flex items-center gap-3">
-            <span className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[pendingAck.player.position] ?? ''} flex items-center justify-center text-white font-bold flex-shrink-0`}>{pendingAck.player.position}</span>
+            {(() => {
+              const photoUrl = getPlayerPhotoUrl(pendingAck.player.apiFootballId)
+              if (photoUrl) {
+                return (
+                  <img
+                    src={photoUrl}
+                    alt={pendingAck.player.name}
+                    className="w-10 h-10 rounded-full object-cover bg-surface-100 flex-shrink-0"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement
+                      target.style.display = 'none'
+                      target.nextElementSibling?.classList.remove('hidden')
+                    }}
+                  />
+                )
+              }
+              return null
+            })()}
+            <span className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[pendingAck.player.position] ?? ''} flex items-center justify-center text-white font-bold flex-shrink-0 ${getPlayerPhotoUrl(pendingAck.player.apiFootballId) ? 'hidden' : ''}`}>{pendingAck.player.position}</span>
             <div className="w-8 h-8 bg-white/90 rounded flex items-center justify-center p-0.5 flex-shrink-0">
               <img
                 src={getTeamLogo(pendingAck.player.team)}

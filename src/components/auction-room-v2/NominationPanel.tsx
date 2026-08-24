@@ -50,22 +50,6 @@ function getMvColor(mv: number | null | undefined): { text: string; bg: string; 
   return { text: 'text-red-400', bg: 'bg-red-500/10', border: 'border border-red-500/20' }
 }
 
-function MiniStats({ player }: { player: Player }) {
-  const hasStats = player.appearances != null || player.goals != null || player.assists != null || player.avgRating != null
-  if (!hasStats) return null
-
-  const mvC = getMvColor(player.avgRating)
-
-  return (
-    <div className="flex items-center gap-1.5 text-sm font-mono text-gray-500">
-      {player.appearances != null && <span>P:{player.appearances}</span>}
-      {player.goals != null && player.goals > 0 && <span>G:{player.goals}</span>}
-      {player.assists != null && player.assists > 0 && <span>A:{player.assists}</span>}
-      {player.avgRating != null && <span className={mvC.text}>{player.avgRating}</span>}
-    </div>
-  )
-}
-
 export function NominationPanel({
   players,
   searchQuery,
@@ -232,7 +216,9 @@ export function NominationPanel({
             }`}
             title={`${team.name} (${team.playerCount})`}
           >
-            <img src={getTeamLogo(team.name)} alt={team.name} className="w-5 h-5 object-contain" />
+            <span className="w-5 h-5 bg-white/90 rounded flex items-center justify-center">
+              <img src={getTeamLogo(team.name)} alt={team.name} className="w-4 h-4 object-contain" />
+            </span>
           </button>
         ))}
       </div>
@@ -427,14 +413,13 @@ export function NominationPanel({
                           </div>
                           <span className="text-sm text-gray-400 break-words">{player.team}</span>
                         </div>
-                        {/* Age badge + mini stats */}
+                        {/* Solo eta — le statistiche dettagliate restano nella card focale/tabella, qui e' solo un colpo d'occhio veloce */}
                         <div className="flex items-center gap-1.5 mt-1">
                           {player.age != null && (
                             <span className={`text-sm font-bold px-1.5 py-0.5 rounded border ${ageBadge.bg} ${ageBadge.text}`}>
                               {player.age}a
                             </span>
                           )}
-                          <MiniStats player={player} />
                         </div>
                       </div>
 

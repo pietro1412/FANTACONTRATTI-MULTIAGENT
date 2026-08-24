@@ -76,6 +76,27 @@ Non ancora verificati in questo giro (dai pattern di ridondanza, non dai 13 bug 
 
 ---
 
+## Performance — Primo Mercato completo sotto carico (Fase 5+6, 2026-08-24)
+
+**Fuse le Fasi 5 e 6 per il Primo Mercato su decisione Pietro**: invece di un giro manuale + uno stress test separato, l'intero Primo Mercato della lega "Playthrough Beta 2026-08-24" è stato giocato con burst di 8 offerte concorrenti reali (`Promise.all`, non sequenziali) su **ogni singolo giocatore**, tramite `scripts/_playthrough-load-test.mjs` (nuovo, non committato — riusa la logica di `_stress-test.mjs` di luglio ma senza accesso diretto al DB, solo API, e senza cap sui lotti).
+
+**Esito: 197 giocatori assegnati (Primo Mercato dichiarato "terminato" dal motore stesso), 0 errori di carico su 3186 chiamate.**
+
+| Metrica | Valore |
+|---|---|
+| Lotti completati | 197 (tutti i ruoli P/D/C/A esauriti) |
+| Errori 5xx/429/timeout/neterr | **0 / 3186** |
+| `bid:burst` (8 offerte simultanee per lotto) | 1576 chiamate, avg 131ms, p95 207ms, max 517ms |
+| `nominate` | avg 135ms, p95 184ms |
+| `close` (chiusura asta) | avg 125ms, p95 172ms |
+| Confronto baseline luglio (hardening pre-rework) | avg 272ms / **p95 1580ms** → ora p95 207ms: nessuna regressione da rework grafico, anzi meglio (verosimilmente niente cold-start dato che gli account erano già "caldi" dai login sequenziali) |
+
+I 400 sui bid sono scarti logici attesi (prezzo superato da un concorrente nel burst, o budget squadra esaurito a fine asta) — comportamento corretto sotto race, non un bug.
+
+**Non ancora testato con questo metodo**: Rubata e Svincolati (script `_stress-test-rs.mjs` di luglio copre quel caso, da adattare allo stesso modo se si vuole ripetere l'esercizio su quelle fasi).
+
+---
+
 ## Performance — baseline da riprendere (Fase 6)
 
 Baseline luglio 2026 (pre-rework, hardening only), da rieseguire sul preview attuale:
@@ -90,7 +111,22 @@ Script: `scripts/_stress-test.mjs` (asta), `scripts/_stress-test-rs.mjs` (rubata
 
 ## Playthrough end-to-end 8 fasi (Fase 5) — runbook
 
-Da eseguire con Pietro sul preview (serve login Vercel team o link di bypass rigenerato). Lega di riferimento: **Simulazione Beta 2026-07** (`cmrhiriba0008x3t07twekh9d`) o una nuova lega di scratch se si preferisce non riusare quella di luglio.
+**Avviato 2026-08-24 (sessione ripresa).** Lega di riferimento: **Simulazione Beta 2026-07** (`cmrhiriba0008x3t07twekh9d`), verificata via API prima di iniziare: `status: ACTIVE`, `currentSeason: 1`, **nessuna sessione di mercato attiva** (`/api/leagues/.../auctions` → `[]`) — confermato lo stato "ripulita" di luglio (memoria `verifica-pre-lancio-8-manager`). È lo stato ideale: si può fare un Primo Mercato vero da zero.
+
+**Nota password admin**: il tentativo di login con `pietro1412@gmail.com` / `TestAdmin2026!` (password impostata a luglio per lo stress test) ha dato "Credenziali non valide" — Pietro l'ha presumibilmente ricambiata dal profilo dopo i test di luglio. **Serve la sua password attuale**, non ricostruibile/indovinabile da Claude.
+
+**Modalità operativa (adattata 2026-08-24)**: password reale di `pietro1412` non disponibile → Pietro guida da browser come **Sim01, che è stato reso ADMIN** di una lega nuova di scratch creata per questo playthrough. Claude pilota via API gli altri 7 account (Sim02-08) per velocizzare conferme/offerte multiple senza serve 8 persone reali.
+
+### Lega di playthrough (creata 2026-08-24 via API)
+- **Nome**: "Playthrough Beta 2026-08-24" — **id**: `cmt72bxuw0005sls2o232kz7x`
+- **Registrato Sim08** (`sim08@sim.fantacontratti.it` / `SimBeta2026!`, era il 7° account mancante per arrivare a 8)
+- 8 membri ACTIVE: Sim01 (ADMIN, "Simulato 1") + Sim02..08 ("Simulato 2".."Simulato 8"), tutti via invito email + accept (non tramite richiesta+approvazione)
+- Lega **avviata** (`POST /leagues/:id/start` → `status: ACTIVE`, ordini di turno assegnati, 8 partecipanti) — **nessuna sessione di mercato aperta**: il Primo Mercato va avviato dal vivo da Pietro/Sim01 dall'interfaccia, così il test copre anche quel flusso admin
+- Budget 500, slot standard (3P/8D/8C/6A)
+
+**Login per Pietro**: `sim01@sim.fantacontratti.it` / `SimBeta2026!` — è ADMIN della nuova lega, può avviare/gestire il Primo Mercato dal pannello.
+
+Accesso preview: link di bypass SSO generato alle 2026-08-24 09:46 (scade 2026-08-25 08:46) — se scaduto, richiederne uno nuovo. In alternativa Pietro può accedere direttamente se loggato al team Vercel nel suo browser.
 
 Checklist (da compilare durante il playthrough):
 
@@ -112,6 +148,24 @@ Ogni bug trovato durante il playthrough va aggiunto qui sotto, non solo detto in
 | # | Finding | Severità | Dove |
 |---|---------|----------|------|
 | 1 | Cold-start: pool connessioni Neon (limit 5) può dare 500 transitorio su login/richieste concorrenti dopo inattività | Media — da confermare sotto carico reale in Fase 6 | Backend, tutte le route che usano Prisma |
+
+### Osservazioni Pietro da screenshot live (playthrough Primo Mercato, 2026-08-24) — TUTTE FIXATE
+
+Raccolte in `OSSERVAZIONI.docx` (7 punti, letto testo + screenshot incorporati), mappate sul codice e corrette nella stessa sessione:
+
+| # | Osservazione | Fix | File |
+|---|---|---|---|
+| 1 | Foto giocatore mancante nel modale "Transazione Completata" | Aggiunta foto reale (con fallback a badge ruolo se assente) | `AuctionRoomModals.tsx` (`AcknowledgmentModal`) |
+| 2 | Budget disponibile sparisce a rosa completata in "La mia rosa" | **Bug reale**: la prop `budget` non era mai usata, il footer mostrava solo "speso". Ora mostra sempre "Budget disponibile" | `MyPortfolio.tsx` |
+| 3 | Sfondo logo squadra non bianco nella striscia filtro di "Ricerca & Nomina" | Aggiunto wrapper `bg-white/90` coerente con le altre istanze del logo nella stessa schermata | `NominationPanel.tsx` |
+| 4 | Manca vista tabellare in "Ricerca & Nomina" | Il toggle card/tabella esisteva già in codice (icone in alto a destra) — nessun fix, solo da verificare/notare sul preview | `NominationPanel.tsx` (invariato) |
+| 5 | "Ricerca & Nomina" mostra statistiche complete invece della sola età | Rimossa `MiniStats` (presenze/gol/assist/media voto) dalla card grid; lasciate intatte in card focale e vista tabella (viste più di dettaglio) | `NominationPanel.tsx` |
+| 6 | Modale statistiche giocatore non si chiude col click esterno | **Bug reale nel componente condiviso `Modal`**: il backdrop click-handler era su un div esterno mentre lo sfondo visivo era un div separato sovrapposto — `event.target` non coincideva mai con `event.currentTarget`. Fuso in un solo div. **Corregge il problema per OGNI modale che usa il componente condiviso**, non solo `PlayerStatsModal` | `src/components/ui/Modal.tsx` |
+| 7 | Modale rosa avversario piccola/disordinata | Allargata (`max-w-lg`→`max-w-2xl`), aggiunta foto giocatore per riga, layout a 2 colonne su schermi larghi | `AuctionRoomModals.tsx` (`ManagerDetailModal`) |
+
+Effetto collaterale utile dei fix #1/#7: `apiFootballId` mancava nel roster inviato dal backend per il modale rosa avversario (sia lato Primo Mercato in `auction.service.ts` sia lato Svincolati in `useSvincolatiState.ts`/tipi) — aggiunto in entrambi i percorsi, altrimenti le foto non sarebbero mai comparse pur con il fix del componente.
+
+**Verifica**: typecheck 0 errori, test:all 1765/1765 verdi, lint 0 errori (invariato). Verifica visiva rimandata al preview live con Pietro (già autenticato nella sessione in corso) invece che a un setup locale Docker/API dedicato.
 
 ---
 

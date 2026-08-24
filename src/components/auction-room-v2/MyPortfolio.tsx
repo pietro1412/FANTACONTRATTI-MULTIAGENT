@@ -57,7 +57,7 @@ const POS_COLORS: Record<string, { bg: string; border: string; text: string; bad
   A: { bg: 'bg-red-500/15', border: 'border-red-500/40', text: 'text-red-400', badge: 'from-red-500 to-red-600' },
 }
 
-export function MyPortfolio({ myRosterSlots, budget: _budget, leagueId }: MyPortfolioProps) {
+export function MyPortfolio({ myRosterSlots, budget, leagueId }: MyPortfolioProps) {
   const [statsModalOpen, setStatsModalOpen] = useState(false)
   const [selectedPlayer, setSelectedPlayer] = useState<{ player: RosterSlot; position: string } | null>(null)
 
@@ -171,10 +171,11 @@ export function MyPortfolio({ myRosterSlots, budget: _budget, leagueId }: MyPort
         })}
       </div>
 
-      {/* Footer: budget spent */}
-      <div className="px-3 py-2 border-t border-surface-50 flex-shrink-0 flex items-center justify-between">
-        <span className="text-sm text-gray-400">Budget speso</span>
-        <span className="text-sms font-mono font-bold text-accent-400">{totalSpent}M</span>
+      {/* Footer: budget disponibile (sempre visibile, anche a rosa completata) + speso */}
+      <div className="px-3 py-2 border-t border-surface-50 flex-shrink-0 flex items-center justify-between gap-3">
+        <span className="text-sm text-gray-400">Budget disponibile</span>
+        <span className="text-sms font-mono font-bold text-accent-400">{budget}M</span>
+        <span className="text-sm text-gray-500 ml-auto">Speso {totalSpent}M</span>
       </div>
 
       {/* Player Stats Modal */}
