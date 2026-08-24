@@ -1,4 +1,4 @@
-/* Font: Helvetica Neue come unico font di sistema */
+/* Font: Inter come unico font di piattaforma */
 
 @tailwind base;
 @tailwind components;
@@ -45,7 +45,7 @@
 /* Custom base styles - Football Manager Dark Theme */
 @layer base {
   html {
-    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-family: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
   }
 
   body {
@@ -285,7 +285,7 @@
 
   /* Stadium scoreboard number style */
   .stat-number {
-    font-family: "Barlow Condensed", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-family: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-weight: 700;
     letter-spacing: -0.01em;
     font-variant-numeric: tabular-nums;
@@ -293,7 +293,7 @@
 
   /* Large timer display in sport style */
   .timer-sport {
-    font-family: "Barlow Condensed", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-family: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-weight: 700;
     letter-spacing: 0.03em;
     font-variant-numeric: tabular-nums;
@@ -301,7 +301,7 @@
 
   /* Budget display style */
   .budget-display {
-    font-family: "Barlow Condensed", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-family: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
   }
@@ -310,9 +310,9 @@
      Linguaggio mockup v2 (rubata) — componenti di tema condivisi
      ============================================================ */
 
-  /* Panel/section micro header: Barlow uppercase wide-tracked */
+  /* Panel/section micro header: uppercase wide-tracked */
   .micro-label {
-    font-family: "Barlow", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-family: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 10.5px;
     font-weight: 700;
     letter-spacing: 0.13em;

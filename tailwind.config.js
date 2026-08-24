@@ -128,11 +128,13 @@ export default {
         },
       },
       fontFamily: {
-        // Broadcast theme: Barlow (body) + Barlow Condensed (display/numbers)
-        sans: ['"Barlow"', '"Helvetica Neue"', 'Helvetica', 'Arial', 'sans-serif'],
-        mono: ['"Helvetica Neue"', 'Helvetica', 'Arial', 'sans-serif'],
-        display: ['"Barlow Condensed"', '"Helvetica Neue"', 'Helvetica', 'Arial', 'sans-serif'],
-        sport: ['"Barlow Condensed"', '"Helvetica Neue"', 'Helvetica', 'Arial', 'sans-serif'],
+        // Font unico di piattaforma: Inter ovunque (corpo, titoli, numeri).
+        // L'allineamento cifre non dipende dal monospace: .stat-number/.timer-sport/
+        // .budget-display usano gia' font-variant-numeric: tabular-nums.
+        sans: ['"Inter"', '"Helvetica Neue"', 'Helvetica', 'Arial', 'sans-serif'],
+        mono: ['"Inter"', '"Helvetica Neue"', 'Helvetica', 'Arial', 'sans-serif'],
+        display: ['"Inter"', '"Helvetica Neue"', 'Helvetica', 'Arial', 'sans-serif'],
+        sport: ['"Inter"', '"Helvetica Neue"', 'Helvetica', 'Arial', 'sans-serif'],
       },
       backgroundImage: {
         'pitch-gradient': 'linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%)',
