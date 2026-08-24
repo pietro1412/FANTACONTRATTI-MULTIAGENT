@@ -57,6 +57,19 @@ interface Session {
   phaseStartedAt: string | null
 }
 
+/** Forma reale di GET /api/leagues/:id/rosters (vedi commento nell'effetto di lazy-load). */
+interface RawRosterMember {
+  id: string
+  role: string
+  teamName: string | null
+  currentBudget: number
+  user: { username: string }
+  roster: Array<{
+    player: { position: string }
+    contract: { salary: number } | null
+  }>
+}
+
 export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
   const { confirm: confirmDialog } = useConfirmDialog()
   const { toast } = useToast()
@@ -132,9 +145,25 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
     setLazyLoaded(true)
 
     void auctionApi.getLeagueRosters(leagueId).then(result => {
-      if (result.success && result.data) {
-        setRosters(result.data as RosterMemberData[])
-      }
+      if (!result.success || !result.data) return
+      // /api/leagues/:id/rosters è registrata sia in auctions.ts sia in leagues.ts
+      // (route duplicata, non risolta qui): a runtime risponde quest'ultima, che
+      // restituisce { members: [...] } invece dell'array atteso. Stesso workaround
+      // difensivo già usato in Trades.tsx.
+      const raw = result.data as { members?: RawRosterMember[] } | RawRosterMember[]
+      const rawMembers: RawRosterMember[] = Array.isArray(raw) ? raw : (raw.members ?? [])
+      setRosters(rawMembers.map(m => ({
+        memberId: m.id,
+        username: m.user.username,
+        teamName: m.teamName,
+        role: m.role,
+        budget: m.currentBudget,
+        playerCount: m.roster.length,
+        players: m.roster.map(r => ({
+          position: r.player.position,
+          contract: r.contract ? { salary: r.contract.salary } : null,
+        })),
+      })))
     })
   }, [league, isLoading, sessions, leagueId, lazyLoaded])
 
