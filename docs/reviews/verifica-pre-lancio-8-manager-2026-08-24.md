@@ -201,6 +201,16 @@ Sostituito **Barlow + Barlow Condensed** (tema "Broadcast") con **Inter ovunque*
 - Push su `develop` (`e7af41e`) poi fast-forward su `main` — stesso commit ora in produzione.
 - **Da riverificare**: Pietro deve controllare il font su una tab nuova (stesso avvertimento cache/SPA di prima) su più pagine, non solo login.
 
+### Rework Dashboard di lega (2026-08-24) — richiesta esplicita, fuori sequenza dal piano
+
+Pietro ha chiesto un rework completo dell'Hub Lega (`LeagueDetail.tsx`): troppa complessità, voleva dati personali in primo piano + rose avversari + fase sempre chiara. Ciclo: delega a `esperto-prodotto-manageriale` → 3 mockup (A/B/C) → feedback "troppe informazioni, ridurre all'osso" → mockup D (essenziale) → feedback "voglio budget + composizione rosa mia e avversari, cliccabili" → mockup E (rose) → **"procedi"**.
+
+**Implementato**: nuovo componente `RosterOverview.tsx` ("La mia rosa" con budget disponibile + composizione P/D/C/A cliccabile → Rose; "Rose degli avversari" solo composizione, ogni riga cliccabile → Rose con quel manager preselezionato via nuovo query param `?member=`). Rimossi 5 componenti ridondanti con pagine dedicate (AttentionRail, FinancialKPIs, StrategySummary, RecentMovements, ManagersSidebar) — invariata solo `AdminBanner` (CTA di fase).
+
+**Bug in produzione al primo deploy, poi corretto**: `/api/leagues/:id/rosters` ha una route duplicata pre-esistente (`auctions.ts` vs `leagues.ts`, quest'ultima vince a runtime) — il codice assumeva la forma sbagliata, crash `s.find is not a function`. `Trades.tsx` aveva già lo stesso problema con un workaround difensivo, riapplicato qui. **Root cause non risolta a livello di route** (le due route duplicate restano entrambe registrate) — solo il consumo lato frontend è stato reso robusto. Da considerare per un giro di pulizia futuro se si vuole eliminare la duplicazione alla fonte.
+
+**Verificato dal vivo** (Playwright, browser pulito, prod, lega "Playthrough Beta 2026-08-24" con rose piene 25/25): pagina corretta, nessun errore JS, click su rosa avversaria naviga a `/rose?member=<id>` con quella rosa effettivamente selezionata. Mockup pubblicati come Artifact e in `docs/reviews/mockups/28-dashboard-lega/` (A, B, C, D, E + README).
+
 ---
 
 ## Prossimi passi
