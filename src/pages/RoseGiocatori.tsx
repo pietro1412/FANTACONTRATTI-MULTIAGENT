@@ -1000,7 +1000,10 @@ export function RoseGiocatori({ onNavigate, initialView = 'rose', initialTeamFil
           <ErrorState message="Errore nel caricamento delle rose" onRetry={() => { void roseLoadData(); }} />
         </div>
       ) : (
-        <div className="mt-3 lg:h-full lg:min-h-0 lg:grid lg:grid-cols-[minmax(0,1fr)_264px] lg:gap-3.5">
+        /* grid-rows-[minmax(0,1fr)] + overflow-hidden: senza, la riga implicita "auto"
+           cresce oltre h-full quando una colonna ha molto contenuto, e l'overflow-hidden
+           di un antenato taglia il fondo invece di far scrollare solo la colonna interna. */
+        <div className="mt-3 lg:h-full lg:min-h-0 lg:grid lg:grid-cols-[minmax(0,1fr)_264px] lg:grid-rows-[minmax(0,1fr)] lg:gap-3.5 lg:overflow-hidden">
           <div className="hidden lg:block lg:min-h-0 lg:h-full">
             {roseTablePanel}
           </div>

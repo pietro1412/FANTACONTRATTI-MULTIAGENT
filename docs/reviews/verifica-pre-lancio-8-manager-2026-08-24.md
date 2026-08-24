@@ -167,6 +167,16 @@ Effetto collaterale utile dei fix #1/#7: `apiFootballId` mancava nel roster invi
 
 **Verifica**: typecheck 0 errori, test:all 1765/1765 verdi, lint 0 errori (invariato). Verifica visiva rimandata al preview live con Pietro (già autenticato nella sessione in corso) invece che a un setup locale Docker/API dedicato.
 
+### Feedback live sui fix (screenshot Pietro dopo il primo deploy) — 2 problemi trovati, corretti
+
+**#2 (budget) non risolto al primo giro + #7 (modale rosa avversario) peggiorata dal mio stesso fix.** Analisi da screenshot:
+
+1. **Budget disponibile ancora invisibile a rosa piena (25/25)** — non era un bug nel testo del footer (quello era corretto), ma un **bug di layout CSS più profondo**: la griglia cockpit a 3 colonne (`AuctionRoomLayout.tsx`) usa una riga implicita `auto` senza altezza vincolata. Con rosa parziale il contenuto capiva nella viewport per puro caso; con **rosa 25/25 completa** (mai vista prima in test, dato che questa sessione è il primo playthrough a rose piene) il contenuto della colonna "La mia rosa" supera l'altezza disponibile, la riga della griglia cresce oltre `h-full`, e l'`overflow-hidden` di un antenato (`CockpitShell`) taglia silenziosamente il fondo di **tutte e 3 le colonne** — non solo il footer budget, un bug strutturale che sarebbe emerso anche altrove a mano a mano che le rose si riempiono. Fix: `lg:grid-rows-[minmax(0,1fr)] lg:overflow-hidden` sulla riga della griglia, per forzare la riga a restare dentro `h-full` e delegare lo scroll ai pannelli interni (`.panel-scroll`) come da design.
+   - **Stesso pattern trovato e corretto preventivamente in altre 5 pagine cockpit** (stessa struttura di griglia, stesso rischio non ancora osservato perché mai testate a piena capacità): `SvincolatiCockpit.tsx`, `Contracts.tsx`, `RoseGiocatori.tsx`, `Rubata.tsx`, `Trades.tsx`. Decisione Pietro: fix preventivo su tutte, non aspettare di incontrarlo di nuovo pagina per pagina.
+2. **Modale rosa avversario ("Simulato 3") con dati sovrapposti** — causato dal MIO fix precedente: avevo cambiato il layout da colonna singola a griglia 2 colonne per "ridurre il disordine verticale", ma a metà larghezza modale ogni riga (foto+logo+nome+contratto inline a 4 campi+prezzo acquisto) non ci stava e si accavallava visivamente. Fix: tornato a colonna singola (`space-y-4`), mantenendo la modale allargata (`max-w-2xl`, dal fix precedente) che da sola dà lo spazio in più richiesto senza bisogno del multi-colonna.
+
+**Verifica**: typecheck 0 errori, test:all 1765/1765 verdi, lint 0 errori. File toccati in questo secondo giro: `AuctionRoomLayout.tsx`, `SvincolatiCockpit.tsx`, `Contracts.tsx`, `RoseGiocatori.tsx`, `Rubata.tsx`, `Trades.tsx`, `AuctionRoomModals.tsx` (revert griglia→colonna singola). **Da riverificare sul preview**: Pietro deve confermare che budget disponibile e modale rosa avversario siano ora corretti, e idealmente controllare almeno una delle altre pagine cockpit corrette preventivamente (Contratti/Rose sono le prossime fasi naturali del playthrough).
+
 ---
 
 ## Prossimi passi

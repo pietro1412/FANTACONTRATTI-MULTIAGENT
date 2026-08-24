@@ -123,7 +123,11 @@ export function SvincolatiCockpit(props: SvincolatiCockpitProps) {
         </div>
       ) : undefined}
     >
-      <div className="mt-3 lg:mt-0 lg:pt-2 lg:h-full lg:min-h-0 lg:grid lg:grid-cols-[300px_minmax(0,1fr)_360px] lg:gap-3">
+      {/* grid-rows-[minmax(0,1fr)] + overflow-hidden: senza, la riga implicita "auto"
+          cresce oltre h-full quando una colonna ha contenuto alto (es. rosa piena),
+          e l'overflow-hidden di un antenato taglia il fondo di tutte le colonne
+          invece di far scrollare solo quella interna (stesso bug di AuctionRoomLayout). */}
+      <div className="mt-3 lg:mt-0 lg:pt-2 lg:h-full lg:min-h-0 lg:grid lg:grid-cols-[300px_minmax(0,1fr)_360px] lg:grid-rows-[minmax(0,1fr)] lg:gap-3 lg:overflow-hidden">
 
         {/* ===== Sinistra: Direttori Generali ===== */}
         <div className={`mb-3 lg:mb-0 lg:min-h-0 ${auction ? 'hidden lg:flex lg:flex-col' : 'flex flex-col'}`}>

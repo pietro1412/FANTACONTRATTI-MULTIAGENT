@@ -583,7 +583,10 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
               </div>
             ) : undefined}
           >
-          <div className="mt-3 lg:mt-0 lg:pt-2 lg:h-full lg:min-h-0 lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:gap-3">
+          {/* grid-rows-[minmax(0,1fr)] + overflow-hidden: senza, la riga implicita "auto"
+              cresce oltre h-full quando una colonna ha molto contenuto, e l'overflow-hidden
+              di un antenato taglia il fondo invece di far scrollare solo la colonna interna. */}
+          <div className="mt-3 lg:mt-0 lg:pt-2 lg:h-full lg:min-h-0 lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:grid-rows-[minmax(0,1fr)] lg:gap-3 lg:overflow-hidden">
             {/* === ZONA AZIONE (left on desktop, top on mobile) === */}
             <div className="mb-4 lg:mb-0 space-y-3 lg:space-y-0 lg:flex lg:flex-col lg:gap-2 lg:min-h-0 lg:overflow-hidden">
               {/* Dynamic content based on rubataState */}

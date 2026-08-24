@@ -687,7 +687,10 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
               ) : (
                 <>
                   {/* 3-column deal room (desktop). Mobile: arena only + BottomSheets */}
-                  <div className="lg:h-full lg:min-h-0 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.12fr)_minmax(0,1fr)] lg:gap-3">
+                  {/* grid-rows-[minmax(0,1fr)] + overflow-hidden: senza, la riga implicita "auto"
+                      cresce oltre h-full quando una colonna ha molto contenuto, e l'overflow-hidden
+                      di un antenato taglia il fondo invece di far scrollare solo la colonna interna. */}
+                  <div className="lg:h-full lg:min-h-0 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.12fr)_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)] lg:gap-3 lg:overflow-hidden">
                     {/* Sinistra: la mia rosa (desktop) */}
                     <div className="hidden lg:block lg:min-h-0">
                       <DealRosterPanel

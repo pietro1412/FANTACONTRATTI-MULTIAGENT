@@ -140,8 +140,10 @@ export function ManagerDetailModal({ selectedManager, onClose, rosterMode = 'slo
             </div>
           </div>
 
-          {/* Roster rows — same language as "La mia rosa" — 2 colonne su schermi larghi, meno disordine verticale */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-4">
+          {/* Roster rows — same language as "La mia rosa". Colonna singola: ogni riga
+              (foto + nome + contratto inline + prezzo) non entra in 2 colonne senza
+              accavallarsi — la modale piu' larga (max-w-2xl) basta a dare respiro. */}
+          <div className="space-y-4">
             {(['P', 'D', 'C', 'A'] as const).map(pos => {
               const slot = selectedManager.slotsByPosition[pos]
               const posPlayers = selectedManager.roster.filter(r => r.position === pos)

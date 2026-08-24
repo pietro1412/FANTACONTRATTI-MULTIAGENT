@@ -90,8 +90,12 @@ export function AuctionRoomLayout(props: AuctionViewProps) {
         />
       </div>
 
-      {/* Main: 3 colonne a viewport bloccata su desktop / colonna singola su mobile */}
-      <div className="mt-3 lg:mt-0 lg:pt-2 lg:h-full lg:min-h-0 lg:grid lg:grid-cols-[300px_minmax(0,1fr)_280px] lg:gap-3">
+      {/* Main: 3 colonne a viewport bloccata su desktop / colonna singola su mobile.
+          grid-rows-[minmax(0,1fr)] + overflow-hidden: senza, la riga implicita "auto"
+          cresce oltre h-full quando una colonna ha contenuto alto (es. rosa 25/25 piena),
+          e l'overflow-hidden di un antenato taglia il fondo di TUTTE le colonne (incluso
+          il footer budget di "La mia rosa") invece di far scrollare solo quella interna. */}
+      <div className="mt-3 lg:mt-0 lg:pt-2 lg:h-full lg:min-h-0 lg:grid lg:grid-cols-[300px_minmax(0,1fr)_280px] lg:grid-rows-[minmax(0,1fr)] lg:gap-3 lg:overflow-hidden">
         {/* Sinistra: Manager — scroll interno */}
         <div className="hidden lg:flex lg:flex-col lg:min-h-0">
           <FinancialDashboard
