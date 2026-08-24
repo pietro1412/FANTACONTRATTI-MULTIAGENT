@@ -6,20 +6,36 @@
 
 ---
 
-## Stato avanzamento
+## PUNTO DI RIPRESA (leggere per primo dopo un /clear o /compact)
 
-**Ultimo aggiornamento: 2026-08-24 — Fasi 0-3 completate.** Prossimo passo: Fase 4 (sweep #7) o Fase 5 (playthrough con Pietro), a scelta di Pietro su cosa fare prima.
+**Ultimo aggiornamento: 2026-08-24 sera.**
+
+**Dove siamo**: nel mezzo della Fase 5 (playthrough), Pietro ha chiesto un **rework fuori piano** della Dashboard di lega (Hub Lega). Rework fatto, deployato in prod, un bug post-deploy trovato e corretto, poi un secondo giro "font troppo piccoli" anche quello corretto, ripushato e **verificato dal vivo con successo** (commit `288324a` in prod, screenshot pulito, nessun errore JS). Il ciclo Dashboard di lega è chiuso. Prossimo passo naturale: riprendere la Fase 5 (playthrough) da Contratti, oppure altro su richiesta di Pietro.
+
+**Cosa manca per chiudere il ciclo di verifica pre-lancio** (piano originale, Fasi 0-7 in `C:\Users\39349\.claude\plans\inherited-whistling-tulip.md`):
+- Fase 4 (sweep bug aperti #7/#13): triage fatto, non bloccante, non azionato — va bene lasciarlo così per la beta cerchia ristretta.
+- **Fase 5 (playthrough) INTERROTTA per il rework Dashboard**: Primo Mercato completato (25/25 rose piene, via script `scripts/_playthrough-load-test.mjs`) sulla lega "Playthrough Beta 2026-08-24" (`cmt72bxuw0005sls2o232kz7x`, prod). **Prossima fase naturale da testare: Contratti** (rinnovi post-asta) — non ancora iniziata.
+- Fase 6 (performance): fatta solo per Primo Mercato (0 errori su 3186 chiamate, vedi sotto), non ancora per Rubata/Svincolati.
+- Fase 7 (Go/No-Go): non siamo ancora arrivati a decidere, main riceve ancora fix mirati via push diretto (prassi consolidata in questa sessione, sempre con conferma esplicita di Pietro prima di ogni push).
+
+**Credenziali/lega di test attive**: Sim01 = admin (`sim01@sim.fantacontratti.it` / `SimBeta2026!`), Sim02-08 stessa password. Lega `cmt72bxuw0005sls2o232kz7x` su prod (`fantacontratti-multiagent.vercel.app`), NON la lega reale.
+
+**Nota ricorrente su falsi allarmi**: più volte in questa sessione Pietro ha segnalato un fix "non funzionante" che in realtà era una **tab del browser rimasta aperta da prima del deploy** (SPA, non ricarica il bundle JS da sola). Prima di investigare un bug segnalato subito dopo un deploy, sospettare sempre questo e chiedere di provare con una tab nuova/hard refresh — confrontando l'hash del chunk JS servito ora vs quello nell'errore, se serve la controprova.
+
+**Debito tecnico scoperto (non risolto, solo aggirato)**: `GET /api/leagues/:id/rosters` è registrata due volte (`src/api/routes/auctions.ts` e `src/api/routes/leagues.ts`), con forme di risposta diverse — vince quella di `leagues.ts` a runtime. `Trades.tsx` e ora anche `LeagueDetail.tsx` gestiscono l'ambiguità in modo difensivo lato frontend, ma la duplicazione backend resta. Da pulire in un giro dedicato futuro (basso rischio, non urgente).
+
+## Stato avanzamento
 
 | Fase | Stato | Note |
 |------|-------|------|
-| 0 — Salute locale | ✅ Fatta | test:all 1765/1765, lint 0 errori (1214 warning pre-esistenti), build ok |
-| 1 — Deploy preview develop | ✅ Fatta | `REVIEW_PRE_BETA` pushato + merge fast-forward in `develop` (91addae→9757e23) + push. Vercel preview READY |
-| 2 — Smoke sul preview | ✅ Fatta | Vedi sezione dedicata sotto |
-| 3 — Documento di sessione | ✅ Fatta | Questo file + HANDOFF.md + memoria aggiornati |
-| 4 — Sweep bug aperti | 🟡 Parziale | #3 e #11 risultano già risolti dal rework; #7 e #13 verificati ma non azionati (vedi sotto) |
-| 5 — Playthrough 8 fasi | ⬜ Da fare | Serve disponibilità Pietro per i test utente da browser |
-| 6 — Performance | ⬜ Da fare | Script pronti, da ripuntare sul preview |
-| 7 — Go/No-Go main | ⬜ Da fare | Dopo 4-6 |
+| 0 — Salute locale | ✅ Fatta | test:all 1765/1765, lint 0 errori, build ok |
+| 1 — Deploy preview develop | ✅ Fatta | Superata: ora si pusha direttamente main dopo conferma, develop e main allineati |
+| 2 — Smoke sul preview | ✅ Fatta | |
+| 3 — Documento di sessione | ✅ Fatta | Questo file, aggiornato più volte |
+| 4 — Sweep bug aperti | 🟡 Parziale, accettato così | #7/#13 non bloccanti per beta cerchia ristretta |
+| 5 — Playthrough 8 fasi | 🟡 In corso | Primo Mercato ✅ completato; Contratti da iniziare; interrotto per rework Dashboard di lega (vedi sopra) |
+| 6 — Performance | 🟡 Parziale | Primo Mercato ✅ (0 errori/3186 chiamate); Rubata/Svincolati da fare |
+| 7 — Go/No-Go main | ⬜ Da fare | |
 
 ---
 
