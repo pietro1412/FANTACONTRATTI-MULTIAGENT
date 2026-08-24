@@ -2,6 +2,7 @@
 
 > File di passaggio per prendere in carico lo sviluppo. Generato: 2026-07-27.
 > Aggiornato: 2026-08-21 — pulizia repository + consolidamento documentale (Fase 1.0). Questo è ora l'**unico documento di stato corrente** (sostituisce `PROJECT-STATUS.md` e `COMPLETAMENTO-BACKLOG.md`, archiviati in `docs/archive/`).
+> Aggiornato: 2026-08-24 — `REVIEW_PRE_BETA` (38 commit di rework grafico) mergiato in `develop` e deployato su preview Vercel per la verifica pre-lancio beta 8 manager. `main`/prod invariato. Dettagli: `docs/reviews/verifica-pre-lancio-8-manager-2026-08-24.md`.
 > Aggiornato solo su conferma dello stato effettivo — non lasciare sezioni storiche mescolate a quelle vive: se una parte diventa superata, spostarla in `docs/archive/` invece di lasciarla qui contraddittoria.
 
 ---
@@ -40,19 +41,17 @@
 
 ## 3. Stato Git (verificato 2026-08-21)
 
-### Branch attuale
-- **HEAD su `REVIEW_PRE_BETA`** — 4 commit avanti al proprio remoto (`origin/REVIEW_PRE_BETA`), 12 commit avanti a `main`/`develop`.
-- I 12 commit sono rework grafico "less is more": tabellone dashboard proporzionale, minimalismo dashboard, font unico Helvetica (rimossi Inter/Oswald/JetBrains), fix contratti pre-rinnovo in Rose/Giocatori, 10 mockup tema colore (dark+light) ancora **da scegliere** (`docs/reviews/mockups/24-themes/`).
-- Working tree pulito dopo la pulizia documentale di oggi.
+### Branch attuale (aggiornato 2026-08-24)
+- **HEAD su `develop`** — `REVIEW_PRE_BETA` (38 commit di rework grafico esteso: Rose/Giocatori/Statistiche unificati, Contratti ContractInline, TeamLogo, tipografia, cockpit) è stato pushato su origin e **mergiato fast-forward in `develop`** (`91addae` → `9757e23`, nessun conflitto). Deployato su preview Vercel per verifica pre-lancio beta 8 manager, vedi `docs/reviews/verifica-pre-lancio-8-manager-2026-08-24.md`.
+- **`main` NON toccato** — resta a `91addae`, invariato finché la verifica (Fasi 4-6 del piano) non dà esito Go.
+- Working tree pulito.
 
 ### Branch locali
 | Branch | Stato |
 |--------|-------|
-| `REVIEW_PRE_BETA` | ✅ HEAD attivo, 12 commit avanti a main/develop (rework UI in corso) |
-| `develop` | ✅ allineato a `main` |
-| `main` | ✅ produzione |
-
-`main` = `develop` = `91addae` (allineati). Eliminati oggi (già confluiti in `main`, zero commit esclusivi): `fix/smoke-beta-prod`, `feature/1.x-raccolta-evidenze-beta` (la sua Livello-2 raccolta-evidenze-beta risulta quindi **confluita in main**, non più WIP).
+| `develop` | ✅ HEAD attivo, allineato a `REVIEW_PRE_BETA` (`9757e23`), avanti a `main` di 38 commit |
+| `REVIEW_PRE_BETA` | Confluito in `develop` (fast-forward) — da valutare se cancellare dopo la promozione a `main` |
+| `main` | ✅ produzione, fermo a `91addae` in attesa dell'esito della verifica pre-lancio |
 
 ### Branch remoti da valutare
 `origin/feature/1.x-raccolta-evidenze-beta` e `origin/fix/smoke-beta-prod` sono ancora su GitHub (stessa situazione: già mergiati) — non cancellati automaticamente perché tocca stato condiviso. Eliminabili con `git push origin --delete <nome>` quando confermato.
@@ -152,7 +151,7 @@ I 5 service più grandi del progetto sono anche i 5 dichiarati critici — compl
 1. **Formula indennizzo ESTERO** — unico blocco residuo per chiudere Sprint C. Default oggi: 50M.
 2. **Tema colore** — 10 mockup pronti, nessuno scelto.
 3. **Branch remoti mergiati** (`origin/feature/1.x-raccolta-evidenze-beta`, `origin/fix/smoke-beta-prod`) — confermare cancellazione su GitHub.
-4. **`REVIEW_PRE_BETA` → merge strategy**: quando confluisce in `develop`/`main`? (dopo Fase 1.1 semplificazione UI, secondo il piano corrente)
+4. ~~`REVIEW_PRE_BETA` → merge strategy~~ **RISOLTO 2026-08-24**: mergiato in `develop` e deployato su preview per la verifica pre-lancio beta 8 manager (decisione Pietro: merge in develop invece di branch isolato, per aggiornare il preview "ufficiale"). Resta aperto solo il **Go/No-Go per promuovere a `main`**, condizionato all'esito delle Fasi 4-6 di `docs/reviews/verifica-pre-lancio-8-manager-2026-08-24.md`.
 
 ---
 
