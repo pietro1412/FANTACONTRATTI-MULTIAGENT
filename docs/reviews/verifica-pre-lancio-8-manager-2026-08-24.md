@@ -193,6 +193,14 @@ Dopo il deploy in prod, Pietro segnalava di nuovo budget/modale rotti. **Diagnos
 
 A fine Primo Mercato (tutti gli slot di ruolo pieni, fase ATTESA), la colonna Manager mostrava un trattino "—" grande in oro/bianco (ex "offerta max", non più significativo) mentre il **budget residuo** — l'unico dato ancora rilevante in quello stato — restava in piccolo grigio sotto. Fix: quando lo slot del ruolo corrente è pieno, il budget diventa il valore grande in oro al posto del trattino (`FinancialDashboard.tsx`, righe con `bigValue`/`bigUnit`/`bigValueGold`/`smallValue` condizionati su `roleFull`). Verificato: typecheck 0 errori, test:all 1765/1765 verdi.
 
+### Cambio font piattaforma (2026-08-24, richiesta esplicita Pietro fuori dal ciclo di verifica)
+
+Sostituito **Barlow + Barlow Condensed** (tema "Broadcast") con **Inter ovunque** — corpo testo, titoli, numeri/timer/budget — su richiesta di Pietro ("un font più gradevole"). Toccati: `index.html` (Google Fonts link), `tailwind.config.js` (`fontFamily.sans/mono/display/sport` → Inter), `src/index.css` (base `html` + `.stat-number`/`.timer-sport`/`.budget-display`/`.micro-label`, che avevano `Barlow`/`Barlow Condensed` hardcoded fuori dal token Tailwind).
+- **Nessun impatto sull'allineamento cifre**: le classi numeriche usano già `font-variant-numeric: tabular-nums`, non dipendono da un font monospace.
+- **Verificato anche visivamente**: build locale servita con `vite preview`, screenshot Playwright della pagina di login, confermato `getComputedStyle(document.body).fontFamily === "Inter, ..."`.
+- Push su `develop` (`e7af41e`) poi fast-forward su `main` — stesso commit ora in produzione.
+- **Da riverificare**: Pietro deve controllare il font su una tab nuova (stesso avvertimento cache/SPA di prima) su più pagine, non solo login.
+
 ---
 
 ## Prossimi passi
