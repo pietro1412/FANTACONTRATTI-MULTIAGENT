@@ -135,7 +135,7 @@ export function RosterOverview({ rosters, myMemberId, slotLimits, leagueId, onNa
                 </div>
               </div>
               <div className="text-right flex-shrink-0">
-                <p className="micro-label text-gray-500">Budget disponibile</p>
+                <p className="micro-label text-gray-500">Bilancio</p>
                 <p className="budget-display text-3xl text-accent-400 leading-none mt-1">
                   {computeAvailableBudget(mine)}<span className="text-base text-gray-500 ml-0.5">M</span>
                 </p>
@@ -159,7 +159,7 @@ export function RosterOverview({ rosters, myMemberId, slotLimits, leagueId, onNa
               <span className="micro-label text-gray-500">Squadra</span>
               <span className="micro-label text-gray-500 text-right">Età rosa</span>
               <span className="micro-label text-gray-500 text-center col-span-4">Età media per reparto</span>
-              <span className="micro-label text-gray-500 text-right">Budget</span>
+              <span className="micro-label text-gray-500 text-right">Bilancio</span>
               <span className="micro-label text-gray-500 text-right">Rosa</span>
               <span />
             </div>
@@ -219,7 +219,7 @@ export function RosterOverview({ rosters, myMemberId, slotLimits, leagueId, onNa
                   </div>
                   <div className="mt-3 grid grid-cols-3 gap-3">
                     <Field label="Età media rosa" value={formatAge(averageAge(r.players))} />
-                    <Field label="Budget disponibile" value={`${computeAvailableBudget(r)}M`} tone="text-accent-400" />
+                    <Field label="Bilancio" value={`${computeAvailableBudget(r)}M`} tone="text-accent-400" />
                     <Field label="Rosa" value={`${r.playerCount}/${totalSlots}`} />
                   </div>
                   <div className="mt-3 pt-3 border-t border-surface-50/10">

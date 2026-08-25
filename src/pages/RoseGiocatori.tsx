@@ -974,7 +974,7 @@ export function RoseGiocatori({ onNavigate, initialView = 'rose', initialTeamFil
           </button>
         ))}
       </div>
-      <div className="lg:panel-scroll lg:flex-1 lg:min-h-0">
+      <div className="lg:panel-scroll lg:flex-1 lg:min-h-0 overflow-y-auto overflow-x-hidden">
         {roseFilteredPlayers.length === 0 ? roseEmptyState : roseFilteredPlayers.map(entry => (
           <RosterTableRow key={entry.id} entry={entry} onPlayerClick={() => { openPlayerStatsFromEntry(entry); }} />
         ))}
