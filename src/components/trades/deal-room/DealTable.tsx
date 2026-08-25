@@ -4,6 +4,8 @@ import { Textarea } from '@/components/ui/Textarea'
 import { Monogram } from '@/components/ui/Monogram'
 import { ContractInline } from '@/components/ui/ContractInline'
 import { POSITION_GRADIENTS } from '../../ui/PositionBadge'
+import { getAgeColor } from '../utils'
+import { NOT_DISPONIBILE } from '@/utils/stat-format'
 import type { RosterEntry, LeagueMember } from '../types'
 
 interface DealTableProps {
@@ -91,6 +93,9 @@ function DealAsset({ entry, onRemove, onViewStats }: { entry: RosterEntry; onRem
         </button>
         <div className="text-[10.5px] text-gray-500 flex items-center gap-1.5 flex-wrap">
           <span className="truncate">{p.team}</span>
+          <span className={p.age != null ? getAgeColor(p.age) : 'text-gray-500'}>
+            · {p.age != null ? `${p.age}a` : NOT_DISPONIBILE}
+          </span>
           <span aria-hidden="true">·</span>
           {p.contract ? (
             <ContractInline salary={p.contract.salary} duration={p.contract.duration} variant="compact" className="text-[10.5px]" />
@@ -260,9 +265,17 @@ export function DealTable(props: DealTableProps) {
       <div className="flex items-center gap-2.5 px-3.5 py-2.5 border-b border-surface-50 flex-shrink-0">
         <span className="micro-label">Con</span>
         {partnerName ? (
-          <span className="inline-flex items-center gap-2 bg-surface-300 border border-primary-500/45 rounded-full pr-3.5 pl-1 py-0.5 font-display text-[13px] font-bold text-white">
+          <span className="inline-flex items-center gap-2 bg-surface-300 border border-primary-500/45 rounded-full pr-1.5 pl-1 py-0.5 font-display text-[13px] font-bold text-white">
             <Monogram name={partnerName} size="sm" />
             {partnerName}
+            <button
+              type="button"
+              onClick={() => { onMemberChange(''); }}
+              title="Cambia destinatario (azzera i giocatori richiesti a questo manager)"
+              className="w-5 h-5 rounded-full bg-surface-200 border border-surface-50 text-gray-400 hover:text-white hover:border-primary-500/50 text-[10px] flex items-center justify-center flex-shrink-0 transition-colors"
+            >
+              ✕
+            </button>
           </span>
         ) : (
           <select

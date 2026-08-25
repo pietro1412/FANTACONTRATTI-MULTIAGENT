@@ -1,6 +1,7 @@
 import { Monogram } from '@/components/ui/Monogram'
 import { PlayerName } from '@/components/players/PlayerName'
-import { getTimeRemaining } from './utils'
+import { getTimeRemaining, getAgeColor } from './utils'
+import { NOT_DISPONIBILE } from '@/utils/stat-format'
 import type { Player, TradeOffer } from './types'
 
 export type TradeOfferVariant = 'received' | 'sent' | 'history'
@@ -59,6 +60,9 @@ function PlayerChips({ players, budget, accent, leagueId }: { players: Player[];
               leaguePlayerId={p.id}
               className="text-[11.5px] font-semibold"
             />
+            <span className={`text-[10px] font-mono ${getAgeColor(p.age)}`}>
+              {p.age != null ? `${p.age}a` : NOT_DISPONIBILE}
+            </span>
           </span>
         )
       })}

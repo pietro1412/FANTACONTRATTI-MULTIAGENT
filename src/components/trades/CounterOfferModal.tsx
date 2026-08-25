@@ -3,7 +3,8 @@ import { Modal, ModalHeader, ModalBody, ModalFooter } from '../ui/Modal'
 import { Button } from '../ui/Button'
 import { Textarea } from '../ui/Textarea'
 import { tradeApi } from '../../services/api'
-import { getRoleStyle } from './utils'
+import { getRoleStyle, getAgeColor } from './utils'
+import { NOT_DISPONIBILE } from '@/utils/stat-format'
 import type { TradeOffer, RosterEntry } from './types'
 
 interface CounterOfferModalProps {
@@ -24,6 +25,7 @@ interface SelectablePlayer {
   name: string
   team: string
   position: string
+  age: number | null
   salary: number | null
   duration: number | null
 }
@@ -34,6 +36,7 @@ function toSelectable(entry: RosterEntry): SelectablePlayer {
     name: entry.player.name,
     team: entry.player.team,
     position: entry.player.position,
+    age: entry.player.age ?? null,
     salary: entry.player.contract?.salary ?? null,
     duration: entry.player.contract?.duration ?? null,
   }
@@ -146,6 +149,9 @@ export function CounterOfferModal({
         </span>
         <span className="text-sm text-white truncate flex-1">{p.name}</span>
         <span className="text-xs text-gray-500 truncate hidden sm:inline">{p.team}</span>
+        <span className={`text-xs font-mono flex-shrink-0 ${getAgeColor(p.age)}`}>
+          {p.age != null ? `${p.age}a` : NOT_DISPONIBILE}
+        </span>
         {p.salary !== null && (
           <span className="text-xs text-accent-400 font-mono flex-shrink-0">{p.salary}M</span>
         )}
