@@ -45,10 +45,13 @@ function countByPosition(players: RosterMemberData['players']): PositionCounts {
   return counts
 }
 
+function computeMonteIngaggi(member: RosterMemberData): number {
+  return member.players.reduce((sum, p) => sum + (p.contract?.salary || 0), 0)
+}
+
 /** Budget - monte ingaggi, stessa definizione di "disponibile"/"bilancio" usata in FinancialKPIs/Finanze. */
 function computeAvailableBudget(member: RosterMemberData): number {
-  const monteIngaggi = member.players.reduce((sum, p) => sum + (p.contract?.salary || 0), 0)
-  return member.budget - monteIngaggi
+  return member.budget - computeMonteIngaggi(member)
 }
 
 function average(values: number[]): number | null {
@@ -82,7 +85,7 @@ function Field({ label, value, tone }: { label: string; value: string; tone?: st
 }
 
 /** Colonne condivise fra header e righe della tabella avversari (desktop). */
-const OPPONENTS_TABLE_GRID = 'grid-cols-[minmax(160px,1.6fr)_76px_44px_44px_44px_44px_84px_70px_20px]'
+const OPPONENTS_TABLE_GRID = 'grid-cols-[minmax(160px,1.6fr)_76px_44px_44px_44px_44px_112px_70px_20px]'
 
 function PositionChips({ counts, slotLimits }: { counts: PositionCounts; slotLimits: RosterOverviewProps['slotLimits'] }) {
   return (
@@ -139,6 +142,9 @@ export function RosterOverview({ rosters, myMemberId, slotLimits, leagueId, onNa
                 <p className="budget-display text-3xl text-accent-400 leading-none mt-1">
                   {computeAvailableBudget(mine)}<span className="text-base text-gray-500 ml-0.5">M</span>
                 </p>
+                <p className="mt-1 font-mono text-[11px] text-gray-500">
+                  <b className="text-gray-400">{mine.budget}M</b> budget &minus; <b className="text-gray-400">{computeMonteIngaggi(mine)}M</b> ingaggi
+                </p>
               </div>
             </div>
             <div className="mt-3.5">
@@ -190,7 +196,10 @@ export function RosterOverview({ rosters, myMemberId, slotLimits, leagueId, onNa
                     <span className="font-mono text-xs text-gray-400 text-center">{formatAge(posAges.D)}</span>
                     <span className="font-mono text-xs text-gray-400 text-center">{formatAge(posAges.C)}</span>
                     <span className="font-mono text-xs text-gray-400 text-center">{formatAge(posAges.A)}</span>
-                    <span className="budget-display text-sm text-accent-400 text-right">{computeAvailableBudget(r)}<span className="text-xs text-gray-500">M</span></span>
+                    <span className="text-right">
+                      <span className="budget-display block text-sm text-accent-400 leading-tight">{computeAvailableBudget(r)}<span className="text-xs text-gray-500">M</span></span>
+                      <span className="block font-mono text-[9.5px] text-gray-500 leading-tight">{r.budget}&minus;{computeMonteIngaggi(r)}</span>
+                    </span>
                     <span className="text-sm text-gray-500 font-mono text-right">{r.playerCount}/{totalSlots}</span>
                     <span className="text-gray-500 text-base text-right" aria-hidden="true">›</span>
                   </button>
@@ -222,6 +231,9 @@ export function RosterOverview({ rosters, myMemberId, slotLimits, leagueId, onNa
                     <Field label="Bilancio" value={`${computeAvailableBudget(r)}M`} tone="text-accent-400" />
                     <Field label="Rosa" value={`${r.playerCount}/${totalSlots}`} />
                   </div>
+                  <p className="mt-2 font-mono text-[10.5px] text-gray-500">
+                    <b className="text-gray-400">{r.budget}M</b> budget &minus; <b className="text-gray-400">{computeMonteIngaggi(r)}M</b> ingaggi
+                  </p>
                   <div className="mt-3 pt-3 border-t border-surface-50/10">
                     <p className="micro-label text-gray-500 mb-2">Età media per reparto</p>
                     <div className="grid grid-cols-4 gap-2">
