@@ -65,7 +65,7 @@ interface RawRosterMember {
   currentBudget: number
   user: { username: string }
   roster: Array<{
-    player: { position: string }
+    player: { position: string; age: number | null }
     contract: { salary: number } | null
   }>
 }
@@ -161,6 +161,7 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
         playerCount: m.roster.length,
         players: m.roster.map(r => ({
           position: r.player.position,
+          age: r.player.age,
           contract: r.contract ? { salary: r.contract.salary } : null,
         })),
       })))
