@@ -1565,7 +1565,7 @@ export function RoseGiocatori({ onNavigate, initialView = 'rose', initialTeamFil
 
       <main className="w-full max-w-[1400px] mx-auto px-3 lg:px-4 py-3 lg:flex-1 lg:min-h-0 lg:flex lg:flex-col lg:overflow-hidden">
         <CockpitShell header={header} adminBar={adminBar}>
-          <div className={tab === 'rose' ? '' : 'mt-3 lg:h-full lg:min-h-0'}>
+          <div className={tab === 'rose' ? 'lg:h-full lg:min-h-0' : 'mt-3 lg:h-full lg:min-h-0'}>
             {tab === 'rose' && roseBody}
             {tab === 'players' && playersListPanel}
             {tab === 'stats' && statsPanel}
