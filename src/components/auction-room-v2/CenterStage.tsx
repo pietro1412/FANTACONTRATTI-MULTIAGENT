@@ -3,13 +3,17 @@ import { ReadyCheckPanel } from './ReadyCheckPanel'
 import { BiddingPanel } from './BiddingPanel'
 import { AcknowledgmentPanel } from './AcknowledgmentPanel'
 import { WaitingPanel } from './WaitingPanel'
+import { MarketCompletePanel } from './MarketCompletePanel'
 import type { AuctionViewProps, AuctionPhase } from './types'
 import { PHASE_COLORS } from './types'
 
-export function getAuctionPhase(props: Pick<AuctionViewProps, 'pendingAck' | 'readyStatus' | 'auction' | 'isMyTurn'>): AuctionPhase {
+export function getAuctionPhase(props: Pick<AuctionViewProps, 'pendingAck' | 'readyStatus' | 'auction' | 'isMyTurn' | 'isPrimoMercato' | 'marketProgress'>): AuctionPhase {
   if (props.pendingAck && !props.auction) return 'acknowledgment'
   if (props.readyStatus?.hasPendingNomination && !props.auction) return 'readyCheck'
   if (props.auction) return 'bidding'
+  if (props.isPrimoMercato && props.marketProgress && props.marketProgress.filledSlots >= props.marketProgress.totalSlots) {
+    return 'marketComplete'
+  }
   if (props.isMyTurn) return 'nomination'
   return 'waiting'
 }
@@ -110,6 +114,14 @@ export function CenterStage(props: CenterStageProps) {
             isPrimoMercato={props.isPrimoMercato}
             isNominating={props.isNominating}
             leagueId={props.leagueId}
+          />
+        )}
+
+        {phase === 'marketComplete' && (
+          <MarketCompletePanel
+            isAdmin={props.isAdmin}
+            leagueId={props.leagueId}
+            onNavigate={props.onNavigate}
           />
         )}
 

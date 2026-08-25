@@ -99,7 +99,7 @@ export interface AuctionViewProps {
   leagueId?: string
 }
 
-export type AuctionPhase = 'nomination' | 'readyCheck' | 'bidding' | 'acknowledgment' | 'waiting'
+export type AuctionPhase = 'nomination' | 'readyCheck' | 'bidding' | 'acknowledgment' | 'waiting' | 'marketComplete'
 
 export const PHASE_COLORS: Record<AuctionPhase, { bg: string; border: string; text: string; label: string }> = {
   nomination: {
@@ -131,5 +131,11 @@ export const PHASE_COLORS: Record<AuctionPhase, { bg: string; border: string; te
     border: 'border-gray-500/30',
     text: 'text-gray-400',
     label: 'ATTESA',
+  },
+  marketComplete: {
+    bg: 'bg-secondary-500/10',
+    border: 'border-secondary-500/40',
+    text: 'text-secondary-400',
+    label: 'CONCLUSO',
   },
 }
