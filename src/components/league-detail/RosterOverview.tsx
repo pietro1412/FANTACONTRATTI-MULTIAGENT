@@ -114,6 +114,7 @@ export function RosterOverview({ rosters, myMemberId, slotLimits, leagueId, onNa
   const mine = rosters.find(r => r.memberId === myMemberId) ?? null
   const others = rosters.filter(r => r.memberId !== myMemberId)
   const totalSlots = slotLimits.P + slotLimits.D + slotLimits.C + slotLimits.A
+  const minePosAges = mine ? averageAgeByPosition(mine.players) : null
 
   return (
     <div className="space-y-6">
@@ -134,7 +135,9 @@ export function RosterOverview({ rosters, myMemberId, slotLimits, leagueId, onNa
                     <span className="text-xs font-bold text-secondary-400 border border-secondary-500/50 rounded px-1.5 py-px tracking-wide">TU</span>
                     {mine.role === 'ADMIN' && <RoleTag role={mine.role} />}
                   </div>
-                  <p className="text-sm text-gray-500 mt-0.5">{mine.playerCount}/{totalSlots} slot occupati</p>
+                  <p className="text-sm text-gray-500 mt-0.5">
+                    {mine.playerCount}/{totalSlots} slot occupati · età rosa {formatAge(averageAge(mine.players))}
+                  </p>
                 </div>
               </div>
               <div className="text-right flex-shrink-0">
@@ -150,6 +153,17 @@ export function RosterOverview({ rosters, myMemberId, slotLimits, leagueId, onNa
             <div className="mt-3.5">
               <PositionChips counts={countByPosition(mine.players)} slotLimits={slotLimits} />
             </div>
+            {minePosAges && (
+              <div className="mt-3.5 pt-3.5 border-t border-surface-50/10">
+                <p className="micro-label text-gray-500 mb-2">Età media per reparto</p>
+                <div className="grid grid-cols-4 gap-2 max-w-xs">
+                  <Field label="P" value={formatAge(minePosAges.P)} />
+                  <Field label="D" value={formatAge(minePosAges.D)} />
+                  <Field label="C" value={formatAge(minePosAges.C)} />
+                  <Field label="A" value={formatAge(minePosAges.A)} />
+                </div>
+              </div>
+            )}
             <span className="absolute right-4 bottom-4 text-gray-500 text-sm group-hover:text-secondary-400 transition-colors" aria-hidden="true">↗</span>
           </button>
         </div>
@@ -161,23 +175,25 @@ export function RosterOverview({ rosters, myMemberId, slotLimits, leagueId, onNa
 
           {/* Desktop: tabella vera con età media rosa, età media per reparto e budget residuo. */}
           <div className="hidden md:block mt-2">
-            <div className={`grid ${OPPONENTS_TABLE_GRID} gap-2 px-4`}>
-              <span className="micro-label text-gray-500">Squadra</span>
-              <span className="micro-label text-gray-500 text-right">Età rosa</span>
-              <span className="micro-label text-gray-500 text-center col-span-4">Età media per reparto</span>
-              <span className="micro-label text-gray-500 text-right">Bilancio</span>
-              <span className="micro-label text-gray-500 text-right">Rosa</span>
-              <span />
+            <div className="rounded-lg border border-surface-50/60 bg-surface-300/50 overflow-hidden">
+              <div className={`grid ${OPPONENTS_TABLE_GRID} gap-2 px-4 pt-2.5`}>
+                <span className="micro-label text-gray-400">Squadra</span>
+                <span className="micro-label text-gray-400 text-right">Età rosa</span>
+                <span className="micro-label text-gray-400 text-center col-span-4">Età media per reparto</span>
+                <span className="micro-label text-gray-400 text-right">Bilancio</span>
+                <span className="micro-label text-gray-400 text-right">Rosa</span>
+                <span />
+              </div>
+              <div className={`grid ${OPPONENTS_TABLE_GRID} gap-2 px-4 pb-2.5`}>
+                <span /><span />
+                <span className="micro-label text-gray-600 text-center">P</span>
+                <span className="micro-label text-gray-600 text-center">D</span>
+                <span className="micro-label text-gray-600 text-center">C</span>
+                <span className="micro-label text-gray-600 text-center">A</span>
+                <span /><span /><span />
+              </div>
             </div>
-            <div className={`grid ${OPPONENTS_TABLE_GRID} gap-2 px-4 pb-1.5`}>
-              <span /><span />
-              <span className="micro-label text-gray-600 text-center">P</span>
-              <span className="micro-label text-gray-600 text-center">D</span>
-              <span className="micro-label text-gray-600 text-center">C</span>
-              <span className="micro-label text-gray-600 text-center">A</span>
-              <span /><span /><span />
-            </div>
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 mt-1.5">
               {others.map(r => {
                 const posAges = averageAgeByPosition(r.players)
                 return (
