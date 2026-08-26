@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { useAuth } from '../hooks/useAuth'
 import { superadminApi, leagueApi } from '../services/api'
 import { Button } from './ui/Button'
@@ -116,6 +117,14 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
   const [moreDropdownOpen, setMoreDropdownOpen] = useState(false)
   const [pusherConnected, setPusherConnected] = useState(false)
   const profileDropdownRef = useRef<HTMLDivElement>(null)
+  // Il pannello del dropdown profilo è portato su document.body (vedi sotto): un header
+  // denso (badge lega/admin/live + nav + azioni) può andare in overflow o wrap in modi
+  // imprevedibili, e un pannello absolute annidato lì dentro finisce mal posizionato o
+  // coperto dal contenuto della pagina (bug osservato 2026-08-26). Il portal + posizione
+  // calcolata in JS elimina la dipendenza dal layout dell'header, stesso pattern già
+  // usato da Toast.tsx in questo progetto.
+  const profileDropdownPanelRef = useRef<HTMLDivElement>(null)
+  const [profileDropdownPos, setProfileDropdownPos] = useState<{ top: number; right: number } | null>(null)
   const moreDropdownRef = useRef<HTMLDivElement>(null)
   const mobileMenuRef = useRef<HTMLDivElement>(null)
 
@@ -177,10 +186,13 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
     }
   }, [])
 
-  // Close profile dropdown when clicking outside
+  // Close profile dropdown when clicking outside (bottone O pannello portato)
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target as Node)) {
+      const target = event.target as Node
+      const insideButton = profileDropdownRef.current?.contains(target)
+      const insidePanel = profileDropdownPanelRef.current?.contains(target)
+      if (!insideButton && !insidePanel) {
         setProfileDropdownOpen(false)
       }
     }
@@ -234,15 +246,25 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
     return () => { window.removeEventListener('open-mobile-menu', handleOpenMobileMenu); }
   }, [])
 
+  // Calcola la posizione del pannello portato dalla posizione reale del bottone al
+  // momento dell'apertura, invece di affidarsi a CSS absolute annidato nell'header.
+  const toggleProfileDropdown = useCallback(() => {
+    if (!profileDropdownOpen && profileDropdownRef.current) {
+      const rect = profileDropdownRef.current.getBoundingClientRect()
+      setProfileDropdownPos({ top: rect.bottom + 8, right: window.innerWidth - rect.right })
+    }
+    setProfileDropdownOpen(prev => !prev)
+  }, [profileDropdownOpen])
+
   // Handle keyboard navigation for profile dropdown
   const handleProfileKeyDown = useCallback((event: React.KeyboardEvent) => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault()
-      setProfileDropdownOpen(!profileDropdownOpen)
+      toggleProfileDropdown()
     } else if (event.key === 'Escape') {
       setProfileDropdownOpen(false)
     }
-  }, [profileDropdownOpen])
+  }, [toggleProfileDropdown])
 
   async function loadSuperAdminStatus() {
     const response = await superadminApi.getStatus()
@@ -294,8 +316,8 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
   return (
     <>
     <header className="corner-cut bg-gradient-to-r from-dark-200 via-surface-200 to-dark-200 border-b border-surface-50/20 sticky top-0 z-40 shadow-lg shadow-black/20 backdrop-blur-sm">
-      <div className="max-w-full mx-auto px-4 py-2.5">
-        <div className="flex flex-wrap justify-between items-center gap-y-2">
+      <div className="max-w-full mx-auto px-4 py-2.5 overflow-x-auto">
+        <div className="flex justify-between items-center min-w-max">
           {/* Left side: Mobile menu button + Logo */}
           <div className="flex items-center gap-2">
             {/* Mobile menu button - a sinistra */}
@@ -544,8 +566,12 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
             </nav>
           )}
 
-          {/* User info & actions */}
-          <div className="flex items-center gap-2">
+          {/* User info & actions — ml-auto invece di affidarsi solo a justify-between sul
+              contenitore: se questo blocco va a capo da solo su una riga (flex-wrap),
+              justify-between lo ancorerebbe a sinistra (unico elemento sulla riga), non a
+              destra. ml-auto lo tiene sempre al bordo destro qualunque sia la riga su cui
+              finisce (bug osservato 2026-08-26: dropdown profilo mispositioned/coperto). */}
+          <div className="flex items-center gap-2 ml-auto">
             {/* DEBUG: Latency Test Link - visible only in development */}
             {import.meta.env.DEV && (
               <a
@@ -583,7 +609,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
             {/* User Profile Dropdown */}
             <div className="relative hidden sm:block" ref={profileDropdownRef}>
               <button
-                onClick={() => { setProfileDropdownOpen(!profileDropdownOpen); }}
+                onClick={toggleProfileDropdown}
                 onKeyDown={handleProfileKeyDown}
                 className="flex items-center gap-2.5 hover:bg-surface-300/80 rounded-xl px-3 py-2 transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-primary-400/50 focus:ring-offset-2 focus:ring-offset-surface-200"
                 data-testid="profile-button"
@@ -609,9 +635,14 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
                 <ChevronDown size={16} className={`text-gray-400 transition-transform duration-200 ${profileDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
 
-              {/* Profile Dropdown Menu */}
+              {/* Profile Dropdown Menu — portato su document.body (vedi profileDropdownPanelRef
+                  sopra): posizione calcolata in JS da profileDropdownPos, non CSS absolute
+                  annidato nell'header. */}
+              {profileDropdownPos && createPortal(
               <div
-                className={`absolute right-0 mt-2 w-64 bg-surface-200 border border-surface-50/30 rounded-xl shadow-2xl shadow-black/40 overflow-hidden z-50 transition-all duration-200 origin-top-right ${
+                ref={profileDropdownPanelRef}
+                style={{ top: profileDropdownPos.top, right: profileDropdownPos.right }}
+                className={`fixed w-64 bg-surface-200 border border-surface-50/30 rounded-xl shadow-2xl shadow-black/40 overflow-hidden z-[100] transition-all duration-200 origin-top-right ${
                   profileDropdownOpen
                     ? 'opacity-100 scale-100 translate-y-0'
                     : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'
@@ -693,7 +724,9 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
                     Esci
                   </button>
                 </div>
-              </div>
+              </div>,
+              document.body
+              )}
             </div>
 
             {/* Logout button for smaller screens */}

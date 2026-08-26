@@ -544,14 +544,14 @@ describe('Navigation Component', () => {
         )
       })
 
-      const profileDropdown = screen.getByTestId('profile-dropdown')
-
-      // Initially closed
-      expect(profileDropdown).toHaveClass('opacity-0')
-      expect(profileDropdown).toHaveClass('pointer-events-none')
+      // Il pannello e' portato su document.body e montato solo al primo click
+      // (posizione calcolata dal bottone reale, non CSS absolute nell'header).
+      expect(screen.queryByTestId('profile-dropdown')).not.toBeInTheDocument()
 
       // Click to open
       await user.click(screen.getByTestId('profile-button'))
+
+      const profileDropdown = await screen.findByTestId('profile-dropdown')
 
       // Should be open
       await waitFor(() => {
