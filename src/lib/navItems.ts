@@ -5,12 +5,14 @@
 // tessere di accesso rapido dell'hub (QuickAccessTiles). Risolve i finding
 // F-NAV-1/2 e F-COE-1 dell'audit prodotto (tre tassonomie divergenti).
 //
-// Principio (deciso con l'utente 2026-06-16):
-// - Le sezioni di CONSULTAZIONE (Rose, Giocatori, Scambi, Contratti, Finanze,
-//   Premi, Storico, Profezie, Feedback) sono SEMPRE presenti, in ordine fisso che
-//   rispetta l'ordine delle fasi del mercato ricorrente (MERCATO-RICORRENTE.md).
-// - Le ASTE live (Asta/Rubata/Svincolati) compaiono SOLO quando la loro fase è
-//   attiva, con badge LIVE.
+// Principio (deciso con l'utente 2026-06-16, rivisto 2026-08-26):
+// - Le sezioni di CONSULTAZIONE pura (Rose, Finanze, Premi, Storico, Profezie,
+//   Feedback, Strategie) sono SEMPRE presenti, in ordine fisso che rispetta
+//   l'ordine delle fasi del mercato ricorrente (MERCATO-RICORRENTE.md).
+// - Le fasi vere e proprie — sia le ASTE live (Asta/Rubata/Svincolati) sia
+//   Scambi/Contratti — compaiono SOLO quando la loro fase è attiva. Le aste
+//   hanno badge LIVE, Scambi/Contratti badge ORA (stesso trattamento, non sono
+//   aste in tempo reale).
 // - La fase corrente NON sostituisce le altre voci: viene EVIDENZIATA (badge
 //   ORA/LIVE + accento oro) sulla voce che la rappresenta.
 //
@@ -64,8 +66,6 @@ const ALWAYS_VISIBLE: NavItem[] = [
   { key: 'leagueDetail', label: 'Dashboard', icon: 'dashboard', adminOnly: false, isPhase: false },
   { key: 'adminPanel', label: 'Admin', icon: 'admin', adminOnly: true, isPhase: false },
   { key: 'rose', label: 'Rose', icon: 'roster', adminOnly: false, isPhase: false, tile: { emoji: '👥', sub: 'Rose, giocatori e statistiche' } },
-  { key: 'trades', label: 'Scambi', icon: 'trades', adminOnly: false, isPhase: false, tile: { emoji: '🤝', sub: 'Offerte e controfferte' } },
-  { key: 'contracts', label: 'Contratti', icon: 'contracts', adminOnly: false, isPhase: false, tile: { emoji: '📋', sub: 'Rinnovi e consolidamento' } },
   { key: 'strategie-rubata', label: 'Strategie', icon: 'strategy', adminOnly: false, isPhase: false, tile: { emoji: '🎯', sub: 'Watchlist e priorità' } },
   { key: 'financials', label: 'Finanze', icon: 'financials', adminOnly: false, isPhase: false, tile: { emoji: '💰', sub: 'Bilanci, ingaggi, storia' } },
   { key: 'prizes', label: 'Premi', icon: 'prizes', adminOnly: false, isPhase: false, tile: { emoji: '🏆', sub: 'Premi ricevuti e in palio' } },
@@ -74,23 +74,29 @@ const ALWAYS_VISIBLE: NavItem[] = [
   { key: 'feedbackHub', label: 'Feedback', icon: 'feedbackHub', adminOnly: false, isPhase: false },
 ]
 
-// Nessuna voce "solo-tile": ogni voce di consultazione è ora sempre visibile
+// Nessuna voce "solo-tile": ogni voce di consultazione pura è sempre visibile
 // nel menu principale (QuickAccessTiles, l'unico consumatore di TILE_ONLY, è
 // stato rimosso per ridondanza con la navigazione — vedi commit 426be9d).
 const TILE_ONLY: NavItem[] = []
 
-// Posizione fissa in cui inserire la voce asta-live nell'header (dopo "Contratti").
-const PHASE_LIVE_ANCHOR: NavItemKey = 'contracts'
+// Posizione fissa in cui inserire la voce di fase attiva nell'header (dopo "Rose").
+// Un solo currentPhase per volta ⇒ al massimo una voce di fase inserita qui,
+// quale che sia (Scambi/Contratti/Asta/Rubata/Svincolati).
+const PHASE_ANCHOR: NavItemKey = 'rose'
 
-// Definizione delle sole voci aste-live (a comparsa quando la fase è attiva).
+// Definizione delle voci di fase (a comparsa SOLO quando la loro fase è attiva).
+// Asta/Rubata/Svincolati sono aste live (badge LIVE); Scambi/Contratti non lo
+// sono (badge ORA, stesso trattamento della fase corrente sulle altre voci).
 const PHASE_AUCTION: NavItem = { key: 'auction', label: 'Asta', icon: 'auction', adminOnly: false, isPhase: true }
+const PHASE_TRADES: NavItem = { key: 'trades', label: 'Scambi', icon: 'trades', adminOnly: false, isPhase: true, tile: { emoji: '🤝', sub: 'Offerte e controfferte' } }
+const PHASE_CONTRACTS: NavItem = { key: 'contracts', label: 'Contratti', icon: 'contracts', adminOnly: false, isPhase: true, tile: { emoji: '📋', sub: 'Rinnovi e consolidamento' } }
 const PHASE_RUBATA: NavItem = { key: 'rubata', label: 'Rubata', icon: 'rubata', adminOnly: false, isPhase: true }
 const PHASE_SVINCOLATI: NavItem = { key: 'svincolati', label: 'Svincolati', icon: 'svincolati', adminOnly: false, isPhase: true }
 
 /**
  * Mappa la fase corrente alla chiave della voce che la rappresenta nella navigazione.
- * Le aste live hanno una voce dedicata (auction/rubata/svincolati); le altre fasi
- * sono rappresentate da una voce di consultazione sempre presente (trades/contracts/prizes).
+ * Ogni fase — live o di consultazione (Scambi/Contratti) — ha una voce dedicata
+ * a comparsa; PREMI resta senza voce navigabile propria (vedi getPhaseNavItem).
  */
 export function phaseToNavKey(phase: string | null | undefined): NavItemKey | null {
   switch (phase) {
@@ -114,8 +120,10 @@ export function phaseToNavKey(phase: string | null | undefined): NavItemKey | nu
 
 const LIVE_KEYS = new Set<NavItemKey>(['auction', 'rubata', 'svincolati'])
 
-const PHASE_LIVE_BY_KEY: Record<string, NavItem> = {
+const PHASE_ITEMS_BY_KEY: Partial<Record<NavItemKey, NavItem>> = {
   auction: PHASE_AUCTION,
+  trades: PHASE_TRADES,
+  contracts: PHASE_CONTRACTS,
   rubata: PHASE_RUBATA,
   svincolati: PHASE_SVINCOLATI,
 }
@@ -131,15 +139,14 @@ const PHASE_LIVE_BY_KEY: Record<string, NavItem> = {
 export function getPhaseNavItem(phase: string | null | undefined): NavItem | null {
   const key = phaseToNavKey(phase)
   if (!key || key === 'prizes') return null
-  if (LIVE_KEYS.has(key)) return PHASE_LIVE_BY_KEY[key] ?? null
-  // trades / contracts → la voce di consultazione corrispondente
-  return ALWAYS_VISIBLE.find((i) => i.key === key) ?? null
+  return PHASE_ITEMS_BY_KEY[key] ?? null
 }
 
 /**
  * Sorgente di verità unica: elenco ordinato delle voci di navigazione visibili
- * (header desktop + drawer mobile). Le sezioni di consultazione sono sempre
- * presenti; la voce asta-live appare solo in fase, dopo "Contratti". La voce che
+ * (header desktop + drawer mobile). Le sezioni di consultazione pura sono
+ * sempre presenti; la voce di fase attiva (live o Scambi/Contratti) appare
+ * solo quando quella fase è in corso, subito dopo "Rose". La voce che
  * rappresenta la fase corrente è marcata isCurrent (+ isLive se asta).
  *
  * @param phase fase corrente (currentPhase della sessione ACTIVE) o null
@@ -152,14 +159,14 @@ export function getVisibleNavItems(
   isLeagueAdmin: boolean,
 ): NavItem[] {
   const currentKey = phaseToNavKey(phase)
-  const liveItem = currentKey && LIVE_KEYS.has(currentKey) ? PHASE_LIVE_BY_KEY[currentKey] : null
+  const phaseItem = currentKey ? PHASE_ITEMS_BY_KEY[currentKey] ?? null : null
 
   const items: NavItem[] = []
   for (const item of ALWAYS_VISIBLE) {
     items.push(item)
-    // Inserisci la voce asta-live (se attiva) subito dopo "Contratti".
-    if (liveItem && item.key === PHASE_LIVE_ANCHOR) {
-      items.push(liveItem)
+    // Inserisci la voce di fase attiva (se presente) subito dopo "Rose".
+    if (phaseItem && item.key === PHASE_ANCHOR) {
+      items.push(phaseItem)
     }
   }
 

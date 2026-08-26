@@ -263,12 +263,13 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
 
   // Barra desktop: nucleo sempre visibile + dropdown "Altro" per le voci a
   // bassa frequenza, altrimenti il menu sfora orizzontalmente anche a
-  // larghezze laptop normali (13 voci senza gestione overflow). Le aste live
-  // (isPhase: true) restano sempre nel nucleo: sono la ragione per cui
-  // l'utente è sul sito in quel momento. Il drawer mobile non si divide,
-  // scrolla verticalmente senza problemi.
+  // larghezze laptop normali (13 voci senza gestione overflow). Le voci di
+  // fase attiva (isPhase: true — Asta/Scambi/Contratti/Rubata/Svincolati)
+  // restano sempre nel nucleo: sono la ragione per cui l'utente è sul sito in
+  // quel momento. Il drawer mobile non si divide, scrolla verticalmente
+  // senza problemi.
   const CORE_NAV_KEYS = new Set([
-    'leagueDetail', 'adminPanel', 'rose', 'trades', 'contracts', 'financials', 'history',
+    'leagueDetail', 'adminPanel', 'rose', 'financials', 'history',
   ])
   const coreMenuItems = visibleMenuItems.filter(item => item.isPhase || CORE_NAV_KEYS.has(item.key))
   const moreMenuItems = visibleMenuItems.filter(item => !item.isPhase && !CORE_NAV_KEYS.has(item.key))

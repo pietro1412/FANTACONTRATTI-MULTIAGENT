@@ -5,28 +5,30 @@ describe('navItems — sorgente unica di navigazione (P1)', () => {
   const keys = (phase: string | null, isAdmin = false): NavItemKey[] =>
     getVisibleNavItems(phase, null, isAdmin).map((i) => i.key)
 
-  describe('sezioni di consultazione sempre visibili (F-NAV-2)', () => {
-    it('mostra Rose/Scambi/Contratti/Premi anche senza fase attiva', () => {
+  describe('sezioni di consultazione pura sempre visibili (F-NAV-2)', () => {
+    it('mostra Rose/Finanze/Premi anche senza fase attiva', () => {
       const k = keys(null)
       expect(k).toEqual(
-        expect.arrayContaining(['rose', 'trades', 'contracts', 'financials', 'prizes', 'history', 'prophecies']),
+        expect.arrayContaining(['rose', 'financials', 'prizes', 'history', 'prophecies']),
       )
     })
 
-    it('NON fa sparire Scambi e Contratti durante la Rubata', () => {
-      const k = keys('RUBATA')
-      expect(k).toContain('trades')
-      expect(k).toContain('contracts')
-    })
-
-    it('rispetta lo stesso insieme di voci a prescindere dalla fase', () => {
-      const base = keys(null).filter((x) => x !== 'auction' && x !== 'rubata' && x !== 'svincolati')
-      const duringContracts = keys('CONTRATTI').filter((x) => x !== 'auction' && x !== 'rubata' && x !== 'svincolati')
+    it('rispetta lo stesso insieme di voci di consultazione pura a prescindere dalla fase', () => {
+      const nonPhaseKeys: NavItemKey[] = ['auction', 'trades', 'contracts', 'rubata', 'svincolati']
+      const base = keys(null).filter((x) => !nonPhaseKeys.includes(x))
+      const duringContracts = keys('CONTRATTI').filter((x) => !nonPhaseKeys.includes(x))
       expect(duringContracts).toEqual(base)
     })
   })
 
-  describe('aste live a comparsa + evidenziazione fase corrente', () => {
+  describe('voci di fase a comparsa (Asta/Scambi/Contratti/Rubata/Svincolati, 2026-08-26)', () => {
+    it('nasconde Scambi e Contratti quando non sono la fase attiva', () => {
+      expect(keys(null)).not.toContain('trades')
+      expect(keys(null)).not.toContain('contracts')
+      expect(keys('RUBATA')).not.toContain('trades')
+      expect(keys('RUBATA')).not.toContain('contracts')
+    })
+
     it('inserisce la voce Rubata solo durante la fase RUBATA, marcata live', () => {
       expect(keys(null)).not.toContain('rubata')
       const items = getVisibleNavItems('RUBATA', null, false)
@@ -36,17 +38,21 @@ describe('navItems — sorgente unica di navigazione (P1)', () => {
       expect(rubata?.isLive).toBe(true)
     })
 
-    it('evidenzia una voce di consultazione (Contratti) quando è la fase, senza isLive', () => {
+    it('mostra Contratti solo durante CONTRATTI, evidenziata, senza isLive', () => {
+      expect(keys('RUBATA')).not.toContain('contracts')
       const items = getVisibleNavItems('CONTRATTI', null, false)
       const contracts = items.find((i) => i.key === 'contracts')
+      expect(contracts).toBeDefined()
       expect(contracts?.isCurrent).toBe(true)
       expect(contracts?.isLive).toBe(false)
     })
 
-    it('evidenzia Scambi sia in pre-rinnovo sia post-svincolati', () => {
+    it('mostra Scambi sia in pre-rinnovo sia post-svincolati, evidenziata, senza isLive', () => {
       for (const phase of ['OFFERTE_PRE_RINNOVO', 'OFFERTE_POST_ASTA_SVINCOLATI']) {
         const trades = getVisibleNavItems(phase, null, false).find((i) => i.key === 'trades')
+        expect(trades).toBeDefined()
         expect(trades?.isCurrent).toBe(true)
+        expect(trades?.isLive).toBe(false)
       }
     })
   })
@@ -71,13 +77,16 @@ describe('navItems — sorgente unica di navigazione (P1)', () => {
   })
 
   describe('getQuickAccessTiles — derivate dalla stessa sorgente (Assioma 4)', () => {
-    it('espone solo voci non-admin con metadati tile', () => {
+    it('espone solo voci non-admin, di consultazione pura, con metadati tile', () => {
       const tiles = getQuickAccessTiles()
       expect(tiles.length).toBeGreaterThan(0)
       expect(tiles.every((t) => t.tile && !t.adminOnly)).toBe(true)
       expect(tiles.map((t) => t.key)).toEqual(
-        expect.arrayContaining(['rose', 'trades', 'contracts', 'financials', 'strategie-rubata']),
+        expect.arrayContaining(['rose', 'financials', 'strategie-rubata']),
       )
+      // Scambi/Contratti sono ora voci di fase (a comparsa), non più tile sempre presenti.
+      expect(tiles.map((t) => t.key)).not.toContain('trades')
+      expect(tiles.map((t) => t.key)).not.toContain('contracts')
     })
   })
 
