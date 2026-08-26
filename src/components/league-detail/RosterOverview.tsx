@@ -112,9 +112,13 @@ function CompositionGroups({ ages, counts }: { ages: Record<Position, number | n
   )
 }
 
-/** Colonne condivise fra header e righe della tabella avversari (desktop): 2 gruppi da 4 (età + conteggio). */
-const OPPONENTS_TABLE_GRID = 'grid-cols-[minmax(160px,1.6fr)_70px_40px_40px_40px_40px_40px_40px_40px_40px_100px_20px]'
-const OPPONENTS_TABLE_MIN_WIDTH = 'min-w-[900px]'
+/**
+ * Colonne condivise fra header e righe della tabella avversari (desktop): 2 gruppi da 4
+ * (età + conteggio). Larghezza naturale ~800px, sta comoda dentro il max-w-[900px] della
+ * pagina — niente min-width forzato: costringerlo oltre il necessario causa uno scroll
+ * orizzontale evitabile (bug osservato 2026-08-26).
+ */
+const OPPONENTS_TABLE_GRID = 'grid-cols-[minmax(160px,1.6fr)_70px_44px_44px_44px_44px_44px_44px_44px_44px_100px_20px]'
 
 /**
  * "La mia rosa" + "Rose degli avversari": budget e composizione per ruolo di
@@ -178,57 +182,56 @@ export function RosterOverview({ rosters, myMemberId, leagueId, onNavigate }: Ro
           <span className="micro-label text-gray-400">Rose degli avversari</span>
 
           {/* Desktop: tabella vera, età media e conteggio per reparto come due gruppi di colonne
-              distinte (mockup A). 12 colonne → scroll orizzontale interno su schermi stretti. */}
+              distinte (mockup A). overflow-x-auto resta come rete di sicurezza (zoom/viewport
+              estremi), ma la griglia sta comoda nella larghezza normale della pagina. */}
           <div className="hidden md:block mt-2 overflow-x-auto">
-            <div className={OPPONENTS_TABLE_MIN_WIDTH}>
-              <div className="rounded-lg border border-surface-50/60 bg-surface-300/50 overflow-hidden">
-                <div className={`grid ${OPPONENTS_TABLE_GRID} gap-1.5 px-4 pt-2.5`}>
-                  <span className="micro-label text-gray-400">Squadra</span>
-                  <span className="micro-label text-gray-400 text-right">Età rosa</span>
-                  <span className="micro-label text-gray-400 text-center col-span-4">Età media per reparto</span>
-                  <span className="micro-label text-gray-400 text-center col-span-4">N. giocatori per reparto</span>
-                  <span className="micro-label text-gray-400 text-right">Bilancio</span>
-                  <span />
-                </div>
-                <div className={`grid ${OPPONENTS_TABLE_GRID} gap-1.5 px-4 pb-2.5`}>
-                  <span /><span />
-                  {POSITIONS.map(pos => (
-                    <span key={`eta-${pos}`} className={`micro-label text-center ${POS_TEXT_COLOR[pos]}`}>{pos}</span>
-                  ))}
-                  {POSITIONS.map(pos => (
-                    <span key={`n-${pos}`} className={`micro-label text-center ${POS_TEXT_COLOR[pos]}`}>{pos}</span>
-                  ))}
-                  <span /><span />
-                </div>
+            <div className="rounded-lg border border-surface-50/60 bg-surface-300/50 overflow-hidden">
+              <div className={`grid ${OPPONENTS_TABLE_GRID} gap-2 px-4 pt-2.5`}>
+                <span className="micro-label text-gray-400">Squadra</span>
+                <span className="micro-label text-gray-400 text-right">Età rosa</span>
+                <span className="micro-label text-gray-400 text-center col-span-4">Età media per reparto</span>
+                <span className="micro-label text-gray-400 text-center col-span-4">N. giocatori per reparto</span>
+                <span className="micro-label text-gray-400 text-right">Bilancio</span>
+                <span />
               </div>
-              <div className="space-y-1.5 mt-1.5">
-                {others.map(r => {
-                  const posAges = averageAgeByPosition(r.players)
-                  const posCounts = countByPosition(r.players)
-                  return (
-                    <button
-                      key={r.memberId}
-                      onClick={() => { onNavigate('rose', { leagueId, memberId: r.memberId }); }}
-                      className={`grid ${OPPONENTS_TABLE_GRID} gap-1.5 items-center w-full bg-surface-200 border border-surface-50/20 rounded-lg px-4 py-3 hover:border-primary-500/50 hover:bg-surface-100/30 transition-colors text-left`}
-                    >
-                      <span className="flex items-center gap-2 min-w-0">
-                        <Monogram name={r.teamName || r.username} size="sm" />
-                        <span className="text-sm font-bold text-white truncate">{r.teamName || r.username}</span>
-                        {r.role === 'ADMIN' && <RoleTag role={r.role} />}
-                      </span>
-                      <span className="font-mono text-sm text-gray-200 text-right">{formatAge(averageAge(r.players))}</span>
-                      {POSITIONS.map(pos => (
-                        <span key={`eta-${pos}`} className="font-mono text-xs text-gray-400 text-center">{formatAge(posAges[pos])}</span>
-                      ))}
-                      {POSITIONS.map(pos => (
-                        <span key={`n-${pos}`} className="font-mono text-xs text-gray-400 text-center">{posCounts[pos]}</span>
-                      ))}
-                      <span className="budget-display text-sm text-accent-400 text-right">{computeAvailableBudget(r)}<span className="text-xs text-gray-500">M</span></span>
-                      <span className="text-gray-500 text-base text-right" aria-hidden="true">›</span>
-                    </button>
-                  )
-                })}
+              <div className={`grid ${OPPONENTS_TABLE_GRID} gap-2 px-4 pb-2.5`}>
+                <span /><span />
+                {POSITIONS.map(pos => (
+                  <span key={`eta-${pos}`} className={`micro-label text-center ${POS_TEXT_COLOR[pos]}`}>{pos}</span>
+                ))}
+                {POSITIONS.map(pos => (
+                  <span key={`n-${pos}`} className={`micro-label text-center ${POS_TEXT_COLOR[pos]}`}>{pos}</span>
+                ))}
+                <span /><span />
               </div>
+            </div>
+            <div className="space-y-1.5 mt-1.5">
+              {others.map(r => {
+                const posAges = averageAgeByPosition(r.players)
+                const posCounts = countByPosition(r.players)
+                return (
+                  <button
+                    key={r.memberId}
+                    onClick={() => { onNavigate('rose', { leagueId, memberId: r.memberId }); }}
+                    className={`grid ${OPPONENTS_TABLE_GRID} gap-2 items-center w-full bg-surface-200 border border-surface-50/20 rounded-lg px-4 py-3 hover:border-primary-500/50 hover:bg-surface-100/30 transition-colors text-left`}
+                  >
+                    <span className="flex items-center gap-2 min-w-0">
+                      <Monogram name={r.teamName || r.username} size="sm" />
+                      <span className="text-sm font-bold text-white truncate">{r.teamName || r.username}</span>
+                      {r.role === 'ADMIN' && <RoleTag role={r.role} />}
+                    </span>
+                    <span className="font-mono text-sm text-gray-200 text-right">{formatAge(averageAge(r.players))}</span>
+                    {POSITIONS.map(pos => (
+                      <span key={`eta-${pos}`} className="font-mono text-xs text-gray-400 text-center">{formatAge(posAges[pos])}</span>
+                    ))}
+                    {POSITIONS.map(pos => (
+                      <span key={`n-${pos}`} className="font-mono text-xs text-gray-400 text-center">{posCounts[pos]}</span>
+                    ))}
+                    <span className="budget-display text-sm text-accent-400 text-right">{computeAvailableBudget(r)}<span className="text-xs text-gray-500">M</span></span>
+                    <span className="text-gray-500 text-base text-right" aria-hidden="true">›</span>
+                  </button>
+                )
+              })}
             </div>
           </div>
 
