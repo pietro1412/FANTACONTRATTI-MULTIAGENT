@@ -286,7 +286,7 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
     <div className="min-h-screen">
       <Navigation currentPage="leagueDetail" leagueId={leagueId} isLeagueAdmin={isAdmin} onNavigate={onNavigate} />
 
-      {/* Header: crest + nome + indicatore fase unico + budget */}
+      {/* Header: crest + nome + indicatore fase unico + budget/bilancio */}
       <LeagueDetailHeader
         leagueName={league.name}
         leagueStatus={league.status}
@@ -294,6 +294,8 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
         memberCount={activeMembers.length}
         sessions={sessions}
         userBudget={userMembership?.currentBudget || 0}
+        userTotalSalaries={rosters?.find(r => r.memberId === userMembership?.id)?.totalSalaries}
+        isFirstMarketCompleted={isFirstMarketCompleted()}
       />
 
       <main className="max-w-[900px] mx-auto px-4 sm:px-6 py-4 sm:py-8 space-y-6">
@@ -315,12 +317,6 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
           <RosterOverview
             rosters={rosters}
             myMemberId={userMembership?.id ?? null}
-            slotLimits={{
-              P: league.goalkeeperSlots,
-              D: league.defenderSlots,
-              C: league.midfielderSlots,
-              A: league.forwardSlots,
-            }}
             leagueId={leagueId}
             onNavigate={onNavigate}
           />

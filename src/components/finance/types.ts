@@ -1,4 +1,5 @@
 // Shared types for the finance dashboard components
+import { computeBilancio } from '@/utils/finance'
 
 export interface PlayerData {
   id: string
@@ -361,7 +362,8 @@ export function computeLeagueTotals(data: FinancialsData): LeagueTotals {
 
 // Get team balance
 export function getTeamBalance(team: TeamData, hasFinancialDetails: boolean): number {
+  const bilancio = computeBilancio(team.budget, team.annualContractCost)
   return hasFinancialDetails
-    ? team.budget - team.annualContractCost - (team.totalReleaseCosts ?? 0) + (team.totalIndemnities ?? 0)
-    : team.budget - team.annualContractCost
+    ? bilancio - (team.totalReleaseCosts ?? 0) + (team.totalIndemnities ?? 0)
+    : bilancio
 }

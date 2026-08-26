@@ -84,12 +84,12 @@ vi.mock('../services/api', () => ({
 // Sample league data
 const sampleLeagues = [
   {
-    membership: { id: 'm1', role: 'ADMIN', status: 'ACTIVE', currentBudget: 350 },
-    league: { id: 'l1', name: 'Lega Test', status: 'ACTIVE', isPublic: false, members: [{ id: 'm1', role: 'ADMIN' }] },
+    membership: { id: 'm1', role: 'ADMIN', status: 'ACTIVE', currentBudget: 350, totalSalaries: 0 },
+    league: { id: 'l1', name: 'Lega Test', status: 'ACTIVE', isPublic: false, members: [{ id: 'm1', role: 'ADMIN' }], isFirstMarketCompleted: false },
   },
   {
-    membership: { id: 'm2', role: 'MEMBER', status: 'PENDING', currentBudget: 0 },
-    league: { id: 'l2', name: 'Lega Pending', status: 'DRAFT', isPublic: true, members: [{ id: 'm2', role: 'MEMBER' }] },
+    membership: { id: 'm2', role: 'MEMBER', status: 'PENDING', currentBudget: 0, totalSalaries: 0 },
+    league: { id: 'l2', name: 'Lega Pending', status: 'DRAFT', isPublic: true, members: [{ id: 'm2', role: 'MEMBER' }], isFirstMarketCompleted: false },
   },
 ]
 

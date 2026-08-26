@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { playerApi, leagueApi, tradeApi } from '@/services/api'
+import { computeBilancio } from '@/utils/finance'
 import { Navigation } from '@/components/Navigation'
 import { CockpitShell } from '@/components/cockpit/CockpitShell'
 import { BottomSheet } from '@/components/ui/BottomSheet'
@@ -844,6 +845,16 @@ export function RoseGiocatori({ onNavigate, initialView = 'rose', initialTeamFil
           </div>
           <div className="budget-display text-lg sm:text-xl text-white leading-tight">
             {roseStats.salary}<span className="text-xs text-gray-500">M</span>
+          </div>
+        </div>
+        <div className="w-px h-7 bg-surface-50" />
+        <div className="text-right">
+          <div className="micro-label text-[9px] flex items-center justify-end gap-1">
+            Bilancio
+            <InfoTooltip content={GLOSSARY.bilancio!.short} label={GLOSSARY.bilancio!.term} align="right" />
+          </div>
+          <div className="budget-display text-lg sm:text-xl text-secondary-400 leading-tight">
+            {computeBilancio(roseSelectedMember?.currentBudget ?? 0, roseStats.salary)}<span className="text-xs text-gray-500">M</span>
           </div>
         </div>
         <div className="hidden sm:block w-px h-7 bg-surface-50" />

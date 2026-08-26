@@ -6,6 +6,7 @@ import { Navigation } from '../components/Navigation'
 import { SearchLeaguesModal } from '../components/SearchLeaguesModal'
 import { SkeletonPlayerRow } from '../components/ui/Skeleton'
 import { LeagueCrest } from '../components/ui/LeagueCrest'
+import { computeBilancio } from '@/utils/finance'
 import {
   buildActions,
   phaseLabel,
@@ -27,6 +28,7 @@ interface League {
   imageUrl?: string | null
   maxParticipants?: number
   members: Array<{ id: string; role: string }>
+  isFirstMarketCompleted: boolean
 }
 
 interface Membership {
@@ -34,6 +36,7 @@ interface Membership {
   role: string
   status: string
   currentBudget: number
+  totalSalaries: number
 }
 
 interface LeagueData {
@@ -56,6 +59,8 @@ interface LeagueRow {
   phaseActive: boolean
   chip: { label: string; cls: string } | null
   budget: string | null
+  /** "Bilancio" dopo il completamento del 1° Mercato, "Budget" prima/durante. */
+  budgetLabel: 'Budget' | 'Bilancio' | null
   cta: { label: string; go: () => void } | null
   nav: () => void
 }
@@ -168,6 +173,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     let phaseActive = false
     let chip: LeagueRow['chip'] = null
     let budget: string | null = null
+    let budgetLabel: LeagueRow['budgetLabel'] = null
     let cta: LeagueRow['cta'] = null
     let nav: () => void = () => { onNavigate('leagueDetail', { leagueId: league.id }) }
 
@@ -180,7 +186,8 @@ export function Dashboard({ onNavigate }: DashboardProps) {
       order = primary ? 0 : 1
       phase = phaseLabel(summaries[league.id]) ?? '—'
       phaseActive = true
-      budget = `${membership.currentBudget}M`
+      budget = `${computeBilancio(membership.currentBudget, membership.totalSalaries)}M`
+      budgetLabel = league.isFirstMarketCompleted ? 'Bilancio' : 'Budget'
       if (primary) {
         chip = { label: primary.chip, cls: TONE_CHIP[primary.tone] }
         cta = { label: primary.ctaLabel, go: primary.go }
@@ -212,6 +219,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
       phaseActive,
       chip,
       budget,
+      budgetLabel,
       cta,
       nav,
     }
@@ -401,7 +409,12 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                         </td>
                         <td className="py-3 px-3 align-middle text-right">
                           {row.budget
-                            ? <span className="font-mono font-bold text-accent-400">{row.budget}</span>
+                            ? (
+                              <div className="leading-tight">
+                                {row.budgetLabel === 'Bilancio' && <p className="text-[9px] text-gray-500">Bilancio</p>}
+                                <span className="font-mono font-bold text-accent-400">{row.budget}</span>
+                              </div>
+                            )
                             : <span className="text-gray-500">—</span>}
                         </td>
                         <td className="py-3 pr-4 pl-2 align-middle text-right">
@@ -459,10 +472,15 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                         </p>
                       )}
                     </div>
-                    {/* Zona destra: Budget + Arrow */}
+                    {/* Zona destra: Budget/Bilancio + Arrow */}
                     <div className="w-16 flex-shrink-0 text-right">
                       {row.budget
-                        ? <span className="font-mono font-bold text-accent-400">{row.budget}</span>
+                        ? (
+                          <div className="leading-tight">
+                            {row.budgetLabel === 'Bilancio' && <p className="text-[8px] text-gray-500">Bilancio</p>}
+                            <span className="font-mono font-bold text-accent-400">{row.budget}</span>
+                          </div>
+                        )
                         : <span className="text-gray-500">→</span>}
                     </div>
                   </div>

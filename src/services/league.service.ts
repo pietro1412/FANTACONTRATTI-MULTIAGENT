@@ -131,6 +131,12 @@ export async function getLeaguesByUser(userId: string): Promise<ServiceResult> {
               },
             },
           },
+          // Solo per derivare isFirstMarketCompleted: non esposto grezzo in risposta.
+          marketSessions: {
+            where: { type: 'PRIMO_MERCATO', status: 'COMPLETED' },
+            select: { id: true },
+            take: 1,
+          },
         },
       },
     },
@@ -138,15 +144,19 @@ export async function getLeaguesByUser(userId: string): Promise<ServiceResult> {
 
   return {
     success: true,
-    data: memberships.map(m => ({
-      membership: {
-        id: m.id,
-        role: m.role,
-        status: m.status,
-        currentBudget: m.currentBudget,
-      },
-      league: m.league,
-    })),
+    data: memberships.map(m => {
+      const { marketSessions, ...league } = m.league
+      return {
+        membership: {
+          id: m.id,
+          role: m.role,
+          status: m.status,
+          currentBudget: m.currentBudget,
+          totalSalaries: m.totalSalaries,
+        },
+        league: { ...league, isFirstMarketCompleted: marketSessions.length > 0 },
+      }
+    }),
   }
 }
 

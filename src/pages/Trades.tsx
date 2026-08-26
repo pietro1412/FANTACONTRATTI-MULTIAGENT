@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { tradeApi, auctionApi, leagueApi, contractApi } from '../services/api'
+import { computeBilancio } from '@/utils/finance'
 import { usePusherTrades } from '../services/pusher.client'
 import { Navigation } from '../components/Navigation'
 import { CockpitShell } from '@/components/cockpit/CockpitShell'
@@ -607,6 +608,14 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
             <InfoTooltip content={GLOSSARY.monteIngaggi!.short} label={GLOSSARY.monteIngaggi!.term} align="right" />
           </div>
           <div className="budget-display text-lg sm:text-xl text-white leading-tight">{myTotalSalary}<span className="text-xs text-gray-500">M</span></div>
+        </div>
+        <div className="hidden sm:block w-px h-7 bg-surface-50" />
+        <div className="hidden sm:block text-right">
+          <div className="micro-label text-[9px] flex items-center justify-end gap-1">
+            Bilancio
+            <InfoTooltip content={GLOSSARY.bilancio!.short} label={GLOSSARY.bilancio!.term} align="right" />
+          </div>
+          <div className="budget-display text-lg sm:text-xl text-secondary-400 leading-tight">{computeBilancio(myBudget, myTotalSalary)}<span className="text-xs text-gray-500">M</span></div>
         </div>
         <div className="hidden md:block w-px h-7 bg-surface-50" />
         <div className="hidden md:block text-right">

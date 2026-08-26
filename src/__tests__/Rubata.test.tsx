@@ -1291,8 +1291,8 @@ describe('Rubata', () => {
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    // Compact budget footer shows "Budget" label and expand trigger
-    expect(screen.getAllByText('Budget').length).toBeGreaterThanOrEqual(1)
+    // Compact budget footer shows "Bilancio" label and expand trigger
+    expect(screen.getAllByText('Bilancio').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText(/Tutti/).length).toBeGreaterThanOrEqual(1)
   })
 

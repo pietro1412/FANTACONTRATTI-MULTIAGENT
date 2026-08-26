@@ -192,10 +192,12 @@ describe('League Service', () => {
           role: 'ADMIN',
           status: 'ACTIVE',
           currentBudget: 200,
+          totalSalaries: 50,
           league: {
             id: 'league-1',
             name: 'Test League',
             members: [{ id: 'member-1', role: 'ADMIN', user: { id: 'user-1', username: 'admin' } }],
+            marketSessions: [{ id: 'session-1' }],
           },
         },
       ])
@@ -204,11 +206,14 @@ describe('League Service', () => {
 
       expect(result.success).toBe(true)
       expect(Array.isArray(result.data)).toBe(true)
-      const data = result.data as Array<{ membership: { id: string }; league: { id: string } }>
+      const data = result.data as Array<{ membership: { id: string; totalSalaries: number }; league: { id: string; isFirstMarketCompleted: boolean } }>
       expect(data).toHaveLength(1)
-      const first = data[0] as { membership: { id: string }; league: { id: string } }
+      const first = data[0] as { membership: { id: string; totalSalaries: number }; league: { id: string; isFirstMarketCompleted: boolean } }
       expect(first.membership.id).toBe('member-1')
+      expect(first.membership.totalSalaries).toBe(50)
       expect(first.league.id).toBe('league-1')
+      expect(first.league.isFirstMarketCompleted).toBe(true)
+      expect(first.league).not.toHaveProperty('marketSessions')
     })
 
     it('should return empty array when user has no leagues', async () => {

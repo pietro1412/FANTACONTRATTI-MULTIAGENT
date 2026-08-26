@@ -2,6 +2,7 @@ import { Monogram } from '@/components/ui/Monogram'
 import { RoleTag } from '@/components/league/attention'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { formatStat, NOT_DISPONIBILE } from '@/utils/stat-format'
+import { computeBilancio } from '@/utils/finance'
 
 export interface RosterMemberData {
   memberId: string
@@ -18,42 +19,14 @@ export interface RosterMemberData {
 interface RosterOverviewProps {
   rosters: RosterMemberData[]
   myMemberId: string | null
-  slotLimits: { P: number; D: number; C: number; A: number }
   leagueId: string
   onNavigate: (page: string, params?: Record<string, string>) => void
 }
 
-type PositionCounts = { P: number; D: number; C: number; A: number }
-
 const POSITIONS = ['P', 'D', 'C', 'A'] as const
-const POS_STYLE: Record<(typeof POSITIONS)[number], string> = {
-  P: 'bg-accent-500/12 text-accent-400',
-  D: 'bg-primary-500/12 text-primary-400',
-  C: 'bg-secondary-500/12 text-secondary-400',
-  A: 'bg-danger-500/12 text-danger-400',
-}
-const POS_DOT: Record<(typeof POSITIONS)[number], string> = {
-  P: 'bg-accent-500',
-  D: 'bg-primary-500',
-  C: 'bg-secondary-500',
-  A: 'bg-danger-500',
-}
 
-function countByPosition(players: RosterMemberData['players']): PositionCounts {
-  const counts: PositionCounts = { P: 0, D: 0, C: 0, A: 0 }
-  for (const p of players) {
-    if (p.position === 'P' || p.position === 'D' || p.position === 'C' || p.position === 'A') counts[p.position]++
-  }
-  return counts
-}
-
-function computeMonteIngaggi(member: RosterMemberData): number {
-  return member.totalSalaries
-}
-
-/** Budget - monte ingaggi, stessa definizione di "disponibile"/"bilancio" usata in FinancialKPIs/Finanze. */
 function computeAvailableBudget(member: RosterMemberData): number {
-  return member.budget - computeMonteIngaggi(member)
+  return computeBilancio(member.budget, member.totalSalaries)
 }
 
 function average(values: number[]): number | null {
@@ -87,20 +60,7 @@ function Field({ label, value, tone }: { label: string; value: string; tone?: st
 }
 
 /** Colonne condivise fra header e righe della tabella avversari (desktop). */
-const OPPONENTS_TABLE_GRID = 'grid-cols-[minmax(160px,1.6fr)_76px_44px_44px_44px_44px_112px_70px_20px]'
-
-function PositionChips({ counts, slotLimits }: { counts: PositionCounts; slotLimits: RosterOverviewProps['slotLimits'] }) {
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      {POSITIONS.map(pos => (
-        <span key={pos} className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-bold font-mono ${POS_STYLE[pos]}`}>
-          <span className={`w-2 h-2 rounded-full ${POS_DOT[pos]}`} aria-hidden="true" />
-          {pos} {counts[pos]}<span className="opacity-50 font-semibold">/{slotLimits[pos]}</span>
-        </span>
-      ))}
-    </div>
-  )
-}
+const OPPONENTS_TABLE_GRID = 'grid-cols-[minmax(160px,1.6fr)_76px_44px_44px_44px_44px_112px_20px]'
 
 /**
  * "La mia rosa" + "Rose degli avversari": budget e composizione per ruolo di
@@ -108,14 +68,13 @@ function PositionChips({ counts, slotLimits }: { counts: PositionCounts; slotLim
  * Niente classifica bilanci/movimenti/KPI di lega qui: vivono già nelle loro
  * pagine dedicate (Finanze, Storico) — non duplicati (mockup 28-dashboard-lega/E).
  */
-export function RosterOverview({ rosters, myMemberId, slotLimits, leagueId, onNavigate }: RosterOverviewProps) {
+export function RosterOverview({ rosters, myMemberId, leagueId, onNavigate }: RosterOverviewProps) {
   if (rosters.length === 0) {
     return <EmptyState compact icon="👥" title="Nessuna rosa disponibile" />
   }
 
   const mine = rosters.find(r => r.memberId === myMemberId) ?? null
   const others = rosters.filter(r => r.memberId !== myMemberId)
-  const totalSlots = slotLimits.P + slotLimits.D + slotLimits.C + slotLimits.A
   const minePosAges = mine ? averageAgeByPosition(mine.players) : null
 
   return (
@@ -138,7 +97,7 @@ export function RosterOverview({ rosters, myMemberId, slotLimits, leagueId, onNa
                     {mine.role === 'ADMIN' && <RoleTag role={mine.role} />}
                   </div>
                   <p className="text-sm text-gray-500 mt-0.5">
-                    {mine.playerCount}/{totalSlots} slot occupati · età rosa {formatAge(averageAge(mine.players))}
+                    Età rosa {formatAge(averageAge(mine.players))}
                   </p>
                 </div>
               </div>
@@ -147,13 +106,7 @@ export function RosterOverview({ rosters, myMemberId, slotLimits, leagueId, onNa
                 <p className="budget-display text-3xl text-accent-400 leading-none mt-1">
                   {computeAvailableBudget(mine)}<span className="text-base text-gray-500 ml-0.5">M</span>
                 </p>
-                <p className="mt-1 font-mono text-[11px] text-gray-500">
-                  <b className="text-gray-400">{mine.budget}M</b> budget &minus; <b className="text-gray-400">{computeMonteIngaggi(mine)}M</b> ingaggi
-                </p>
               </div>
-            </div>
-            <div className="mt-3.5">
-              <PositionChips counts={countByPosition(mine.players)} slotLimits={slotLimits} />
             </div>
             {minePosAges && (
               <div className="mt-3.5 pt-3.5 border-t border-surface-50/10">
@@ -183,7 +136,6 @@ export function RosterOverview({ rosters, myMemberId, slotLimits, leagueId, onNa
                 <span className="micro-label text-gray-400 text-right">Età rosa</span>
                 <span className="micro-label text-gray-400 text-center col-span-4">Età media per reparto</span>
                 <span className="micro-label text-gray-400 text-right">Bilancio</span>
-                <span className="micro-label text-gray-400 text-right">Rosa</span>
                 <span />
               </div>
               <div className={`grid ${OPPONENTS_TABLE_GRID} gap-2 px-4 pb-2.5`}>
@@ -192,7 +144,7 @@ export function RosterOverview({ rosters, myMemberId, slotLimits, leagueId, onNa
                 <span className="micro-label text-gray-600 text-center">D</span>
                 <span className="micro-label text-gray-600 text-center">C</span>
                 <span className="micro-label text-gray-600 text-center">A</span>
-                <span /><span /><span />
+                <span /><span />
               </div>
             </div>
             <div className="space-y-1.5 mt-1.5">
@@ -214,11 +166,7 @@ export function RosterOverview({ rosters, myMemberId, slotLimits, leagueId, onNa
                     <span className="font-mono text-xs text-gray-400 text-center">{formatAge(posAges.D)}</span>
                     <span className="font-mono text-xs text-gray-400 text-center">{formatAge(posAges.C)}</span>
                     <span className="font-mono text-xs text-gray-400 text-center">{formatAge(posAges.A)}</span>
-                    <span className="text-right">
-                      <span className="budget-display block text-sm text-accent-400 leading-tight">{computeAvailableBudget(r)}<span className="text-xs text-gray-500">M</span></span>
-                      <span className="block font-mono text-[9.5px] text-gray-500 leading-tight">{r.budget}&minus;{computeMonteIngaggi(r)}</span>
-                    </span>
-                    <span className="text-sm text-gray-500 font-mono text-right">{r.playerCount}/{totalSlots}</span>
+                    <span className="budget-display text-sm text-accent-400 text-right">{computeAvailableBudget(r)}<span className="text-xs text-gray-500">M</span></span>
                     <span className="text-gray-500 text-base text-right" aria-hidden="true">›</span>
                   </button>
                 )
@@ -244,14 +192,10 @@ export function RosterOverview({ rosters, myMemberId, slotLimits, leagueId, onNa
                     </span>
                     <span className="text-gray-500 text-base flex-shrink-0" aria-hidden="true">›</span>
                   </div>
-                  <div className="mt-3 grid grid-cols-3 gap-3">
+                  <div className="mt-3 grid grid-cols-2 gap-3">
                     <Field label="Età media rosa" value={formatAge(averageAge(r.players))} />
                     <Field label="Bilancio" value={`${computeAvailableBudget(r)}M`} tone="text-accent-400" />
-                    <Field label="Rosa" value={`${r.playerCount}/${totalSlots}`} />
                   </div>
-                  <p className="mt-2 font-mono text-[10.5px] text-gray-500">
-                    <b className="text-gray-400">{r.budget}M</b> budget &minus; <b className="text-gray-400">{computeMonteIngaggi(r)}M</b> ingaggi
-                  </p>
                   <div className="mt-3 pt-3 border-t border-surface-50/10">
                     <p className="micro-label text-gray-500 mb-2">Età media per reparto</p>
                     <div className="grid grid-cols-4 gap-2">

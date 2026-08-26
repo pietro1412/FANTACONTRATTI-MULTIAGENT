@@ -625,18 +625,18 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
   const watchlistStats = useMemo(() => {
     let inWatchlist = 0
     let daRubare = 0
-    let budget = 0
+    let plannedSpend = 0
     const tally = (cat: string | null | undefined, playerId: string) => {
       if (cat) {
         inWatchlist++
         if (cat === 'DA_RUBARE') daRubare++
         const maxBid = parseInt(getLocalStrategy(playerId).maxBid) || 0
-        budget += maxBid
+        plannedSpend += maxBid
       }
     }
     strategiesData?.players.forEach(p => { if (p.memberId !== myMemberId) tally(p.preference?.watchlistCategory, p.playerId) })
     svincolatiData?.players.forEach(p => { tally(p.preference?.watchlistCategory, p.playerId) })
-    return { inWatchlist, daRubare, budget }
+    return { inWatchlist, daRubare, plannedSpend }
   }, [strategiesData?.players, svincolatiData?.players, myMemberId, getLocalStrategy])
 
   // My strategies count (for footer) - includes both owned and svincolati
@@ -765,8 +765,8 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
               <div className="stat-number text-lg text-accent-400">{watchlistStats.daRubare}</div>
             </div>
             <div className="text-right">
-              <div className="micro-label text-gray-500">Budget rubata</div>
-              <div className="budget-display text-lg text-white">{watchlistStats.budget}M</div>
+              <div className="micro-label text-gray-500">Spesa pianificata</div>
+              <div className="budget-display text-lg text-white">{watchlistStats.plannedSpend}M</div>
             </div>
           </div>
         </div>

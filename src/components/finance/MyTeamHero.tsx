@@ -62,13 +62,6 @@ export function MyTeamHero({
             <div className="mt-1.5 text-[13px] font-semibold text-gray-400">
               Bilancio disponibile per il mercato
             </div>
-            <div className="mt-2.5 font-mono text-[11px] text-gray-500">
-              <b className="text-gray-400">{team.budget}M</b> budget &minus; <b className="text-gray-400">{team.annualContractCost}M</b> ingaggi
-              {reserve > 0 && (
-                <> &minus; <b className="text-gray-400">{reserve}M</b> riserva</>
-              )}
-              {' '}= <b className="text-secondary-400">{available}M</b>
-            </div>
           </div>
 
           {/* 3 key stats */}

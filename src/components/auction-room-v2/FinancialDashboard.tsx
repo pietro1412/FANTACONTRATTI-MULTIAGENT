@@ -93,12 +93,12 @@ export function FinancialDashboard({ managersStatus, onSelectManager, currentBid
                 </>
               }
               bigValue={roleFull ? bilancio : maxBid}
-              bigUnit={roleFull ? 'budget' : 'max'}
+              bigUnit={roleFull ? 'bilancio' : 'max'}
               bigValueGold={isHolding || roleFull}
-              smallValue={roleFull ? undefined : `budget ${bilancio}`}
+              smallValue={roleFull ? undefined : `bilancio ${bilancio}`}
               connectedDot={m.isConnected ?? null}
               onClick={() => { onSelectManager(m); }}
-              title={`Offerta max possibile.\nBudget (${bilancio}M) - Slot vuoti rimanenti (${Math.max(0, emptySlots - 1)}) = ${maxBid}M`}
+              title={`Offerta max possibile.\nBilancio (${bilancio}M) - Slot vuoti rimanenti (${Math.max(0, emptySlots - 1)}) = ${maxBid}M`}
             />
           )
         })}

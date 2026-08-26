@@ -1402,7 +1402,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                 className="w-full px-3 py-1.5 flex items-center justify-between"
               >
                 <div className="flex items-center gap-2">
-                  <span className="micro-label">Budget</span>
+                  <span className="micro-label">Bilancio</span>
                   {myBudget && (
                     <span className={`font-bold text-sm ${
                       myBudget.residuo < 0 ? 'text-danger-400' : myBudget.residuo < 50 ? 'text-warning-400' : 'text-accent-400'

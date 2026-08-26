@@ -1,5 +1,6 @@
 import { LeagueCrest } from '@/components/ui/LeagueCrest'
 import { PhaseIndicator } from './PhaseIndicator'
+import { computeBilancio } from '@/utils/finance'
 
 interface LeagueDetailHeaderProps {
   leagueName: string
@@ -8,6 +9,9 @@ interface LeagueDetailHeaderProps {
   memberCount: number
   sessions: Array<{ type: string; status: string; currentPhase: string; phaseStartedAt: string | null }>
   userBudget: number
+  /** Monte ingaggi fissato all'ultimo consolidamento — se assente (dati non ancora caricati), resta mostrato il budget. */
+  userTotalSalaries?: number
+  isFirstMarketCompleted: boolean
 }
 
 function statusBadge(status: string) {
@@ -42,8 +46,12 @@ export function LeagueDetailHeader({
   memberCount,
   sessions,
   userBudget,
+  userTotalSalaries,
+  isFirstMarketCompleted,
 }: LeagueDetailHeaderProps) {
   const showBudget = leagueStatus === 'ACTIVE'
+  const showBilancio = isFirstMarketCompleted && userTotalSalaries !== undefined
+  const displayValue = showBilancio ? computeBilancio(userBudget, userTotalSalaries) : userBudget
 
   return (
     <div className="bg-gradient-to-r from-dark-200 via-surface-200 to-dark-200 border-b border-surface-50/20">
@@ -68,9 +76,9 @@ export function LeagueDetailHeader({
           </div>
           {showBudget && (
             <div className="text-right flex-shrink-0">
-              <p className="micro-label text-gray-400">Il tuo budget</p>
+              <p className="micro-label text-gray-400">{showBilancio ? 'Il tuo bilancio' : 'Il tuo budget'}</p>
               <p className="budget-display text-3xl sm:text-4xl text-accent-400 leading-none mt-1">
-                {userBudget}
+                {displayValue}
                 <span className="text-base sm:text-lg text-gray-500 ml-1">M</span>
               </p>
             </div>
