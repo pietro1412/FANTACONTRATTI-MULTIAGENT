@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A — Colonne separate (Composizione per reparto)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=Oswald:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0a0b; --card:#1a1c20; --elev:#111214; --hover:#252830; --border:#2d3139;
+    --primary:#3b82f6; --secondary:#22c55e; --gold:#f59e0b; --gold2:#fbbf24; --danger:#ef4444;
+    --t1:#f9fafb; --t2:#9ca3af; --t3:#6b7280; --t4:#4b5563;
+    --pos-p:#fbbf24; --pos-d:#60a5fa; --pos-c:#4ade80; --pos-a:#f87171;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--t1);font-family:'Inter',sans-serif;padding:36px 20px 100px;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1180px;margin:0 auto;}
+  .flag{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:center;gap:10px;background:linear-gradient(90deg,#0891b2,#06b6d4);color:#02282f;font-family:'JetBrains Mono',monospace;font-size:11.5px;font-weight:800;padding:8px 14px;letter-spacing:.03em;margin:-36px -20px 30px;}
+  .flag b{background:rgba(0,0,0,.18);padding:2px 9px;border-radius:999px;color:#eafcff;}
+  h1.page{font-family:'Outfit',sans-serif;font-size:22px;font-weight:800;margin-bottom:8px;}
+  p.sub{color:var(--t3);font-size:13px;line-height:1.7;max-width:880px;margin-bottom:8px;}
+  .pill-approach{display:inline-flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:4px 11px;border-radius:999px;background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.4);color:#93c5fd;margin-bottom:18px;}
+
+  .section-h{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--t3);margin:34px 0 12px;display:flex;align-items:center;gap:10px;}
+  .section-h .ln{flex:1;height:1px;background:var(--border);}
+
+  .micro-label{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);}
+  .budget-display{font-family:'Oswald',sans-serif;font-weight:600;font-variant-numeric:tabular-nums;}
+  .stat-number{font-family:'Oswald',sans-serif;font-weight:600;font-variant-numeric:tabular-nums;}
+
+  /* Mia rosa */
+  .my-card{background:var(--card);border:1px solid rgba(34,197,94,.35);border-radius:16px;padding:18px 20px;position:relative;overflow:hidden;}
+  .my-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--secondary);}
+  .my-top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+  .my-who{display:flex;align-items:center;gap:12px;}
+  .mono-lg{width:40px;height:40px;border-radius:50%;background:var(--hover);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-size:13px;font-weight:800;flex-shrink:0;}
+  .my-name{font-family:'Outfit',sans-serif;font-size:14.5px;font-weight:800;display:flex;align-items:center;gap:7px;}
+  .tu-tag{font-size:9px;font-weight:800;color:#4ade80;border:1px solid rgba(34,197,94,.5);border-radius:5px;padding:1px 6px;font-family:'JetBrains Mono',monospace;}
+  .admin-tag{font-size:8px;font-weight:800;color:var(--gold2);background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);border-radius:4px;padding:2px 5px;font-family:'JetBrains Mono',monospace;}
+  .my-sub{font-size:11px;color:var(--t4);margin-top:2px;}
+  .my-budget{text-align:right;flex-shrink:0;}
+  .my-budget .l{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--t4);}
+  .my-budget .v{font-size:24px;color:var(--gold2);line-height:1.1;}
+
+  /* Composizione — gruppo doppio (A) dentro la card mia rosa */
+  .comp-groups{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,.06);}
+  .comp-group .glabel{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--t4);margin-bottom:8px;}
+  .comp-group .grow{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+  .gcell{text-align:center;background:rgba(255,255,255,.02);border-radius:8px;padding:7px 4px;}
+  .gcell .p{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:800;}
+  .gcell .v{font-family:'Oswald',sans-serif;font-size:15px;font-weight:600;margin-top:3px;color:var(--t1);}
+  .gcell.p .p{color:var(--pos-p);} .gcell.d .p{color:var(--pos-d);} .gcell.c .p{color:var(--pos-c);} .gcell.a .p{color:var(--pos-a);}
+
+  /* Tabella desktop */
+  .table-scroll{overflow-x:auto;border-radius:14px;border:1px solid var(--border);}
+  table.roster{width:100%;border-collapse:collapse;min-width:980px;background:var(--card);}
+  table.roster thead tr.g1 th{background:var(--elev);padding:9px 10px 3px;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--t4);text-align:center;border-bottom:none;}
+  table.roster thead tr.g1 th.grp-eta{color:#8fb8f5;}
+  table.roster thead tr.g1 th.grp-n{color:#7dd9a0;}
+  table.roster thead tr.g2 th{background:var(--elev);padding:2px 10px 9px;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;text-align:center;border-bottom:1px solid var(--border);}
+  table.roster thead tr.g2 th.name{text-align:left;color:var(--t3);text-transform:uppercase;letter-spacing:.09em;font-size:9px;}
+  table.roster thead tr.g2 th.r{text-align:right;color:var(--t3);text-transform:uppercase;letter-spacing:.09em;font-size:9px;}
+  table.roster thead tr.g2 th.p{color:var(--pos-p);} table.roster thead tr.g2 th.d{color:var(--pos-d);}
+  table.roster thead tr.g2 th.c{color:var(--pos-c);} table.roster thead tr.g2 th.a{color:var(--pos-a);}
+  table.roster tbody tr{border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;}
+  table.roster tbody tr:last-child{border-bottom:none;}
+  table.roster tbody tr:hover{background:var(--hover);}
+  table.roster tbody td{padding:11px 10px;vertical-align:middle;}
+  td.name-cell{display:flex;align-items:center;gap:10px;min-width:170px;}
+  .mono{width:28px;height:28px;border-radius:50%;background:var(--hover);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-size:10px;font-weight:800;flex-shrink:0;}
+  .team-nm{font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;}
+  td.r{text-align:right;font-family:'Oswald',sans-serif;font-variant-numeric:tabular-nums;font-size:13px;color:var(--t2);}
+  td.c{text-align:center;font-family:'Oswald',sans-serif;font-variant-numeric:tabular-nums;font-size:13px;color:var(--t2);}
+  td.nd{color:var(--t4);font-style:italic;font-family:'JetBrains Mono',monospace;font-size:11px;}
+  td.bud{text-align:right;font-size:14px;color:var(--gold2);}
+  td.arrow{text-align:right;color:var(--t4);font-size:13px;width:20px;}
+  .sep-col{border-left:1px dashed var(--border);}
+
+  .legend-note{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--t4);margin-top:10px;line-height:1.7;}
+  .legend-note b{color:var(--t3);}
+
+  /* Mobile phone frame */
+  .phones{display:flex;gap:22px;flex-wrap:wrap;margin-top:4px;}
+  .phone{width:340px;}
+  .phone-label{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;}
+  .m-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;}
+  .m-top{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .m-who{display:flex;align-items:center;gap:9px;}
+  .m-name{font-family:'Outfit',sans-serif;font-weight:700;font-size:13.5px;}
+  .m-sub2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;}
+  .m-field .l{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--t4);}
+  .m-field .v{font-family:'Oswald',sans-serif;font-size:14px;font-weight:600;margin-top:3px;}
+  .m-field .v.gold{color:var(--gold2);}
+  .m-groups{margin-top:12px;padding-top:12px;border-top:1px dashed var(--border);}
+  .m-glabel{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--t4);margin-bottom:7px;}
+  .m-grow{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px;}
+  .m-gcell{text-align:center;background:rgba(255,255,255,.02);border-radius:7px;padding:6px 3px;}
+  .m-gcell .p{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:800;}
+  .m-gcell .v{font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;margin-top:2px;}
+</style>
+</head>
+<body>
+<div class="flag">MOCKUP · VARIANTE <b>A — Colonne separate</b></div>
+<div class="wrap">
+  <h1 class="page">A — Colonne separate: due gruppi di intestazione</h1>
+  <p class="sub">
+    L'età media e il conteggio giocatori diventano <b>due gruppi di colonne distinti</b>
+    ("Età media" e "N. giocatori"), ciascuno con le 4 sotto-colonne P/D/C/A colorate per
+    reparto. Ogni cella mostra <b>un solo valore</b> — niente più numeri impilati e ambigui.
+    Il colore della posizione (oro/blu/verde/rosso, coerente con i badge ruolo già in uso)
+    permette di leggere in verticale "tutte le età" o "tutti i conteggi" a colpo d'occhio.
+  </p>
+  <div class="pill-approach">Approccio: colonne dedicate, massima esplicitezza</div>
+
+  <div class="section-h">La mia rosa<div class="ln"></div></div>
+  <div class="my-card">
+    <div class="my-top">
+      <div class="my-who">
+        <div class="mono-lg">SF</div>
+        <div>
+          <div class="my-name">Sordillo FC <span class="tu-tag">TU</span> <span class="admin-tag">ADMIN</span></div>
+          <div class="my-sub">Età rosa 26.4</div>
+        </div>
+      </div>
+      <div class="my-budget">
+        <div class="l">Bilancio</div>
+        <div class="v budget-display">187<span style="font-size:13px;color:var(--t4);font-weight:600;">M</span></div>
+      </div>
+    </div>
+    <div class="comp-groups">
+      <div class="comp-group">
+        <div class="glabel">Età media per reparto</div>
+        <div class="grow">
+          <div class="gcell p"><div class="p">P</div><div class="v">27.3</div></div>
+          <div class="gcell d"><div class="p">D</div><div class="v">24.8</div></div>
+          <div class="gcell c"><div class="p">C</div><div class="v">26.1</div></div>
+          <div class="gcell a"><div class="p">A</div><div class="v">28.4</div></div>
+        </div>
+      </div>
+      <div class="comp-group">
+        <div class="glabel">N. giocatori per reparto</div>
+        <div class="grow">
+          <div class="gcell p"><div class="p">P</div><div class="v">3</div></div>
+          <div class="gcell d"><div class="p">D</div><div class="v">7</div></div>
+          <div class="gcell c"><div class="p">C</div><div class="v">8</div></div>
+          <div class="gcell a"><div class="p">A</div><div class="v">5</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-h">Rose degli avversari — Desktop<div class="ln"></div></div>
+  <div class="table-scroll">
+    <table class="roster">
+      <thead>
+        <tr class="g1">
+          <th></th><th></th>
+          <th class="grp-eta" colspan="4">Età media per reparto</th>
+          <th class="grp-n" colspan="4">N. giocatori per reparto</th>
+          <th></th><th></th>
+        </tr>
+        <tr class="g2">
+          <th class="name">Squadra</th>
+          <th class="r">Età rosa</th>
+          <th class="p">P</th><th class="d">D</th><th class="c">C</th><th class="a">A</th>
+          <th class="p sep-col">P</th><th class="d">D</th><th class="c">C</th><th class="a">A</th>
+          <th class="r">Bilancio</th><th></th>
+        </tr>
+      </thead>
+      <tbody id="tbody-desktop"></tbody>
+    </table>
+  </div>
+  <div class="legend-note"><b>Nota:</b> tabella con 12 colonne — su schermi &lt;1280px scrolla orizzontalmente dentro il proprio pannello (mai l'intera pagina, coerente con l'anti-overflow-x del CockpitShell).</div>
+
+  <div class="section-h">Rose degli avversari — Mobile (card, stessa logica a due gruppi)<div class="ln"></div></div>
+  <div class="phones">
+    <div class="phone">
+      <div class="phone-label">iPhone · 375px</div>
+      <div id="phone-cards"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const POS = ['P','D','C','A'];
+const teams = [
+  {name:'Simulato 1', mono:'S1', etaRosa:29.1, budget:42,  eta:{P:31.0,D:28.4,C:27.9,A:30.8}, n:{P:3,D:8,C:6,A:6}},
+  {name:'Simulato 2', mono:'S2', etaRosa:24.6, budget:96,  eta:{P:23.0,D:25.1,C:24.0,A:25.6}, n:{P:2,D:7,C:8,A:4}},
+  {name:'Simulato 3', mono:'S3', etaRosa:32.7, budget:-8,  eta:{P:34.0,D:33.1,C:31.9,A:33.0}, n:{P:3,D:8,C:8,A:6}},
+  {name:'Simulato 4', mono:'S4', etaRosa:23.4, budget:210, eta:{P:null,D:23.4,C:22.1,A:24.0}, n:{P:0,D:5,C:5,A:3}},
+  {name:'Simulato 5', mono:'S5', etaRosa:27.8, budget:63,  eta:{P:29.0,D:27.0,C:27.9,A:28.3}, n:{P:3,D:8,C:7,A:6}},
+  {name:'Simulato 6', mono:'S6', etaRosa:25.3, budget:118, eta:{P:26.0,D:25.0,C:24.8,A:25.9}, n:{P:2,D:6,C:6,A:5}},
+  {name:'Simulato 7', mono:'S7', etaRosa:30.2, budget:5,   eta:{P:31.0,D:30.4,C:29.5,A:30.9}, n:{P:3,D:8,C:8,A:6}},
+];
+function fmtAge(v){ return v==null ? 'N.D.' : v.toFixed(1); }
+const tbody = document.getElementById('tbody-desktop');
+teams.forEach(t=>{
+  const tr = document.createElement('tr');
+  let etaCells = POS.map(p=>`<td class="c${p==='P'?'':''}">${fmtAge(t.eta[p])}</td>`).join('');
+  let nCells = POS.map((p,i)=>`<td class="c${i===0?' sep-col':''}">${t.n[p]}</td>`).join('');
+  tr.innerHTML = `
+    <td><div class="name-cell"><div class="mono">${t.mono}</div><span class="team-nm">${t.name}</span></div></td>
+    <td class="r">${t.etaRosa.toFixed(1)}</td>
+    ${etaCells}
+    ${nCells}
+    <td class="bud budget-display">${t.budget}<span style="font-size:11px;color:var(--t4);">M</span></td>
+    <td class="arrow">›</td>`;
+  tbody.appendChild(tr);
+});
+const phoneWrap = document.getElementById('phone-cards');
+teams.slice(0,3).forEach(t=>{
+  const div = document.createElement('div');
+  div.className='m-card';
+  const etaRow = POS.map(p=>`<div class="m-gcell ${p.toLowerCase()}"><div class="p">${p}</div><div class="v">${fmtAge(t.eta[p])}</div></div>`).join('');
+  const nRow = POS.map(p=>`<div class="m-gcell ${p.toLowerCase()}"><div class="p">${p}</div><div class="v">${t.n[p]}</div></div>`).join('');
+  div.innerHTML = `
+    <div class="m-top">
+      <div class="m-who"><div class="mono">${t.mono}</div><span class="m-name">${t.name}</span></div>
+      <span style="color:var(--t4);">›</span>
+    </div>
+    <div class="m-sub2">
+      <div class="m-field"><div class="l">Età media rosa</div><div class="v">${t.etaRosa.toFixed(1)}</div></div>
+      <div class="m-field"><div class="l">Bilancio</div><div class="v gold">${t.budget}M</div></div>
+    </div>
+    <div class="m-groups">
+      <div class="m-glabel">Età media per reparto</div>
+      <div class="m-grow">${etaRow}</div>
+      <div class="m-glabel">N. giocatori per reparto</div>
+      <div class="m-grow">${nRow}</div>
+    </div>`;
+  phoneWrap.appendChild(div);
+});
+</script>
+<style>
+.m-gcell.p .p{color:var(--pos-p);} .m-gcell.d .p{color:var(--pos-d);} .m-gcell.c .p{color:var(--pos-c);} .m-gcell.a .p{color:var(--pos-a);}
+</style>
+</body>
+</html>

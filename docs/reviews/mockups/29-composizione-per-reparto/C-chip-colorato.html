@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>C — Chip colorato (Composizione per reparto)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=Oswald:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0a0b; --card:#1a1c20; --elev:#111214; --hover:#252830; --border:#2d3139;
+    --primary:#3b82f6; --secondary:#22c55e; --gold:#f59e0b; --gold2:#fbbf24; --danger:#ef4444;
+    --t1:#f9fafb; --t2:#9ca3af; --t3:#6b7280; --t4:#4b5563;
+    --pos-p:#fbbf24; --pos-d:#60a5fa; --pos-c:#4ade80; --pos-a:#f87171;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--t1);font-family:'Inter',sans-serif;padding:36px 20px 100px;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1080px;margin:0 auto;}
+  .flag{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:center;gap:10px;background:linear-gradient(90deg,#0891b2,#06b6d4);color:#02282f;font-family:'JetBrains Mono',monospace;font-size:11.5px;font-weight:800;padding:8px 14px;letter-spacing:.03em;margin:-36px -20px 30px;}
+  .flag b{background:rgba(0,0,0,.18);padding:2px 9px;border-radius:999px;color:#eafcff;}
+  h1.page{font-family:'Outfit',sans-serif;font-size:22px;font-weight:800;margin-bottom:8px;}
+  p.sub{color:var(--t3);font-size:13px;line-height:1.7;max-width:840px;margin-bottom:8px;}
+  .pill-approach{display:inline-flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:4px 11px;border-radius:999px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);color:var(--gold2);margin-bottom:18px;}
+
+  .section-h{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--t3);margin:34px 0 12px;display:flex;align-items:center;gap:10px;}
+  .section-h .ln{flex:1;height:1px;background:var(--border);}
+
+  .budget-display{font-family:'Oswald',sans-serif;font-weight:600;font-variant-numeric:tabular-nums;}
+
+  /* chip — componente riusabile, coerente con .pos-chip già usato nei mockup Rose */
+  .chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;border-radius:8px;padding:5px 9px;font-variant-numeric:tabular-nums;flex-shrink:0;white-space:nowrap;}
+  .chip .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+  .chip .n{font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;}
+  .chip .age{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;opacity:.75;}
+  .chip.p{background:rgba(245,158,11,.12);color:var(--pos-p);} .chip.p .dot{background:var(--pos-p);}
+  .chip.d{background:rgba(59,130,246,.12);color:var(--pos-d);} .chip.d .dot{background:var(--pos-d);}
+  .chip.c{background:rgba(34,197,94,.12);color:var(--pos-c);} .chip.c .dot{background:var(--pos-c);}
+  .chip.a{background:rgba(239,68,68,.12);color:var(--pos-a);} .chip.a .dot{background:var(--pos-a);}
+  .chip.zero{opacity:.55;}
+  .chip-strip{display:flex;gap:8px;flex-wrap:wrap;}
+
+  /* Mia rosa */
+  .my-card{background:var(--card);border:1px solid rgba(34,197,94,.35);border-radius:16px;padding:18px 20px;position:relative;overflow:hidden;}
+  .my-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--secondary);}
+  .my-top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+  .my-who{display:flex;align-items:center;gap:12px;}
+  .mono-lg{width:40px;height:40px;border-radius:50%;background:var(--hover);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-size:13px;font-weight:800;flex-shrink:0;}
+  .my-name{font-family:'Outfit',sans-serif;font-size:14.5px;font-weight:800;display:flex;align-items:center;gap:7px;}
+  .tu-tag{font-size:9px;font-weight:800;color:#4ade80;border:1px solid rgba(34,197,94,.5);border-radius:5px;padding:1px 6px;font-family:'JetBrains Mono',monospace;}
+  .admin-tag{font-size:8px;font-weight:800;color:var(--gold2);background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);border-radius:4px;padding:2px 5px;font-family:'JetBrains Mono',monospace;}
+  .my-sub{font-size:11px;color:var(--t4);margin-top:2px;}
+  .my-budget{text-align:right;flex-shrink:0;}
+  .my-budget .l{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--t4);}
+  .my-budget .v{font-size:24px;color:var(--gold2);line-height:1.1;}
+  .comp{margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,.06);}
+  .comp .glabel{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--t4);margin-bottom:9px;}
+
+  /* Tabella desktop — meno colonne, colonna composizione più larga per il chip-strip (Assioma 1) */
+  .table-scroll{overflow-x:auto;border-radius:14px;border:1px solid var(--border);}
+  table.roster{width:100%;border-collapse:collapse;min-width:820px;background:var(--card);}
+  table.roster thead th{background:var(--elev);padding:9px 10px;font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);text-align:left;border-bottom:1px solid var(--border);}
+  table.roster thead th.r{text-align:right;}
+  table.roster tbody tr{border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;}
+  table.roster tbody tr:last-child{border-bottom:none;}
+  table.roster tbody tr:hover{background:var(--hover);}
+  table.roster tbody td{padding:12px 10px;vertical-align:middle;}
+  td.name-cell{display:flex;align-items:center;gap:10px;min-width:170px;}
+  .mono{width:28px;height:28px;border-radius:50%;background:var(--hover);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-size:10px;font-weight:800;flex-shrink:0;}
+  .team-nm{font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;}
+  td.r{text-align:right;font-family:'Oswald',sans-serif;font-variant-numeric:tabular-nums;font-size:13px;color:var(--t2);}
+  td.bud{text-align:right;font-size:14px;color:var(--gold2);}
+  td.arrow{text-align:right;color:var(--t4);font-size:13px;width:20px;}
+  td.comp-cell{min-width:300px;}
+
+  .legend-note{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--t4);margin-top:10px;line-height:1.7;}
+  .legend-note b{color:var(--t3);}
+
+  /* Mobile phone frame */
+  .phones{display:flex;gap:22px;flex-wrap:wrap;margin-top:4px;}
+  .phone{width:340px;}
+  .phone-label{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;}
+  .m-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;}
+  .m-top{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .m-who{display:flex;align-items:center;gap:9px;}
+  .m-name{font-family:'Outfit',sans-serif;font-weight:700;font-size:13.5px;}
+  .m-sub2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;}
+  .m-field .l{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--t4);}
+  .m-field .v{font-family:'Oswald',sans-serif;font-size:14px;font-weight:600;margin-top:3px;}
+  .m-field .v.gold{color:var(--gold2);}
+  .m-comp{margin-top:12px;padding-top:12px;border-top:1px dashed var(--border);}
+  .m-glabel{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--t4);margin-bottom:8px;}
+</style>
+</head>
+<body>
+<div class="flag">MOCKUP · VARIANTE <b>C — Chip colorato</b></div>
+<div class="wrap">
+  <h1 class="page">C — Chip colorato: mini-componente visivo per reparto</h1>
+  <p class="sub">
+    Le 4 colonne numeriche P/D/C/A vengono sostituite da una <b>striscia di 4 chip colorati</b>
+    (stesso codice colore già usato per i badge ruolo: oro P, blu D, verde C, rosso A) — un
+    componente riusabile su Rose/Giocatori/League Detail. Il numero grande nel chip è il
+    <b>conteggio</b> (il dato che manca oggi), l'età media è l'etichetta piccola accanto. Si
+    scansiona per colore e forma, non solo per posizione in colonna — utile anche con lo
+    sguardo veloce da mobile.
+  </p>
+  <div class="pill-approach">Approccio: componente visivo condiviso (colore + forma)</div>
+
+  <div class="section-h">La mia rosa<div class="ln"></div></div>
+  <div class="my-card">
+    <div class="my-top">
+      <div class="my-who">
+        <div class="mono-lg">SF</div>
+        <div>
+          <div class="my-name">Sordillo FC <span class="tu-tag">TU</span> <span class="admin-tag">ADMIN</span></div>
+          <div class="my-sub">Età rosa 26.4</div>
+        </div>
+      </div>
+      <div class="my-budget">
+        <div class="l">Bilancio</div>
+        <div class="v budget-display">187<span style="font-size:13px;color:var(--t4);font-weight:600;">M</span></div>
+      </div>
+    </div>
+    <div class="comp">
+      <div class="glabel">Composizione per reparto</div>
+      <div class="chip-strip" id="mine-chips"></div>
+    </div>
+  </div>
+
+  <div class="section-h">Rose degli avversari — Desktop<div class="ln"></div></div>
+  <div class="table-scroll">
+    <table class="roster">
+      <thead>
+        <tr>
+          <th>Squadra</th>
+          <th class="r">Età rosa</th>
+          <th>Composizione per reparto</th>
+          <th class="r">Bilancio</th><th></th>
+        </tr>
+      </thead>
+      <tbody id="tbody-desktop"></tbody>
+    </table>
+  </div>
+  <div class="legend-note"><b>Nota:</b> 5 colonne invece di 8 — la colonna "Composizione" è larga (min 300px) perché ospita il chip-strip, coerente con l'Assioma 1 (larghezza proporzionata al contenuto). Ogni chip resta leggibile anche isolato: colore = reparto, non serve l'header per capirlo.</div>
+
+  <div class="section-h">Rose degli avversari — Mobile (card, chip-strip già wrappa naturalmente)<div class="ln"></div></div>
+  <div class="phones">
+    <div class="phone">
+      <div class="phone-label">iPhone · 375px</div>
+      <div id="phone-cards"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const POS = ['P','D','C','A'];
+const teams = [
+  {name:'Simulato 1', mono:'S1', etaRosa:29.1, budget:42,  eta:{P:31.0,D:28.4,C:27.9,A:30.8}, n:{P:3,D:8,C:6,A:6}},
+  {name:'Simulato 2', mono:'S2', etaRosa:24.6, budget:96,  eta:{P:23.0,D:25.1,C:24.0,A:25.6}, n:{P:2,D:7,C:8,A:4}},
+  {name:'Simulato 3', mono:'S3', etaRosa:32.7, budget:-8,  eta:{P:34.0,D:33.1,C:31.9,A:33.0}, n:{P:3,D:8,C:8,A:6}},
+  {name:'Simulato 4', mono:'S4', etaRosa:23.4, budget:210, eta:{P:null,D:23.4,C:22.1,A:24.0}, n:{P:0,D:5,C:5,A:3}},
+  {name:'Simulato 5', mono:'S5', etaRosa:27.8, budget:63,  eta:{P:29.0,D:27.0,C:27.9,A:28.3}, n:{P:3,D:8,C:7,A:6}},
+  {name:'Simulato 6', mono:'S6', etaRosa:25.3, budget:118, eta:{P:26.0,D:25.0,C:24.8,A:25.9}, n:{P:2,D:6,C:6,A:5}},
+  {name:'Simulato 7', mono:'S7', etaRosa:30.2, budget:5,   eta:{P:31.0,D:30.4,C:29.5,A:30.9}, n:{P:3,D:8,C:8,A:6}},
+];
+function chipHTML(p, n, age){
+  const zero = n===0 ? ' zero' : '';
+  const ageTxt = age==null ? 'N.D.' : `${age.toFixed(1)}a`;
+  return `<span class="chip ${p.toLowerCase()}${zero}"><span class="dot"></span>${p} <span class="n">${n}</span><span class="age">${ageTxt}</span></span>`;
+}
+const mine = {eta:{P:27.3,D:24.8,C:26.1,A:28.4}, n:{P:3,D:7,C:8,A:5}};
+document.getElementById('mine-chips').innerHTML = POS.map(p=>chipHTML(p, mine.n[p], mine.eta[p])).join('');
+
+const tbody = document.getElementById('tbody-desktop');
+teams.forEach(t=>{
+  const tr = document.createElement('tr');
+  const chips = POS.map(p=>chipHTML(p, t.n[p], t.eta[p])).join('');
+  tr.innerHTML = `
+    <td><div class="name-cell"><div class="mono">${t.mono}</div><span class="team-nm">${t.name}</span></div></td>
+    <td class="r">${t.etaRosa.toFixed(1)}</td>
+    <td class="comp-cell"><div class="chip-strip">${chips}</div></td>
+    <td class="bud budget-display">${t.budget}<span style="font-size:11px;color:var(--t4);">M</span></td>
+    <td class="arrow">›</td>`;
+  tbody.appendChild(tr);
+});
+const phoneWrap = document.getElementById('phone-cards');
+teams.slice(0,3).forEach(t=>{
+  const div = document.createElement('div');
+  div.className='m-card';
+  const chips = POS.map(p=>chipHTML(p, t.n[p], t.eta[p])).join('');
+  div.innerHTML = `
+    <div class="m-top">
+      <div class="m-who"><div class="mono">${t.mono}</div><span class="m-name">${t.name}</span></div>
+      <span style="color:var(--t4);">›</span>
+    </div>
+    <div class="m-sub2">
+      <div class="m-field"><div class="l">Età media rosa</div><div class="v">${t.etaRosa.toFixed(1)}</div></div>
+      <div class="m-field"><div class="l">Bilancio</div><div class="v gold">${t.budget}M</div></div>
+    </div>
+    <div class="m-comp">
+      <div class="m-glabel">Composizione per reparto</div>
+      <div class="chip-strip">${chips}</div>
+    </div>`;
+  phoneWrap.appendChild(div);
+});
+</script>
+</body>
+</html>
