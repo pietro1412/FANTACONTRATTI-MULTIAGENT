@@ -113,6 +113,7 @@ function makeMember(overrides = {}) {
     userId: 'user-sender',
     status: 'ACTIVE',
     currentBudget: 100,
+    totalSalaries: 0,
     ...overrides,
   }
 }
@@ -159,8 +160,8 @@ describe('Trade Service', () => {
     mockPrisma.$transaction.mockImplementation((cb: unknown) =>
       (cb as (tx: typeof mockPrisma) => unknown)(mockPrisma)
     )
-    // Default: nessun contratto → monteIngaggi 0 → bilancio == cassa (i test che vogliono testare il vincolo bilancio sovrascrivono questo mock)
-    mockPrisma.playerContract.aggregate.mockResolvedValue({ _sum: { salary: 0 } })
+    // Monte ingaggi fissato (LeagueMember.totalSalaries) è ora un campo del member mock stesso
+    // (default 0 in makeMember) — i test che vogliono testare il vincolo bilancio lo sovrascrivono.
     // Restore fire-and-forget service mocks (must return Promises for .catch())
     mockNotifyTradeOffer.mockResolvedValue(undefined)
     mockNotifyTradeInvalidated.mockResolvedValue(undefined)
@@ -308,16 +309,15 @@ describe('Trade Service', () => {
       expect(result.message).toContain('Non hai abbastanza bilancio')
     })
 
-    it('should reject offer that fits cassa but exceeds bilancio (budget - monteIngaggi)', async () => {
-      // Cassa 100, monteIngaggi 70 → bilancio 30. Offerta 50: sta nella cassa ma supera il bilancio → rifiuto (Bibbia §3.7)
-      mockPrisma.leagueMember.findFirst.mockResolvedValue(makeMember({ currentBudget: 100 }))
+    it('should reject offer that fits cassa but exceeds bilancio (budget - totalSalaries)', async () => {
+      // Cassa 100, totalSalaries 70 → bilancio 30. Offerta 50: sta nella cassa ma supera il bilancio → rifiuto (Bibbia §3.7)
+      mockPrisma.leagueMember.findFirst.mockResolvedValue(makeMember({ currentBudget: 100, totalSalaries: 70 }))
       mockPrisma.leagueMember.findUnique.mockResolvedValue({
         id: 'member-receiver', leagueId: 'league-1', status: 'ACTIVE', userId: 'user-receiver', user: {},
       })
       mockPrisma.marketSession.findFirst
         .mockResolvedValueOnce(makeActiveSession())
         .mockResolvedValueOnce(makeActiveSession())
-      mockPrisma.playerContract.aggregate.mockResolvedValue({ _sum: { salary: 70 } })
 
       const result = await tradeService.createTradeOffer(
         'league-1', 'user-sender', 'member-receiver',

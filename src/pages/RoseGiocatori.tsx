@@ -54,6 +54,8 @@ interface Member {
   role: 'ADMIN' | 'MEMBER'
   teamName: string | null
   currentBudget: number
+  /** Monte ingaggi fissato all'ultimo consolidamento (LeagueMember.totalSalaries) — non live. */
+  totalSalaries: number
   user: { username: string }
   roster: RosterEntry[]
 }
@@ -492,7 +494,9 @@ export function RoseGiocatori({ onNavigate, initialView = 'rose', initialTeamFil
     const roster = roseSelectedMember.roster
     return {
       total: roster.length,
-      salary: roster.reduce((sum, r) => sum + (r.contract?.salary || 0), 0),
+      // Monte ingaggi fissato (LeagueMember.totalSalaries), non ricalcolato live dal roster:
+      // uno scambio non deve alterarlo fino al prossimo consolidamento Fase 3 Contratti.
+      salary: roseSelectedMember.totalSalaries,
       clauses: roster.reduce((sum, r) => sum + (r.contract?.rescissionClause || 0), 0),
       byPosition: {
         P: roster.filter(r => r.player.position === 'P').length,

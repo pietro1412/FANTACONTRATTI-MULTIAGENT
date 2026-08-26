@@ -780,6 +780,22 @@ export async function closeAuctionSession(
       })
       contractsCreated++
     }
+
+    // Inizializza totalSalaries (monte ingaggi fissato) per ogni manager, sommando TUTTI i
+    // contratti attivi (non solo quelli appena creati, per coprire anche eventuali contratti
+    // preesistenti) — è il primo consolidamento implicito di monte ingaggi della lega, prima
+    // che esista ancora una fase CONTRATTI vera e propria.
+    const salaryByMember = await prisma.playerContract.groupBy({
+      by: ['leagueMemberId'],
+      where: { leagueMember: { leagueId: session.leagueId, status: MemberStatus.ACTIVE } },
+      _sum: { salary: true },
+    })
+    for (const row of salaryByMember) {
+      await prisma.leagueMember.update({
+        where: { id: row.leagueMemberId },
+        data: { totalSalaries: row._sum.salary || 0 },
+      })
+    }
   }
 
   // Close session

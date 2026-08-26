@@ -234,6 +234,7 @@ describe('League Service', () => {
             userId: 'user-1',
             role: 'ADMIN',
             currentBudget: 200,
+            totalSalaries: 25,
             roster: [
               { contract: { salary: 10 } },
               { contract: { salary: 15 } },
@@ -725,6 +726,7 @@ describe('League Service', () => {
           role: 'ADMIN',
           teamName: 'Team Alpha',
           currentBudget: 200,
+          totalSalaries: 15,
           preConsolidationBudget: null,
           user: { username: 'admin' },
           roster: [
@@ -774,6 +776,60 @@ describe('League Service', () => {
       expect(firstTeam.annualContractCost).toBe(15)
       expect(firstTeam.slotCount).toBe(1)
       expect(data.isAdmin).toBe(true)
+    })
+
+    it('should use totalSalaries (fissato), not the live contract sum, outside CONTRATTI phase — e.g. during Scambi', async () => {
+      // Il manager ha appena scambiato un giocatore: il contratto corrente vale 40, ma
+      // totalSalaries (fissato all'ultimo consolidamento) è ancora 15 — deve vincere questo,
+      // non la somma live dei contratti (Bibbia MERCATO-RICORRENTE.md §3.6-3.8).
+      mockPrisma.leagueMember.findFirst
+        .mockResolvedValueOnce({ id: 'member-1', role: 'ADMIN' })
+      mockPrisma.marketSession.findFirst
+        .mockResolvedValueOnce(null) // nessuna sessione CONTRATTI attiva
+        .mockResolvedValueOnce({ id: 'session-1', currentPhase: 'OFFERTE_PRE_RINNOVO' }) // sessione attiva (Scambi)
+      mockPrisma.leagueMember.findMany.mockResolvedValue([
+        {
+          id: 'member-1',
+          userId: 'user-1',
+          role: 'ADMIN',
+          teamName: 'Team Alpha',
+          currentBudget: 200,
+          totalSalaries: 15,
+          preConsolidationBudget: null,
+          user: { username: 'admin' },
+          roster: [
+            {
+              status: 'ACTIVE',
+              acquisitionPrice: 10,
+              player: { id: 'p1', name: 'Player 1', team: 'Milan', position: 'A', quotation: 30, age: 25 },
+              contract: {
+                salary: 40, // valore live post-scambio, NON deve essere usato
+                duration: 2,
+                rescissionClause: 5,
+                draftSalary: null,
+                draftDuration: null,
+                draftReleased: false,
+                preConsolidationSalary: null,
+                preConsolidationDuration: null,
+              },
+            },
+          ],
+        },
+      ])
+      mockPrisma.league.findUnique.mockResolvedValue({
+        name: 'Test League',
+        goalkeeperSlots: 3,
+        defenderSlots: 8,
+        midfielderSlots: 8,
+        forwardSlots: 6,
+      })
+      mockPrisma.marketSession.findMany.mockResolvedValue([])
+
+      const result = await leagueService.getLeagueFinancials('league-1', 'user-1')
+
+      expect(result.success).toBe(true)
+      const data = result.data as { teams: Array<{ annualContractCost: number }> }
+      expect(data.teams[0]!.annualContractCost).toBe(15)
     })
   })
 

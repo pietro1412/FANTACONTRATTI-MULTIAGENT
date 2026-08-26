@@ -627,15 +627,24 @@ export async function closeRubataAuction(
     const offerta = payment - contractSalary
 
     // Update winner budget (decrease by OFFERTA only — salary is in monte ingaggi)
+    // e monte ingaggi fissato (totalSalaries): la Rubata trasferisce un contratto esistente
+    // ma, a differenza dello Scambio, il suo ingaggio DEVE incidere subito sul bilancio di
+    // entrambe le parti (Bibbia RUBATA.md, coerente con trade.service.ts).
     await tx.leagueMember.update({
       where: { id: winningBid.bidderId },
-      data: { currentBudget: { decrement: offerta } },
+      data: {
+        currentBudget: { decrement: offerta },
+        totalSalaries: { increment: contractSalary },
+      },
     })
 
     // Update seller budget (increase by OFFERTA — salary freed from monte ingaggi)
     await tx.leagueMember.update({
       where: { id: auction.sellerId! },
-      data: { currentBudget: { increment: offerta } },
+      data: {
+        currentBudget: { increment: offerta },
+        totalSalaries: { decrement: contractSalary },
+      },
     })
 
     // Transfer roster to winner

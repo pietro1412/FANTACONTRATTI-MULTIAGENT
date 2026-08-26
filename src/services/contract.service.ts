@@ -1550,6 +1550,14 @@ export async function consolidateContracts(
         )
       }
 
+      // Fissa il monte ingaggi al valore appena ricalcolato: resta questo il riferimento per
+      // Scambi/Finanze/Rose finché questo manager non consolida di nuovo (vedi
+      // LeagueMember.totalSalaries in prisma/schemas/league.prisma).
+      await tx.leagueMember.update({
+        where: { id: member.id },
+        data: { totalSalaries: postMonteIngaggi },
+      })
+
       // 5. Clear all draft values and create consolidation record
       await tx.contractConsolidation.create({
         data: {

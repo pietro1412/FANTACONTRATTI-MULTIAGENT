@@ -102,12 +102,9 @@ export async function createTradeOffer(
     return { success: false, message: 'I budget devono essere positivi' }
   }
 
-  // Check budget using bilancio (budget - monteIngaggi), coerente con asta/svincolati e Bibbia FINANZE/MERCATO-RICORRENTE §3.7
-  const monteIngaggiFrom = await prisma.playerContract.aggregate({
-    where: { leagueMemberId: fromMember.id },
-    _sum: { salary: true },
-  })
-  const bilancioFrom = fromMember.currentBudget - (monteIngaggiFrom._sum.salary || 0)
+  // Check budget using bilancio (budget - totalSalaries fissato all'ultimo consolidamento):
+  // negli Scambi il monte ingaggi NON è live, coerente con Bibbia FINANZE/MERCATO-RICORRENTE §3.7
+  const bilancioFrom = fromMember.currentBudget - fromMember.totalSalaries
   if (offeredBudget > bilancioFrom) {
     return { success: false, message: `Non hai abbastanza bilancio. Disponibile: ${bilancioFrom}` }
   }
@@ -468,22 +465,15 @@ export async function acceptTrade(tradeId: string, userId: string): Promise<Serv
     return { success: false, message: 'Uno dei membri non è più attivo nella lega' }
   }
 
-  // Validate budgets using bilancio (budget - monteIngaggi), coerente con asta/svincolati e Bibbia §3.7
-  const monteIngaggiReceiver = await prisma.playerContract.aggregate({
-    where: { leagueMemberId: receiverMember.id },
-    _sum: { salary: true },
-  })
-  const bilancioReceiver = receiverMember.currentBudget - (monteIngaggiReceiver._sum.salary || 0)
+  // Validate budgets using bilancio (budget - totalSalaries fissato, non live): coerente con
+  // Bibbia §3.7 — negli Scambi il monte ingaggi non si ricalcola fino al prossimo consolidamento
+  const bilancioReceiver = receiverMember.currentBudget - receiverMember.totalSalaries
   if (trade.requestedBudget > bilancioReceiver) {
     return { success: false, message: `Bilancio insufficiente. Richiesto: ${trade.requestedBudget}, Disponibile: ${bilancioReceiver}` }
   }
 
   // Re-validate sender has enough bilancio
-  const monteIngaggiSender = await prisma.playerContract.aggregate({
-    where: { leagueMemberId: senderMember.id },
-    _sum: { salary: true },
-  })
-  const bilancioSender = senderMember.currentBudget - (monteIngaggiSender._sum.salary || 0)
+  const bilancioSender = senderMember.currentBudget - senderMember.totalSalaries
   if (trade.offeredBudget > bilancioSender) {
     return { success: false, message: 'Il mittente non ha più abbastanza bilancio per questa offerta' }
   }

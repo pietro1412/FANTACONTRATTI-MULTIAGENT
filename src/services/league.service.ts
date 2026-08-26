@@ -358,14 +358,13 @@ export async function getLeagueById(leagueId: string, userId: string): Promise<S
   // Check if user is a member
   const membership = league.members.find(m => m.userId === userId)
 
-  // Add totalSalaries and balance to each member
+  // totalSalaries/balance: monte ingaggi fissato (LeagueMember.totalSalaries), non ricalcolato
+  // live dal roster — coerente con Scambi/Finanze/Rose (vedi trade.service.ts).
   const membersWithBalance = league.members.map(member => {
-    const totalSalaries = member.roster.reduce((sum, r) => sum + (r.contract?.salary || 0), 0)
-    const balance = member.currentBudget - totalSalaries
+    const balance = member.currentBudget - member.totalSalaries
     return {
       ...member,
       roster: undefined, // Don't expose roster details
-      totalSalaries,
       balance,
     }
   })
@@ -380,8 +379,7 @@ export async function getLeagueById(leagueId: string, userId: string): Promise<S
       userMembership: membership ? {
         ...membership,
         roster: undefined,
-        totalSalaries: membership.roster.reduce((sum, r) => sum + (r.contract?.salary || 0), 0),
-        balance: membership.currentBudget - membership.roster.reduce((sum, r) => sum + (r.contract?.salary || 0), 0),
+        balance: membership.currentBudget - membership.totalSalaries,
       } : null,
       isAdmin: membership?.role === MemberRole.ADMIN,
     },
@@ -1095,6 +1093,7 @@ export async function getAllRosters(leagueId: string, userId: string): Promise<S
           role: true,
           teamName: true,
           currentBudget: true,
+          totalSalaries: true,
           user: {
             select: {
               username: true,
@@ -1729,8 +1728,10 @@ export async function getLeagueFinancials(leagueId: string, userId: string, sess
         annualContractCost = activeRosterSalaries + releasedSalaries
         slotCount = activePlayers.length + releasedCount
       } else {
-        // TUTTI hanno consolidato OPPURE fuori da CONTRATTI: mostra dati POST-consolidamento (attuali)
-        annualContractCost = activePlayers.reduce((sum, p) => sum + p.salary, 0)
+        // TUTTI hanno consolidato OPPURE fuori da CONTRATTI: monte ingaggi fissato
+        // (LeagueMember.totalSalaries) — non ricalcolato live, così gli Scambi non lo alterano
+        // (aggiornato solo da Primo Mercato, Consolidamento, Rubata, Svincolati).
+        annualContractCost = member.totalSalaries
         slotCount = activePlayers.length
       }
 

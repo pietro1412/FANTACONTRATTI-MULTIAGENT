@@ -1346,6 +1346,12 @@ export async function closeSvincolatiAuction(
       },
     })
 
+    // Contratto nuovo (non trasferito): incide subito sul monte ingaggi fissato del vincitore.
+    await tx.leagueMember.update({
+      where: { id: winningBid.bidderId },
+      data: { totalSalaries: { increment: salary } },
+    })
+
     // Complete auction
     await tx.auction.update({
       where: { id: auctionId },

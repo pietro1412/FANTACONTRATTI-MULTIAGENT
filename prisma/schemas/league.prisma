@@ -71,6 +71,13 @@ model LeagueMember {
   currentBudget Int    @default(0)
   preConsolidationBudget Int?  // Budget prima del consolidamento (per fase CONTRATTI)
 
+  // Monte ingaggi fissato all'ultimo consolidamento Fase 3 Contratti (o all'inizializzazione
+  // di Primo Mercato). Aggiornato da: chiusura Primo Mercato, consolidamento Contratti,
+  // Rubata, Svincolati. Gli Scambi (trade.service.ts) NON lo toccano di proposito: per regola
+  // di gioco un contratto trasferito in uno scambio non deve incidere sul bilancio fino al
+  // prossimo consolidamento (docs/bibbie/MERCATO-RICORRENTE.md §3.6-3.8, FINANZE.md §2.1/§7).
+  totalSalaries Int   @default(0)
+
   // Ordine Rubata (impostato da admin)
   rubataOrder   Int?
 

@@ -9,6 +9,8 @@ export interface RosterMemberData {
   teamName: string | null
   role: string
   budget: number
+  /** Monte ingaggi fissato all'ultimo consolidamento (LeagueMember.totalSalaries) — non live. */
+  totalSalaries: number
   playerCount: number
   players: Array<{ position: string; age?: number | null; contract?: { salary: number } | null }>
 }
@@ -46,7 +48,7 @@ function countByPosition(players: RosterMemberData['players']): PositionCounts {
 }
 
 function computeMonteIngaggi(member: RosterMemberData): number {
-  return member.players.reduce((sum, p) => sum + (p.contract?.salary || 0), 0)
+  return member.totalSalaries
 }
 
 /** Budget - monte ingaggi, stessa definizione di "disponibile"/"bilancio" usata in FinancialKPIs/Finanze. */
