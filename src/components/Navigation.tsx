@@ -295,7 +295,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
     <>
     <header className="corner-cut bg-gradient-to-r from-dark-200 via-surface-200 to-dark-200 border-b border-surface-50/20 sticky top-0 z-40 shadow-lg shadow-black/20 backdrop-blur-sm">
       <div className="max-w-full mx-auto px-4 py-2.5">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-wrap justify-between items-center gap-y-2">
           {/* Left side: Mobile menu button + Logo */}
           <div className="flex items-center gap-2">
             {/* Mobile menu button - a sinistra */}
