@@ -45,8 +45,8 @@ function PlayerChips({ players, budget, accent, leagueId }: { players: Player[];
       {players.map(p => {
         const role = ROLE_BADGE[p.position] ?? 'bg-surface-100 text-gray-400'
         return (
-          <span key={p.id} className="inline-flex items-center gap-1.5 bg-surface-300 border border-surface-50 rounded-full pl-1 pr-2.5 py-0.5 text-[11.5px] font-semibold text-white">
-            <span className={`w-[18px] h-[18px] rounded-[5px] flex items-center justify-center font-display font-extrabold text-[9px] ${role}`}>
+          <span key={p.id} className="inline-flex items-center gap-1.5 bg-surface-300 border border-surface-50 rounded-full pl-1 pr-2.5 py-1 text-sm font-semibold text-white">
+            <span className={`w-5 h-5 rounded-[5px] flex items-center justify-center font-display font-extrabold text-[10px] ${role}`}>
               {p.position}
             </span>
             <PlayerName
@@ -58,20 +58,20 @@ function PlayerChips({ players, budget, accent, leagueId }: { players: Player[];
               }}
               leagueId={leagueId}
               leaguePlayerId={p.id}
-              className="text-[11.5px] font-semibold"
+              className="text-sm font-semibold"
             />
-            <span className={`text-[10px] font-mono ${getAgeColor(p.age)}`}>
+            <span className={`text-xs font-mono ${getAgeColor(p.age)}`}>
               {p.age != null ? `${p.age}a` : NOT_DISPONIBILE}
             </span>
           </span>
         )
       })}
       {budget > 0 && (
-        <span className="inline-flex items-center bg-surface-300 border border-surface-50 rounded-full px-2.5 py-0.5">
-          <span className={`font-mono text-[11px] font-bold ${creditCls}`}>+{budget}M</span>
+        <span className="inline-flex items-center bg-surface-300 border border-surface-50 rounded-full px-2.5 py-1">
+          <span className={`font-mono text-xs font-bold ${creditCls}`}>+{budget}M</span>
         </span>
       )}
-      {hasNothing && <span className="text-[11px] text-gray-500 italic">nulla</span>}
+      {hasNothing && <span className="text-xs text-gray-500 italic">nulla</span>}
     </div>
   )
 }
@@ -129,29 +129,29 @@ export function TradeOfferCard({
       <div className="flex items-center gap-2.5 min-w-0">
         <Monogram name={counterpartyName} size="md" />
         <div className="min-w-0">
-          <div className="font-display text-[13.5px] font-bold text-white truncate">
+          <div className="font-display text-sm font-bold text-white truncate">
             {variant === 'sent' ? `A: ${counterpartyName}` : counterpartyName}
           </div>
-          <div className="text-[10.5px] text-gray-500">{timestamp}</div>
+          <div className="text-xs text-gray-500">{timestamp}</div>
         </div>
       </div>
 
       {/* Leg GET */}
       <div className="flex flex-col gap-1 min-w-0">
-        <span className="micro-label text-[9px] text-secondary-400">{labels[variant].get}</span>
+        <span className="micro-label text-secondary-400">{labels[variant].get}</span>
         <PlayerChips players={getPlayers} budget={getBudget} accent="get" leagueId={leagueId} />
       </div>
 
       {/* Leg GIVE */}
       <div className="flex flex-col gap-1 min-w-0">
-        <span className="micro-label text-[9px] text-danger-400">{labels[variant].give}</span>
+        <span className="micro-label text-danger-400">{labels[variant].give}</span>
         <PlayerChips players={givePlayers} budget={giveBudget} accent="give" leagueId={leagueId} />
       </div>
 
       {/* Actions / status */}
       <div className="flex flex-col gap-2 lg:items-end flex-shrink-0">
         {variant !== 'history' ? (
-          <span className={`inline-flex items-center gap-1.5 self-start lg:self-auto font-mono text-[10.5px] font-bold rounded-full px-2.5 py-1 border ${
+          <span className={`inline-flex items-center gap-1.5 self-start lg:self-auto font-mono text-xs font-bold rounded-full px-2.5 py-1 border ${
             timeRemaining.isExpired
               ? 'text-danger-400 bg-danger-500/10 border-danger-500/45'
               : timeRemaining.isUrgent
@@ -164,7 +164,7 @@ export function TradeOfferCard({
             {timeRemaining.text}
           </span>
         ) : (
-          <span className={`inline-flex items-center self-start lg:self-auto text-[10.5px] font-bold uppercase tracking-wide rounded-full px-2.5 py-1 border ${status.cls}`}>
+          <span className={`inline-flex items-center self-start lg:self-auto text-xs font-bold uppercase tracking-wide rounded-full px-2.5 py-1 border ${status.cls}`}>
             {status.label}
           </span>
         )}
@@ -174,21 +174,21 @@ export function TradeOfferCard({
             <button
               type="button"
               onClick={() => onAccept?.(offer.id)}
-              className="text-[11.5px] font-bold rounded-lg px-3 py-1.5 text-[#06200f] bg-gradient-to-b from-secondary-400 to-secondary-500"
+              className="text-sm font-bold rounded-lg px-3 py-1.5 text-[#06200f] bg-gradient-to-b from-secondary-400 to-secondary-500"
             >
               Accetta
             </button>
             <button
               type="button"
               onClick={() => onCounter?.(offer)}
-              className="text-[11.5px] font-bold rounded-lg px-3 py-1.5 text-primary-400 border border-primary-500/45 bg-primary-500/[0.08]"
+              className="text-sm font-bold rounded-lg px-3 py-1.5 text-primary-400 border border-primary-500/45 bg-primary-500/[0.08]"
             >
               Controfferta
             </button>
             <button
               type="button"
               onClick={() => onReject?.(offer.id)}
-              className="text-[11.5px] font-bold rounded-lg px-3 py-1.5 text-danger-400 border border-danger-500/40 bg-danger-500/[0.06]"
+              className="text-sm font-bold rounded-lg px-3 py-1.5 text-danger-400 border border-danger-500/40 bg-danger-500/[0.06]"
             >
               Rifiuta
             </button>
@@ -199,21 +199,21 @@ export function TradeOfferCard({
           <button
             type="button"
             onClick={() => onCancel?.(offer.id)}
-            className="text-[11.5px] font-bold rounded-lg px-3 py-1.5 text-danger-400 border border-danger-500/40 bg-danger-500/[0.06]"
+            className="text-sm font-bold rounded-lg px-3 py-1.5 text-danger-400 border border-danger-500/40 bg-danger-500/[0.06]"
           >
             Annulla offerta
           </button>
         )}
 
         {variant === 'history' && offer.status === 'INVALIDATED' && (
-          <p className="text-[10.5px] text-warning-400 lg:text-right max-w-[200px]">Un giocatore coinvolto è stato scambiato in un'altra trattativa</p>
+          <p className="text-xs text-warning-400 lg:text-right max-w-[200px]">Un giocatore coinvolto è stato scambiato in un'altra trattativa</p>
         )}
       </div>
 
       {/* Message (full width) */}
       {offer.message && (
         <div className="lg:col-span-4">
-          <p className="text-[11.5px] text-gray-500 italic border-l-2 border-surface-50 pl-3">"{offer.message}"</p>
+          <p className="text-sm text-gray-500 italic border-l-2 border-surface-50 pl-3">"{offer.message}"</p>
         </div>
       )}
     </div>

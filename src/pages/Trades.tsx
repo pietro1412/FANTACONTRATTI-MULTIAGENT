@@ -927,7 +927,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                         key={chip.key}
                         type="button"
                         onClick={() => { setHistoryFilter(chip.key); }}
-                        className={`px-2.5 py-1 rounded-full font-mono text-[9.5px] font-bold border transition-colors ${
+                        className={`px-2.5 py-1 rounded-full font-mono text-xs font-bold border transition-colors ${
                           historyFilter === chip.key
                             ? 'bg-accent-400 text-dark-300 border-accent-400'
                             : 'bg-surface-300 text-gray-400 border-surface-50 hover:text-gray-300'
