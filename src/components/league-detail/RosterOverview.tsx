@@ -29,6 +29,15 @@ function computeAvailableBudget(member: RosterMemberData): number {
   return computeBilancio(member.budget, member.totalSalaries)
 }
 
+/** Solo conteggio: dopo il 1° Mercato non esistono più limiti di slot per ruolo. */
+function countByPosition(players: RosterMemberData['players']): Record<(typeof POSITIONS)[number], number> {
+  const counts = { P: 0, D: 0, C: 0, A: 0 }
+  for (const p of players) {
+    if (p.position === 'P' || p.position === 'D' || p.position === 'C' || p.position === 'A') counts[p.position]++
+  }
+  return counts
+}
+
 function average(values: number[]): number | null {
   if (values.length === 0) return null
   return values.reduce((sum, v) => sum + v, 0) / values.length
@@ -50,11 +59,12 @@ function formatAge(age: number | null): string {
   return formatStat(age, { decimals: 1, fallback: NOT_DISPONIBILE })
 }
 
-function Field({ label, value, tone }: { label: string; value: string; tone?: string }) {
+function Field({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: string }) {
   return (
     <div>
       <p className="micro-label text-gray-500">{label}</p>
       <p className={`font-mono text-sm mt-0.5 ${tone ?? 'text-gray-200'}`}>{value}</p>
+      {sub !== undefined && <p className="font-mono text-[10px] text-gray-500 mt-0.5">{sub}</p>}
     </div>
   )
 }
@@ -76,6 +86,7 @@ export function RosterOverview({ rosters, myMemberId, leagueId, onNavigate }: Ro
   const mine = rosters.find(r => r.memberId === myMemberId) ?? null
   const others = rosters.filter(r => r.memberId !== myMemberId)
   const minePosAges = mine ? averageAgeByPosition(mine.players) : null
+  const minePosCounts = mine ? countByPosition(mine.players) : null
 
   return (
     <div className="space-y-6">
@@ -108,14 +119,14 @@ export function RosterOverview({ rosters, myMemberId, leagueId, onNavigate }: Ro
                 </p>
               </div>
             </div>
-            {minePosAges && (
+            {minePosAges && minePosCounts && (
               <div className="mt-3.5 pt-3.5 border-t border-surface-50/10">
-                <p className="micro-label text-gray-500 mb-2">Età media per reparto</p>
+                <p className="micro-label text-gray-500 mb-2">Composizione per reparto</p>
                 <div className="grid grid-cols-4 gap-2 max-w-xs">
-                  <Field label="P" value={formatAge(minePosAges.P)} />
-                  <Field label="D" value={formatAge(minePosAges.D)} />
-                  <Field label="C" value={formatAge(minePosAges.C)} />
-                  <Field label="A" value={formatAge(minePosAges.A)} />
+                  <Field label="P" value={formatAge(minePosAges.P)} sub={`${minePosCounts.P} gioc.`} />
+                  <Field label="D" value={formatAge(minePosAges.D)} sub={`${minePosCounts.D} gioc.`} />
+                  <Field label="C" value={formatAge(minePosAges.C)} sub={`${minePosCounts.C} gioc.`} />
+                  <Field label="A" value={formatAge(minePosAges.A)} sub={`${minePosCounts.A} gioc.`} />
                 </div>
               </div>
             )}
@@ -134,7 +145,9 @@ export function RosterOverview({ rosters, myMemberId, leagueId, onNavigate }: Ro
               <div className={`grid ${OPPONENTS_TABLE_GRID} gap-2 px-4 pt-2.5`}>
                 <span className="micro-label text-gray-400">Squadra</span>
                 <span className="micro-label text-gray-400 text-right">Età rosa</span>
-                <span className="micro-label text-gray-400 text-center col-span-4">Età media per reparto</span>
+                <span className="micro-label text-gray-400 text-center col-span-4">
+                  Composizione per reparto <span className="normal-case text-[9px] text-gray-600">(età · n° giocatori)</span>
+                </span>
                 <span className="micro-label text-gray-400 text-right">Bilancio</span>
                 <span />
               </div>
@@ -150,6 +163,7 @@ export function RosterOverview({ rosters, myMemberId, leagueId, onNavigate }: Ro
             <div className="space-y-1.5 mt-1.5">
               {others.map(r => {
                 const posAges = averageAgeByPosition(r.players)
+                const posCounts = countByPosition(r.players)
                 return (
                   <button
                     key={r.memberId}
@@ -162,10 +176,12 @@ export function RosterOverview({ rosters, myMemberId, leagueId, onNavigate }: Ro
                       {r.role === 'ADMIN' && <RoleTag role={r.role} />}
                     </span>
                     <span className="font-mono text-sm text-gray-200 text-right">{formatAge(averageAge(r.players))}</span>
-                    <span className="font-mono text-xs text-gray-400 text-center">{formatAge(posAges.P)}</span>
-                    <span className="font-mono text-xs text-gray-400 text-center">{formatAge(posAges.D)}</span>
-                    <span className="font-mono text-xs text-gray-400 text-center">{formatAge(posAges.C)}</span>
-                    <span className="font-mono text-xs text-gray-400 text-center">{formatAge(posAges.A)}</span>
+                    {POSITIONS.map(pos => (
+                      <span key={pos} className="flex flex-col items-center leading-tight">
+                        <span className="font-mono text-xs text-gray-400">{formatAge(posAges[pos])}</span>
+                        <span className="font-mono text-[9.5px] text-gray-600">{posCounts[pos]}</span>
+                      </span>
+                    ))}
                     <span className="budget-display text-sm text-accent-400 text-right">{computeAvailableBudget(r)}<span className="text-xs text-gray-500">M</span></span>
                     <span className="text-gray-500 text-base text-right" aria-hidden="true">›</span>
                   </button>
@@ -178,6 +194,7 @@ export function RosterOverview({ rosters, myMemberId, leagueId, onNavigate }: Ro
           <div className="md:hidden mt-2 space-y-2">
             {others.map(r => {
               const posAges = averageAgeByPosition(r.players)
+              const posCounts = countByPosition(r.players)
               return (
                 <button
                   key={r.memberId}
@@ -197,12 +214,12 @@ export function RosterOverview({ rosters, myMemberId, leagueId, onNavigate }: Ro
                     <Field label="Bilancio" value={`${computeAvailableBudget(r)}M`} tone="text-accent-400" />
                   </div>
                   <div className="mt-3 pt-3 border-t border-surface-50/10">
-                    <p className="micro-label text-gray-500 mb-2">Età media per reparto</p>
+                    <p className="micro-label text-gray-500 mb-2">Composizione per reparto</p>
                     <div className="grid grid-cols-4 gap-2">
-                      <Field label="P" value={formatAge(posAges.P)} />
-                      <Field label="D" value={formatAge(posAges.D)} />
-                      <Field label="C" value={formatAge(posAges.C)} />
-                      <Field label="A" value={formatAge(posAges.A)} />
+                      <Field label="P" value={formatAge(posAges.P)} sub={`${posCounts.P} gioc.`} />
+                      <Field label="D" value={formatAge(posAges.D)} sub={`${posCounts.D} gioc.`} />
+                      <Field label="C" value={formatAge(posAges.C)} sub={`${posCounts.C} gioc.`} />
+                      <Field label="A" value={formatAge(posAges.A)} sub={`${posCounts.A} gioc.`} />
                     </div>
                   </div>
                 </button>
