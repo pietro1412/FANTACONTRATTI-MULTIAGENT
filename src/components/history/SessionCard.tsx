@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { historyApi } from '../../services/api'
 import { PlayerName } from '@/components/players/PlayerName'
 import { POSITION_TEXT_COLORS } from '@/components/ui/PositionBadge'
+import { HISTORY_STATUS } from '@/components/trades/TradeOfferCard'
 
 interface SessionSummary {
   id: string
@@ -513,16 +514,6 @@ function TradesTab({ data }: { data: unknown }) {
     counts: { total: number; accepted: number; rejected: number; pending: number }
   }
 
-  const statusConfig: Record<string, { label: string; color: string }> = {
-    ACCEPTED: { label: '✓', color: 'text-green-400' },
-    REJECTED: { label: '✗', color: 'text-red-400' },
-    PENDING: { label: '⏳', color: 'text-yellow-400' },
-    COUNTERED: { label: '↩', color: 'text-blue-400' },
-    CANCELLED: { label: '—', color: 'text-gray-500' },
-    EXPIRED: { label: '⏰', color: 'text-gray-500' },
-    INVALIDATED: { label: '⚡', color: 'text-orange-400' },
-  }
-
   const formatPlayers = (players: Array<{ name: string; position: string }>) => {
     if (players.length === 0) return '-'
     return players.map(p => `${p.position} ${p.name}`).join(', ')
@@ -542,7 +533,7 @@ function TradesTab({ data }: { data: unknown }) {
         <table className="w-full text-sm">
           <thead className="sticky top-0 bg-surface-200">
             <tr className="border-b border-surface-50/30 text-gray-400 text-xs uppercase">
-              <th className="text-center py-2 px-2 w-10">St</th>
+              <th className="text-left py-2 px-2 w-28">Stato</th>
               <th className="text-left py-2 px-2">Da</th>
               <th className="text-left py-2 px-2">A</th>
               <th className="text-left py-2 px-2">Offre</th>
@@ -552,12 +543,14 @@ function TradesTab({ data }: { data: unknown }) {
           </thead>
           <tbody>
             {trades.map(trade => {
-              const config = statusConfig[trade.status] || { label: '?', color: 'text-gray-400' }
+              const config = HISTORY_STATUS[trade.status] ?? { label: trade.status, cls: 'bg-surface-300 text-gray-400 border-surface-50' }
               const isPending = trade.status === 'PENDING' || trade.status === 'COUNTERED'
               return (
                 <tr key={trade.id} className="border-b border-surface-50/10 hover:bg-surface-300/20">
-                  <td className={`py-2 px-2 text-center font-bold ${config.color}`} title={trade.status}>
-                    {config.label}
+                  <td className="py-2 px-2">
+                    <span className={`inline-flex items-center text-[10.5px] font-bold uppercase tracking-wide rounded-full px-2.5 py-1 border whitespace-nowrap ${config.cls}`}>
+                      {config.label}
+                    </span>
                   </td>
                   <td className="py-2 px-2 text-white whitespace-nowrap">
                     {trade.sender.teamName || trade.sender.username}

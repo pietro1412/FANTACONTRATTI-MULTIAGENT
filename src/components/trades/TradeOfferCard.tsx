@@ -29,12 +29,16 @@ const ROLE_BADGE: Record<string, string> = {
   A: 'bg-danger-500/[0.14] text-danger-400',
 }
 
-const HISTORY_STATUS: Record<string, { label: string; cls: string }> = {
+/** Etichetta + stile per ogni stato di un'offerta di scambio — condivisa fra la card
+ * offerte (tab Concluse) e lo Storico di lega (SessionCard), stesso linguaggio ovunque. */
+export const HISTORY_STATUS: Record<string, { label: string; cls: string }> = {
   ACCEPTED: { label: 'Accettato', cls: 'bg-secondary-500/20 text-secondary-400 border-secondary-500/40' },
   REJECTED: { label: 'Rifiutato', cls: 'bg-danger-500/20 text-danger-400 border-danger-500/40' },
   INVALIDATED: { label: 'Decaduta', cls: 'bg-warning-500/20 text-warning-400 border-warning-500/40' },
   CANCELLED: { label: 'Annullato', cls: 'bg-surface-300 text-gray-400 border-surface-50' },
   EXPIRED: { label: 'Scaduto', cls: 'bg-surface-300 text-gray-400 border-surface-50' },
+  PENDING: { label: 'In corso', cls: 'bg-primary-500/20 text-primary-400 border-primary-500/40' },
+  COUNTERED: { label: 'Controfferta', cls: 'bg-primary-500/20 text-primary-400 border-primary-500/40' },
 }
 
 function PlayerChips({ players, budget, accent, leagueId }: { players: Player[]; budget: number; accent: 'get' | 'give'; leagueId?: string }) {
