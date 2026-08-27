@@ -456,6 +456,18 @@ export function PrizePhaseManager({ sessionId, leagueId, isAdmin, onUpdate }: Pr
     return total
   }
 
+  // Quanto aggiungere al Bilancio attuale per il "Bilancio Tot." proiettato.
+  // PRIMA della finalizzazione: nulla è stato ancora accreditato, quindi si proietta
+  // l'intero pacchetto premi (= calculateMemberTotal, invariato).
+  // DOPO la finalizzazione: base + premi normali sono GIÀ dentro il Bilancio attuale
+  // (accreditati al finalize, eventuali correzioni li tengono allineati) — sommarli di
+  // nuovo li conterebbe due volte. Resta da aggiungere solo l'eventuale indennizzo, MAI
+  // accreditato dal finalize (pagato più avanti in Contratti al momento del RELEASE).
+  const getBilancioIncrement = (memberId: string) => {
+    if (!config.isFinalized) return calculateMemberTotal(memberId)
+    return config.indemnityConsolidated ? calculateMemberIndemnityTotal(memberId) : 0
+  }
+
   const showIndemnities = indemnityCategories.length > 0 && config.indemnityConsolidated
   const hasIndemnityPlayers = data.indemnityStats.totalPlayers > 0
   const hasEsteroIndemnities = data.indemnityStats.byReason.ESTERO > 0
@@ -564,6 +576,10 @@ export function PrizePhaseManager({ sessionId, leagueId, isAdmin, onUpdate }: Pr
 
     const myTotal = myMember ? calculateMemberTotal(myMember.id) : config.baseReincrement
     const bilancioPre = myMember ? computeBilancio(myMember.currentBudget, myMember.totalSalaries) : 0
+    // Stesso calcolo del "Bilancio Tot." in tabella admin (getBilancioIncrement): questa
+    // stat compare SOLO a fase finalizzata, quindi va sempre il ramo "già accreditato"
+    // (solo l'eventuale indennizzo va sommato, non base+premi normali già dentro bilancioPre).
+    const bilancioIncrement = myMember ? getBilancioIncrement(myMember.id) : 0
 
     return (
       <div className="space-y-5">
@@ -573,7 +589,7 @@ export function PrizePhaseManager({ sessionId, leagueId, isAdmin, onUpdate }: Pr
           stats={[
             { label: 'Bilancio pre-premi', value: `${bilancioPre}M` },
             ...(config.isFinalized
-              ? [{ label: 'Bilancio aggiornato', value: `${bilancioPre + myTotal}M`, gold: true }]
+              ? [{ label: 'Bilancio aggiornato', value: `${bilancioPre + bilancioIncrement}M`, gold: true }]
               : []),
           ]}
         />
@@ -751,6 +767,7 @@ export function PrizePhaseManager({ sessionId, leagueId, isAdmin, onUpdate }: Pr
           getPrizeAmount={getPrizeAmount}
           getIndemnityTotal={calculateMemberIndemnityTotal}
           getMemberTotal={calculateMemberTotal}
+          getBilancioIncrement={getBilancioIncrement}
           onPrizeChange={(catId, memberId, value) => { void handleSavePrize(catId, memberId, value) }}
           onRenameCategory={(catId, name) => { void handleRenameCategory(catId, name) }}
           onDeleteCategory={(catId) => { void handleDeleteCategory(catId) }}

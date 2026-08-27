@@ -28,6 +28,9 @@ interface PrizeAssignmentTableProps {
   getPrizeAmount: (categoryId: string, memberId: string) => number
   getIndemnityTotal: (memberId: string) => number
   getMemberTotal: (memberId: string) => number
+  /** Quanto aggiungere al Bilancio per il "Bilancio Tot." — evita il doppio conteggio
+   * post-finalizzazione (base+premi normali sono già dentro il Bilancio attuale). */
+  getBilancioIncrement: (memberId: string) => number
   onPrizeChange: (categoryId: string, memberId: string, value: number) => void
   onRenameCategory: (categoryId: string, newName: string) => void
   onDeleteCategory: (categoryId: string) => void
@@ -45,6 +48,7 @@ export function PrizeAssignmentTable({
   getPrizeAmount,
   getIndemnityTotal,
   getMemberTotal,
+  getBilancioIncrement,
   onPrizeChange,
   onRenameCategory,
   onDeleteCategory,
@@ -179,7 +183,7 @@ export function PrizeAssignmentTable({
                 </td>
                 <td className="text-center p-2 border-l border-surface-50/20">
                   <span className="stat-number text-lg text-secondary-400">
-                    {bilancio + getMemberTotal(member.id)}M
+                    {bilancio + getBilancioIncrement(member.id)}M
                   </span>
                 </td>
               </tr>
@@ -214,7 +218,7 @@ export function PrizeAssignmentTable({
             <div className="flex items-center justify-between mb-3 text-sm">
               <span className="text-gray-500">Bilancio totale</span>
               <span className="stat-number text-secondary-400">
-                {bilancio + getMemberTotal(member.id)}M
+                {bilancio + getBilancioIncrement(member.id)}M
               </span>
             </div>
 
