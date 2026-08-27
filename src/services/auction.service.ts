@@ -598,6 +598,23 @@ export async function setMarketPhase(
     })
   }
 
+  // Scadenza automatica delle offerte di scambio pendenti alla chiusura della fase
+  // Scambi (Fase 1 OFFERTE_PRE_RINNOVO o Fase 6 OFFERTE_POST_ASTA_SVINCOLATI): uno
+  // scambio coinvolge due parti, quindi — a differenza di Contratti/Premi, che
+  // bloccano l'avanzamento finché non risolti — qui non si blocca la chiusura (si
+  // rischierebbe di bloccare l'intera lega per un solo manager non responsivo).
+  // Senza questo passaggio l'offerta resterebbe PENDING "orfana" e potrebbe
+  // ripresentarsi azionabile alla riapertura di una fase Scambi successiva.
+  if (
+    (session.currentPhase === 'OFFERTE_PRE_RINNOVO' && phase !== 'OFFERTE_PRE_RINNOVO') ||
+    (session.currentPhase === 'OFFERTE_POST_ASTA_SVINCOLATI' && phase !== 'OFFERTE_POST_ASTA_SVINCOLATI')
+  ) {
+    await prisma.tradeOffer.updateMany({
+      where: { marketSessionId: sessionId, status: 'PENDING' },
+      data: { status: 'EXPIRED' },
+    })
+  }
+
   // Update session phase
   const updatedSession = await prisma.marketSession.update({
     where: { id: sessionId },
