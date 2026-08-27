@@ -21,6 +21,10 @@ export interface RosterPlayer {
   apiFootballId?: number | null
   computedStats?: ComputedSeasonStats | null
   statsSyncedAt?: string | null
+  /** PlayerListStatus — 'NOT_IN_LIST' se il giocatore non è più in Serie A. */
+  listStatus?: string
+  /** Motivo di uscita dalla Serie A (RITIRATO/RETROCESSO/ESTERO), se noto. */
+  exitReason?: string | null
 }
 
 export interface RosterContract {

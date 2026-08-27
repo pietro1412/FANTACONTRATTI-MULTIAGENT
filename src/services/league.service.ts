@@ -1127,6 +1127,8 @@ export async function getAllRosters(leagueId: string, userId: string): Promise<S
                   apiFootballId: true,
                   apiFootballStats: true,
                   statsSyncedAt: true,
+                  listStatus: true,
+                  exitReason: true,
                 },
               },
               contract: {

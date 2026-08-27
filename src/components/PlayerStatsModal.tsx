@@ -117,8 +117,41 @@ export interface PlayerContractInfo {
   clause?: number | null
 }
 
+/** Etichette italiane per PlayerExitReason (prisma/schemas/_base.prisma). */
+export const EXIT_REASON_LABELS: Record<string, string> = {
+  RITIRATO: 'Ritirato',
+  RETROCESSO: 'Retrocesso',
+  ESTERO: 'Estero',
+}
+
+type ExitAware = { listStatus?: string; exitReason?: string | null }
+
+/**
+ * True se il giocatore non è più in nessuna squadra di Serie A. Va SEMPRE
+ * verificato tramite listStatus, non tramite la sola presenza di exitReason:
+ * un giocatore può risultare NOT_IN_LIST prima che l'admin/il sistema
+ * categorizzi il motivo specifico (visto in dati reali locali).
+ */
+export function isOutOfSerieA(player: ExitAware): boolean {
+  return player.listStatus === 'NOT_IN_LIST'
+}
+
+/** Etichetta del motivo di uscita, o null se non ancora categorizzato. */
+export function getExitReasonLabel(player: ExitAware): string | null {
+  if (!player.exitReason) return null
+  return EXIT_REASON_LABELS[player.exitReason] ?? player.exitReason
+}
+
 export interface PlayerInfo {
   name: string
+  /**
+   * Squadra Serie A del giocatore. Se `exitReason` è valorizzato il giocatore
+   * NON è più in nessuna squadra di Serie A: questo campo resta l'ULTIMA
+   * squadra nota (aggiornata solo al re-import quotazioni, quindi può restare
+   * stantia dopo un trasferimento realmente avvenuto) — chi lo mostra deve
+   * sempre affiancarlo all'indicatore di uscita, non trattarlo come squadra
+   * attuale.
+   */
   team: string
   position: string
   quotation?: number
@@ -134,6 +167,10 @@ export interface PlayerInfo {
    * contract yet) legitimately have none: the section is simply hidden.
    */
   contract?: PlayerContractInfo | null
+  /** PlayerListStatus — 'NOT_IN_LIST' se il giocatore non è più in Serie A. */
+  listStatus?: string
+  /** Motivo di uscita dalla Serie A (RITIRATO/RETROCESSO/ESTERO), se noto. */
+  exitReason?: string | null
 }
 
 interface PlayerStatsModalProps {
@@ -240,6 +277,7 @@ export function PlayerStatsModal({ isOpen, onClose, player, leagueId, leaguePlay
 
   const playerPhotoUrl = getPlayerPhotoUrl(player.apiFootballId)
   const teamLogoUrl = getTeamLogoUrl(player.team)
+  const exitLabel = getExitReasonLabel(player)
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg">
@@ -277,17 +315,26 @@ export function PlayerStatsModal({ isOpen, onClose, player, leagueId, leaguePlay
               </span>
             </div>
             <div className="flex items-center gap-2 text-sm text-gray-400 mt-1">
-              {teamLogoUrl && (
-                <img
-                  src={teamLogoUrl}
-                  alt={player.team}
-                  className="w-5 h-5 object-contain"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none'
-                  }}
-                />
+              {isOutOfSerieA(player) ? (
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-warning-500/15 text-warning-400 font-medium">
+                  <span aria-hidden="true">⊘</span>
+                  Fuori Serie A{exitLabel ? ` · ${exitLabel}` : ''}
+                </span>
+              ) : (
+                <>
+                  {teamLogoUrl && (
+                    <img
+                      src={teamLogoUrl}
+                      alt={player.team}
+                      className="w-5 h-5 object-contain"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none'
+                      }}
+                    />
+                  )}
+                  {player.team}
+                </>
               )}
-              {player.team}
               <span className={`ml-2 ${getAgeColor(player.age)}`}>
                 • {player.age != null ? `${player.age} anni` : NOT_DISPONIBILE}
               </span>

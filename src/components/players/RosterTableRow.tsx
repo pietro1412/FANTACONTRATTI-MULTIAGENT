@@ -2,6 +2,7 @@ import { PlayerPhoto } from './PlayerPhoto'
 import { TeamLogo } from '@/components/ui/TeamLogo'
 import { Monogram } from '@/components/ui/Monogram'
 import { formatSeasonStats, NOT_DISPONIBILE } from '@/utils/stat-format'
+import { isOutOfSerieA, getExitReasonLabel } from '@/components/PlayerStatsModal'
 import type { ComputedSeasonStats, RosterEntry, RosterRowStatus } from './types'
 
 export interface RosterTableRowProps {
@@ -97,6 +98,7 @@ export function RosterTableRow({ entry, onPlayerClick, status, showQuotation }: 
   const clause = contract?.rescissionClause ?? null
   const rubata = clause !== null && contract ? clause + contract.salary : null
   const hasExtra = status !== undefined || showQuotation
+  const exitLabel = getExitReasonLabel(player)
 
   return (
     <div className={`grid ${hasExtra ? ROSTER_ROW_GRID_EXTRA : ROSTER_ROW_GRID_BASE} ${ROSTER_ROW_GAP} items-center px-4 py-[11px] border-b border-surface-50/10 hover:bg-surface-100/60 transition-colors`}>
@@ -104,7 +106,7 @@ export function RosterTableRow({ entry, onPlayerClick, status, showQuotation }: 
       <div className="flex items-center gap-2.5 min-w-0">
         <div className="flex items-center gap-1.5 flex-shrink-0">
           <PlayerPhoto apiFootballId={player.apiFootballId} name={player.name} position={player.position} size="sm" showRoleBadge />
-          <TeamLogo team={player.team} size="md" />
+          <TeamLogo team={player.team} size="md" outOfSerieA={isOutOfSerieA(player)} />
         </div>
         <button
           type="button"
@@ -113,6 +115,14 @@ export function RosterTableRow({ entry, onPlayerClick, status, showQuotation }: 
         >
           {player.name}
         </button>
+        {isOutOfSerieA(player) && (
+          <span
+            className="flex-shrink-0 micro-label text-[8px] text-warning-400 border border-warning-500/40 rounded px-1.5 py-0.5"
+            title={`Fuori Serie A${exitLabel ? ` · ${exitLabel}` : ''}`}
+          >
+            Fuori Serie A
+          </span>
+        )}
       </div>
 
       {/* Age — own column (Axiom 6) */}

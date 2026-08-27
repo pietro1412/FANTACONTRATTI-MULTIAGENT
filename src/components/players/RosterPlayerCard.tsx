@@ -2,6 +2,7 @@ import { PlayerPhoto } from './PlayerPhoto'
 import { TeamLogo } from '@/components/ui/TeamLogo'
 import { Monogram } from '@/components/ui/Monogram'
 import { formatSeasonStats, NOT_DISPONIBILE } from '@/utils/stat-format'
+import { isOutOfSerieA, getExitReasonLabel } from '@/components/PlayerStatsModal'
 import type { ComputedSeasonStats, RosterEntry, RosterRowStatus } from './types'
 
 export interface RosterPlayerCardProps {
@@ -72,13 +73,14 @@ export function RosterPlayerCard({ entry, onPlayerClick, status, showQuotation }
   const { player, contract } = entry
   const clause = contract?.rescissionClause ?? null
   const rubata = clause !== null && contract ? clause + contract.salary : null
+  const exitLabel = getExitReasonLabel(player)
 
   return (
     <div className="bg-surface-300/40 rounded-xl p-3 border border-surface-50/10">
       <div className="flex items-center gap-2.5 mb-2">
         <div className="flex items-center gap-1.5 flex-shrink-0">
           <PlayerPhoto apiFootballId={player.apiFootballId} name={player.name} position={player.position} size="sm" showRoleBadge />
-          <TeamLogo team={player.team} size="md" />
+          <TeamLogo team={player.team} size="md" outOfSerieA={isOutOfSerieA(player)} />
         </div>
         <div className="flex-1 min-w-0 leading-tight">
           <button
@@ -88,6 +90,11 @@ export function RosterPlayerCard({ entry, onPlayerClick, status, showQuotation }
           >
             {player.name}
           </button>
+          {isOutOfSerieA(player) && (
+            <div className="text-[11px] text-warning-400 font-medium mt-0.5">
+              Fuori Serie A{exitLabel ? ` · ${exitLabel}` : ''}
+            </div>
+          )}
           {showQuotation && (
             <div className="text-[11px] text-gray-500 font-mono mt-0.5">Quot {player.quotation}</div>
           )}

@@ -3,7 +3,7 @@ import { TeamLogo } from '@/components/ui/TeamLogo'
 import { ContractInline } from '@/components/ui/ContractInline'
 import { PlayerName } from '@/components/players/PlayerName'
 import { formatStat, NOT_DISPONIBILE } from '@/utils/stat-format'
-import type { PlayerInfo } from '@/components/PlayerStatsModal'
+import { isOutOfSerieA, getExitReasonLabel, type PlayerInfo } from '@/components/PlayerStatsModal'
 
 export interface PlayerIdentityContract {
   salary: number
@@ -72,6 +72,7 @@ export function PlayerIdentity({
   // 6): the row already shows it via ContractInline below, this makes it
   // visible again inside the modal without digging into "Carriera Lega".
   const playerForModal = contract ? { ...player, contract } : player
+  const exitLabel = getExitReasonLabel(player)
 
   return (
     <div className={`flex ${isCard ? 'flex-col gap-1.5' : 'items-center gap-2.5'} min-w-0 ${className}`}>
@@ -87,8 +88,14 @@ export function PlayerIdentity({
             className="text-[13px]"
           />
           <div className="flex items-center gap-1.5 text-[11px] text-gray-500 mt-0.5 min-w-0">
-            <TeamLogo team={player.team} size="xs" />
-            <span className="truncate">{player.team}</span>
+            <TeamLogo team={player.team} size="xs" outOfSerieA={isOutOfSerieA(player)} />
+            {isOutOfSerieA(player) ? (
+              <span className="truncate text-warning-400 font-medium">
+                Fuori Serie A{exitLabel ? ` · ${exitLabel}` : ''}
+              </span>
+            ) : (
+              <span className="truncate">{player.team}</span>
+            )}
             {showAge && (
               <span className="ml-1 font-mono">
                 {player.age != null ? `${player.age} anni` : NOT_DISPONIBILE}

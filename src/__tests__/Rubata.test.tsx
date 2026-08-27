@@ -65,11 +65,15 @@ vi.mock('../components/ContractModifier', () => ({
   ContractModifierModal: () => <div data-testid="contract-modifier-modal">ContractModifier</div>,
 }))
 
-vi.mock('../components/PlayerStatsModal', () => ({
-  PlayerStatsModal: ({ isOpen }: { isOpen: boolean }) => (
-    isOpen ? <div data-testid="player-stats-modal">PlayerStats</div> : null
-  ),
-}))
+vi.mock('../components/PlayerStatsModal', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../components/PlayerStatsModal')>()
+  return {
+    ...actual,
+    PlayerStatsModal: ({ isOpen }: { isOpen: boolean }) => (
+      isOpen ? <div data-testid="player-stats-modal">PlayerStats</div> : null
+    ),
+  }
+})
 
 vi.mock('../components/rubata/PreferenceModal', () => ({
   PreferenceModal: () => <div data-testid="preference-modal">PreferenceModal</div>,

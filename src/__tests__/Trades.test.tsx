@@ -49,9 +49,10 @@ vi.mock('../components/trades/deal-room', () => ({
 }))
 
 // Mock PlayerStatsModal
-vi.mock('../components/PlayerStatsModal', () => ({
-  PlayerStatsModal: () => null,
-}))
+vi.mock('../components/PlayerStatsModal', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../components/PlayerStatsModal')>()
+  return { ...actual, PlayerStatsModal: () => null }
+})
 
 // Mock Toast
 const mockToastSuccess = vi.fn()

@@ -42,11 +42,15 @@ vi.mock('../components/Navigation', () => ({
 }))
 
 // Mock PlayerStatsModal
-vi.mock('../components/PlayerStatsModal', () => ({
-  PlayerStatsModal: ({ isOpen }: { isOpen: boolean }) => (
-    isOpen ? <div data-testid="player-stats-modal">PlayerStats</div> : null
-  ),
-}))
+vi.mock('../components/PlayerStatsModal', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../components/PlayerStatsModal')>()
+  return {
+    ...actual,
+    PlayerStatsModal: ({ isOpen }: { isOpen: boolean }) => (
+      isOpen ? <div data-testid="player-stats-modal">PlayerStats</div> : null
+    ),
+  }
+})
 
 // Mock RadarChart
 vi.mock('../components/ui/RadarChart', () => ({

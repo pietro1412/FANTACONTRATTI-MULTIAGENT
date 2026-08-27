@@ -292,6 +292,8 @@ export function RoseGiocatori({ onNavigate, initialView = 'rose', initialTeamFil
       computedStats: entry.player.computedStats,
       statsSyncedAt: entry.player.statsSyncedAt,
       leaguePlayerId: entry.player.id,
+      listStatus: entry.player.listStatus,
+      exitReason: entry.player.exitReason,
       contract: contract
         ? { salary: contract.salary, duration: contract.duration, clause: contract.rescissionClause }
         : null,

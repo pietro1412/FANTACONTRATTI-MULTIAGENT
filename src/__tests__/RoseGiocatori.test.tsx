@@ -31,10 +31,14 @@ vi.mock('../components/Navigation', () => ({
   ),
 }))
 
-vi.mock('../components/PlayerStatsModal', () => ({
-  PlayerStatsModal: ({ isOpen }: { isOpen: boolean }) =>
-    isOpen ? <div data-testid="player-stats-modal">Modal</div> : null,
-}))
+vi.mock('../components/PlayerStatsModal', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../components/PlayerStatsModal')>()
+  return {
+    ...actual,
+    PlayerStatsModal: ({ isOpen }: { isOpen: boolean }) =>
+      isOpen ? <div data-testid="player-stats-modal">Modal</div> : null,
+  }
+})
 
 vi.mock('../components/ShareButton', () => ({
   ShareButton: () => <button data-testid="share-button">Share</button>,

@@ -33,9 +33,10 @@ vi.mock('../components/ui/StickyActionBar', () => ({
 }))
 
 // Mock PlayerStatsModal
-vi.mock('../components/PlayerStatsModal', () => ({
-  PlayerStatsModal: () => null,
-}))
+vi.mock('../components/PlayerStatsModal', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../components/PlayerStatsModal')>()
+  return { ...actual, PlayerStatsModal: () => null }
+})
 
 // Mock PositionBadge
 vi.mock('../components/ui/PositionBadge', () => ({

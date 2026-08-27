@@ -5,6 +5,16 @@ export interface TeamLogoProps {
   /** Tailwind size classes for the wrapper (default sm: w-6 h-6). */
   size?: 'xs' | 'sm' | 'md'
   className?: string
+  /**
+   * True se il giocatore non è più in nessuna squadra di Serie A
+   * (PlayerListStatus.NOT_IN_LIST) — a prescindere dal fatto che il motivo
+   * specifico (RITIRATO/RETROCESSO/ESTERO) sia già stato categorizzato o
+   * meno. Quando true, lo stemma reale (che potrebbe essere stantio: `team`
+   * si aggiorna solo al re-import quotazioni) è sostituito da un'icona
+   * neutra "fuori Serie A" — mai lo stemma di una squadra a cui il
+   * giocatore potrebbe non appartenere più davvero.
+   */
+  outOfSerieA?: boolean
 }
 
 const SIZES = {
@@ -21,7 +31,19 @@ const SIZES = {
  * stripes disappear against dark surfaces otherwise). No glassmorphism, and
  * hides itself gracefully when the logo fails to load.
  */
-export function TeamLogo({ team, size = 'sm', className = '' }: TeamLogoProps) {
+export function TeamLogo({ team, size = 'sm', className = '', outOfSerieA }: TeamLogoProps) {
+  if (outOfSerieA) {
+    return (
+      <span
+        className={`${SIZES[size]} flex items-center justify-center rounded bg-surface-100 border border-warning-500/40 text-warning-400 flex-shrink-0 ${className}`}
+        title="Fuori Serie A"
+        aria-label="Fuori Serie A"
+      >
+        <span aria-hidden="true" className="leading-none">⊘</span>
+      </span>
+    )
+  }
+
   return (
     <span
       className={`${SIZES[size]} flex items-center justify-center rounded bg-gray-50 p-0.5 flex-shrink-0 ${className}`}

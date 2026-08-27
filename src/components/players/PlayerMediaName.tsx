@@ -1,7 +1,7 @@
 import { PlayerPhoto } from './PlayerPhoto'
 import { TeamLogo } from '@/components/ui/TeamLogo'
 import { PlayerName } from './PlayerName'
-import type { PlayerInfo } from '@/components/PlayerStatsModal'
+import { isOutOfSerieA, getExitReasonLabel, type PlayerInfo } from '@/components/PlayerStatsModal'
 
 export interface PlayerMediaNameProps {
   /** Player to display (reuses PlayerInfo, passed through to the stats modal). */
@@ -23,11 +23,17 @@ export interface PlayerMediaNameProps {
  * logica: unico punto da aggiornare se lo stile dell'identità giocatore cambia.
  */
 export function PlayerMediaName({ player, leagueId, leaguePlayerId, size = 'sm', className = '', truncate = false }: PlayerMediaNameProps) {
+  const exitLabel = getExitReasonLabel(player)
   return (
     <span className={`inline-flex items-center gap-1.5 min-w-0 ${className}`}>
       <PlayerPhoto apiFootballId={player.apiFootballId} name={player.name} position={player.position} size={size} showRoleBadge />
-      <TeamLogo team={player.team} size={size === 'xs' ? 'xs' : 'sm'} />
+      <TeamLogo team={player.team} size={size === 'xs' ? 'xs' : 'sm'} outOfSerieA={isOutOfSerieA(player)} />
       <PlayerName player={player} leagueId={leagueId} leaguePlayerId={leaguePlayerId} truncate={truncate} className="text-sm" />
+      {isOutOfSerieA(player) && (
+        <span className="text-[10px] font-medium text-warning-400 whitespace-nowrap">
+          Fuori Serie A{exitLabel ? ` · ${exitLabel}` : ''}
+        </span>
+      )}
     </span>
   )
 }

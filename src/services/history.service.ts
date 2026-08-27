@@ -300,6 +300,8 @@ export async function getFirstMarketHistory(
       team: a.player.team,
       quotation: a.player.quotation,
       apiFootballId: a.player.apiFootballId,
+      listStatus: a.player.listStatus,
+      exitReason: a.player.exitReason,
     },
     basePrice: a.basePrice,
     finalPrice: a.currentPrice,
@@ -514,6 +516,8 @@ export async function getSessionTrades(
           position: r.player.position,
           team: r.player.team,
           apiFootballId: r.player.apiFootballId,
+          listStatus: r.player.listStatus,
+          exitReason: r.player.exitReason,
           contract: r.contract
             ? {
                 salary: r.contract.salary,
@@ -528,6 +532,8 @@ export async function getSessionTrades(
           position: r.player.position,
           team: r.player.team,
           apiFootballId: r.player.apiFootballId,
+          listStatus: r.player.listStatus,
+          exitReason: r.player.exitReason,
           contract: r.contract
             ? {
                 salary: r.contract.salary,
@@ -845,6 +851,8 @@ export async function getSessionRubataHistory(
       team: a.player.team,
       quotation: a.player.quotation,
       apiFootballId: a.player.apiFootballId,
+      listStatus: a.player.listStatus,
+      exitReason: a.player.exitReason,
     },
     basePrice: a.basePrice,
     finalPrice: a.currentPrice,
@@ -970,6 +978,8 @@ export async function getSessionSvincolatiHistory(
       team: a.player.team,
       quotation: a.player.quotation,
       apiFootballId: a.player.apiFootballId,
+      listStatus: a.player.listStatus,
+      exitReason: a.player.exitReason,
     },
     basePrice: a.basePrice,
     finalPrice: a.currentPrice,
