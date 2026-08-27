@@ -114,9 +114,16 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
   const [savingIndemnity, setSavingIndemnity] = useState<string | null>(null)
   const [consolidatingIndemnities, setConsolidatingIndemnities] = useState(false)
 
-  const fetchData = useCallback(async () => {
-    setLoading(true)
-    setLoadError(null)
+  // silent=true: refetch in background dopo un'azione (creazione/rinomina/eliminazione
+  // categoria, finalizzazione, ecc.) senza smontare la UI con lo spinner di caricamento
+  // pieno — quello resta riservato al primo ingresso in pagina. Se il refetch silenzioso
+  // fallisce, i dati restano quelli precedenti (nessun banner d'errore): l'eventuale
+  // fallimento dell'azione stessa è già segnalato dal toast del chiamante.
+  const fetchData = useCallback(async (silent?: boolean) => {
+    if (!silent) {
+      setLoading(true)
+      setLoadError(null)
+    }
     try {
       const result = await prizePhaseApi.getData(sessionId)
       if (result.success && result.data) {
@@ -146,19 +153,19 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
           if (refreshResult.success && refreshResult.data) {
             setData(refreshResult.data as PrizePhaseData)
             setBaseReincrementValue((refreshResult.data as PrizePhaseData).config.baseReincrement)
-          } else {
+          } else if (!silent) {
             setLoadError(refreshResult.message || 'Errore inizializzazione')
           }
-        } else {
+        } else if (!silent) {
           setLoadError('Fase premi non ancora inizializzata dall\'admin')
         }
-      } else {
+      } else if (!silent) {
         setLoadError(result.message || 'Errore caricamento dati')
       }
     } catch {
-      setLoadError('Errore di connessione')
+      if (!silent) setLoadError('Errore di connessione')
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }, [sessionId, isAdmin])
 
@@ -173,7 +180,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
       if (result.success) {
         setEditingBaseReincrement(false)
         toast.success('Re-incremento base aggiornato')
-        void fetchData()
+        void fetchData(true)
         onUpdate?.()
       } else {
         toast.error(result.message || 'Errore aggiornamento')
@@ -194,7 +201,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
         setNewCategoryName('')
         setAddingCategory(false)
         toast.success('Premio aggiunto')
-        void fetchData()
+        void fetchData(true)
         onUpdate?.()
       } else {
         toast.error(result.message || 'Errore creazione premio')
@@ -212,7 +219,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
       const result = await prizePhaseApi.renameCategory(categoryId, newName)
       if (result.success) {
         toast.success('Premio rinominato')
-        void fetchData()
+        void fetchData(true)
         onUpdate?.()
       } else {
         toast.error(result.message || 'Errore rinomina premio')
@@ -237,7 +244,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
       const result = await prizePhaseApi.deleteCategory(categoryId)
       if (result.success) {
         toast.success('Categoria eliminata')
-        void fetchData()
+        void fetchData(true)
         onUpdate?.()
       } else {
         toast.error(result.message || 'Errore eliminazione')
@@ -288,11 +295,11 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
       const result = await prizePhaseApi.setMemberPrize(categoryId, memberId, value)
       if (!result.success) {
         toast.error(result.message || 'Errore salvataggio premio')
-        void fetchData()
+        void fetchData(true)
       }
     } catch {
       toast.error('Errore di connessione')
-      void fetchData()
+      void fetchData(true)
     }
   }
 
@@ -309,7 +316,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
       const result = await prizePhaseApi.finalize(sessionId)
       if (result.success) {
         toast.success('Premi finalizzati e accreditati')
-        void fetchData()
+        void fetchData(true)
         onUpdate?.()
       } else {
         toast.error(result.message || 'Errore finalizzazione')
@@ -362,7 +369,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
       const result = await prizePhaseApi.consolidateIndemnities(sessionId)
       if (result.success) {
         toast.success('Indennizzi consolidati')
-        void fetchData()
+        void fetchData(true)
         onUpdate?.()
       } else {
         toast.error(result.message || 'Errore consolidamento indennizzi')
