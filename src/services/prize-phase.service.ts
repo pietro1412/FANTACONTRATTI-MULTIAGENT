@@ -375,12 +375,50 @@ export async function updateBaseReincrement(
     return { success: false, message: 'Fase premi non inizializzata' }
   }
 
-  if (config.isFinalized) {
-    return { success: false, message: 'La fase premi è già stata finalizzata' }
-  }
-
   if (!Number.isInteger(amount) || amount < 0) {
     return { success: false, message: 'L\'importo deve essere un numero intero >= 0' }
+  }
+
+  const delta = amount - config.baseReincrement
+
+  // Se già finalizzato, il vecchio re-incremento è già stato accreditato a TUTTI i
+  // manager: il delta va applicato al budget di ognuno nella stessa transazione, non
+  // solo aggiornato in config (altrimenti la config cambierebbe senza che il budget
+  // già accreditato la rispecchi — stessa logica di adminCorrectMemberPrize, ma qui
+  // il delta si applica in blocco a tutti i membri anziché a uno solo).
+  if (config.isFinalized && delta !== 0) {
+    const members = await prisma.leagueMember.findMany({
+      where: { leagueId: session.leagueId, status: MemberStatus.ACTIVE },
+    })
+
+    await prisma.$transaction([
+      prisma.prizePhaseConfig.update({
+        where: { id: config.id },
+        data: { baseReincrement: amount },
+      }),
+      prisma.leagueMember.updateMany({
+        where: { leagueId: session.leagueId, status: MemberStatus.ACTIVE },
+        data: { currentBudget: { increment: delta } },
+      }),
+    ])
+
+    logInfo('ANOMALY', 'Admin base reincrement correction (post-finalize)', {
+      action: 'updateBaseReincrement',
+      leagueId: session.leagueId,
+      adminUserId,
+      adminMemberId: adminMember.id,
+      sessionId,
+      oldAmount: config.baseReincrement,
+      newAmount: amount,
+      delta,
+      membersAffected: members.length,
+    })
+
+    return {
+      success: true,
+      message: `Re-incremento base corretto a ${amount}M (delta ${delta >= 0 ? '+' : ''}${delta}M applicato al budget di ${members.length} manager)`,
+      data: { baseReincrement: amount },
+    }
   }
 
   await prisma.prizePhaseConfig.update({
@@ -997,9 +1035,11 @@ export async function setCustomIndemnity(
     return { success: false, message: 'Fase premi non inizializzata' }
   }
 
-  if (config.isFinalized) {
-    return { success: false, message: 'La fase premi è già stata finalizzata' }
-  }
+  // Niente lock su isFinalized/indemnityConsolidated: a differenza dei premi normali,
+  // l'indennizzo NON viene accreditato qui — viene letto DAL VIVO da questa stessa
+  // SessionPrize quando il manager decide KEEP/RELEASE in fase Contratti (vedi
+  // contract.service.ts). Correggerlo prima di quel momento è sempre sicuro; un
+  // giocatore già rilasciato sparisce comunque dalla lista (roster non più ACTIVE).
 
   // Verify the player exists and is ESTERO
   const player = await prisma.serieAPlayer.findUnique({
@@ -1193,10 +1233,9 @@ export async function consolidateIndemnities(
     return { success: false, message: 'Fase premi non inizializzata' }
   }
 
-  if (config.isFinalized) {
-    return { success: false, message: 'La fase premi è già stata finalizzata' }
-  }
-
+  // Niente lock su isFinalized: consolidare non tocca budget (solo crea le categorie
+  // "Indennizzo - PlayerName" con l'importo di default) — sicuro anche a fase
+  // finalizzata, utile se un nuovo giocatore ESTERO emerge più avanti nel mercato.
   if (config.indemnityConsolidated) {
     return { success: false, message: 'Gli indennizzi sono già stati consolidati' }
   }

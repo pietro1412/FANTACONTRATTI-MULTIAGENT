@@ -180,7 +180,7 @@ export function PrizePhaseManager({ sessionId, leagueId, isAdmin, onUpdate }: Pr
       const result = await prizePhaseApi.updateBaseReincrement(sessionId, baseReincrementValue)
       if (result.success) {
         setEditingBaseReincrement(false)
-        toast.success('Re-incremento base aggiornato')
+        toast.success(result.message || 'Re-incremento base aggiornato')
         void fetchData(true)
         onUpdate?.()
       } else {
@@ -615,7 +615,7 @@ export function PrizePhaseManager({ sessionId, leagueId, isAdmin, onUpdate }: Pr
         chipKind={step1Done ? 'ok' : 'todo'}
         done={step1Done}
       >
-        {editingBaseReincrement && !config.isFinalized ? (
+        {editingBaseReincrement ? (
           <div className="flex flex-wrap items-center gap-3">
             <span className="text-sm text-gray-400">Ogni manager riceve a inizio stagione un re-incremento di base pari a</span>
             <AmountStepper
@@ -647,16 +647,16 @@ export function PrizePhaseManager({ sessionId, leagueId, isAdmin, onUpdate }: Pr
           <div className="flex items-center gap-4">
             <span className="stat-number text-3xl text-accent-400">{config.baseReincrement}M</span>
             <span className="text-sm text-gray-500">uguale per tutti i manager</span>
-            {!config.isFinalized && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="ml-auto"
-                onClick={() => { setEditingBaseReincrement(true) }}
-              >
-                Modifica
-              </Button>
-            )}
+            {/* Correggibile anche a fase finalizzata: il delta si applica al budget già
+                accreditato a tutti i manager (vedi updateBaseReincrement). */}
+            <Button
+              size="sm"
+              variant="outline"
+              className="ml-auto"
+              onClick={() => { setEditingBaseReincrement(true) }}
+            >
+              Modifica
+            </Button>
           </div>
         )}
       </StepCard>
@@ -674,15 +674,15 @@ export function PrizePhaseManager({ sessionId, leagueId, isAdmin, onUpdate }: Pr
           <IndemnityTable
             members={members}
             getAmount={getIndemnityAmount}
-            editable={!config.isFinalized && !config.indemnityConsolidated}
+            editable
             savingPlayerId={savingIndemnity}
             onAmountChange={(playerId, newAmount) => { void handleIndemnityChange(playerId, newAmount) }}
           />
 
-          {!config.indemnityConsolidated && !config.isFinalized && hasEsteroIndemnities && (
+          {!config.indemnityConsolidated && hasEsteroIndemnities && (
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 mt-4 pt-4 border-t border-surface-50/20">
               <p className="text-sm text-accent-400">
-                Una volta consolidati, gli indennizzi non sono più modificabili.
+                Il consolidamento crea le categorie premio individuali; gli importi restano comunque correggibili fino a fine mercato.
               </p>
               <Button
                 className="sm:ml-auto"
