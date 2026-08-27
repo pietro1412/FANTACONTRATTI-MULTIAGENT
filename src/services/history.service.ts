@@ -513,6 +513,7 @@ export async function getSessionTrades(
           name: r.player.name,
           position: r.player.position,
           team: r.player.team,
+          apiFootballId: r.player.apiFootballId,
           contract: r.contract
             ? {
                 salary: r.contract.salary,
@@ -526,6 +527,7 @@ export async function getSessionTrades(
           name: r.player.name,
           position: r.player.position,
           team: r.player.team,
+          apiFootballId: r.player.apiFootballId,
           contract: r.contract
             ? {
                 salary: r.contract.salary,
@@ -662,6 +664,7 @@ export async function getSessionPrizes(
     position: string
     team: string
     quotation: number
+    apiFootballId: number | null
     exitReason: string
     indemnityAmount: number
     contract: { salary: number; duration: number } | null
@@ -680,6 +683,7 @@ export async function getSessionPrizes(
       position: mov.player.position,
       team: mov.player.team,
       quotation: mov.player.quotation,
+      apiFootballId: mov.player.apiFootballId,
       exitReason: 'ESTERO',
       indemnityAmount: mov.price ?? 50,
       contract: null,
@@ -705,6 +709,7 @@ export async function getSessionPrizes(
           position: roster.player.position,
           team: roster.player.team,
           quotation: roster.player.quotation,
+          apiFootballId: roster.player.apiFootballId,
           exitReason: roster.player.exitReason,
           indemnityAmount: 50, // Default indemnity amount for ESTERO
           contract: roster.contract

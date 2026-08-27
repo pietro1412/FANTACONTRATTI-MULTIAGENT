@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { historyApi } from '../../services/api'
-import { PlayerName } from '@/components/players/PlayerName'
+import { PlayerMediaName } from '@/components/players/PlayerMediaName'
 import { POSITION_TEXT_COLORS } from '@/components/ui/PositionBadge'
 import { HISTORY_STATUS } from '@/components/trades/TradeOfferCard'
 
@@ -218,8 +218,8 @@ export function SessionCard({
               <>
                 {activeTab === 'overview' && <OverviewTab data={tabData.overview} />}
                 {activeTab === 'firstMarket' && <FirstMarketTab data={tabData.firstMarket} leagueId={leagueId} />}
-                {activeTab === 'trades' && <TradesTab data={tabData.trades} />}
-                {activeTab === 'prizes' && <PrizesTab data={tabData.prizes} />}
+                {activeTab === 'trades' && <TradesTab data={tabData.trades} leagueId={leagueId} />}
+                {activeTab === 'prizes' && <PrizesTab data={tabData.prizes} leagueId={leagueId} />}
                 {activeTab === 'rubata' && <RubataTab data={tabData.rubata} leagueId={leagueId} />}
                 {activeTab === 'svincolati' && <SvincolatiTab data={tabData.svincolati} leagueId={leagueId} />}
               </>
@@ -435,10 +435,11 @@ function FirstMarketTab({ data, leagueId }: { data: unknown; leagueId: string })
                       {auction.player.position}
                     </td>
                     <td className="py-1.5 px-2 text-white">
-                      <PlayerName
+                      <PlayerMediaName
                         player={{ name: auction.player.name, team: auction.player.team, position: auction.player.position, quotation: auction.player.quotation, apiFootballId: auction.player.apiFootballId }}
                         leagueId={leagueId}
                         leaguePlayerId={auction.player.id}
+                        size="xs"
                       />
                     </td>
                     <td className="py-1.5 px-2 text-gray-500 hidden md:table-cell">{auction.player.team}</td>
@@ -482,7 +483,16 @@ function FirstMarketTab({ data, leagueId }: { data: unknown; leagueId: string })
   )
 }
 
-function TradesTab({ data }: { data: unknown }) {
+interface TradePlayer {
+  id: string
+  name: string
+  position: string
+  team: string
+  apiFootballId: number | null
+  contract: { salary: number; duration: number; rescissionClause: number | null } | null
+}
+
+function TradesTab({ data, leagueId }: { data: unknown; leagueId: string }) {
   if (!data) return <div className="text-gray-400">Caricamento...</div>
 
   const { trades, counts } = data as {
@@ -494,29 +504,23 @@ function TradesTab({ data }: { data: unknown }) {
       offeredBudget: number
       requestedBudget: number
       message: string | null
-      offeredPlayers: Array<{
-        id: string
-        name: string
-        position: string
-        team: string
-        contract: { salary: number; duration: number; rescissionClause: number | null } | null
-      }>
-      requestedPlayers: Array<{
-        id: string
-        name: string
-        position: string
-        team: string
-        contract: { salary: number; duration: number; rescissionClause: number | null } | null
-      }>
+      offeredPlayers: TradePlayer[]
+      requestedPlayers: TradePlayer[]
       createdAt: string
       respondedAt: string | null
     }>
     counts: { total: number; accepted: number; rejected: number; pending: number }
   }
 
-  const formatPlayers = (players: Array<{ name: string; position: string }>) => {
-    if (players.length === 0) return '-'
-    return players.map(p => `${p.position} ${p.name}`).join(', ')
+  const renderPlayers = (players: TradePlayer[]) => {
+    if (players.length === 0) return <span className="text-gray-500">-</span>
+    return (
+      <div className="flex flex-wrap gap-x-3 gap-y-1">
+        {players.map(p => (
+          <PlayerMediaName key={p.id} player={p} leagueId={leagueId} leaguePlayerId={p.id} size="xs" truncate />
+        ))}
+      </div>
+    )
   }
 
   return (
@@ -564,13 +568,17 @@ function TradesTab({ data }: { data: unknown }) {
                     </td>
                   ) : (
                     <>
-                      <td className="py-2 px-2 text-gray-300" title={formatPlayers(trade.offeredPlayers)}>
-                        {formatPlayers(trade.offeredPlayers)}
-                        {trade.offeredBudget > 0 && <span className="text-primary-400 ml-1">+{trade.offeredBudget}M</span>}
+                      <td className="py-2 px-2 text-gray-300">
+                        <div className="flex items-center flex-wrap gap-1">
+                          {renderPlayers(trade.offeredPlayers)}
+                          {trade.offeredBudget > 0 && <span className="text-primary-400">+{trade.offeredBudget}M</span>}
+                        </div>
                       </td>
-                      <td className="py-2 px-2 text-gray-300" title={formatPlayers(trade.requestedPlayers)}>
-                        {formatPlayers(trade.requestedPlayers)}
-                        {trade.requestedBudget > 0 && <span className="text-primary-400 ml-1">+{trade.requestedBudget}M</span>}
+                      <td className="py-2 px-2 text-gray-300">
+                        <div className="flex items-center flex-wrap gap-1">
+                          {renderPlayers(trade.requestedPlayers)}
+                          {trade.requestedBudget > 0 && <span className="text-primary-400">+{trade.requestedBudget}M</span>}
+                        </div>
                       </td>
                       <td className="py-2 px-2 text-center text-gray-500 hidden sm:table-cell">
                         {trade.offeredBudget > 0 || trade.requestedBudget > 0
@@ -592,7 +600,7 @@ function TradesTab({ data }: { data: unknown }) {
   )
 }
 
-function PrizesTab({ data }: { data: unknown }) {
+function PrizesTab({ data, leagueId }: { data: unknown; leagueId: string }) {
   if (!data) return <div className="text-gray-400">Premi non ancora finalizzati</div>
 
   const { config, categories, members, indemnityStats } = data as {
@@ -614,6 +622,7 @@ function PrizesTab({ data }: { data: unknown }) {
         playerName: string
         position: string
         team: string
+        apiFootballId: number | null
         exitReason: string
         indemnityAmount: number
       }>
@@ -729,8 +738,12 @@ function PrizesTab({ data }: { data: unknown }) {
                           {player.position}
                         </td>
                         <td className="py-2 px-2">
-                          <span className="text-white">{player.playerName}</span>
-                          <span className="text-gray-500 text-xs ml-2">{player.team}</span>
+                          <PlayerMediaName
+                            player={{ name: player.playerName, team: player.team, position: player.position, apiFootballId: player.apiFootballId }}
+                            leagueId={leagueId}
+                            leaguePlayerId={player.playerId}
+                            size="xs"
+                          />
                         </td>
                         <td className="py-2 px-2 text-center">
                           <span className="px-2 py-0.5 rounded text-xs font-medium bg-cyan-500/20 text-cyan-400">
@@ -810,10 +823,11 @@ function RubataTab({ data, leagueId }: { data: unknown; leagueId: string }) {
                   {auction.player.position}
                 </td>
                 <td className="py-1.5 px-2 text-white">
-                  <PlayerName
+                  <PlayerMediaName
                     player={{ name: auction.player.name, team: auction.player.team, position: auction.player.position, quotation: auction.player.quotation, apiFootballId: auction.player.apiFootballId }}
                     leagueId={leagueId}
                     leaguePlayerId={auction.player.id}
+                    size="xs"
                   />
                 </td>
                 <td className="py-1.5 px-2 text-gray-500 hidden md:table-cell">{auction.player.team}</td>
@@ -883,10 +897,11 @@ function SvincolatiTab({ data, leagueId }: { data: unknown; leagueId: string }) 
                   {auction.player.position}
                 </td>
                 <td className="py-1.5 px-2 text-white">
-                  <PlayerName
+                  <PlayerMediaName
                     player={{ name: auction.player.name, team: auction.player.team, position: auction.player.position, quotation: auction.player.quotation, apiFootballId: auction.player.apiFootballId }}
                     leagueId={leagueId}
                     leaguePlayerId={auction.player.id}
+                    size="xs"
                   />
                 </td>
                 <td className="py-1.5 px-2 text-gray-500 hidden md:table-cell">{auction.player.team}</td>
