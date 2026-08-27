@@ -82,13 +82,14 @@ interface PrizePhaseData {
 
 interface PrizePhaseManagerProps {
   sessionId: string
+  leagueId: string
   isAdmin: boolean
   onUpdate?: () => void
 }
 
 const DEFAULT_INDEMNITY = 50
 
-export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseManagerProps) {
+export function PrizePhaseManager({ sessionId, leagueId, isAdmin, onUpdate }: PrizePhaseManagerProps) {
   const { user } = useAuth()
   const { confirm: confirmDialog } = useConfirmDialog()
   const { toast } = useToast()
@@ -256,9 +257,14 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
     }
   }
 
-  // Save a member prize, with optimistic local update.
+  // Save a member prize, with optimistic local update. Prima della finalizzazione usa
+  // setMemberPrize (nessun budget ancora accreditato); dopo, usa la correzione admin
+  // (Bibbia MERCATO-RICORRENTE §4.5) che applica il delta al budget già accreditato —
+  // l'admin può quindi aggiustare i premi per tutta la durata del mercato, non solo
+  // prima della finalizzazione.
   const handleSavePrize = async (categoryId: string, memberId: string, value: number) => {
     if (value < 0) return
+    const isFinalized = data?.config.isFinalized ?? false
 
     // Optimistic update
     setData(prev => {
@@ -292,9 +298,21 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
 
     // Save to server in background (no loading state)
     try {
-      const result = await prizePhaseApi.setMemberPrize(categoryId, memberId, value)
+      const result = isFinalized
+        ? await prizePhaseApi.correctMemberPrize(leagueId, {
+            marketSessionId: sessionId,
+            categoryId,
+            leagueMemberId: memberId,
+            newAmount: value,
+          })
+        : await prizePhaseApi.setMemberPrize(categoryId, memberId, value)
+
       if (!result.success) {
         toast.error(result.message || 'Errore salvataggio premio')
+        void fetchData(true)
+      } else if (isFinalized) {
+        // La correzione può aver cambiato il budget del manager: refetch silenzioso
+        // per aggiornare Bilancio/Budget Tot. in tabella.
         void fetchData(true)
       }
     } catch {
@@ -306,7 +324,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
   const handleFinalize = async () => {
     const ok = await confirmDialog({
       title: 'Finalizza fase premi',
-      message: 'I premi verranno accreditati sui budget dei manager e non potranno più essere modificati. Confermi la finalizzazione?',
+      message: 'I premi verranno accreditati sui budget dei manager. Potrai comunque correggere gli importi in seguito, ma non annullare la finalizzazione. Confermi?',
       confirmLabel: 'Finalizza',
       variant: 'warning'
     })
@@ -753,7 +771,8 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
               {step4Available ? (
                 <>
                   La finalizzazione accredita i premi ai budget dei manager ed è{' '}
-                  <b className="text-danger-400">irreversibile</b>.
+                  <b className="text-danger-400">irreversibile</b>. Potrai comunque{' '}
+                  <b className="text-accent-400">correggere gli importi</b> in seguito, fino alla fine del mercato.
                 </>
               ) : (
                 <>

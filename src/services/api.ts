@@ -1747,6 +1747,13 @@ export const prizePhaseApi = {
   finalize: (sessionId: string) =>
     request(`/api/sessions/${sessionId}/prizes/finalize`, { method: 'POST' }),
 
+  // Correct a member's prize even after finalization (Admin) — applica il delta al budget
+  correctMemberPrize: (leagueId: string, input: { marketSessionId: string; categoryId: string; leagueMemberId: string; newAmount: number }) =>
+    request(`/api/leagues/${leagueId}/prizes/correct`, {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    }),
+
   // Get prize history for league
   getHistory: (leagueId: string) =>
     request(`/api/leagues/${leagueId}/prizes/history`),

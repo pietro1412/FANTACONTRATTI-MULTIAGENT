@@ -109,6 +109,7 @@ export function PrizePhasePage({ leagueId, onNavigate }: PrizePhasePageProps) {
       <main className="max-w-[1600px] mx-auto px-4 py-8">
         <PrizePhaseManager
           sessionId={activeSession.id}
+          leagueId={leagueId}
           isAdmin={isAdmin}
           onUpdate={() => void loadData()}
         />

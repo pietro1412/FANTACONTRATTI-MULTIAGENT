@@ -156,18 +156,17 @@ export function PrizeAssignmentTable({
                 </td>
                 {categories.map(cat => (
                   <td key={cat.id} className="text-center py-2 px-1">
-                    {isFinalized ? (
-                      <span className="font-mono text-gray-300">{getPrizeAmount(cat.id, member.id)}M</span>
-                    ) : (
-                      <AmountStepper
-                        value={getPrizeAmount(cat.id, member.id)}
-                        onChange={(v) => { onPrizeChange(cat.id, member.id, v) }}
-                        min={0}
-                        unit="M"
-                        size="sm"
-                        aria-label={`Premio ${cat.name} per ${member.teamName || member.username}`}
-                      />
-                    )}
+                    {/* Gli importi restano correggibili dall'admin anche a fase finalizzata
+                        (Bibbia MERCATO-RICORRENTE §4.5) — solo la gestione delle categorie
+                        (aggiungi/rinomina/elimina) si blocca, vedi renderCategoryLabel. */}
+                    <AmountStepper
+                      value={getPrizeAmount(cat.id, member.id)}
+                      onChange={(v) => { onPrizeChange(cat.id, member.id, v) }}
+                      min={0}
+                      unit="M"
+                      size="sm"
+                      aria-label={`Premio ${cat.name} per ${member.teamName || member.username}`}
+                    />
                   </td>
                 ))}
                 {showIndemnities && (
@@ -223,18 +222,14 @@ export function PrizeAssignmentTable({
               {categories.map(cat => (
                 <div key={cat.id} className="flex items-center justify-between gap-2">
                   <span className="text-gray-300 text-sm truncate flex-1">{cat.name}</span>
-                  {isFinalized ? (
-                    <span className="font-mono text-gray-300">{getPrizeAmount(cat.id, member.id)}M</span>
-                  ) : (
-                    <AmountStepper
-                      value={getPrizeAmount(cat.id, member.id)}
-                      onChange={(v) => { onPrizeChange(cat.id, member.id, v) }}
-                      min={0}
-                      unit="M"
-                      size="sm"
-                      aria-label={`Premio ${cat.name} per ${member.teamName || member.username}`}
-                    />
-                  )}
+                  <AmountStepper
+                    value={getPrizeAmount(cat.id, member.id)}
+                    onChange={(v) => { onPrizeChange(cat.id, member.id, v) }}
+                    min={0}
+                    unit="M"
+                    size="sm"
+                    aria-label={`Premio ${cat.name} per ${member.teamName || member.username}`}
+                  />
                 </div>
               ))}
               {showIndemnities && (
