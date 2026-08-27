@@ -292,6 +292,7 @@ export async function getPrizePhaseData(
       teamName: m.teamName,
       username: m.user.username,
       currentBudget: m.currentBudget,
+      totalSalaries: m.totalSalaries,
       // Se la fase è finalizzata o l'utente è admin, mostra i totali
       // Altrimenti mostra solo il base reincrement
       totalPrize: config.isFinalized || isAdmin ? memberTotals[m.id] : null,
@@ -459,6 +460,73 @@ export async function createPrizeCategory(
     success: true,
     message: `Categoria "${name.trim()}" creata`,
     data: { id: category.id, name: category.name },
+  }
+}
+
+// ==================== RENAME PRIZE CATEGORY ====================
+
+export async function renamePrizeCategory(
+  categoryId: string,
+  adminUserId: string,
+  newName: string
+): Promise<ServiceResult> {
+  const category = await prisma.prizeCategory.findUnique({
+    where: { id: categoryId },
+    include: { marketSession: true },
+  })
+
+  if (!category) {
+    return { success: false, message: 'Categoria non trovata' }
+  }
+
+  const adminMember = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId: category.marketSession.leagueId,
+      userId: adminUserId,
+      role: 'ADMIN',
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!adminMember) {
+    return { success: false, message: 'Non autorizzato' }
+  }
+
+  if (category.isSystemPrize) {
+    return { success: false, message: 'Non puoi rinominare le categorie di sistema' }
+  }
+
+  const config = await prisma.prizePhaseConfig.findUnique({
+    where: { marketSessionId: category.marketSessionId },
+  })
+
+  if (config?.isFinalized) {
+    return { success: false, message: 'La fase premi è già stata finalizzata' }
+  }
+
+  const trimmedName = newName?.trim()
+  if (!trimmedName) {
+    return { success: false, message: 'Il nome della categoria è obbligatorio' }
+  }
+
+  if (trimmedName !== category.name) {
+    const existing = await prisma.prizeCategory.findFirst({
+      where: { marketSessionId: category.marketSessionId, name: trimmedName },
+    })
+    if (existing) {
+      return { success: false, message: 'Esiste già una categoria con questo nome' }
+    }
+  }
+
+  await prisma.prizeCategory.update({
+    where: { id: categoryId },
+    data: { name: trimmedName },
+  })
+
+  return {
+    success: true,
+    message: `Categoria rinominata in "${trimmedName}"`,
+    data: { id: categoryId, name: trimmedName },
   }
 }
 

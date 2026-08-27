@@ -5,6 +5,7 @@ import {
   getPrizePhaseData,
   updateBaseReincrement,
   createPrizeCategory,
+  renamePrizeCategory,
   deletePrizeCategory,
   setMemberPrize,
   finalizePrizePhase,
@@ -108,6 +109,31 @@ router.post('/sessions/:sessionId/prizes/categories', authMiddleware, async (req
     res.json(result)
   } catch (error) {
     console.error('Create prize category error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// PATCH /api/prizes/categories/:categoryId - Rename prize category (Admin)
+router.patch('/prizes/categories/:categoryId', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const categoryId = req.params.categoryId as string
+    const { name } = req.body as { name: string }
+
+    if (!name) {
+      res.status(400).json({ success: false, message: 'name è obbligatorio' })
+      return
+    }
+
+    const result = await renamePrizeCategory(categoryId, req.user!.userId, name)
+
+    if (!result.success) {
+      res.status(result.message === 'Non autorizzato' ? 403 : 400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Rename prize category error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })

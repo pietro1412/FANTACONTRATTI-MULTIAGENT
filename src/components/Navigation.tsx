@@ -743,6 +743,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
           leagueId={leagueId}
           currentPhase={currentPhase}
           activeSessionId={activeSessionId}
+          currentPage={currentPage}
           onNavigate={onNavigate}
         />
       )}

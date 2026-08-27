@@ -8,9 +8,11 @@
 
 ## PUNTO DI RIPRESA (leggere per primo dopo un /clear o /compact)
 
-**Ultimo aggiornamento: 2026-08-24 sera.**
+**Ultimo aggiornamento: 2026-08-26.**
 
-**Dove siamo**: nel mezzo della Fase 5 (playthrough), Pietro ha chiesto un **rework fuori piano** della Dashboard di lega (Hub Lega). Rework fatto, deployato in prod, un bug post-deploy trovato e corretto, poi un secondo giro "font troppo piccoli" anche quello corretto, ripushato e **verificato dal vivo con successo** (commit `288324a` in prod, screenshot pulito, nessun errore JS). Il ciclo Dashboard di lega è chiuso. Prossimo passo naturale: riprendere la Fase 5 (playthrough) da Contratti, oppure altro su richiesta di Pietro.
+**Dove siamo**: chiusa una sessione lunga e fuori sequenza dal piano originale, dedicata quasi interamente alla **fase Scambi** — piccoli fix UI, poi (su richiesta esplicita di Pietro) una verifica approfondita del flusso scambi con script dedicati, che ha portato a scoprire e correggere un bug di dominio importante (Monte Ingaggi calcolato live invece che fissato al consolidamento). Tutto deployato in `main`/prod, incluso backfill dati su tutte le leghe reali. **Dettagli completi, con checklist di verifica per Pietro, nella sezione `## Sessione Scambi + fix Monte Ingaggi (2026-08-26)` più in basso in questo stesso file.**
+
+Prossimo passo naturale: Pietro verifica quanto descritto in quella sezione, poi si riprende la Fase 5 (playthrough) da Contratti/Rubata/Svincolati, oppure altro su richiesta di Pietro.
 
 **Cosa manca per chiudere il ciclo di verifica pre-lancio** (piano originale, Fasi 0-7 in `C:\Users\39349\.claude\plans\inherited-whistling-tulip.md`):
 - Fase 4 (sweep bug aperti #7/#13): triage fatto, non bloccante, non azionato — va bene lasciarlo così per la beta cerchia ristretta.
@@ -229,9 +231,109 @@ Pietro ha chiesto un rework completo dell'Hub Lega (`LeagueDetail.tsx`): troppa 
 
 ---
 
+## Sessione Scambi + fix Monte Ingaggi (2026-08-26)
+
+> Sessione lunga, fuori sequenza dal piano Fase 0-7. Tutto quanto sotto è già in `main`/produzione.
+> Questa sezione è pensata come **checklist di verifica per Pietro** dopo un `/clear`: ogni punto
+> dice cosa controllare e dove, non solo cosa è stato fatto.
+
+### 1. Piccoli fix UI sulla fase Scambi
+
+Partiti da osservazioni dirette di Pietro sullo screenshot del tavolo scambio:
+
+| Cosa | Prima | Dopo | Dove verificare |
+|---|---|---|---|
+| Età giocatore | Non sempre mostrata (assente nel tavolo scambio, nelle chip Ricevute/Inviate/Concluse, nella modale controfferta) | Sempre mostrata, o "N.D." se assente | Lega → Scambi, qualunque tab |
+| Manager destinatario | Una volta scelto, bloccato (nessun modo di cambiarlo senza uscire dal form) | Chip col nome + pulsante ✕ per cambiarlo, azzera i giocatori già selezionati per quel manager | Lega → Scambi → Nuova Offerta, dopo aver scelto un destinatario |
+
+**Come verificare**: aprire Scambi → Nuova Offerta su una lega con rose popolate, controllare che ogni riga giocatore mostri l'età e che il chip destinatario abbia la ✕.
+
+### 2. Scoperta e fix: Monte Ingaggi non doveva essere "live" negli Scambi
+
+**Il problema trovato**: scambiando un giocatore, il Bilancio (Budget − Monte Ingaggi) di entrambi i manager cambiava **immediatamente**, mentre le regole di gioco (`docs/bibbie/MERCATO-RICORRENTE.md` §3.6-3.8, `FINANZE.md` §2.1/§7, `CONTRATTI.md` §10.2) impongono che il contratto trasferito in uno scambio non tocchi il Bilancio fino al **prossimo consolidamento di Fase 3 Contratti**. Rubata e Svincolati restano invece "live" per scelta di design (creano un impegno finanziario nuovo, non solo uno spostamento) — confermato da Pietro con un esempio numerico discusso a turni in chat.
+
+**Il fix**: nuovo campo `LeagueMember.totalSalaries` (il "monte ingaggi fissato"), aggiornato SOLO da 4 eventi — chiusura Primo Mercato, consolidamento Contratti (ricalcolo pieno), Rubata (± incrementale), Svincolati (+ incrementale) — e **mai** toccato dagli Scambi. Ogni punto dell'app che mostrava il Bilancio (Dashboard/Rose/Finanze/validazioni scambio) ora legge questo campo invece di ricalcolare live dal roster.
+
+**Cosa verificare tu (Pietro), in produzione, su una lega reale**:
+
+1. Vai su Dashboard di una tua lega reale (es. "Fantacontratti Ufficiale") e annota il Bilancio mostrato ("La mia rosa"). **Deve essere lo stesso numero di prima di questo deploy** — il backfill è stato calcolato apposta per non cambiare nulla di visibile in quel momento.
+2. Vai su Finanze → Panoramica, stesso controllo: il numero deve coincidere con quello della Dashboard.
+3. (Se in una fase Scambi attiva) fai uno scambio di prova reale: dopo l'accettazione, il Bilancio **non deve muoversi** — né su Dashboard, né su Rose, né su Finanze — finché non arriva il prossimo consolidamento Contratti.
+4. In Rubata/Svincolati, invece, il Bilancio **deve continuare a muoversi subito** come sempre (comportamento invariato).
+
+**Verifica tecnica già fatta da Claude** (non serve rifarla, riportata per trasparenza):
+- 6 script di verifica backend in `scripts/test-session/` (`verify-f3-trades.ts`, `verify-f3b-trades-extra.ts`, `verify-f3c-trade-renewal.ts`, `verify-f6-rubata.ts`, `verify-f7-svincolati.ts`, nuovo `verify-f6f7-totalsalaries-live.ts`) — 114 check totali, tutti passati, su una lega di test dedicata isolata dalle leghe vive ("Lega test E2E", ricreata da zero perché quella storica non esisteva più sul DB locale — vedi memoria `project-lega-test-e2e-ricreata`).
+- Suite di test automatici del progetto: 1776/1776 verdi, 0 errori TypeScript.
+- Verifica visiva via browser (Playwright): scambio reale eseguito, Bilancio Dashboard/Finanze confermato invariato prima/dopo, screenshot raccolti durante la sessione (non salvati su disco, solo controllati a video).
+- **Backfill eseguito su produzione PRIMA del deploy del codice** (mai una finestra con dato a 0): 38 membri su 8 leghe reali, incluse "Fantacontratti Ufficiale" e "Playthrough Beta 2026-08-24" (quella di questo stesso piano di verifica) — nessun valore cambiato rispetto a quanto già mostrato agli utenti in quel momento.
+- Backup pre-deploy: `npm run db:backup` (23.111 record) prima di ogni modifica allo schema di produzione.
+
+**Se qualcosa non torna**: il campo `totalSalaries` si ricalcola in automatico al prossimo consolidamento Contratti di quel manager — non serve un intervento manuale per "auto-correggersi" nel tempo. Se invece un numero sembra sbagliato SUBITO dopo questo deploy, segnalarlo con lega/manager specifico: si può ricalcolare al volo con `scripts/test-session/backfill-total-salaries.ts` (idempotente, riscrive sempre col valore live corretto).
+
+**Debito noto, non affrontato in questa sessione** (annotato, non bloccante per la beta):
+- Test E2E Playwright esistente per gli scambi (`tests/e2e/f3-trades-realtime.spec.ts`) ha selettori obsoleti (risalgono a prima della bonifica palette/cockpit di giugno) — non riscritto per intero, sostituito da verifica mirata ad-hoc per questa sessione. Da riscrivere in un giro dedicato se si vuole automatizzare di nuovo quel test.
+- Nessuna notifica push quando una TUA offerta inviata viene accettata/rifiutata (esiste solo per le offerte ricevute, e solo se sei sulla pagina Scambi in quel momento via realtime) — gap noto, da decidere se aprire come task a parte.
+- `recordMovement` (storico movimenti) fallisce in silenzio se il DB ha un problema in quel momento — annotato, non testato forzando un errore.
+
+### 3. Altri fix UI di questa sessione (prima della parte Scambi)
+
+Cronologia, tutti già deployati in `main` prima della parte Scambi:
+
+| Fix | Commit (develop→main) |
+|---|---|
+| Scroll rotto nel tab "Rose" (catena altezza CSS + classe `panel-scroll` morta) | `1682690` |
+| Label "Budget disponibile" → "Bilancio" in RosterOverview (stesso numero, nome sbagliato) | `a939722` |
+| Dashboard: aggiunto breakdown Budget − Monte ingaggi sotto il Bilancio | `f732883` |
+| Sala d'asta: nuova fase "Primo Mercato completato" quando tutti gli slot sono pieni (prima restava sull'ambiguo "in attesa nomina") | `81aab1e` |
+| Dashboard: parità dati "mia rosa"/avversari (età media rosa/reparto) + header tabella avversari più leggibile | `a65ce05` |
+| Scambi: età sempre visibile + destinatario modificabile (vedi punto 1 sopra) | `15f3f31` |
+| **Fix Monte Ingaggi (punto 2 sopra)** | `d97ff6a` |
+
+---
+
 ## Prossimi passi
 
-1. Decidere con Pietro se procedere prima con Fase 4 (chiudere #7, opzionale) o Fase 5 (playthrough live) o Fase 6 (performance).
-2. Per Fase 5: Pietro logga sul preview (via team Vercel o link di bypass da rigenerare) e segue la checklist sopra.
-3. Per Fase 6: adattare gli script stress-test al preview e gestire il bypass SSO nelle richieste HTTP dello script.
-4. A valle di 4-6: Fase 7, proporre `npm run deploy:main` (azione da confermare esplicitamente).
+1. **Pietro verifica la sezione "Sessione Scambi + fix Monte Ingaggi" qui sopra** su una lega reale in produzione.
+2. Decidere con Pietro se procedere poi con Fase 4 (chiudere #7, opzionale), Fase 5 (playthrough live, da riprendere da Contratti), o Fase 6 (performance).
+3. Per Fase 5: Pietro logga sul preview/prod e segue la checklist playthrough sopra.
+4. Per Fase 6: adattare gli script stress-test al preview e gestire il bypass SSO nelle richieste HTTP dello script.
+
+---
+
+## Sessione 2026-08-26/27 — giro di bug-fix/polish su main (workflow diretto, niente feature branch)
+
+Pietro ha chiesto di lavorare direttamente su `main`/`develop` per questo giro (niente `feature/1.x-*`): ogni fix committato e pushato singolarmente, con conferma esplicita prima del push. `main` = `develop` = `origin/*`, sempre allineati dopo ogni giro.
+
+Cronologia (dal termine della sessione Scambi/Monte Ingaggi sopra, commit `d97ff6a` → `ae565f4`):
+
+| Fix/feature | Commit |
+|---|---|
+| Budget vs Bilancio coerenti in tutta la piattaforma (RosterOverview, header lega, dashboard multi-lega, Rose, Scambi) + `src/utils/finance.ts:computeBilancio` centralizzato | `efded41` |
+| Conteggio giocatori per reparto in RosterOverview (senza limiti slot, non più validi dopo 1° Mercato) | `deb8051` |
+| Scambi/Contratti in nav solo durante la loro fase attiva (come Asta/Rubata/Svincolati) | `d53c75d` |
+| Mockup A "colonne separate" per età/conteggio per reparto (scelto da Pietro tra 4 proposti da agente `esperto-prodotto-manageriale`) | `2a9fc63` |
+| Rimosso scroll orizzontale inutile in RosterOverview (min-width copiato dal mockup, non necessario nella pagina reale) | `0973111` |
+| Font troppo piccoli in TradeOfferCard (tab Concluse Scambi) | `fa1c75b` |
+| **Bug navigazione**: header andava in overflow con molti badge (lega+Admin+Live), profilo finiva fuori schermo | `cea7667` |
+| **Fix definitivo dropdown profilo**: portato su `document.body` via React Portal (stesso pattern di `Toast.tsx`), posizione calcolata in JS — elimina la fragilità del CSS absolute annidato nell'header denso. Diagnosi lunga (~2h, vedi lezione sotto) | `5b6ac43` |
+| Scadenza automatica offerte Scambi pendenti alla chiusura fase (prima restavano "orfane" e potevano ripresentarsi azionabili in una fase Scambi successiva) | `edcd45f` |
+| Etichetta leggibile per stato Scambi nello Storico (badge italiano invece di emoji + tooltip inglese) | `9fdf6ae` |
+| Foto + logo squadra + nome cliccabile per ogni giocatore nello Storico (nuovo componente condiviso `PlayerMediaName`) | `cf42e24` |
+| Indicatore "Fuori Serie A" quando un giocatore lascia la Serie A (trigger `listStatus==='NOT_IN_LIST'`, mai solo `exitReason`) — Rose (caso KEEP) + Storico | `ae565f4` |
+
+**Lezione da portare avanti**: quando un fix di layout sembra funzionare in un test ma non in un altro nello stesso identico scenario, sospettare subito una race/dipendenza dal viewport prima di ipotizzare cache/build stale — nel caso del dropdown profilo, la causa vera (header che andava a capo in modo imprevedibile) è stata trovata solo dopo aver riprodotto l'inconsistenza con Playwright in loop, non dal primo tentativo "sembra funzionare".
+
+## Task aperto ora (avviato 2026-08-27, DA FARE in un contesto pulito dopo `/clear`)
+
+**Fase Premi**, lega **"Playthrough Beta 2026-08-24"** (`cmt72bxuw0005sls2o232kz7x`, **produzione**, `https://fantacontratti-multiagent.vercel.app/leagues/cmt72bxuw0005sls2o232kz7x/prizes`). File coinvolti (già localizzati, non ancora aperti): `src/components/PrizePhaseManager.tsx`, `src/components/MarketPhaseManager.tsx`.
+
+Richiesta di Pietro, 4 parti — **tutte e 4 completate 2026-08-27**:
+
+1. ✅ **Seed dati indennizzi**: `scripts/seed-indemnity-sim01.ts` (nuovo, non idempotente in senso stretto — controlla `exitReason: null` prima di scegliere) marca 3 giocatori già in rosa a Sim01 (Butez, Audero, Skorupski) come `exitReason: ESTERO` + `listStatus: NOT_IN_LIST` — è l'unico motivo di uscita che genera indennizzo configurabile (RITIRATO/RETROCESSO sono gratuiti). Eseguito su produzione via `bash scripts/with-env.sh .env.vercel npx tsx scripts/seed-indemnity-sim01.ts` (nessun DB secret in chiaro in chat). **Nota importante, decisione esplicita di Pietro**: `listStatus`/`exitReason` sono globali sul catalogo `SerieAPlayer`, non per-lega — per il tempo del test questi 3 giocatori risultano "fuori Serie A" in OGNI lega della piattaforma, non solo in Playthrough Beta. Pietro ha scelto di procedere senza controlli di isolamento extra. **Da ricordare**: se serve tornare allo stato pulito dopo il test, va rieseguito un reset mirato su questi 3 `playerId` (non un reset globale, per non toccare eventuali uscite reali nel frattempo).
+2. ✅ **UI "Assegnazione premi"**: rimosso l'input+bottone sotto la tabella. Aggiunto pulsante **"+ Aggiungi Premio"** sempre visibile a destra dell'header dello Step 3 (via `StepCard.headerAction`, slot già esistente nel componente), che apre un form inline (nome + Salva/Annulla) senza lasciare la vista; alla conferma la tabella si aggiorna con la nuova colonna. Ogni categoria non di sistema è ora **rinominabile** (icona matita → input inline) ed **eliminabile**, entrambe disabilitate quando `config.isFinalized` (stesso cancello già esistente per l'eliminazione). Nuovo endpoint `PATCH /api/prizes/categories/:categoryId` (`renamePrizeCategory` in `prize-phase.service.ts`).
+3. ✅ **Budget → Bilancio**: `PrizeAssignmentTable.tsx` ora mostra "Bilancio"/"Bilancio Tot." calcolati con `computeBilancio(currentBudget, totalSalaries)` da `src/utils/finance.ts`, sia desktop sia mobile. Il backend (`getPrizePhaseData`) ora restituisce anche `totalSalaries` per membro. Estesa per coerenza anche la vista manager (header "Bilancio pre-premi"/"Bilancio aggiornato" invece di "Budget").
+4. ✅ **Rimosso pulsante "VEDI I PREMI →"**: fix generale in `PhaseBar.tsx` (non solo per Premi) — la CTA di fase ora si nasconde quando `currentPage` (passato da `Navigation.tsx`) coincide già con la pagina di destinazione, invece di essere sempre presente. Si applica a qualunque fase futura con lo stesso problema, non solo Premi.
+
+**Verifica fatta**: `tsc --noEmit` 0 errori, lint invariato (0 nuovi errori/warning), `vitest run` 1780/1780 verdi. **Verifica visiva live NON ancora fatta** — Pietro deve controllare su `https://fantacontratti-multiagent.vercel.app/leagues/cmt72bxuw0005sls2o232kz7x/prizes` (tab nuova, non riusare una già aperta prima del deploy — vedi nota cache/SPA più sopra in questo file) dopo il prossimo deploy.
+
+5. A valle: Pietro verifica dal vivo, poi eventualmente deploy su `main`, poi Fase 7 (Go/No-Go finale).

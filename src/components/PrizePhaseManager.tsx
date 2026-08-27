@@ -14,6 +14,7 @@ import { IndemnityTable } from '@/components/prizes/IndemnityTable'
 import { PrizeAssignmentTable } from '@/components/prizes/PrizeAssignmentTable'
 import { ManagerPrizeSummary, type ManagerRecognition } from '@/components/prizes/ManagerPrizeSummary'
 import { prizePhaseApi } from '@/services/api'
+import { computeBilancio } from '@/utils/finance'
 
 interface PrizePhaseConfig {
   id: string
@@ -64,6 +65,8 @@ interface MemberInfo {
   teamName: string
   username: string
   currentBudget: number
+  /** Monte ingaggi fissato all'ultimo consolidamento (LeagueMember.totalSalaries) — non live. */
+  totalSalaries: number
   totalPrize: number | null
   baseOnly: boolean
   indemnityPlayers: IndemnityPlayer[]
@@ -102,6 +105,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
 
   // Form states
   const [newCategoryName, setNewCategoryName] = useState('')
+  const [addingCategory, setAddingCategory] = useState(false)
   const [editingBaseReincrement, setEditingBaseReincrement] = useState(false)
   const [baseReincrementValue, setBaseReincrementValue] = useState(100)
 
@@ -188,11 +192,30 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
       const result = await prizePhaseApi.createCategory(sessionId, newCategoryName.trim())
       if (result.success) {
         setNewCategoryName('')
-        toast.success('Categoria creata')
+        setAddingCategory(false)
+        toast.success('Premio aggiunto')
         void fetchData()
         onUpdate?.()
       } else {
-        toast.error(result.message || 'Errore creazione categoria')
+        toast.error(result.message || 'Errore creazione premio')
+      }
+    } catch {
+      toast.error('Errore di connessione')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleRenameCategory = async (categoryId: string, newName: string) => {
+    setIsSubmitting(true)
+    try {
+      const result = await prizePhaseApi.renameCategory(categoryId, newName)
+      if (result.success) {
+        toast.success('Premio rinominato')
+        void fetchData()
+        onUpdate?.()
+      } else {
+        toast.error(result.message || 'Errore rinomina premio')
       }
     } catch {
       toast.error('Errore di connessione')
@@ -515,17 +538,17 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
     }
 
     const myTotal = myMember ? calculateMemberTotal(myMember.id) : config.baseReincrement
-    const budgetPre = myMember?.currentBudget ?? 0
+    const bilancioPre = myMember ? computeBilancio(myMember.currentBudget, myMember.totalSalaries) : 0
 
     return (
       <div className="space-y-5">
         <PrizePhaseHeader
           title="I tuoi premi"
-          subtitle="Premi e indennizzi accreditati al tuo budget per questa stagione."
+          subtitle="Premi e indennizzi accreditati al tuo bilancio per questa stagione."
           stats={[
-            { label: 'Budget pre-premi', value: `${budgetPre}M` },
+            { label: 'Bilancio pre-premi', value: `${bilancioPre}M` },
             ...(config.isFinalized
-              ? [{ label: 'Budget aggiornato', value: `${budgetPre + myTotal}M`, gold: true }]
+              ? [{ label: 'Bilancio aggiornato', value: `${bilancioPre + myTotal}M`, gold: true }]
               : []),
           ]}
         />
@@ -664,6 +687,36 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
         chipLabel={totalCategories > 0 ? `${assignedCategories}/${totalCategories} categorie` : 'Nessuna categoria'}
         chipKind={step3Status === 'done' ? 'ok' : 'todo'}
         done={step3Status === 'done'}
+        headerAction={
+          !config.isFinalized ? (
+            addingCategory ? (
+              <div className="flex items-center gap-2 ml-2">
+                <Input
+                  autoFocus
+                  value={newCategoryName}
+                  onChange={(e) => { setNewCategoryName(e.target.value) }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') void handleCreateCategory()
+                    if (e.key === 'Escape') { setAddingCategory(false); setNewCategoryName('') }
+                  }}
+                  placeholder="Nome premio"
+                  inputSize="sm"
+                  className="w-40"
+                />
+                <Button size="sm" onClick={() => void handleCreateCategory()} disabled={!newCategoryName.trim() || isSubmitting}>
+                  Salva
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => { setAddingCategory(false); setNewCategoryName('') }}>
+                  Annulla
+                </Button>
+              </div>
+            ) : (
+              <Button size="sm" className="ml-2" onClick={() => { setAddingCategory(true) }}>
+                + Aggiungi Premio
+              </Button>
+            )
+          ) : undefined
+        }
       >
         <PrizeAssignmentTable
           members={members}
@@ -674,25 +727,9 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
           getIndemnityTotal={calculateMemberIndemnityTotal}
           getMemberTotal={calculateMemberTotal}
           onPrizeChange={(catId, memberId, value) => { void handleSavePrize(catId, memberId, value) }}
+          onRenameCategory={(catId, name) => { void handleRenameCategory(catId, name) }}
           onDeleteCategory={(catId) => { void handleDeleteCategory(catId) }}
         />
-
-        {!config.isFinalized && (
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mt-4 pt-4 border-t border-surface-50/20">
-            <Input
-              value={newCategoryName}
-              onChange={(e) => { setNewCategoryName(e.target.value) }}
-              placeholder="Nome nuova categoria (es. Classifica Portieri)"
-              className="flex-1"
-            />
-            <Button
-              onClick={() => void handleCreateCategory()}
-              disabled={!newCategoryName.trim() || isSubmitting}
-            >
-              + Categoria
-            </Button>
-          </div>
-        )}
       </StepCard>
 
       {/* Step 4 - Finalize (decision zone) */}

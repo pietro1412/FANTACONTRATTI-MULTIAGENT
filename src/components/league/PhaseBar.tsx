@@ -19,6 +19,8 @@ interface PhaseBarProps {
   currentPhase: string | null | undefined
   /** id sessione attiva: serve per aprire l'asta del primo mercato. */
   activeSessionId?: string | null
+  /** Pagina corrente (stesso valore passato a Navigation): nasconde la CTA se coincide con la fase. */
+  currentPage?: string
   onNavigate: NavigateFn
 }
 
@@ -40,12 +42,14 @@ const PHASE_UI: Record<string, PhaseUi> = {
   OFFERTE_POST_ASTA_SVINCOLATI: { title: 'Offerte e Scambi', hint: 'Ultimi scambi del mercato', cta: 'Vai agli scambi', Icon: ArrowLeftRight },
 }
 
-export function PhaseBar({ leagueId, currentPhase, activeSessionId, onNavigate }: PhaseBarProps) {
+export function PhaseBar({ leagueId, currentPhase, activeSessionId, currentPage, onNavigate }: PhaseBarProps) {
   const ui = currentPhase ? PHASE_UI[currentPhase] : undefined
   // Niente fase navigabile (nessuna sessione attiva / fase senza barra) → non mostrare.
   if (!ui) return null
 
   const navKey = phaseToNavKey(currentPhase)
+  // Già sulla pagina della fase corrente: la CTA "porta" dove si è già, non ha senso mostrarla.
+  const isOnCurrentPhasePage = Boolean(navKey) && navKey === currentPage
   const pos = currentRecurrentPosition(currentPhase)
   const steps = buildRecurrentSteps(currentPhase)
   const Icon = ui.Icon
@@ -122,8 +126,8 @@ export function PhaseBar({ leagueId, currentPhase, activeSessionId, onNavigate }
           })}
         </div>
 
-        {/* CTA verso la fase corrente */}
-        {navKey && (
+        {/* CTA verso la fase corrente (nascosta se si è già su quella pagina) */}
+        {navKey && !isOnCurrentPhasePage && (
           <button
             type="button"
             onClick={goToCurrent}

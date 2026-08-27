@@ -1725,6 +1725,13 @@ export const prizePhaseApi = {
       body: JSON.stringify({ name }),
     }),
 
+  // Rename prize category (Admin)
+  renameCategory: (categoryId: string, name: string) =>
+    request(`/api/prizes/categories/${categoryId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ name }),
+    }),
+
   // Delete prize category (Admin)
   deleteCategory: (categoryId: string) =>
     request(`/api/prizes/categories/${categoryId}`, { method: 'DELETE' }),
