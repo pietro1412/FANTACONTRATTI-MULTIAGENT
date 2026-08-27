@@ -126,6 +126,12 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
   const profileDropdownPanelRef = useRef<HTMLDivElement>(null)
   const [profileDropdownPos, setProfileDropdownPos] = useState<{ top: number; right: number } | null>(null)
   const moreDropdownRef = useRef<HTMLDivElement>(null)
+  // Stesso pattern del dropdown profilo (portal su document.body + posizione calcolata in
+  // JS): il pannello "Altro" era absolute annidato nell'header e finiva invisibile/coperto
+  // quando l'header andava in overflow o wrap (bug osservato 2026-08-27, stessa causa del
+  // dropdown profilo fixato in precedenza).
+  const moreDropdownPanelRef = useRef<HTMLDivElement>(null)
+  const [moreDropdownPos, setMoreDropdownPos] = useState<{ top: number; right: number } | null>(null)
   const mobileMenuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -200,10 +206,13 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
     return () => { document.removeEventListener('mousedown', handleClickOutside); }
   }, [])
 
-  // Close "Altro" dropdown when clicking outside
+  // Close "Altro" dropdown when clicking outside (bottone O pannello portato)
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (moreDropdownRef.current && !moreDropdownRef.current.contains(event.target as Node)) {
+      const target = event.target as Node
+      const insideButton = moreDropdownRef.current?.contains(target)
+      const insidePanel = moreDropdownPanelRef.current?.contains(target)
+      if (!insideButton && !insidePanel) {
         setMoreDropdownOpen(false)
       }
     }
@@ -255,6 +264,14 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
     }
     setProfileDropdownOpen(prev => !prev)
   }, [profileDropdownOpen])
+
+  const toggleMoreDropdown = useCallback(() => {
+    if (!moreDropdownOpen && moreDropdownRef.current) {
+      const rect = moreDropdownRef.current.getBoundingClientRect()
+      setMoreDropdownPos({ top: rect.bottom + 8, right: window.innerWidth - rect.right })
+    }
+    setMoreDropdownOpen(prev => !prev)
+  }, [moreDropdownOpen])
 
   // Handle keyboard navigation for profile dropdown
   const handleProfileKeyDown = useCallback((event: React.KeyboardEvent) => {
@@ -466,7 +483,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
               {moreMenuItems.length > 0 && (
                 <div className="relative" ref={moreDropdownRef}>
                   <button
-                    onClick={() => { setMoreDropdownOpen(!moreDropdownOpen); }}
+                    onClick={toggleMoreDropdown}
                     className={`relative px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-300 whitespace-nowrap flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-primary-400/50 ${
                       moreMenuItems.some(item => isActive(item.key)) || moreHasCurrentOrLive
                         ? 'text-accent-400 hover:bg-accent-500/15'
@@ -481,8 +498,13 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
                     <ChevronDown size={14} className={`text-gray-400 transition-transform duration-200 ${moreDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
 
+                  {/* Pannello portato su document.body (vedi moreDropdownPanelRef sopra):
+                      posizione calcolata in JS, non CSS absolute annidato nell'header. */}
+                  {moreDropdownPos && createPortal(
                   <div
-                    className={`absolute right-0 mt-2 w-56 bg-surface-200 border border-surface-50/30 rounded-xl shadow-2xl shadow-black/40 overflow-hidden z-50 p-1.5 flex flex-col gap-0.5 transition-all duration-200 origin-top-right ${
+                    ref={moreDropdownPanelRef}
+                    style={{ top: moreDropdownPos.top, right: moreDropdownPos.right }}
+                    className={`fixed w-56 bg-surface-200 border border-surface-50/30 rounded-xl shadow-2xl shadow-black/40 overflow-hidden z-[100] p-1.5 flex flex-col gap-0.5 transition-all duration-200 origin-top-right ${
                       moreDropdownOpen
                         ? 'opacity-100 scale-100 translate-y-0'
                         : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'
@@ -503,7 +525,9 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
                         live={item.isLive}
                       />
                     ))}
-                  </div>
+                  </div>,
+                  document.body
+                  )}
                 </div>
               )}
             </nav>

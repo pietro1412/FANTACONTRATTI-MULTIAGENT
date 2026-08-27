@@ -85,7 +85,9 @@ describe('Navigation Component', () => {
       expect(screen.getByTestId('desktop-nav-main')).toBeInTheDocument()
     })
 
-    it('renders correctly for authenticated user with league', () => {
+    it('renders correctly for authenticated user with league', async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+
       act(() => {
         render(
           <Navigation
@@ -103,21 +105,27 @@ describe('Navigation Component', () => {
       // Check back to leagues button exists
       expect(screen.getByTestId('back-to-leagues')).toBeInTheDocument()
 
-      // Check non-admin menu items are visible
+      // Check core menu items are visible (sempre nel nucleo, non nel dropdown "Altro")
       expect(screen.getByTestId('nav-dashboard')).toBeInTheDocument()
       expect(screen.getByTestId('nav-rose')).toBeInTheDocument()
       expect(screen.getByTestId('nav-finanze')).toBeInTheDocument()
       expect(screen.getByTestId('nav-storico')).toBeInTheDocument()
-      expect(screen.getByTestId('nav-profezie')).toBeInTheDocument()
-      expect(screen.getByTestId('nav-feedback')).toBeInTheDocument()
 
       // P1 (F-NAV-2): le sezioni di consultazione pura sono SEMPRE presenti.
       // Scambi/Contratti sono invece voci di fase (2026-08-26): compaiono solo
       // quando la loro fase è attiva — qui nessuna fase attiva, quindi assenti
       // (vedi navItems.test.ts per la copertura della logica di visibilità).
-      expect(screen.getByTestId('nav-rose')).toBeInTheDocument()
       expect(screen.queryByTestId('nav-scambi')).not.toBeInTheDocument()
       expect(screen.queryByTestId('nav-contratti')).not.toBeInTheDocument()
+
+      // Profezie/Feedback/Premi finiscono nel dropdown "Altro" (portato su
+      // document.body): montato solo dopo l'apertura, come il dropdown profilo.
+      await user.click(screen.getByTestId('nav-more-dropdown'))
+      await waitFor(() => {
+        expect(screen.getByTestId('nav-more-menu')).toHaveClass('opacity-100')
+      })
+      expect(screen.getByTestId('nav-profezie')).toBeInTheDocument()
+      expect(screen.getByTestId('nav-feedback')).toBeInTheDocument()
       expect(screen.getByTestId('nav-premi')).toBeInTheDocument()
 
       // Admin panel should NOT be visible for non-admin

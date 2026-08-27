@@ -408,7 +408,7 @@ function FirstMarketTab({ data, leagueId }: { data: unknown; leagueId: string })
       {/* Table */}
       <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
         <table className="w-full text-sm">
-          <thead className="sticky top-0 bg-surface-200">
+          <thead className="sticky top-0 z-10 bg-surface-200">
             <tr className="border-b border-surface-50/30 text-gray-400 text-xs uppercase">
               <th className="text-left py-2 px-2 w-10">R</th>
               <th className="text-left py-2 px-2">Giocatore</th>
@@ -537,7 +537,7 @@ function TradesTab({ data, leagueId }: { data: unknown; leagueId: string }) {
       {/* Table */}
       <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
         <table className="w-full text-sm">
-          <thead className="sticky top-0 bg-surface-200">
+          <thead className="sticky top-0 z-10 bg-surface-200">
             <tr className="border-b border-surface-50/30 text-gray-400 text-xs uppercase">
               <th className="text-left py-2 px-2 w-28">Stato</th>
               <th className="text-left py-2 px-2">Da</th>
@@ -798,7 +798,7 @@ function RubataTab({ data, leagueId }: { data: unknown; leagueId: string }) {
       {/* Table */}
       <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
         <table className="w-full text-sm">
-          <thead className="sticky top-0 bg-surface-200">
+          <thead className="sticky top-0 z-10 bg-surface-200">
             <tr className="border-b border-surface-50/30 text-gray-400 text-xs uppercase">
               <th className="text-center py-2 px-2 w-10">Esito</th>
               <th className="text-left py-2 px-2 w-10">R</th>
@@ -882,7 +882,7 @@ function SvincolatiTab({ data, leagueId }: { data: unknown; leagueId: string }) 
       {/* Table */}
       <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
         <table className="w-full text-sm">
-          <thead className="sticky top-0 bg-surface-200">
+          <thead className="sticky top-0 z-10 bg-surface-200">
             <tr className="border-b border-surface-50/30 text-gray-400 text-xs uppercase">
               <th className="text-left py-2 px-2 w-10">R</th>
               <th className="text-left py-2 px-2">Giocatore</th>

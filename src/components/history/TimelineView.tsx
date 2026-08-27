@@ -196,7 +196,7 @@ export function TimelineView({ leagueId, sessions }: TimelineViewProps) {
       <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
         <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
           <table className="w-full text-sm">
-            <thead className="sticky top-0 bg-surface-300">
+            <thead className="sticky top-0 z-10 bg-surface-300">
               <tr className="border-b border-surface-50/30 text-gray-400 text-xs uppercase">
                 <th className="text-left py-2 px-3">Data</th>
                 <th className="text-left py-2 px-2 hidden sm:table-cell">Sessione</th>
