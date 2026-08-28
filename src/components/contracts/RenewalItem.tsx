@@ -16,6 +16,8 @@ export interface RenewalItemContract {
   draftDuration: number | null
   wasModified?: boolean
   isExitedPlayer?: boolean
+  exitReason?: string | null
+  indemnityCompensation?: number
   player: ContractPlayer
   acquisitionType: string
 }
@@ -26,14 +28,16 @@ export interface RenewalItemProps {
   newDuration: number
   validationError?: string
   isMarkedForRelease: boolean
-  isKeptExited: boolean
+  /** undefined = still to decide (only meaningful when contract.isExitedPlayer). */
+  exitDecision: 'KEEP' | 'RELEASE' | undefined
   inContrattiPhase: boolean
   isConsolidated: boolean
   onSalaryChange: (value: number) => void
   onDurationChange: (value: number) => void
   onResetContract: () => void
   onToggleRelease: () => void
-  onRemoveKept: () => void
+  onSetExitDecision: (decision: 'KEEP' | 'RELEASE') => void
+  onUndoExitDecision: () => void
   onViewStats: () => void
 }
 
@@ -72,16 +76,23 @@ export function RenewalItem({
   newDuration,
   validationError,
   isMarkedForRelease,
-  isKeptExited,
+  exitDecision,
   inContrattiPhase,
   isConsolidated,
   onSalaryChange,
   onDurationChange,
   onResetContract,
   onToggleRelease,
-  onRemoveKept,
+  onSetExitDecision,
+  onUndoExitDecision,
   onViewStats,
 }: RenewalItemProps) {
+  const isKeptExited = !!c.isExitedPlayer && exitDecision === 'KEEP'
+  const isReleasedExited = !!c.isExitedPlayer && exitDecision === 'RELEASE'
+  const isUndecidedExited = !!c.isExitedPlayer && exitDecision == null
+  const isEstero = c.exitReason === 'ESTERO'
+  const indemnity = c.indemnityCompensation || 0
+
   const k = getRenewalConstraints({
     salary: c.salary,
     duration: c.duration,
@@ -93,13 +104,22 @@ export function RenewalItem({
 
   const releaseCost = Math.ceil((c.salary * c.duration) / 2)
   const editable = c.canRenew && inContrattiPhase && !isConsolidated && !isMarkedForRelease
+    && !isUndecidedExited && !isReleasedExited
 
   const rating = c.player.computedStats?.avgRating
   const sub = (
     <>
       <span>{c.player.team}</span>
-      {c.duration === 1 && <Tag tone="danger">SCADE</Tag>}
-      {renderTags({
+      {(isUndecidedExited || isReleasedExited) && (
+        <>
+          <Tag tone={isEstero ? 'accent' : 'primary'}>{isEstero ? 'ESTERO' : 'RETROCESSO'}</Tag>
+          {isEstero && isUndecidedExited && (
+            <span className="text-secondary-400">ind. se rilasci {indemnity}M</span>
+          )}
+        </>
+      )}
+      {c.duration === 1 && !isReleasedExited && <Tag tone="danger">SCADE</Tag>}
+      {!isUndecidedExited && !isReleasedExited && renderTags({
         canSpalmare: c.canSpalmare,
         isMarkedForRelease,
         newSalary,
@@ -118,14 +138,14 @@ export function RenewalItem({
   return (
     <div
       className={`grid contracts-grid items-center px-3 lg:px-4 py-2.5 border-b border-surface-50/60 hover:bg-surface-100/60 transition-colors ${
-        isMarkedForRelease ? 'opacity-60' : ''
-      } ${isKeptExited ? 'bg-secondary-500/[0.04]' : ''}`}
+        isMarkedForRelease || isReleasedExited ? 'opacity-60' : ''
+      } ${isKeptExited ? 'bg-secondary-500/[0.04]' : ''} ${isUndecidedExited ? 'bg-accent-500/[0.03]' : ''}`}
     >
       {/* Player */}
       <PlayerCell
         player={c.player}
         onClick={onViewStats}
-        nameClassName={isMarkedForRelease ? 'text-gray-400 line-through' : 'text-primary-400 hover:text-primary-300'}
+        nameClassName={isMarkedForRelease || isReleasedExited ? 'text-gray-400 line-through' : 'text-primary-400 hover:text-primary-300'}
         sub={sub}
       />
 
@@ -154,6 +174,8 @@ export function RenewalItem({
           />
         ) : isConsolidated && c.draftSalary != null ? (
           <span className="stat-number text-base text-accent-400">{c.draftSalary}M</span>
+        ) : isUndecidedExited ? (
+          <span className="stat-number text-base text-gray-300">{c.salary}M</span>
         ) : (
           <span className="text-gray-500 text-sm">—</span>
         )}
@@ -176,6 +198,8 @@ export function RenewalItem({
           />
         ) : isConsolidated && c.draftDuration != null ? (
           <span className={`stat-number text-base ${getDurationColor(c.draftDuration)}`}>{c.draftDuration}s</span>
+        ) : isUndecidedExited ? (
+          <span className={`stat-number text-base ${getDurationColor(c.duration)}`}>{c.duration}s</span>
         ) : (
           <span className="text-gray-500 text-sm">—</span>
         )}
@@ -188,6 +212,11 @@ export function RenewalItem({
           <div>
             <div className="font-mono text-[10px] font-bold text-danger-400">costo taglio</div>
             <div className="stat-number text-base text-danger-400">−{releaseCost}M</div>
+          </div>
+        ) : isReleasedExited ? (
+          <div>
+            <div className="font-mono text-[10px] font-bold text-secondary-400">indennizzo</div>
+            <div className="stat-number text-base text-secondary-400">+{indemnity}M</div>
           </div>
         ) : isConsolidated && consolidatedClause != null ? (
           <span className="stat-number text-base text-white">{consolidatedClause}M</span>
@@ -204,7 +233,7 @@ export function RenewalItem({
       {/* Rubata (single value: updates with the renewal, stays the previous one otherwise) */}
       <div className="flex lg:block items-center justify-between text-left lg:text-center">
         <span className="micro-label lg:hidden">Rubata</span>
-        {isMarkedForRelease ? (
+        {isMarkedForRelease || isReleasedExited ? (
           <span className="text-gray-500 text-sm">—</span>
         ) : isConsolidated && consolidatedClause != null && c.draftSalary != null ? (
           <span className="stat-number text-base text-white">{consolidatedClause + c.draftSalary}M</span>
@@ -224,16 +253,7 @@ export function RenewalItem({
       {/* Action */}
       <div className="flex lg:justify-center items-center justify-end">
         {inContrattiPhase && !isConsolidated ? (
-          isKeptExited ? (
-            <button
-              type="button"
-              onClick={onRemoveKept}
-              className="font-mono text-[9.5px] font-bold text-secondary-400 border border-secondary-500/40 bg-secondary-500/10 rounded-lg px-2.5 py-1.5 hover:bg-secondary-500/20 transition-colors"
-              title="Rimetti tra gli usciti"
-            >
-              Rimetti
-            </button>
-          ) : isMarkedForRelease ? (
+          isMarkedForRelease ? (
             <button
               type="button"
               onClick={onToggleRelease}
@@ -242,8 +262,8 @@ export function RenewalItem({
               Annulla
             </button>
           ) : k.hasChanges ? (
-            // Renewal in progress: cutting no longer applies, so Taglia is
-            // replaced by an undo for the salary/duration change instead.
+            // Renewal in progress: cutting/release no longer applies, so the
+            // row's other actions are replaced by an undo for the edit.
             <button
               type="button"
               onClick={onResetContract}
@@ -252,6 +272,40 @@ export function RenewalItem({
             >
               <RotateCcw size={11} /> Cancella rinnovo
             </button>
+          ) : isKeptExited ? (
+            <button
+              type="button"
+              onClick={() => { onSetExitDecision('RELEASE') }}
+              className="font-mono text-[9.5px] font-bold text-danger-400 border border-danger-500/40 bg-danger-500/[0.06] rounded-lg px-2.5 py-1.5 hover:bg-danger-500/15 transition-colors"
+              title={isEstero ? `Rilascia (+${indemnity}M indennizzo)` : 'Rilascia (gratuito)'}
+            >
+              Rilascia
+            </button>
+          ) : isReleasedExited ? (
+            <button
+              type="button"
+              onClick={onUndoExitDecision}
+              className="font-mono text-[9.5px] font-bold text-gray-300 border border-surface-50 bg-surface-200 rounded-lg px-2.5 py-1.5 hover:bg-surface-100 transition-colors"
+            >
+              Annulla
+            </button>
+          ) : isUndecidedExited ? (
+            <div className="flex flex-col gap-1 items-stretch w-full lg:w-auto">
+              <button
+                type="button"
+                onClick={() => { onSetExitDecision('KEEP') }}
+                className="font-mono text-[9.5px] font-bold text-secondary-400 border border-secondary-500/40 bg-secondary-500/10 rounded-lg px-2.5 py-1 hover:bg-secondary-500/20 transition-colors"
+              >
+                Mantieni
+              </button>
+              <button
+                type="button"
+                onClick={() => { onSetExitDecision('RELEASE') }}
+                className="font-mono text-[9.5px] font-bold text-danger-400 border border-danger-500/40 bg-danger-500/[0.06] rounded-lg px-2.5 py-1 hover:bg-danger-500/15 transition-colors"
+              >
+                Rilascia
+              </button>
+            </div>
           ) : (
             <button
               type="button"

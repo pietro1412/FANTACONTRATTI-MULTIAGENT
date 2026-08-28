@@ -31,14 +31,15 @@ function renderItem(overrides: Partial<Parameters<typeof RenewalItem>[0]> = {}) 
     newSalary: 8,
     newDuration: 2,
     isMarkedForRelease: false,
-    isKeptExited: false,
+    exitDecision: undefined,
     inContrattiPhase: true,
     isConsolidated: false,
     onSalaryChange: vi.fn(),
     onDurationChange: vi.fn(),
     onResetContract: vi.fn(),
     onToggleRelease: vi.fn(),
-    onRemoveKept: vi.fn(),
+    onSetExitDecision: vi.fn(),
+    onUndoExitDecision: vi.fn(),
     onViewStats: vi.fn(),
     ...overrides,
   }
@@ -98,6 +99,47 @@ describe('RenewalItem', () => {
     // clausola/rubata are hidden for released players
     expect(screen.queryByText('56M')).not.toBeInTheDocument()
     expect(screen.queryByText('64M')).not.toBeInTheDocument()
+  })
+
+  it('should show Mantieni/Rilascia and the ESTERO tag for an undecided exited player, with the read-only current contract', () => {
+    const props = renderItem({
+      contract: { ...baseContract, isExitedPlayer: true, exitReason: 'ESTERO', indemnityCompensation: 12 },
+    })
+    expect(screen.getByText('ESTERO')).toBeInTheDocument()
+    expect(screen.getByText('ind. se rilasci 12M')).toBeInTheDocument()
+    expect(screen.getByText('8M')).toBeInTheDocument() // read-only current salary
+    expect(screen.getByText('2s')).toBeInTheDocument() // read-only current duration
+    const mantieni = screen.getByText('Mantieni')
+    const rilascia = screen.getByText('Rilascia')
+    fireEvent.click(mantieni)
+    expect(props.onSetExitDecision).toHaveBeenCalledWith('KEEP')
+    fireEvent.click(rilascia)
+    expect(props.onSetExitDecision).toHaveBeenCalledWith('RELEASE')
+  })
+
+  it('should let a kept exited player renew normally, with a direct Rilascia action', () => {
+    const props = renderItem({
+      contract: { ...baseContract, isExitedPlayer: true, exitReason: 'ESTERO' },
+      exitDecision: 'KEEP',
+    })
+    expect(screen.getByText('MANTENUTO')).toBeInTheDocument()
+    // renewable like a normal contract (stepper, not read-only text)
+    expect(screen.getByText('8')).toBeInTheDocument()
+    const rilascia = screen.getByText('Rilascia')
+    fireEvent.click(rilascia)
+    expect(props.onSetExitDecision).toHaveBeenCalledWith('RELEASE')
+  })
+
+  it('should show the indemnity and an Annulla action for a released exited player', () => {
+    const props = renderItem({
+      contract: { ...baseContract, isExitedPlayer: true, exitReason: 'ESTERO', indemnityCompensation: 12 },
+      exitDecision: 'RELEASE',
+    })
+    expect(screen.getByText('indennizzo')).toBeInTheDocument()
+    expect(screen.getByText('+12M')).toBeInTheDocument()
+    const annulla = screen.getByText('Annulla')
+    fireEvent.click(annulla)
+    expect(props.onUndoExitDecision).toHaveBeenCalledTimes(1)
   })
 
   it('should show consolidated read-only values and the RINNOVATO tag after consolidation', () => {

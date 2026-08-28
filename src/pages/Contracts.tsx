@@ -10,7 +10,6 @@ import { useConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { PlayerStatsModal, type PlayerInfo } from '@/components/PlayerStatsModal'
 import { RenewalItem } from '@/components/contracts/RenewalItem'
 import { PendingItem } from '@/components/contracts/PendingItem'
-import { ExitedCard } from '@/components/contracts/ExitedCard'
 import { RoleBadge, TeamLogo, getRoleStyle, getRoleAccentText, MAX_ROSTER_SIZE, type ContractPlayer } from '@/components/contracts/shared'
 import { ContractInline } from '@/components/ui/ContractInline'
 import haptic from '@/utils/haptics'
@@ -116,7 +115,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
   const [filterRole, setFilterRole] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
 
-  const [contractTab, setContractTab] = useState<'rinnovi' | 'nuovi' | 'usciti'>('rinnovi')
+  const [contractTab, setContractTab] = useState<'rinnovi' | 'nuovi'>('rinnovi')
 
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerInfo | null>(null)
   const [tabInitialized, setTabInitialized] = useState(false)
@@ -215,12 +214,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
       setLocalReleases(releases)
 
       if (!tabInitialized) {
-        if (data.pendingContracts.length > 0) {
-          setContractTab('nuovi')
-        } else {
-          const hasUndecidedExited = data.contracts.some(c => c.isExitedPlayer && !c.draftExitDecision)
-          setContractTab(hasUndecidedExited ? 'usciti' : 'rinnovi')
-        }
+        setContractTab(data.pendingContracts.length > 0 ? 'nuovi' : 'rinnovi')
         setTabInitialized(true)
       }
     }
@@ -510,14 +504,8 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
     contracts.filter(c => c.isExitedPlayer && !exitDecisions.has(c.id)),
   [contracts, exitDecisions])
 
-  useEffect(() => {
-    if (contractTab === 'usciti' && exitedContracts.length === 0) {
-      setContractTab(pendingContracts.length > 0 ? 'nuovi' : 'rinnovi')
-    }
-  }, [exitedContracts.length, contractTab, pendingContracts.length])
-
   const filteredContracts = useMemo(() => {
-    let items = contracts.filter(c => !c.isExitedPlayer || exitDecisions.get(c.id) === 'KEEP')
+    let items = [...contracts]
     if (filterRole) items = items.filter(c => c.roster.player.position === filterRole)
     if (searchQuery) items = items.filter(c => c.roster.player.name.toLowerCase().includes(searchQuery.toLowerCase()))
     return items.sort((a, b) => {
@@ -541,13 +529,6 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
       return a.player.name.localeCompare(b.player.name)
     })
   }, [pendingContracts, filterRole, searchQuery])
-
-  const filteredExited = useMemo(() => {
-    let items = [...exitedContracts]
-    if (filterRole) items = items.filter(c => c.roster.player.position === filterRole)
-    if (searchQuery) items = items.filter(c => c.roster.player.name.toLowerCase().includes(searchQuery.toLowerCase()))
-    return items
-  }, [exitedContracts, filterRole, searchQuery])
 
   const roleDistribution = useMemo(() => {
     const dist = { P: 0, D: 0, C: 0, A: 0 }
@@ -679,7 +660,6 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
   const tabItems = [
     { id: 'rinnovi' as const, label: 'Rinnovi', accent: 'accent' as const, badge: filteredContracts.length },
     ...(filteredPending.length > 0 || isConsolidated ? [{ id: 'nuovi' as const, label: 'Nuovi', accent: 'secondary' as const, badge: filteredPending.length }] : []),
-    ...(exitedContracts.length > 0 ? [{ id: 'usciti' as const, label: 'Usciti', accent: 'gray' as const, badge: exitedContracts.length }] : []),
   ]
 
   const adminBar = (
@@ -871,41 +851,9 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
 
   const activeIsRinnovi = contractTab === 'rinnovi' || isConsolidated || !inContrattiPhase
   const activeIsNuovi = contractTab === 'nuovi'
-  const activeIsUsciti = contractTab === 'usciti'
 
   let panel: React.ReactNode
-  if (activeIsUsciti) {
-    panel = (
-      <div className="bg-surface-200 border border-surface-50 rounded-xl overflow-hidden flex flex-col lg:h-full lg:min-h-0">
-        <div className="px-4 py-2.5 border-b border-surface-50 flex items-baseline gap-2 flex-shrink-0">
-          <span className="micro-label">Giocatori usciti · estero e retrocessione</span>
-          <span className="ml-auto font-mono text-[10.5px] text-gray-500">{filteredExited.length} da decidere</span>
-        </div>
-        {filteredExited.length === 0 ? (
-          <div className="py-8"><EmptyState icon="✅" title="Nessun giocatore uscito da decidere" description="Le decisioni KEEP/RELEASE compaiono qui" /></div>
-        ) : (
-          <div className="panel-scroll flex-1 min-h-0 p-3 grid grid-cols-1 xl:grid-cols-2 gap-3 content-start">
-            {filteredExited.map(c => (
-              <ExitedCard
-                key={c.id}
-                player={c.roster.player}
-                exitReason={c.exitReason}
-                salary={c.salary}
-                duration={c.duration}
-                indemnityCompensation={c.indemnityCompensation || 0}
-                decision={exitDecisions.get(c.id)}
-                inContrattiPhase={inContrattiPhase}
-                isConsolidated={isConsolidated}
-                onKeep={() => { setExitDecisions(prev => { const next = new Map(prev); next.set(c.id, 'KEEP'); return next }) }}
-                onRelease={() => { setExitDecisions(prev => { const next = new Map(prev); next.set(c.id, 'RELEASE'); return next }) }}
-                onViewStats={() => { setSelectedPlayer(playerInfo(c.roster.player, { salary: c.salary, duration: c.duration, rescissionClause: c.rescissionClause })) }}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-    )
-  } else if (activeIsNuovi) {
+  if (activeIsNuovi) {
     panel = (
       <div className="bg-surface-200 border border-surface-50 rounded-xl overflow-hidden flex flex-col lg:h-full lg:min-h-0">
         <div className="px-4 py-2.5 border-b border-surface-50 flex items-baseline gap-2 flex-shrink-0">
@@ -959,7 +907,6 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
               const newSalary = parseInt(edit?.newSalary || '') || c.salary
               const newDuration = parseInt(edit?.newDuration || '') || c.duration
               const isMarkedForRelease = localReleases.has(c.id)
-              const isKeptExited = !!c.isExitedPlayer && exitDecisions.get(c.id) === 'KEEP'
               return (
                 <RenewalItem
                   key={c.id}
@@ -975,6 +922,8 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                     draftDuration: c.draftDuration,
                     wasModified: c.wasModified,
                     isExitedPlayer: c.isExitedPlayer,
+                    exitReason: c.exitReason,
+                    indemnityCompensation: c.indemnityCompensation || 0,
                     player: c.roster.player,
                     acquisitionType: c.roster.acquisitionType,
                   }}
@@ -982,14 +931,15 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                   newDuration={newDuration}
                   validationError={edit?.previewData?.validationError}
                   isMarkedForRelease={isMarkedForRelease}
-                  isKeptExited={isKeptExited}
+                  exitDecision={exitDecisions.get(c.id)}
                   inContrattiPhase={inContrattiPhase}
                   isConsolidated={isConsolidated}
                   onSalaryChange={(v) => { updateLocalEdit(c.id, 'newSalary', String(v)) }}
                   onDurationChange={(v) => { updateLocalEdit(c.id, 'newDuration', String(v)) }}
                   onResetContract={() => { resetLocalEdit(c.id) }}
                   onToggleRelease={() => { toggleRelease(c.id) }}
-                  onRemoveKept={() => { setExitDecisions(prev => { const next = new Map(prev); next.delete(c.id); return next }) }}
+                  onSetExitDecision={(decision) => { setExitDecisions(prev => { const next = new Map(prev); next.set(c.id, decision); return next }) }}
+                  onUndoExitDecision={() => { setExitDecisions(prev => { const next = new Map(prev); next.delete(c.id); return next }) }}
                   onViewStats={() => { setSelectedPlayer(playerInfo(c.roster.player, { salary: c.salary, duration: c.duration, rescissionClause: c.rescissionClause })) }}
                 />
               )

@@ -409,7 +409,7 @@ describe('Contracts Page', () => {
     })
   })
 
-  it('shows Usciti tab when exited contracts exist', async () => {
+  it('shows exited contracts directly in Rinnovi with Mantieni/Rilascia, no separate Usciti tab', async () => {
     mockGetAll.mockResolvedValue(buildContractsResponse({
       contracts: [sampleContract, sampleContract2, exitedContract],
     }))
@@ -417,8 +417,12 @@ describe('Contracts Page', () => {
     renderContracts({ leagueId, onNavigate: mockOnNavigate })
 
     await waitFor(() => {
-      expect(screen.getByText('Usciti')).toBeInTheDocument()
+      expect(screen.getByText('Carlos Fuentes')).toBeInTheDocument()
     })
+    expect(screen.getByText('ESTERO')).toBeInTheDocument()
+    expect(screen.getByText('Mantieni')).toBeInTheDocument()
+    expect(screen.getByText('Rilascia')).toBeInTheDocument()
+    expect(screen.queryByText('Usciti')).not.toBeInTheDocument()
   })
 
   it('shows pending contract section with Da Impostare heading', async () => {
