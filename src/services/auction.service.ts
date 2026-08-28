@@ -1104,125 +1104,143 @@ export async function getCurrentAuction(sessionId: string, userId: string): Prom
     const winningBid = auction.bids.find(b => b.isWinning)
 
     if (winningBid) {
-      // Assign player to winner
-      const rosterEntry = await prisma.playerRoster.create({
-        data: {
-          leagueMemberId: winningBid.bidderId,
-          playerId: auction.playerId,
-          acquisitionPrice: winningBid.amount,
-          acquisitionType: AcquisitionType.FIRST_MARKET,
-          status: RosterStatus.ACTIVE,
-        },
-      })
-
       // Create contract: 10% salary (integer, min 1), 3 semesters
       const salary = calculateDefaultSalary(winningBid.amount)
       const duration = DEFAULT_CONTRACT_DURATION
       const rescissionClause = calculateRescissionClause(salary, duration)
 
-      await prisma.playerContract.create({
-        data: {
-          rosterId: rosterEntry.id,
-          leagueMemberId: winningBid.bidderId,
-          salary,
-          duration,
-          initialSalary: salary,
-          initialDuration: duration,
-          rescissionClause,
-        },
+      // Claim atomico + roster + contratto + scalo budget in un'unica transazione.
+      // PRIMA di questo fix (controllo definitivo bilanci 2026-08-28): due client che
+      // interrogano getCurrentAuction nello stesso istante in cui il timer scade
+      // potevano ENTRAMBI superare il check "status===ACTIVE" fatto sopra e assegnare
+      // il giocatore due volte, scalando il budget due volte. Il updateMany guardato
+      // su status:'ACTIVE' è una compare-and-swap atomica: solo la prima richiesta
+      // concorrente ottiene count===1 e procede; le altre trovano count===0 e abortono.
+      const claimed = await prisma.$transaction(async (tx) => {
+        const claim = await tx.auction.updateMany({
+          where: { id: auction!.id, status: AuctionStatus.ACTIVE },
+          data: {
+            status: AuctionStatus.COMPLETED,
+            winnerId: winningBid.bidderId,
+            endsAt: new Date(),
+          },
+        })
+        if (claim.count === 0) return false
+
+        const rosterEntry = await tx.playerRoster.create({
+          data: {
+            leagueMemberId: winningBid.bidderId,
+            playerId: auction!.playerId,
+            acquisitionPrice: winningBid.amount,
+            acquisitionType: AcquisitionType.FIRST_MARKET,
+            status: RosterStatus.ACTIVE,
+          },
+        })
+
+        await tx.playerContract.create({
+          data: {
+            rosterId: rosterEntry.id,
+            leagueMemberId: winningBid.bidderId,
+            salary,
+            duration,
+            initialSalary: salary,
+            initialDuration: duration,
+            rescissionClause,
+          },
+        })
+
+        await tx.leagueMember.update({
+          where: { id: winningBid.bidderId },
+          data: {
+            currentBudget: { decrement: winningBid.amount },
+          },
+        })
+
+        return true
       })
 
-      // Deduct budget
-      await prisma.leagueMember.update({
-        where: { id: winningBid.bidderId },
-        data: {
-          currentBudget: { decrement: winningBid.amount },
-        },
-      })
+      if (claimed) {
+        // Record movement and get movementId for prophecy
+        const movementId = await recordMovement({
+          leagueId: auction.leagueId,
+          playerId: auction.playerId,
+          movementType: 'FIRST_MARKET',
+          toMemberId: winningBid.bidderId,
+          price: winningBid.amount,
+          auctionId: auction.id,
+          marketSessionId: sessionId,
+          newSalary: salary,
+          newDuration: duration,
+          newClause: rescissionClause,
+        })
 
-      // Update auction status
-      await prisma.auction.update({
-        where: { id: auction.id },
-        data: {
-          status: AuctionStatus.COMPLETED,
+        justCompleted = {
+          playerId: auction.playerId,
+          playerName: auction.player.name,
           winnerId: winningBid.bidderId,
-          endsAt: new Date(),
-        },
-      })
+          winnerName: winningBid.bidder.user.username,
+          amount: winningBid.amount,
+          movementId,
+        }
 
-      // Record movement and get movementId for prophecy
-      const movementId = await recordMovement({
-        leagueId: auction.leagueId,
-        playerId: auction.playerId,
-        movementType: 'FIRST_MARKET',
-        toMemberId: winningBid.bidderId,
-        price: winningBid.amount,
-        auctionId: auction.id,
-        marketSessionId: sessionId,
-        newSalary: salary,
-        newDuration: duration,
-        newClause: rescissionClause,
-      })
-
-      justCompleted = {
-        playerId: auction.playerId,
-        playerName: auction.player.name,
-        winnerId: winningBid.bidderId,
-        winnerName: winningBid.bidder.user.username,
-        amount: winningBid.amount,
-        movementId,
+        // Real-time: the timer-expiry close happens lazily inside getCurrentAuction
+        // (no admin action), so unlike closeAuction it had no Pusher emission. Only
+        // the first caller that still finds the auction ACTIVE reaches this block,
+        // so emit once here to push the acknowledgment phase to ALL clients
+        // instead of letting them discover the close via polling. (test-session #15)
+        void triggerAuctionClosed(sessionId, {
+          auctionId: auction.id,
+          playerId: auction.playerId,
+          playerName: auction.player.name,
+          winnerId: winningBid.bidderId,
+          winnerName: winningBid.bidder.user.username,
+          finalPrice: winningBid.amount,
+          wasUnsold: false,
+          timestamp: new Date().toISOString(),
+        })
       }
-
-      // Real-time: the timer-expiry close happens lazily inside getCurrentAuction
-      // (no admin action), so unlike closeAuction it had no Pusher emission. Only
-      // the first caller that still finds the auction ACTIVE reaches this block,
-      // so emit once here to push the acknowledgment phase to ALL clients
-      // instead of letting them discover the close via polling. (test-session #15)
-      void triggerAuctionClosed(sessionId, {
-        auctionId: auction.id,
-        playerId: auction.playerId,
-        playerName: auction.player.name,
-        winnerId: winningBid.bidderId,
-        winnerName: winningBid.bidder.user.username,
-        finalPrice: winningBid.amount,
-        wasUnsold: false,
-        timestamp: new Date().toISOString(),
-      })
+      // Se claimed===false, un'altra richiesta concorrente ha già chiuso questa asta:
+      // niente da fare qui, il chiamante che ha vinto il claim ha già emesso l'evento.
 
       // Set auction to null since it's now closed
       auction = null
     } else {
-      // No bids - close as NO_BIDS
-      await prisma.auction.update({
-        where: { id: auction.id },
+      // No bids - close as NO_BIDS (stesso claim atomico: updateMany guardato su
+      // status:'ACTIVE' evita una doppia emissione dell'evento "chiuso" se un'altra
+      // richiesta concorrente ha già processato questa stessa scadenza timer).
+      const claim = await prisma.auction.updateMany({
+        where: { id: auction.id, status: AuctionStatus.ACTIVE },
         data: {
           status: AuctionStatus.NO_BIDS,
           endsAt: new Date(),
         },
       })
 
-      justCompleted = {
-        playerId: auction.playerId,
-        playerName: auction.player.name,
-        winnerId: '',
-        winnerName: '',
-        amount: 0,
-        movementId: null,
-      }
+      if (claim.count > 0) {
+        justCompleted = {
+          playerId: auction.playerId,
+          playerName: auction.player.name,
+          winnerId: '',
+          winnerName: '',
+          amount: 0,
+          movementId: null,
+        }
 
-      // Real-time: same rationale as the winning-bid branch — push the
-      // (unsold) close to ALL clients so the acknowledgment phase appears
-      // simultaneously rather than via polling. (test-session #15)
-      void triggerAuctionClosed(sessionId, {
-        auctionId: auction.id,
-        playerId: auction.playerId,
-        playerName: auction.player.name,
-        winnerId: null,
-        winnerName: null,
-        finalPrice: null,
-        wasUnsold: true,
-        timestamp: new Date().toISOString(),
-      })
+        // Real-time: same rationale as the winning-bid branch — push the
+        // (unsold) close to ALL clients so the acknowledgment phase appears
+        // simultaneously rather than via polling. (test-session #15)
+        void triggerAuctionClosed(sessionId, {
+          auctionId: auction.id,
+          playerId: auction.playerId,
+          playerName: auction.player.name,
+          winnerId: null,
+          winnerName: null,
+          finalPrice: null,
+          wasUnsold: true,
+          timestamp: new Date().toISOString(),
+        })
+      }
+      // Se claim.count===0, un'altra richiesta concorrente ha già chiuso questa asta.
 
       auction = null
     }
@@ -1600,14 +1618,20 @@ export async function closeAuction(
   const winningBid = auction.bids[0]
 
   if (!winningBid) {
-    // No bids - close as NO_BIDS
-    await prisma.auction.update({
-      where: { id: auctionId },
+    // No bids - close as NO_BIDS. updateMany guardato su status:'ACTIVE' (compare-
+    // and-swap atomica): se l'auto-chiusura lazy per timer scaduto (getCurrentAuction)
+    // ha già processato questa stessa asta un istante prima, count sarà 0.
+    const claim = await prisma.auction.updateMany({
+      where: { id: auctionId, status: AuctionStatus.ACTIVE },
       data: {
         status: AuctionStatus.NO_BIDS,
         endsAt: new Date(),
       },
     })
+
+    if (claim.count === 0) {
+      return { success: false, message: 'Asta già chiusa (da un\'altra richiesta concorrente)' }
+    }
 
     // Trigger Pusher event for auction closed (fire and forget)
     if (auction.marketSessionId) {
@@ -1633,53 +1657,65 @@ export async function closeAuction(
   // Assign player to winner
   const winner = winningBid.bidder
 
-  // Create roster entry
-  const rosterEntry = await prisma.playerRoster.create({
-    data: {
-      leagueMemberId: winner.id,
-      playerId: auction.playerId,
-      acquisitionPrice: winningBid.amount,
-      acquisitionType: AcquisitionType.FIRST_MARKET,
-      status: RosterStatus.ACTIVE,
-    },
-  })
-
   // Create contract: 10% salary (integer, min 1), 3 semesters
   const salary = calculateDefaultSalary(winningBid.amount)
   const duration = DEFAULT_CONTRACT_DURATION
   const rescissionClause = calculateRescissionClause(salary, duration)
 
-  await prisma.playerContract.create({
-    data: {
-      rosterId: rosterEntry.id,
-      leagueMemberId: winner.id,
-      salary,
-      duration,
-      initialSalary: salary,
-      initialDuration: duration,
-      rescissionClause,
-    },
-  })
-
-  // Deduct budget from winner
-  await prisma.leagueMember.update({
-    where: { id: winner.id },
-    data: {
-      currentBudget: {
-        decrement: winningBid.amount,
+  // Claim atomico + roster + contratto + scalo budget in un'unica transazione: prima
+  // erano 4 scritture Prisma sequenziali senza alcuna protezione dalla concorrenza —
+  // un crash a metà avrebbe potuto assegnare il giocatore senza scalare il budget, e
+  // una chiusura admin esplicita in corsa con l'auto-chiusura lazy per timer scaduto
+  // (getCurrentAuction) poteva assegnare lo stesso giocatore due volte (trovato
+  // durante il controllo definitivo bilanci 2026-08-28).
+  const claimed = await prisma.$transaction(async (tx) => {
+    const claim = await tx.auction.updateMany({
+      where: { id: auctionId, status: AuctionStatus.ACTIVE },
+      data: {
+        status: AuctionStatus.COMPLETED,
+        winnerId: winner.id,
+        endsAt: new Date(),
       },
-    },
+    })
+    if (claim.count === 0) return false
+
+    const rosterEntry = await tx.playerRoster.create({
+      data: {
+        leagueMemberId: winner.id,
+        playerId: auction.playerId,
+        acquisitionPrice: winningBid.amount,
+        acquisitionType: AcquisitionType.FIRST_MARKET,
+        status: RosterStatus.ACTIVE,
+      },
+    })
+
+    await tx.playerContract.create({
+      data: {
+        rosterId: rosterEntry.id,
+        leagueMemberId: winner.id,
+        salary,
+        duration,
+        initialSalary: salary,
+        initialDuration: duration,
+        rescissionClause,
+      },
+    })
+
+    await tx.leagueMember.update({
+      where: { id: winner.id },
+      data: {
+        currentBudget: {
+          decrement: winningBid.amount,
+        },
+      },
+    })
+
+    return true
   })
 
-  // Update auction
-  await prisma.auction.update({
-    where: { id: auctionId },
-    data: {
-      status: AuctionStatus.COMPLETED,
-      winnerId: winner.id,
-      endsAt: new Date(),
-    },
-  })
+  if (!claimed) {
+    return { success: false, message: 'Asta già chiusa (da un\'altra richiesta concorrente)' }
+  }
 
   // Record movement
   const session = await prisma.marketSession.findFirst({
