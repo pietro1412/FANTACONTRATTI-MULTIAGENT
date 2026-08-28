@@ -356,6 +356,18 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
 
     setIsConsolidating(true)
 
+    // Il consolidamento legge tagli e decisioni sugli usciti dal DB
+    // (draftReleased/draftExitDecision), scritti solo da "Salva bozza": senza
+    // questo salvataggio preventivo, Taglia/Mantieni/Rilascia cliccati appena
+    // ora (senza un "Salva bozza" esplicito) restano invisibili al backend.
+    const exitDecisionsArray = Array.from(exitDecisions.entries()).map(([contractId, decision]) => ({ contractId, decision }))
+    const draftResult = await contractApi.saveDrafts(leagueId, [], [], Array.from(localReleases), exitDecisionsArray)
+    if (!draftResult.success) {
+      toast.error(draftResult.message || 'Errore nel salvataggio delle bozze')
+      setIsConsolidating(false)
+      return
+    }
+
     const renewals: { contractId: string; salary: number; duration: number }[] = []
     Object.entries(localEdits).forEach(([contractId, edit]) => {
       const contract = contracts.find(c => c.id === contractId)
