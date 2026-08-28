@@ -503,6 +503,12 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
     contracts.filter(c => c.isExitedPlayer && !exitDecisions.has(c.id)),
   [contracts, exitDecisions])
 
+  useEffect(() => {
+    if (contractTab === 'usciti' && exitedContracts.length === 0) {
+      setContractTab(pendingContracts.length > 0 ? 'nuovi' : 'rinnovi')
+    }
+  }, [exitedContracts.length, contractTab, pendingContracts.length])
+
   const filteredContracts = useMemo(() => {
     let items = contracts.filter(c => !c.isExitedPlayer || exitDecisions.get(c.id) === 'KEEP')
     if (filterRole) items = items.filter(c => c.roster.player.position === filterRole)
@@ -769,7 +775,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
 
   // ===== Sidebar stats =====
   const sidebar = (
-    <div className="flex flex-col gap-3 lg:overflow-y-auto lg:min-h-0">
+    <div className="flex flex-col gap-3 lg:h-full lg:min-h-0 panel-scroll">
       {/* Residuo */}
       <div className="bg-gradient-to-br from-secondary-500/10 to-secondary-500/[0.03] border border-secondary-500/35 rounded-2xl p-4">
         <div className="micro-label mb-2.5">Residuo dopo consolidamento</div>
