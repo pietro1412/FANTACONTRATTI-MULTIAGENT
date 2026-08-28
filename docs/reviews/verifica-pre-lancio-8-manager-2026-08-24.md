@@ -8,11 +8,11 @@
 
 ## PUNTO DI RIPRESA (leggere per primo dopo un /clear o /compact)
 
-**Ultimo aggiornamento: 2026-08-26.**
+**Ultimo aggiornamento: 2026-08-28.**
 
-**Dove siamo**: chiusa una sessione lunga e fuori sequenza dal piano originale, dedicata quasi interamente alla **fase Scambi** — piccoli fix UI, poi (su richiesta esplicita di Pietro) una verifica approfondita del flusso scambi con script dedicati, che ha portato a scoprire e correggere un bug di dominio importante (Monte Ingaggi calcolato live invece che fissato al consolidamento). Tutto deployato in `main`/prod, incluso backfill dati su tutte le leghe reali. **Dettagli completi, con checklist di verifica per Pietro, nella sezione `## Sessione Scambi + fix Monte Ingaggi (2026-08-26)` più in basso in questo stesso file.**
+**Dove siamo**: dopo una sessione dedicata alla Fase Premi (rework completo: correzioni post-finalizzazione, re-incremento base per-manager — vedi sezioni sotto), Pietro ha chiesto un **controllo definitivo su Bilancio/Budget/Monte Ingaggi in tutta la piattaforma**, vista la quantità di bug trovati in Premi. Fatto: 6 flussi verificati a mano (Primo Mercato, Rubata, Svincolati, Consolidamento Contratti, Scambi, Premi), 9 bug trovati e corretti, buco di test automatici chiuso su 3 service prima scoperti (auction/svincolati/prize-phase). Tutto deployato in `main`/prod. **Dettagli completi nella sezione `## Controllo definitivo Bilancio/Budget/Monte Ingaggi (2026-08-28)` in fondo a questo file.**
 
-Prossimo passo naturale: Pietro verifica quanto descritto in quella sezione, poi si riprende la Fase 5 (playthrough) da Contratti/Rubata/Svincolati, oppure altro su richiesta di Pietro.
+Prossimo passo naturale (dichiarato da Pietro): **verifica grafica/UI di Rubata e Svincolati** — non ancora iniziata. In alternativa: Pietro verifica dal vivo i fix di oggi, poi si riprende la Fase 5 (playthrough) da Contratti, oppure altro su richiesta di Pietro.
 
 **Cosa manca per chiudere il ciclo di verifica pre-lancio** (piano originale, Fasi 0-7 in `C:\Users\39349\.claude\plans\inherited-whistling-tulip.md`):
 - Fase 4 (sweep bug aperti #7/#13): triage fatto, non bloccante, non azionato — va bene lasciarlo così per la beta cerchia ristretta.
@@ -358,5 +358,40 @@ Verificato: typecheck/lint puliti, 1780/1780 test verdi. **Non ancora testato da
 - **Vincolo scoperto in corsa**: `categories` viene inviato dal backend SOLO all'admin (`categories: isAdmin ? formattedCategories : []`, anti-collusione: i manager non devono vedere gli importi altrui). Rimuovere `config.baseReincrement` dal calcolo frontend avrebbe azzerato silenziosamente il riepilogo "I tuoi premi" del manager (che oggi, scoperto per inciso, non mostra MAI i premi per-categoria individuali né l'indennizzo per lo stesso motivo — bug preesistente, mai notato perché il re-incremento flat mascherava il problema). Fix: nuovi campi mirati nella risposta — `member.baseReincrement` (per-manager, visibile a tutti) e due campi a livello di risposta `myCategoryPrizes`/`myIndemnityTotal` (SOLO il dettaglio del chiamante, non l'intera `categories`) — la privacy verso gli altri manager resta intatta, ma ora il manager vede finalmente il proprio dettaglio invece di un riepilogo vuoto.
 - Storico → tab Premi sessione (`history.service.ts::getSessionPrizes`) e Storico Premi accordion (`prize-phase.service.ts::getPrizeHistory`): stessa logica, con **fallback al valore flat storico** quando la categoria non esiste ancora (sessioni finalizzate PRIMA di questa feature, mai più migrate perché non passano più da `getPrizePhaseData`) — zero regressioni per le stagioni reali già concluse in produzione. Rimosso il chip singolo "Base Xm" nell'header collassato dell'accordion (può variare per manager, valore accurato resta nella tabella per-riga).
 - Frontend (`PrizePhaseManager.tsx`): rimossa la StepCard "Re-incremento Budget Base" (era Step 1), stepper passato da 4 a 3 step (Indennizzi→1, Assegna premi→2, Finalizza→3). Il valore ora vive come prima colonna della tabella "Assegnazione premi", editabile per-manager con lo stepper esistente.
+
+---
+
+## Controllo definitivo Bilancio/Budget/Monte Ingaggi (2026-08-28)
+
+Vista la quantità di bug trovati in Fase Premi, Pietro ha chiesto un controllo definitivo sui calcoli di Bilancio/Budget/Monte Ingaggi in tutta la piattaforma (Primo Mercato, Rubata, Svincolati, Consolidamento Contratti, Scambi), prima di passare alla verifica grafica di Rubata/Svincolati (prossima attività). Piano approvato: `C:\Users\39349\.claude\plans\twinkling-foraging-crab.md`. Metodo: ricognizione con 4 agenti in parallelo (regole Bibbie, mappa scritture backend, mappa letture frontend, copertura test), poi verifica a mano flusso per flusso con tracciamento numerico, poi fix mirati.
+
+**Esito per flusso:**
+
+| Flusso | Esito | Commit |
+|---|---|---|
+| **Premi** | Coperto nelle sezioni sopra (stessa sessione) | vedi sopra |
+| **Primo Mercato** | 🔴 3 bug trovati e corretti | `09ba90d`, `62ca2da` |
+| **Rubata** (flusso reale) | ✅ Conforme, già testato (`rubata-budget-bug.test.ts`) | — |
+| **Rubata** (simulazione admin) | 🔴 1 bug trovato e corretto | `693e381` |
+| **Svincolati** | 🔴 1 bug trovato e corretto | `dbc6634` |
+| **Consolidamento Contratti** | ✅ Logica principale conforme (guardia `postMonteIngaggi > budget`, indennizzo letto dal vivo al RELEASE); 🔴 1 bug atomicità | `03d9d3f` |
+| **Scambi** | ✅ Conforme, nessun bug (già transazionale, monte ingaggi correttamente mai toccato) | — |
+| **Reset Primo Mercato (admin)** | 🔴 1 bug trovato in corsa | `03d9d3f` |
+
+**Dettaglio bug corretti:**
+
+1. **3 formule "offerta massima" divergenti** (`auction-room-v2/StatusBar.tsx`, `BiddingPanel.tsx`, `FinancialDashboard.tsx`): ciascuna ricalcolava bilancio+riserva-slot autonomamente lato client, con riserve diverse (2M/slot in due punti, ~1M/slot nel terzo) — stesso pattern del bug storico Monte Ingaggi/Scambi. Unificate in `computeMaxAuctionBid`/`computeSlotReserve` in `src/utils/finance.ts`, mirror esatto della validazione server (`auction.service.ts`, Bibbia `PRIMO-MERCATO.md` §8).
+2. **Messaggio di rifiuto offerta impreciso** (server, `auction.service.ts`): mostrava un'"offerta massima" che non sottraeva l'ingaggio risultante — ritentando esattamente quel numero, l'offerta veniva respinta di nuovo. Corretto con lo stesso calcolo iterativo lato server (usa `calculateDefaultSalary` reale).
+3. **Race concorrente su chiusura asta Primo Mercato**: due client che interrogano `getCurrentAuction` nello stesso istante in cui il timer scade potevano ENTRAMBI superare il check "status===ACTIVE" ed eseguire l'assegnazione — stesso giocatore assegnato due volte, budget scalato due volte. Stessa race tra chiusura admin esplicita e auto-chiusura lazy. Fix: `updateMany` guardato su `status:'ACTIVE'` come compare-and-swap atomica, dentro `$transaction` insieme a roster/contratto/budget (`closeAuction` e `getCurrentAuction`).
+4. **Stesso pattern di race in Svincolati** (`closeSvincolatiAuction`): auto-chiusura per timer lato client (gate `isAdmin`, ma niente protezione da doppia tab) vs click manuale. Stesso fix (claim atomico).
+5. **`completeRubataWithTransactions`** (simulazione admin, usata anche su leghe reali per playthrough): aggiornava `currentBudget` ma MAI `totalSalaries` — a differenza del flusso reale, lasciando il Monte Ingaggi disallineato dai contratti effettivi fino al prossimo consolidamento. Corretto (+ reso transazionale, prima 7 chiamate Prisma sequenziali).
+6. **`releasePlayer`** (svincolo pre-consolidamento) e **`resetFirstMarket`** (tool admin "resetta e ricomincia"): scritture non transazionali, avvolte in `$transaction`.
+7. **Bug aggiuntivo trovato in `resetFirstMarket`**: dopo aver cancellato tutti i contratti, `totalSalaries` non veniva MAI azzerato — restava al valore "fantasma" precedente il reset, dando un Bilancio sbagliato subito dopo ogni reset di Primo Mercato. Corretto.
+
+**Buco di test chiuso** (`b76a31c`): `auction.service.ts`, `svincolati.service.ts`, `prize-phase.service.ts` non avevano ALCUN test automatico nonostante gestiscano i movimenti di budget/monte ingaggi più frequenti della piattaforma. Aggiunti 3 nuovi file mirati sull'invariante finanziario critico di ciascun flusso (non copertura esaustiva) — 1791/1791 test verdi.
+
+**Verificato per ogni fix**: tracciamento numerico a mano, `tsc --noEmit`, lint file toccati, `npm run test:all` (rimasto verde ad ogni commit). **Non ancora testato dal vivo** nessuno di questi fix su una sessione reale — in particolare la race di concorrenza (finding 3/4) è per natura difficile da riprodurre manualmente in un playthrough normale; l'unica verifica pratica è che il comportamento normale (nessuna concorrenza) resti identico, cosa già confermata dai test.
+
+**Fuori scope per questo giro** (esplicitamente, vedi piano): verifica grafica/UI di Rubata e Svincolati (prossima attività); hardening generale della concorrenza oltre ai punti sopra; modifiche allo schema Prisma (nessuna necessaria).
 
 Verificato: typecheck/lint/build (frontend + backend) puliti, 1780/1780 test verdi. Tracciato a mano l'intero ciclo di vita (init → override individuale → finalizzazione → correzione post-finalizzazione) per Bilancio/Premio Garantito, nessuna discontinuità. **Non ancora testato dal vivo** — Pietro deve verificare su Playthrough Beta che la migrazione lazy sia trasparente (nessun numero cambiato) e che l'override individuale funzioni end-to-end.
