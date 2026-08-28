@@ -1260,15 +1260,19 @@ export async function closeSvincolatiAuction(
   const turnOrder = (auction.marketSession?.svincolatiTurnOrder as string[] | null) || []
 
   if (!winningBid) {
-    // No bids - player stays free
-    await prisma.$transaction(async (tx) => {
-      await tx.auction.update({
-        where: { id: auctionId },
+    // No bids - player stays free. updateMany guardato su status:'ACTIVE' (compare-
+    // and-swap atomica): l'auto-chiusura per timer scaduto lato client e un click
+    // manuale "chiudi asta" potevano correre in parallelo (o due tab admin aperte
+    // contemporaneamente) — trovato durante il controllo definitivo bilanci 2026-08-28.
+    const claimed = await prisma.$transaction(async (tx) => {
+      const claim = await tx.auction.updateMany({
+        where: { id: auctionId, status: AuctionStatus.ACTIVE },
         data: {
           status: AuctionStatus.NO_BIDS,
           endsAt: new Date(),
         },
       })
+      if (claim.count === 0) return false
 
       // Set pending ack
       await tx.marketSession.update({
@@ -1288,7 +1292,12 @@ export async function closeSvincolatiAuction(
           },
         },
       })
+      return true
     })
+
+    if (!claimed) {
+      return { success: false, message: 'Asta già chiusa (da un\'altra richiesta concorrente)' }
+    }
 
     // Trigger Pusher event for auction closed - unsold (non-blocking)
     triggerSvincolatiAuctionClosed(auction.marketSessionId ?? auctionId, {
@@ -1310,8 +1319,19 @@ export async function closeSvincolatiAuction(
     }
   }
 
-  // Assign player to winner
-  await prisma.$transaction(async (tx) => {
+  // Assign player to winner. Claim atomico (updateMany guardato su status:'ACTIVE')
+  // come primissima operazione — stesso motivo del ramo "no bids" sopra.
+  const claimed = await prisma.$transaction(async (tx) => {
+    const claim = await tx.auction.updateMany({
+      where: { id: auctionId, status: AuctionStatus.ACTIVE },
+      data: {
+        status: AuctionStatus.COMPLETED,
+        winnerId: winningBid.bidderId,
+        endsAt: new Date(),
+      },
+    })
+    if (claim.count === 0) return false
+
     // Deduct budget from winner
     await tx.leagueMember.update({
       where: { id: winningBid.bidderId },
@@ -1352,16 +1372,6 @@ export async function closeSvincolatiAuction(
       data: { totalSalaries: { increment: salary } },
     })
 
-    // Complete auction
-    await tx.auction.update({
-      where: { id: auctionId },
-      data: {
-        status: AuctionStatus.COMPLETED,
-        winnerId: winningBid.bidderId,
-        endsAt: new Date(),
-      },
-    })
-
     // Set pending ack
     await tx.marketSession.update({
       where: { id: auction.marketSessionId! },
@@ -1380,7 +1390,13 @@ export async function closeSvincolatiAuction(
         },
       },
     })
+
+    return true
   })
+
+  if (!claimed) {
+    return { success: false, message: 'Asta già chiusa (da un\'altra richiesta concorrente)' }
+  }
 
   // Record movement with contract values
   const movementSalary2 = calculateDefaultSalary(auction.currentPrice)
