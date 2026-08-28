@@ -443,29 +443,28 @@ export function PrizePhaseManager({ sessionId, leagueId, isAdmin, onUpdate }: Pr
     return total
   }
 
-  // Total = base + regular category prizes + (indemnities only when consolidated).
+  // "Premio garantito" = base + premi normali: SOLO ciò che finalizePrizePhase accredita
+  // davvero. L'indennizzo NON entra qui — non è mai un premio di stagione, è un pagamento
+  // condizionato che avviene (se avviene) solo più avanti in Contratti quando il manager
+  // sceglie RELEASE, per un importo che nel frattempo può anche essere stato corretto.
+  // Mescolarlo in questo totale prometterebbe all'admin un accredito che il finalize non
+  // fa mai (vedi getIndemnityTotal/IndemnityTable per l'indennizzo, sempre a parte).
   const calculateMemberTotal = (memberId: string) => {
     let total = config.baseReincrement
     for (const cat of regularCategories) {
       const prize = cat.prizes.find(p => p.memberId === memberId)
       if (prize) total += prize.amount
     }
-    if (config.indemnityConsolidated) {
-      total += calculateMemberIndemnityTotal(memberId)
-    }
     return total
   }
 
-  // Quanto aggiungere al Bilancio attuale per il "Bilancio Tot." proiettato.
-  // PRIMA della finalizzazione: nulla è stato ancora accreditato, quindi si proietta
-  // l'intero pacchetto premi (= calculateMemberTotal, invariato).
-  // DOPO la finalizzazione: base + premi normali sono GIÀ dentro il Bilancio attuale
-  // (accreditati al finalize, eventuali correzioni li tengono allineati) — sommarli di
-  // nuovo li conterebbe due volte. Resta da aggiungere solo l'eventuale indennizzo, MAI
-  // accreditato dal finalize (pagato più avanti in Contratti al momento del RELEASE).
+  // Quanto aggiungere al Bilancio attuale per il "Bilancio Tot." proiettato — SOLO la
+  // quota garantita (calculateMemberTotal), mai l'indennizzo (vedi sopra). Prima della
+  // finalizzazione: nulla è stato ancora accreditato, si proietta l'intero garantito.
+  // Dopo: è già dentro il Bilancio attuale (accreditato al finalize, correzioni comprese),
+  // quindi non c'è più nulla da aggiungere — sommarlo di nuovo lo conterebbe due volte.
   const getBilancioIncrement = (memberId: string) => {
-    if (!config.isFinalized) return calculateMemberTotal(memberId)
-    return config.indemnityConsolidated ? calculateMemberIndemnityTotal(memberId) : 0
+    return config.isFinalized ? 0 : calculateMemberTotal(memberId)
   }
 
   const showIndemnities = indemnityCategories.length > 0 && config.indemnityConsolidated
@@ -563,13 +562,15 @@ export function PrizePhaseManager({ sessionId, leagueId, isAdmin, onUpdate }: Pr
           })
         }
       }
+      // Indennizzo: NON incluso in myTotal/"Totale accreditato" (vedi calculateMemberTotal)
+      // — mostrato qui come riconoscimento a parte, con nota che non è ancora accreditato.
       const indemnityTotal = calculateMemberIndemnityTotal(myMember.id)
       if (indemnityTotal > 0) {
         recognitions.push({
           key: 'indemnity',
-          category: 'Indennizzi estero',
+          category: 'Indennizzi estero (potenziale)',
           amount: indemnityTotal,
-          description: 'giocatori usciti all\'estero',
+          description: 'non ancora accreditato: liquidato in fase Contratti solo se rilasci il giocatore',
         })
       }
     }
@@ -577,15 +578,15 @@ export function PrizePhaseManager({ sessionId, leagueId, isAdmin, onUpdate }: Pr
     const myTotal = myMember ? calculateMemberTotal(myMember.id) : config.baseReincrement
     const bilancioPre = myMember ? computeBilancio(myMember.currentBudget, myMember.totalSalaries) : 0
     // Stesso calcolo del "Bilancio Tot." in tabella admin (getBilancioIncrement): questa
-    // stat compare SOLO a fase finalizzata, quindi va sempre il ramo "già accreditato"
-    // (solo l'eventuale indennizzo va sommato, non base+premi normali già dentro bilancioPre).
+    // stat compare SOLO a fase finalizzata, quindi vale sempre 0 — base+premi normali sono
+    // già dentro bilancioPre, l'indennizzo non è mai incluso (vedi calculateMemberTotal).
     const bilancioIncrement = myMember ? getBilancioIncrement(myMember.id) : 0
 
     return (
       <div className="space-y-5">
         <PrizePhaseHeader
           title="I tuoi premi"
-          subtitle="Premi e indennizzi accreditati al tuo bilancio per questa stagione."
+          subtitle="Premi accreditati al tuo bilancio per questa stagione. Gli eventuali indennizzi restano potenziali fino alla decisione in fase Contratti."
           stats={[
             { label: 'Bilancio pre-premi', value: `${bilancioPre}M` },
             ...(config.isFinalized
@@ -772,6 +773,13 @@ export function PrizePhaseManager({ sessionId, leagueId, isAdmin, onUpdate }: Pr
           onRenameCategory={(catId, name) => { void handleRenameCategory(catId, name) }}
           onDeleteCategory={(catId) => { void handleDeleteCategory(catId) }}
         />
+
+        {showIndemnities && (
+          <p className="text-xs text-gray-500 mt-3">
+            La colonna Indennizzi è potenziale: non è compresa in Premio Garantito/Bilancio
+            Tot. perché viene liquidata solo in fase Contratti, se il manager rilascia il giocatore.
+          </p>
+        )}
       </StepCard>
 
       {/* Step 4 - Finalize (decision zone) */}

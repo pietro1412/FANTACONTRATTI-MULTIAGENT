@@ -137,7 +137,7 @@ export function PrizeAssignmentTable({
               {showIndemnities && (
                 <th className="text-center p-2 micro-label text-accent-400 min-w-[100px]">Indennizzi</th>
               )}
-              <th className="text-center p-2 micro-label text-primary-400 border-l border-surface-50/20">Premio Tot.</th>
+              <th className="text-center p-2 micro-label text-primary-400 border-l border-surface-50/20">Premio Garantito</th>
               <th className="text-center p-2 micro-label text-secondary-400 border-l border-surface-50/20">Bilancio Tot.</th>
             </tr>
           </thead>
@@ -207,7 +207,7 @@ export function PrizeAssignmentTable({
               </div>
               <div className="text-right">
                 <p className="stat-number text-lg text-primary-400">{getMemberTotal(member.id)}M</p>
-                <p className="micro-label text-[8.5px]">Premio totale</p>
+                <p className="micro-label text-[8.5px]">Premio garantito</p>
               </div>
             </div>
 
