@@ -57,14 +57,16 @@ describe('RenewalItem', () => {
     expect(screen.getByText('Durata')).toBeInTheDocument()
   })
 
-  it('should hide the reset control when the draft matches the signed contract', () => {
+  it('should show Taglia (not Cancella rinnovo) when the draft matches the signed contract', () => {
     renderItem()
-    expect(screen.queryByRole('button', { name: /ripristina/i })).not.toBeInTheDocument()
+    expect(screen.getByText('Taglia')).toBeInTheDocument()
+    expect(screen.queryByText('Cancella rinnovo')).not.toBeInTheDocument()
   })
 
-  it('should show the reset control when the draft differs, and call onResetContract on click', () => {
+  it('should replace Taglia with Cancella rinnovo when the draft differs, calling onResetContract on click', () => {
     const props = renderItem({ newSalary: 10, newDuration: 3 })
-    const resetButton = screen.getByRole('button', { name: /ripristina/i })
+    expect(screen.queryByText('Taglia')).not.toBeInTheDocument()
+    const resetButton = screen.getByText('Cancella rinnovo')
     fireEvent.click(resetButton)
     expect(props.onResetContract).toHaveBeenCalledTimes(1)
   })

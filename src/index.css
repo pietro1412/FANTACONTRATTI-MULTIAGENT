@@ -345,14 +345,14 @@
   @media (min-width: 1024px) {
     .contracts-grid {
       grid-template-columns:
-        minmax(160px, 2.4fr)
+        minmax(150px, 2.2fr)
         minmax(48px, 0.3fr)
         minmax(150px, 0.9fr)
         minmax(130px, 0.8fr)
         minmax(76px, 0.45fr)
         minmax(76px, 0.45fr)
         minmax(64px, 0.35fr)
-        minmax(84px, 0.5fr);
+        minmax(148px, 0.6fr);
       gap: 0.5rem;
     }
   }

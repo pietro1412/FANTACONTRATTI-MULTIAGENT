@@ -138,33 +138,20 @@ export function RenewalItem({
       </div>
 
       {/* Salary (draft value; the stepper glows gold when it differs from the
-          signed contract, and the reset icon reappears next to it so the
-          user can undo without needing to see the original number). */}
-      <div className="flex lg:justify-center items-center justify-between gap-1.5">
+          signed contract — the reset lives in the Azione column as "Cancella
+          rinnovo", replacing Taglia, since the two are mutually exclusive). */}
+      <div className="flex lg:justify-center items-center justify-between">
         <span className="micro-label lg:hidden">Ingaggio</span>
         {editable ? (
-          <>
-            <Stepper
-              value={newSalary}
-              unit="ing."
-              tone="gold"
-              onDecrement={() => { onSalaryChange(Math.max(k.minSalaryAllowed, newSalary - 1)) }}
-              onIncrement={() => { onSalaryChange(newSalary + 1) }}
-              decDisabled={!k.canDecreaseSalary}
-              decTitle={!k.canDecreaseSalary ? (c.canSpalmare ? 'Ingaggio minimo raggiunto' : 'Riduci prima la durata') : undefined}
-            />
-            {k.hasChanges && (
-              <button
-                type="button"
-                onClick={onResetContract}
-                className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-md text-gray-400 hover:text-white hover:bg-surface-100 transition-colors"
-                title={`Ripristina valore di contratto (${c.salary}M / ${c.duration}s)`}
-                aria-label="Ripristina valore di contratto originale"
-              >
-                <RotateCcw size={13} />
-              </button>
-            )}
-          </>
+          <Stepper
+            value={newSalary}
+            unit="ing."
+            tone="gold"
+            onDecrement={() => { onSalaryChange(Math.max(k.minSalaryAllowed, newSalary - 1)) }}
+            onIncrement={() => { onSalaryChange(newSalary + 1) }}
+            decDisabled={!k.canDecreaseSalary}
+            decTitle={!k.canDecreaseSalary ? (c.canSpalmare ? 'Ingaggio minimo raggiunto' : 'Riduci prima la durata') : undefined}
+          />
         ) : isConsolidated && c.draftSalary != null ? (
           <span className="stat-number text-base text-accent-400">{c.draftSalary}M</span>
         ) : (
@@ -253,6 +240,17 @@ export function RenewalItem({
               className="font-mono text-[9.5px] font-bold text-gray-300 border border-surface-50 bg-surface-200 rounded-lg px-2.5 py-1.5 hover:bg-surface-100 transition-colors"
             >
               Annulla
+            </button>
+          ) : k.hasChanges ? (
+            // Renewal in progress: cutting no longer applies, so Taglia is
+            // replaced by an undo for the salary/duration change instead.
+            <button
+              type="button"
+              onClick={onResetContract}
+              className="font-mono text-[9.5px] font-bold text-gray-300 border border-surface-50 bg-surface-200 rounded-lg px-2.5 py-1.5 hover:bg-surface-100 transition-colors inline-flex items-center gap-1"
+              title={`Annulla rinnovo, torna a ${c.salary}M / ${c.duration}s`}
+            >
+              <RotateCcw size={11} /> Cancella rinnovo
             </button>
           ) : (
             <button
