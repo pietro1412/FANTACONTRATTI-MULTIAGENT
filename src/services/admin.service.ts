@@ -277,90 +277,81 @@ export async function resetFirstMarket(
     return { success: false, message: 'Nessuna sessione PRIMO MERCATO trovata' }
   }
 
-  // Delete all auction appeals for this session's auctions
-  await prisma.auctionAppeal.deleteMany({
-    where: {
-      auction: {
+  // Tutte le cancellazioni + il reset di budget/monte ingaggi/sessione in un'unica
+  // transazione: prima erano 9 scritture Prisma sequenziali — un crash a metà
+  // avrebbe lasciato la lega in uno stato parziale incoerente (es. contratti già
+  // cancellati ma budget non ancora resettato). Aggiunto anche il reset di
+  // totalSalaries a 0 (mancava: dopo aver cancellato tutti i contratti, il Monte
+  // Ingaggi restava "fantasma" al valore precedente il reset) — trovato durante il
+  // controllo definitivo bilanci 2026-08-28.
+  await prisma.$transaction([
+    prisma.auctionAppeal.deleteMany({
+      where: {
+        auction: {
+          marketSessionId: session.id,
+        },
+      },
+    }),
+    prisma.auctionAcknowledgment.deleteMany({
+      where: {
+        auction: {
+          marketSessionId: session.id,
+        },
+      },
+    }),
+    prisma.auctionBid.deleteMany({
+      where: {
+        auction: {
+          marketSessionId: session.id,
+        },
+      },
+    }),
+    prisma.auction.deleteMany({
+      where: {
         marketSessionId: session.id,
       },
-    },
-  })
-
-  // Delete all auction acknowledgments for this session's auctions
-  await prisma.auctionAcknowledgment.deleteMany({
-    where: {
-      auction: {
-        marketSessionId: session.id,
+    }),
+    prisma.prophecy.deleteMany({
+      where: { leagueId },
+    }),
+    prisma.playerMovement.deleteMany({
+      where: { leagueId },
+    }),
+    prisma.playerContract.deleteMany({
+      where: {
+        roster: {
+          leagueMember: { leagueId },
+        },
       },
-    },
-  })
-
-  // Delete all bids for this session's auctions
-  await prisma.auctionBid.deleteMany({
-    where: {
-      auction: {
-        marketSessionId: session.id,
-      },
-    },
-  })
-
-  // Delete all auctions for this session
-  await prisma.auction.deleteMany({
-    where: {
-      marketSessionId: session.id,
-    },
-  })
-
-  // Delete all prophecies for this league
-  await prisma.prophecy.deleteMany({
-    where: { leagueId },
-  })
-
-  // Delete all player movements for this league
-  await prisma.playerMovement.deleteMany({
-    where: { leagueId },
-  })
-
-  // Delete all contracts for players in this league
-  await prisma.playerContract.deleteMany({
-    where: {
-      roster: {
+    }),
+    prisma.playerRoster.deleteMany({
+      where: {
         leagueMember: { leagueId },
       },
-    },
-  })
-
-  // Delete all roster entries for this league
-  await prisma.playerRoster.deleteMany({
-    where: {
-      leagueMember: { leagueId },
-    },
-  })
-
-  // Reset all member budgets to initial
-  await prisma.leagueMember.updateMany({
-    where: {
-      leagueId,
-      status: MemberStatus.ACTIVE,
-    },
-    data: {
-      currentBudget: league.initialBudget,
-    },
-  })
-
-  // Reset session
-  await prisma.marketSession.update({
-    where: { id: session.id },
-    data: {
-      currentTurnIndex: 0,
-      currentRole: 'P',
-      pendingNominationPlayerId: null,
-      pendingNominatorId: null,
-      nominatorConfirmed: false,
-      readyMembers: Prisma.JsonNull,
-      status: 'ACTIVE',
-    },
-  })
+    }),
+    prisma.leagueMember.updateMany({
+      where: {
+        leagueId,
+        status: MemberStatus.ACTIVE,
+      },
+      data: {
+        currentBudget: league.initialBudget,
+        totalSalaries: 0,
+      },
+    }),
+    prisma.marketSession.update({
+      where: { id: session.id },
+      data: {
+        currentTurnIndex: 0,
+        currentRole: 'P',
+        pendingNominationPlayerId: null,
+        pendingNominatorId: null,
+        nominatorConfirmed: false,
+        readyMembers: Prisma.JsonNull,
+        status: 'ACTIVE',
+      },
+    }),
+  ])
 
   return {
     success: true,

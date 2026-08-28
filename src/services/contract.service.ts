@@ -873,29 +873,32 @@ export async function releasePlayer(
 
   const playerName = player.name
 
-  // Delete contract
-  await prisma.playerContract.delete({
-    where: { id: contractId },
-  })
-
-  // Update roster status to RELEASED
-  await prisma.playerRoster.update({
-    where: { id: contract.rosterId },
-    data: {
-      status: RosterStatus.RELEASED,
-      releasedAt: new Date(),
-    },
-  })
-
-  // Deduct budget
-  await prisma.leagueMember.update({
-    where: { id: member.id },
-    data: {
-      currentBudget: {
-        decrement: releaseCost,
+  // Contratto+roster+budget in un'unica transazione: prima erano 3 scritture Prisma
+  // sequenziali — un crash a metà avrebbe potuto cancellare il contratto senza
+  // scalare il costo taglio dal budget (trovato durante il controllo definitivo
+  // bilanci 2026-08-28). totalSalaries NON viene toccato qui di proposito: questo
+  // svincolo pre-consolidamento lascia il Monte Ingaggi "congelato" fino al prossimo
+  // consolidamento completo (stesso comportamento voluto degli Scambi).
+  await prisma.$transaction([
+    prisma.playerContract.delete({
+      where: { id: contractId },
+    }),
+    prisma.playerRoster.update({
+      where: { id: contract.rosterId },
+      data: {
+        status: RosterStatus.RELEASED,
+        releasedAt: new Date(),
       },
-    },
-  })
+    }),
+    prisma.leagueMember.update({
+      where: { id: member.id },
+      data: {
+        currentBudget: {
+          decrement: releaseCost,
+        },
+      },
+    }),
+  ])
 
   // Get active market session
   const activeSession = await prisma.marketSession.findFirst({
