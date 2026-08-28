@@ -781,8 +781,8 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
         <div className="text-[11px] text-gray-400 leading-relaxed space-y-0.5">
           <div className="flex justify-between">Budget <span className="font-mono text-white">{memberBudget}M</span></div>
           <div className="flex justify-between">− Ingaggi annui <span className="font-mono text-white">{projectedSalaries}M</span></div>
-          <div className="flex justify-between">+ Recupero tagli <span className="font-mono text-white">{totalReleaseCost}M</span></div>
-          {totalIndemnities > 0 && <div className="flex justify-between">− Indennizzi <span className="font-mono text-white">{totalIndemnities}M</span></div>}
+          {totalReleaseCost > 0 && <div className="flex justify-between">− Costo tagli <span className="font-mono text-white">{totalReleaseCost}M</span></div>}
+          {totalIndemnities > 0 && <div className="flex justify-between">+ Indennizzi <span className="font-mono text-white">{totalIndemnities}M</span></div>}
         </div>
         <div className="flex items-baseline justify-between mt-3 pt-3 border-t border-secondary-500/25">
           <span className="micro-label text-secondary-400">Residuo</span>
