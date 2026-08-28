@@ -13,10 +13,10 @@ interface PrizeStepperProps {
   steps: PrizeStep[]
 }
 
-/** Horizontal stepper of the 4 prize phases with derived status. */
+/** Horizontal stepper of the prize phase steps with derived status. */
 export function PrizeStepper({ steps }: PrizeStepperProps) {
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+    <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5">
       {steps.map(step => {
         const isDone = step.status === 'done'
         const isCurrent = step.status === 'current'

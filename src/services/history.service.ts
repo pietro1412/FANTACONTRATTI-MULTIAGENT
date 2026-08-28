@@ -570,6 +570,17 @@ export async function getSessionTrades(
 /**
  * Ottieni i premi assegnati in una sessione
  */
+// Nome categoria di sistema per il re-incremento base (mirror di prize-phase.service.ts:
+// BASE_REINCREMENT_CATEGORY_NAME — stringa duplicata di proposito, stesso pattern già
+// in uso per isIndemnityCategory tra i due file).
+const BASE_REINCREMENT_CATEGORY_NAME = 'Re-incremento Base'
+
+/** Vero per le categorie il cui importo viene davvero accreditato al finalize (vedi
+ * prize-phase.service.ts::isCreditedCategory per la spiegazione completa). */
+function isCreditedCategory(category: { isSystemPrize: boolean; name: string }): boolean {
+  return !category.isSystemPrize || category.name === BASE_REINCREMENT_CATEGORY_NAME
+}
+
 export async function getSessionPrizes(
   leagueId: string,
   sessionId: string,
@@ -726,17 +737,34 @@ export async function getSessionPrizes(
     }
   }
 
+  // Re-incremento base: ora per-manager (categoria "Re-incremento Base", vedi
+  // prize-phase.service.ts::ensureBaseReincrementCategory). Sessioni finalizzate PRIMA
+  // di questa feature non hanno ancora la categoria — fallback al valore flat storico.
+  const baseCategory = categories.find(c => c.name === BASE_REINCREMENT_CATEGORY_NAME)
+  const flatBaseFallback = session.prizePhaseConfig?.baseReincrement ?? 0
+  const memberBaseAmount = (memberId: string) =>
+    baseCategory
+      ? baseCategory.managerPrizes.find(p => p.leagueMemberId === memberId)?.amount ?? flatBaseFallback
+      : flatBaseFallback
+
+  // Colonne generiche mostrate in tabella: escludono la base (campo dedicato sotto) e
+  // gli indennizzi (già mostrati a parte nella sezione "Indennizzi Giocatori Usciti",
+  // mai accreditati al finalize — sommarli qui li conterebbe erroneamente due volte).
+  const displayCategories = categories.filter(cat => cat.id !== baseCategory?.id && isCreditedCategory(cat))
+
   // Calculate totals per member
   const memberTotals: Record<string, number> = {}
+  const memberBaseReincrement: Record<string, number> = {}
   const memberIndemnityTotals: Record<string, number> = {}
-  const baseReincrement = session.prizePhaseConfig?.baseReincrement ?? 0
 
   for (const m of members) {
-    memberTotals[m.id] = baseReincrement
+    const base = memberBaseAmount(m.id)
+    memberBaseReincrement[m.id] = base
+    memberTotals[m.id] = base
     memberIndemnityTotals[m.id] = 0
 
     // Add category prizes
-    for (const cat of categories) {
+    for (const cat of displayCategories) {
       const prize = cat.managerPrizes.find(p => p.leagueMemberId === m.id)
       if (prize) {
         memberTotals[m.id] = (memberTotals[m.id] ?? 0) + prize.amount
@@ -766,11 +794,11 @@ export async function getSessionPrizes(
     success: true,
     data: {
       config: {
-        baseReincrement,
+        baseReincrement: flatBaseFallback,
         isFinalized: session.prizePhaseConfig?.isFinalized ?? false,
         finalizedAt: session.prizePhaseConfig?.finalizedAt,
       },
-      categories: categories.map(cat => ({
+      categories: displayCategories.map(cat => ({
         id: cat.id,
         name: cat.name,
         isSystemPrize: cat.isSystemPrize,
@@ -785,6 +813,7 @@ export async function getSessionPrizes(
         id: m.id,
         username: m.user.username,
         teamName: m.teamName,
+        baseReincrement: memberBaseReincrement[m.id],
         totalPrize: memberTotals[m.id],
         totalIndemnity: memberIndemnityTotals[m.id],
         indemnityPlayers: indemnityByMember[m.id] || [],

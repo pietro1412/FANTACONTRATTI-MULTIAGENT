@@ -3,7 +3,6 @@ import type { Request, Response } from 'express'
 import {
   initializePrizePhase,
   getPrizePhaseData,
-  updateBaseReincrement,
   createPrizeCategory,
   renamePrizeCategory,
   deletePrizeCategory,
@@ -55,33 +54,6 @@ router.get('/sessions/:sessionId/prizes', authMiddleware, async (req: Request, r
     res.json(result)
   } catch (error) {
     console.error('Get prize phase data error:', error)
-    res.status(500).json({ success: false, message: 'Errore interno del server' })
-  }
-})
-
-// ==================== UPDATE BASE REINCREMENT ====================
-
-// PATCH /api/sessions/:sessionId/prizes/base-reincrement - Update base reincrement (Admin)
-router.patch('/sessions/:sessionId/prizes/base-reincrement', authMiddleware, async (req: Request, res: Response) => {
-  try {
-    const sessionId = req.params.sessionId as string
-    const { amount } = req.body as { amount: number }
-
-    if (amount === undefined) {
-      res.status(400).json({ success: false, message: 'amount è obbligatorio' })
-      return
-    }
-
-    const result = await updateBaseReincrement(sessionId, req.user!.userId, amount)
-
-    if (!result.success) {
-      res.status(result.message === 'Non autorizzato' ? 403 : 400).json(result)
-      return
-    }
-
-    res.json(result)
-  } catch (error) {
-    console.error('Update base reincrement error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })

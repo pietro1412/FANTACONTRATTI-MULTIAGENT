@@ -80,7 +80,8 @@ export function PrizeHistoryAccordion({ history, expandedId, onToggle }: PrizeHi
                 </div>
               </div>
               <div className="flex items-center gap-3 flex-shrink-0">
-                <span className="micro-label">Base {session.baseReincrement}M</span>
+                {/* Niente chip "Base Xm" qui: il re-incremento può variare per manager
+                    (assegnazione individuale), il valore accurato è nella tabella sotto. */}
                 <ChevronDown
                   size={18}
                   className={`text-gray-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`}

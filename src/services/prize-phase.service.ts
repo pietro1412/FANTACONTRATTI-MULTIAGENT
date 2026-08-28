@@ -3,6 +3,63 @@ import { prisma } from '@/lib/prisma'
 import type { ServiceResult } from '@/shared/types/service-result'
 import { logInfo } from '@/services/app-log.service'
 
+// Nome categoria di sistema per il re-incremento base — vedi ensureBaseReincrementCategory.
+const BASE_REINCREMENT_CATEGORY_NAME = 'Re-incremento Base'
+
+/**
+ * Vero per le categorie il cui importo viene DAVVERO accreditato al finalize.
+ * Le categorie normali (isSystemPrize=false) lo sono sempre; tra quelle di sistema,
+ * SOLO "Re-incremento Base" lo è — gli indennizzi (Indennizzo Partenza Estero /
+ * Indennizzo - PlayerName) non vengono mai accreditati qui: sono liquidati più avanti
+ * in Contratti, solo se il manager sceglie RELEASE.
+ */
+function isCreditedCategory(category: { isSystemPrize: boolean; name: string }): boolean {
+  return !category.isSystemPrize || category.name === BASE_REINCREMENT_CATEGORY_NAME
+}
+
+/**
+ * Migrazione lazy: crea la categoria "Re-incremento Base" (se non esiste già) con
+ * l'importo storico di config.baseReincrement per ogni membro attivo. Rende il
+ * re-incremento base modificabile per-manager come qualunque altra categoria, senza
+ * cambiare nulla per le sessioni già in corso (stesso valore, solo ora per-riga).
+ * Idempotente — no-op se la categoria esiste già.
+ *
+ * createdAt ancorato a 1s prima di config.createdAt (che precede sempre qualunque
+ * categoria, essendo creata per prima in initializePrizePhase): garantisce che la
+ * colonna appaia sempre per prima nella tabella, anche migrando una sessione che ha
+ * già categorie custom più vecchie di questa migrazione.
+ */
+async function ensureBaseReincrementCategory(
+  sessionId: string,
+  leagueId: string,
+  defaultAmount: number,
+  configCreatedAt: Date
+): Promise<void> {
+  const existing = await prisma.prizeCategory.findFirst({
+    where: { marketSessionId: sessionId, name: BASE_REINCREMENT_CATEGORY_NAME },
+  })
+  if (existing) return
+
+  const members = await prisma.leagueMember.findMany({
+    where: { leagueId, status: MemberStatus.ACTIVE },
+    select: { id: true },
+  })
+  if (members.length === 0) return
+
+  await prisma.$transaction(async (tx) => {
+    const category = await tx.prizeCategory.create({
+      data: {
+        marketSessionId: sessionId,
+        name: BASE_REINCREMENT_CATEGORY_NAME,
+        isSystemPrize: true,
+        createdAt: new Date(configCreatedAt.getTime() - 1000),
+      },
+    })
+    await tx.sessionPrize.createMany({
+      data: members.map(m => ({ prizeCategoryId: category.id, leagueMemberId: m.id, amount: defaultAmount })),
+    })
+  })
+}
 
 // ==================== INIZIALIZZAZIONE FASE PREMI ====================
 
@@ -54,7 +111,7 @@ export async function initializePrizePhase(
     },
   })
 
-  // Create config, default category and prizes in a single transaction
+  // Create config, default categories and prizes in a single transaction
   // This ensures atomicity - if any operation fails, all are rolled back
   const { config, indennizzoCategory } = await prisma.$transaction(async (tx) => {
     const config = await tx.prizePhaseConfig.create({
@@ -62,6 +119,22 @@ export async function initializePrizePhase(
         marketSessionId: sessionId,
         baseReincrement: 100,
       },
+    })
+
+    // Creata per prima: sorta sempre per prima nella tabella (orderBy createdAt asc).
+    const baseCategory = await tx.prizeCategory.create({
+      data: {
+        marketSessionId: sessionId,
+        name: BASE_REINCREMENT_CATEGORY_NAME,
+        isSystemPrize: true,
+      },
+    })
+    await tx.sessionPrize.createMany({
+      data: members.map(m => ({
+        prizeCategoryId: baseCategory.id,
+        leagueMemberId: m.id,
+        amount: 100,
+      })),
     })
 
     const indennizzoCategory = await tx.prizeCategory.create({
@@ -133,6 +206,10 @@ export async function getPrizePhaseData(
     return { success: false, message: 'Fase premi non inizializzata' }
   }
 
+  // Sessioni inizializzate prima di questa feature non hanno ancora la categoria
+  // "Re-incremento Base": la crea ora, seedata col valore storico di config.baseReincrement.
+  await ensureBaseReincrementCategory(sessionId, session.leagueId, config.baseReincrement, config.createdAt)
+
   // Get all members with roster info
   const members = await prisma.leagueMember.findMany({
     where: {
@@ -177,14 +254,21 @@ export async function getPrizePhaseData(
     orderBy: { createdAt: 'asc' },
   })
 
-  // Calculate totals per member
+  // Re-incremento base per-manager: la categoria "Re-incremento Base" (vedi
+  // ensureBaseReincrementCategory sopra) è ora la fonte di verità, non più config.baseReincrement.
+  const baseCategory = categories.find(cat => cat.name === BASE_REINCREMENT_CATEGORY_NAME)
+  const baseReincrementByMember: Record<string, number> = {}
+  for (const m of members) {
+    baseReincrementByMember[m.id] = baseCategory?.managerPrizes.find(p => p.leagueMemberId === m.id)?.amount ?? config.baseReincrement
+  }
+
+  // Calculate totals per member: premi accreditati (regolari + Re-incremento Base),
+  // esclusi gli indennizzi (mai accreditati qui, vedi isCreditedCategory).
   const memberTotals: Record<string, number> = {}
   for (const m of members) {
-    // Base reincrement (same for all)
-    memberTotals[m.id] = config.baseReincrement
-
-    // Add prizes from all categories
+    memberTotals[m.id] = 0
     for (const cat of categories) {
+      if (!isCreditedCategory(cat)) continue
       const prize = cat.managerPrizes.find(p => p.leagueMemberId === m.id)
       if (prize) {
         memberTotals[m.id] = (memberTotals[m.id] ?? 0) + prize.amount
@@ -293,6 +377,9 @@ export async function getPrizePhaseData(
       username: m.user.username,
       currentBudget: m.currentBudget,
       totalSalaries: m.totalSalaries,
+      // Visibile a TUTTI (anche manager, che non ricevono `categories`): è "garantito",
+      // uguale per default ma può essere stato assegnato individualmente dall'admin.
+      baseReincrement: baseReincrementByMember[m.id],
       // Se la fase è finalizzata o l'utente è admin, mostra i totali
       // Altrimenti mostra solo il base reincrement
       totalPrize: config.isFinalized || isAdmin ? memberTotals[m.id] : null,
@@ -320,6 +407,23 @@ export async function getPrizePhaseData(
     },
   }
 
+  // Riepilogo dei MIEI premi (per-categoria + indennizzo) per chi chiama, non l'intera
+  // `categories` (riservata all'admin — i manager non devono vedere gli importi altrui
+  // mentre sono ancora in corso di assegnazione). Permette al manager di vedere il
+  // dettaglio dei propri riconoscimenti senza esporre quelli di tutti.
+  const myCategoryPrizes: Record<string, number> = {}
+  let myIndemnityTotal = 0
+  for (const cat of categories) {
+    if (cat.name === BASE_REINCREMENT_CATEGORY_NAME) continue
+    const prize = cat.managerPrizes.find(p => p.leagueMemberId === member.id)
+    if (!prize || prize.amount <= 0) continue
+    if (cat.name.startsWith('Indennizzo - ')) {
+      myIndemnityTotal += prize.amount
+    } else if (cat.name !== 'Indennizzo Partenza Estero') {
+      myCategoryPrizes[cat.name] = prize.amount
+    }
+  }
+
   return {
     success: true,
     data: {
@@ -335,101 +439,9 @@ export async function getPrizePhaseData(
       members: formattedMembers,
       isAdmin,
       indemnityStats,
+      myCategoryPrizes,
+      myIndemnityTotal,
     },
-  }
-}
-
-// ==================== UPDATE BASE REINCREMENT ====================
-
-export async function updateBaseReincrement(
-  sessionId: string,
-  adminUserId: string,
-  amount: number
-): Promise<ServiceResult> {
-  const session = await prisma.marketSession.findUnique({
-    where: { id: sessionId },
-  })
-
-  if (!session) {
-    return { success: false, message: 'Sessione non trovata' }
-  }
-
-  const adminMember = await prisma.leagueMember.findFirst({
-    where: {
-      leagueId: session.leagueId,
-      userId: adminUserId,
-      role: 'ADMIN',
-      status: MemberStatus.ACTIVE,
-    },
-  })
-
-  if (!adminMember) {
-    return { success: false, message: 'Non autorizzato' }
-  }
-
-  const config = await prisma.prizePhaseConfig.findUnique({
-    where: { marketSessionId: sessionId },
-  })
-
-  if (!config) {
-    return { success: false, message: 'Fase premi non inizializzata' }
-  }
-
-  if (!Number.isInteger(amount) || amount < 0) {
-    return { success: false, message: 'L\'importo deve essere un numero intero >= 0' }
-  }
-
-  const delta = amount - config.baseReincrement
-
-  // Se già finalizzato, il vecchio re-incremento è già stato accreditato a TUTTI i
-  // manager: il delta va applicato al budget di ognuno nella stessa transazione, non
-  // solo aggiornato in config (altrimenti la config cambierebbe senza che il budget
-  // già accreditato la rispecchi — stessa logica di adminCorrectMemberPrize, ma qui
-  // il delta si applica in blocco a tutti i membri anziché a uno solo).
-  if (config.isFinalized && delta !== 0) {
-    const members = await prisma.leagueMember.findMany({
-      where: { leagueId: session.leagueId, status: MemberStatus.ACTIVE },
-    })
-
-    await prisma.$transaction([
-      prisma.prizePhaseConfig.update({
-        where: { id: config.id },
-        data: { baseReincrement: amount },
-      }),
-      prisma.leagueMember.updateMany({
-        where: { leagueId: session.leagueId, status: MemberStatus.ACTIVE },
-        data: { currentBudget: { increment: delta } },
-      }),
-    ])
-
-    logInfo('ANOMALY', 'Admin base reincrement correction (post-finalize)', {
-      action: 'updateBaseReincrement',
-      leagueId: session.leagueId,
-      adminUserId,
-      adminMemberId: adminMember.id,
-      sessionId,
-      oldAmount: config.baseReincrement,
-      newAmount: amount,
-      delta,
-      membersAffected: members.length,
-    })
-
-    return {
-      success: true,
-      message: `Re-incremento base corretto a ${amount}M (delta ${delta >= 0 ? '+' : ''}${delta}M applicato al budget di ${members.length} manager)`,
-      data: { baseReincrement: amount },
-    }
-  }
-
-  await prisma.prizePhaseConfig.update({
-    where: { id: config.id },
-    data: { baseReincrement: amount },
-  })
-
-  return {
-    success: true,
-    message: `Re-incremento base aggiornato a ${amount}M`,
-    data: { baseReincrement: amount },
   }
 }
 
@@ -808,8 +820,9 @@ export async function adminCorrectMemberPrize(
 
   // Budget is touched only when the prize was already credited:
   // - phase finalized (credited at finalize) AND
-  // - non-system category (system prizes are not credited at finalize)
-  const shouldAdjustBudget = config.isFinalized && !category.isSystemPrize && delta !== 0
+  // - a credited category (regular, or "Re-incremento Base" — non-credited system
+  //   categories like gli indennizzi non toccano mai il budget qui, vedi isCreditedCategory)
+  const shouldAdjustBudget = config.isFinalized && isCreditedCategory(category) && delta !== 0
 
   await prisma.$transaction(async (tx) => {
     // Upsert the prize to the new amount (idempotent)
@@ -918,6 +931,10 @@ export async function finalizePrizePhase(
     return { success: false, message: 'La fase premi è già stata finalizzata' }
   }
 
+  // Sessioni inizializzate prima di questa feature non hanno ancora la categoria
+  // "Re-incremento Base": la crea ora, seedata col valore storico di config.baseReincrement.
+  await ensureBaseReincrementCategory(sessionId, session.leagueId, config.baseReincrement, config.createdAt)
+
   // Get all members
   const members = await prisma.leagueMember.findMany({
     where: {
@@ -926,28 +943,26 @@ export async function finalizePrizePhase(
     },
   })
 
-  // Get all prizes (include category to check isSystemPrize)
+  // Get all prizes (include category name/isSystemPrize per isCreditedCategory)
   const prizes = await prisma.sessionPrize.findMany({
     where: {
       prizeCategory: { marketSessionId: sessionId },
     },
     include: {
-      prizeCategory: { select: { isSystemPrize: true } },
+      prizeCategory: { select: { isSystemPrize: true, name: true } },
     },
   })
 
-  // Calculate totals per member
-  // System prizes (indemnity) are excluded - they are potential only,
-  // paid out during CONTRATTI phase when manager releases the player
+  // Calculate totals per member: re-incremento base (ora per-manager, vedi
+  // ensureBaseReincrementCategory) + premi normali. Indennizzi esclusi — sono
+  // potenziali, liquidati in Contratti solo se il manager sceglie RELEASE.
   const memberTotals: Record<string, number> = {}
   for (const m of members) {
-    memberTotals[m.id] = config.baseReincrement
+    memberTotals[m.id] = 0
   }
   for (const prize of prizes) {
-    if (memberTotals[prize.leagueMemberId] !== undefined) {
-      if (!prize.prizeCategory.isSystemPrize) {
-        memberTotals[prize.leagueMemberId] = (memberTotals[prize.leagueMemberId] ?? 0) + prize.amount
-      }
+    if (memberTotals[prize.leagueMemberId] !== undefined && isCreditedCategory(prize.prizeCategory)) {
+      memberTotals[prize.leagueMemberId] = (memberTotals[prize.leagueMemberId] ?? 0) + prize.amount
     }
   }
 
@@ -1385,7 +1400,13 @@ export async function getPrizeHistory(
 
   // Format the response
   const history = sessions.map(session => {
-    // Calculate totals per member for this session
+    // Sessioni finalizzate PRIMA di questa feature non hanno la categoria "Re-incremento
+    // Base" (mai migrate: una sessione storica completata non passa più da
+    // getPrizePhaseData/finalizePrizePhase) — fallback al valore flat storico per loro,
+    // per-manager quando la categoria esiste.
+    const flatBaseFallback = session.prizePhaseConfig?.baseReincrement ?? 0
+    const baseCategory = session.prizeCategories.find(c => c.name === BASE_REINCREMENT_CATEGORY_NAME)
+
     const memberTotals: Record<string, {
       memberId: string
       teamName: string | null
@@ -1395,21 +1416,36 @@ export async function getPrizeHistory(
       total: number
     }> = {}
 
-    // Initialize with base reincrement
+    const ensureMember = (leagueMemberId: string, teamName: string | null, username: string) => {
+      let entry = memberTotals[leagueMemberId]
+      if (!entry) {
+        const base = baseCategory
+          ? baseCategory.managerPrizes.find(p => p.leagueMemberId === leagueMemberId)?.amount ?? flatBaseFallback
+          : flatBaseFallback
+        entry = {
+          memberId: leagueMemberId,
+          teamName,
+          username,
+          baseReincrement: base,
+          categoryPrizes: {},
+          total: base,
+        }
+        memberTotals[leagueMemberId] = entry
+      }
+      return entry
+    }
+
+    // Indennizzi mostrati come categoria informativa (colonna/legenda) ma esclusi dal
+    // totale — mai accreditati al finalize, vedi isCreditedCategory. La categoria base
+    // ha già il proprio campo dedicato (baseReincrement sopra), non va aggiunta di nuovo.
     for (const cat of session.prizeCategories) {
       for (const prize of cat.managerPrizes) {
-        if (!memberTotals[prize.leagueMemberId]) {
-          memberTotals[prize.leagueMemberId] = {
-            memberId: prize.leagueMemberId,
-            teamName: prize.leagueMember.teamName,
-            username: prize.leagueMember.user.username,
-            baseReincrement: session.prizePhaseConfig?.baseReincrement ?? 0,
-            categoryPrizes: {},
-            total: session.prizePhaseConfig?.baseReincrement ?? 0,
-          }
+        const entry = ensureMember(prize.leagueMemberId, prize.leagueMember.teamName, prize.leagueMember.user.username)
+        if (cat.id === baseCategory?.id) continue
+        entry.categoryPrizes[cat.name] = prize.amount
+        if (isCreditedCategory(cat)) {
+          entry.total += prize.amount
         }
-        memberTotals[prize.leagueMemberId]!.categoryPrizes[cat.name] = prize.amount
-        memberTotals[prize.leagueMemberId]!.total += prize.amount
       }
     }
 
@@ -1419,11 +1455,13 @@ export async function getPrizeHistory(
       season: session.season,
       semester: session.semester,
       finalizedAt: session.prizePhaseConfig?.finalizedAt,
-      baseReincrement: session.prizePhaseConfig?.baseReincrement ?? 0,
-      categories: session.prizeCategories.map(cat => ({
-        name: cat.name,
-        isSystemPrize: cat.isSystemPrize,
-      })),
+      baseReincrement: flatBaseFallback,
+      categories: session.prizeCategories
+        .filter(cat => cat.id !== baseCategory?.id)
+        .map(cat => ({
+          name: cat.name,
+          isSystemPrize: cat.isSystemPrize,
+        })),
       members: Object.values(memberTotals).sort((a, b) =>
         (a.teamName || '').localeCompare(b.teamName || '')
       ),

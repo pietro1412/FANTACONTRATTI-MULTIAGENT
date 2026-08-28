@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/Button'
 import { Spinner } from '@/components/ui/Spinner'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { Input } from '@/components/ui/Input'
-import { AmountStepper } from '@/components/ui/AmountStepper'
 import { PrizePhaseHeader } from '@/components/prizes/PrizePhaseHeader'
 import { PrizeStepper, type PrizeStep } from '@/components/prizes/PrizeStepper'
 import { StepCard } from '@/components/prizes/StepCard'
@@ -67,6 +66,9 @@ interface MemberInfo {
   currentBudget: number
   /** Monte ingaggi fissato all'ultimo consolidamento (LeagueMember.totalSalaries) — non live. */
   totalSalaries: number
+  /** Re-incremento base di QUESTO manager: di norma uguale per tutti, ma l'admin può
+   * assegnarlo individualmente (categoria "Re-incremento Base" in tabella). */
+  baseReincrement: number
   totalPrize: number | null
   baseOnly: boolean
   indemnityPlayers: IndemnityPlayer[]
@@ -78,6 +80,13 @@ interface PrizePhaseData {
   members: MemberInfo[]
   isAdmin: boolean
   indemnityStats: IndemnityStats
+  /** Il MIO dettaglio premi per-categoria (nome → importo, esclusi base/indennizzi):
+   * l'admin ha già tutto via `categories`, i manager NON ricevono `categories` (le
+   * assegnazioni altrui restano riservate) — questo permette comunque a un manager di
+   * vedere il dettaglio dei PROPRI riconoscimenti. */
+  myCategoryPrizes: Record<string, number>
+  /** Il MIO indennizzo totale (somma "Indennizzo - PlayerName"), stesso motivo sopra. */
+  myIndemnityTotal: number
 }
 
 interface PrizePhaseManagerProps {
@@ -107,8 +116,6 @@ export function PrizePhaseManager({ sessionId, leagueId, isAdmin, onUpdate }: Pr
   // Form states
   const [newCategoryName, setNewCategoryName] = useState('')
   const [addingCategory, setAddingCategory] = useState(false)
-  const [editingBaseReincrement, setEditingBaseReincrement] = useState(false)
-  const [baseReincrementValue, setBaseReincrementValue] = useState(100)
 
   // Custom indemnity amounts: { playerId: amount }
   const [customIndemnities, setCustomIndemnities] = useState<Record<string, number>>({})
@@ -129,7 +136,6 @@ export function PrizePhaseManager({ sessionId, leagueId, isAdmin, onUpdate }: Pr
       const result = await prizePhaseApi.getData(sessionId)
       if (result.success && result.data) {
         setData(result.data as PrizePhaseData)
-        setBaseReincrementValue((result.data as PrizePhaseData).config.baseReincrement)
 
         // Also load custom indemnities
         try {
@@ -153,7 +159,6 @@ export function PrizePhaseManager({ sessionId, leagueId, isAdmin, onUpdate }: Pr
           const refreshResult = await prizePhaseApi.getData(sessionId)
           if (refreshResult.success && refreshResult.data) {
             setData(refreshResult.data as PrizePhaseData)
-            setBaseReincrementValue((refreshResult.data as PrizePhaseData).config.baseReincrement)
           } else if (!silent) {
             setLoadError(refreshResult.message || 'Errore inizializzazione')
           }
@@ -173,25 +178,6 @@ export function PrizePhaseManager({ sessionId, leagueId, isAdmin, onUpdate }: Pr
   useEffect(() => {
     void fetchData()
   }, [fetchData])
-
-  const handleUpdateBaseReincrement = async () => {
-    setIsSubmitting(true)
-    try {
-      const result = await prizePhaseApi.updateBaseReincrement(sessionId, baseReincrementValue)
-      if (result.success) {
-        setEditingBaseReincrement(false)
-        toast.success(result.message || 'Re-incremento base aggiornato')
-        void fetchData(true)
-        onUpdate?.()
-      } else {
-        toast.error(result.message || 'Errore aggiornamento')
-      }
-    } catch {
-      toast.error('Errore di connessione')
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
 
   const handleCreateCategory = async () => {
     if (!newCategoryName.trim()) return
@@ -450,7 +436,9 @@ export function PrizePhaseManager({ sessionId, leagueId, isAdmin, onUpdate }: Pr
   // Mescolarlo in questo totale prometterebbe all'admin un accredito che il finalize non
   // fa mai (vedi getIndemnityTotal/IndemnityTable per l'indennizzo, sempre a parte).
   const calculateMemberTotal = (memberId: string) => {
-    let total = config.baseReincrement
+    // Il re-incremento base è una categoria come le altre (regularCategories la include
+    // già, vedi ensureBaseReincrementCategory nel backend), niente init separato.
+    let total = 0
     for (const cat of regularCategories) {
       const prize = cat.prizes.find(p => p.memberId === memberId)
       if (prize) total += prize.amount
@@ -477,7 +465,6 @@ export function PrizePhaseManager({ sessionId, leagueId, isAdmin, onUpdate }: Pr
   ).length
   const totalCategories = regularCategories.length
 
-  const step1Done = config.baseReincrement > 0
   const step2Done = config.indemnityConsolidated || !hasEsteroIndemnities
   const step2NeedsAction = hasEsteroIndemnities && !config.indemnityConsolidated
   const step4Available = step2Done && !config.isFinalized
@@ -494,12 +481,6 @@ export function PrizePhaseManager({ sessionId, leagueId, isAdmin, onUpdate }: Pr
   const steps: PrizeStep[] = [
     {
       num: 1,
-      title: 'Re-incremento base',
-      status: step1Done ? 'done' : 'current',
-      hint: step1Done ? `${config.baseReincrement}M impostati` : 'da impostare',
-    },
-    {
-      num: 2,
       title: 'Indennizzi estero',
       status: !hasEsteroIndemnities
         ? 'done'
@@ -513,16 +494,16 @@ export function PrizePhaseManager({ sessionId, leagueId, isAdmin, onUpdate }: Pr
           : 'da consolidare',
     },
     {
-      num: 3,
+      num: 2,
       title: 'Assegna premi',
       status: step3Status,
       hint: totalCategories > 0 ? `${assignedCategories}/${totalCategories} categorie` : 'nessuna categoria',
     },
     {
-      num: 4,
+      num: 3,
       title: 'Finalizza',
       status: config.isFinalized ? 'done' : step4Available ? 'current' : 'locked',
-      hint: config.isFinalized ? 'finalizzato' : step4Available ? 'pronto' : 'richiede step 2',
+      hint: config.isFinalized ? 'finalizzato' : step4Available ? 'pronto' : 'richiede step 1',
     },
   ]
 
@@ -547,35 +528,34 @@ export function PrizePhaseManager({ sessionId, leagueId, isAdmin, onUpdate }: Pr
       recognitions.push({
         key: 'base',
         category: 'Re-incremento base',
-        amount: config.baseReincrement,
-        description: 'uguale per tutti i manager',
+        amount: myMember.baseReincrement,
+        description: 'di norma uguale per tutti i manager',
       })
-      for (const cat of regularCategories) {
-        const prize = cat.prizes.find(p => p.memberId === myMember.id)
-        if (prize && prize.amount > 0) {
-          recognitions.push({
-            key: cat.id,
-            category: cat.name,
-            amount: prize.amount,
-            description: cat.isSystemPrize ? 'premio di lega' : 'premio personalizzato',
-            highlight: true,
-          })
-        }
+      // Il mio dettaglio per-categoria (data.myCategoryPrizes): i manager non ricevono
+      // `categories` (le assegnazioni altrui restano riservate all'admin), quindi qui
+      // NON si può usare regularCategories — vedi getPrizePhaseData::myCategoryPrizes.
+      for (const [categoryName, amount] of Object.entries(data.myCategoryPrizes)) {
+        recognitions.push({
+          key: categoryName,
+          category: categoryName,
+          amount,
+          description: 'premio personalizzato',
+          highlight: true,
+        })
       }
       // Indennizzo: NON incluso in myTotal/"Totale accreditato" (vedi calculateMemberTotal)
       // — mostrato qui come riconoscimento a parte, con nota che non è ancora accreditato.
-      const indemnityTotal = calculateMemberIndemnityTotal(myMember.id)
-      if (indemnityTotal > 0) {
+      if (data.myIndemnityTotal > 0) {
         recognitions.push({
           key: 'indemnity',
           category: 'Indennizzi estero (potenziale)',
-          amount: indemnityTotal,
+          amount: data.myIndemnityTotal,
           description: 'non ancora accreditato: liquidato in fase Contratti solo se rilasci il giocatore',
         })
       }
     }
 
-    const myTotal = myMember ? calculateMemberTotal(myMember.id) : config.baseReincrement
+    const myTotal = myMember?.totalPrize ?? myMember?.baseReincrement ?? 0
     const bilancioPre = myMember ? computeBilancio(myMember.currentBudget, myMember.totalSalaries) : 0
     // Stesso calcolo del "Bilancio Tot." in tabella admin (getBilancioIncrement): questa
     // stat compare SOLO a fase finalizzata, quindi vale sempre 0 — base+premi normali sono
@@ -597,7 +577,7 @@ export function PrizePhaseManager({ sessionId, leagueId, isAdmin, onUpdate }: Pr
 
         <ManagerPrizeSummary
           isFinalized={config.isFinalized}
-          baseReincrement={config.baseReincrement}
+          baseReincrement={myMember?.baseReincrement ?? 0}
           total={myTotal}
           recognitions={recognitions}
         />
@@ -624,64 +604,10 @@ export function PrizePhaseManager({ sessionId, leagueId, isAdmin, onUpdate }: Pr
 
       <PrizeStepper steps={steps} />
 
-      {/* Step 1 - Base reincrement */}
-      <StepCard
-        num={1}
-        title="Re-incremento Budget Base"
-        chipLabel={step1Done ? 'Impostato' : 'Da fare'}
-        chipKind={step1Done ? 'ok' : 'todo'}
-        done={step1Done}
-      >
-        {editingBaseReincrement ? (
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="text-sm text-gray-400">Ogni manager riceve a inizio stagione un re-incremento di base pari a</span>
-            <AmountStepper
-              value={baseReincrementValue}
-              onChange={setBaseReincrementValue}
-              min={0}
-              step={10}
-              size="sm"
-              aria-label="Re-incremento base"
-            />
-            <span className="micro-label">milioni</span>
-            <div className="flex items-center gap-2 ml-auto">
-              <Button size="sm" onClick={() => void handleUpdateBaseReincrement()} disabled={isSubmitting}>
-                Salva
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  setEditingBaseReincrement(false)
-                  setBaseReincrementValue(config.baseReincrement)
-                }}
-              >
-                Annulla
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="flex items-center gap-4">
-            <span className="stat-number text-3xl text-accent-400">{config.baseReincrement}M</span>
-            <span className="text-sm text-gray-500">uguale per tutti i manager</span>
-            {/* Correggibile anche a fase finalizzata: il delta si applica al budget già
-                accreditato a tutti i manager (vedi updateBaseReincrement). */}
-            <Button
-              size="sm"
-              variant="outline"
-              className="ml-auto"
-              onClick={() => { setEditingBaseReincrement(true) }}
-            >
-              Modifica
-            </Button>
-          </div>
-        )}
-      </StepCard>
-
-      {/* Step 2 - Indemnities (decision zone) */}
+      {/* Step 1 - Indemnities (decision zone) */}
       {hasIndemnityPlayers && (
         <StepCard
-          num={2}
+          num={1}
           title="Indennizzi · giocatori usciti"
           chipLabel={config.indemnityConsolidated ? 'Consolidati' : hasEsteroIndemnities ? 'Da consolidare' : 'Nessun estero'}
           chipKind={config.indemnityConsolidated ? 'ok' : hasEsteroIndemnities ? 'todo' : 'ok'}
@@ -722,9 +648,9 @@ export function PrizePhaseManager({ sessionId, leagueId, isAdmin, onUpdate }: Pr
         </StepCard>
       )}
 
-      {/* Step 3 - Prize assignment */}
+      {/* Step 2 - Prize assignment */}
       <StepCard
-        num={3}
+        num={2}
         title="Assegnazione premi"
         chipLabel={totalCategories > 0 ? `${assignedCategories}/${totalCategories} categorie` : 'Nessuna categoria'}
         chipKind={step3Status === 'done' ? 'ok' : 'todo'}
@@ -782,10 +708,10 @@ export function PrizePhaseManager({ sessionId, leagueId, isAdmin, onUpdate }: Pr
         )}
       </StepCard>
 
-      {/* Step 4 - Finalize (decision zone) */}
+      {/* Step 3 - Finalize (decision zone) */}
       {!config.isFinalized && (
         <StepCard
-          num={4}
+          num={3}
           title="Finalizza fase premi"
           chipLabel={step4Available ? 'Pronto' : 'Bloccato'}
           chipKind={step4Available ? 'todo' : 'locked'}
@@ -802,7 +728,7 @@ export function PrizePhaseManager({ sessionId, leagueId, isAdmin, onUpdate }: Pr
               ) : (
                 <>
                   Per finalizzare devi prima{' '}
-                  <b className="text-accent-400">consolidare gli indennizzi</b> (step 2). La
+                  <b className="text-accent-400">consolidare gli indennizzi</b> (step 1). La
                   finalizzazione accredita i premi ai budget ed è{' '}
                   <b className="text-danger-400">irreversibile</b>.
                 </>

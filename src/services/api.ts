@@ -1711,13 +1711,6 @@ export const prizePhaseApi = {
   getData: (sessionId: string) =>
     request(`/api/sessions/${sessionId}/prizes`),
 
-  // Update base reincrement (Admin)
-  updateBaseReincrement: (sessionId: string, amount: number) =>
-    request(`/api/sessions/${sessionId}/prizes/base-reincrement`, {
-      method: 'PATCH',
-      body: JSON.stringify({ amount }),
-    }),
-
   // Create prize category (Admin)
   createCategory: (sessionId: string, name: string) =>
     request(`/api/sessions/${sessionId}/prizes/categories`, {

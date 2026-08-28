@@ -617,6 +617,9 @@ function PrizesTab({ data, leagueId }: { data: unknown; leagueId: string }) {
       id: string
       username: string
       teamName: string | null
+      /** Re-incremento base per questo manager (di norma uguale per tutti, ma può
+       * essere stato assegnato individualmente — vedi Assegnazione Premi). */
+      baseReincrement: number
       totalPrize: number
       totalIndemnity?: number
       indemnityPlayers?: Array<{
@@ -644,16 +647,11 @@ function PrizesTab({ data, leagueId }: { data: unknown; leagueId: string }) {
 
   return (
     <div className="space-y-4">
-      {/* Base Reincrement */}
-      <div className="bg-surface-300/50 rounded-lg p-3">
-        <span className="text-gray-400">Re-incremento base:</span>
-        <span className="ml-2 font-bold text-primary-400">{config.baseReincrement}M</span>
-        {config.finalizedAt && (
-          <span className="ml-4 text-sm text-gray-500">
-            Finalizzato il {new Date(config.finalizedAt).toLocaleDateString('it-IT')}
-          </span>
-        )}
-      </div>
+      {config.finalizedAt && (
+        <p className="text-sm text-gray-500">
+          Finalizzato il {new Date(config.finalizedAt).toLocaleDateString('it-IT')}
+        </p>
+      )}
 
       {/* Members Totals */}
       <div>
@@ -681,7 +679,7 @@ function PrizesTab({ data, leagueId }: { data: unknown; leagueId: string }) {
                       <p className="text-xs text-gray-500">{member.username}</p>
                     </div>
                   </td>
-                  <td className="text-center py-2 text-gray-300">{config.baseReincrement}M</td>
+                  <td className="text-center py-2 text-gray-300">{member.baseReincrement}M</td>
                   {categories.map(cat => {
                     const prize = cat.prizes.find(p => p.memberId === member.id)
                     return (
