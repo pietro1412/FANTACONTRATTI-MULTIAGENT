@@ -327,11 +327,15 @@
     clip-path: polygon(0 0, 100% 0, 100% 100%, 18px 100%, 0 calc(100% - 18px));
   }
 
-  /* Contracts cockpit row grid (8 columns). The player column dominates and every
-     data column flexes proportionally with the container instead of holding a
-     fixed width (REVIEW_PRE_BETA: colonne flessibili) — wide screens spread the
-     space evenly, lg keeps the steppers at their minimum. Pair with Tailwind
-     `grid`: this only sets the tracks + gap, never `display`. */
+  /* Contracts cockpit row grid (10 columns: Giocatore, Eta, Ingaggio/Durata
+     attuale, Ingaggio/Durata rinnovo, Clausola, Rubata, Fantamedia, Azione).
+     The player column dominates and every data column flexes proportionally
+     with the container instead of holding a fixed width (REVIEW_PRE_BETA:
+     colonne flessibili) — wide screens spread the space evenly, lg keeps the
+     steppers at their minimum. Column mins are sized to fit their (possibly
+     2-line-wrapped) header label without bleeding into the neighbor — this is
+     what broke before (52/48/56px mins were narrower than the label text).
+     Pair with Tailwind `grid`: this only sets the tracks + gap, never `display`. */
   .contracts-grid {
     grid-template-columns: 1fr;
     gap: 0.5rem;
@@ -340,15 +344,17 @@
   @media (min-width: 1024px) {
     .contracts-grid {
       grid-template-columns:
-        minmax(0, 3fr)
-        minmax(52px, 0.5fr)
-        minmax(48px, 0.45fr)
+        minmax(0, 1.6fr)
+        minmax(48px, 0.35fr)
+        minmax(80px, 0.55fr)
+        minmax(76px, 0.5fr)
+        minmax(130px, 0.85fr)
         minmax(130px, 0.8fr)
-        minmax(130px, 0.75fr)
+        minmax(76px, 0.5fr)
+        minmax(76px, 0.5fr)
         minmax(64px, 0.45fr)
-        minmax(56px, 0.4fr)
-        minmax(80px, 0.5fr);
-      gap: 0.625rem;
+        minmax(84px, 0.55fr);
+      gap: 0.5rem;
     }
   }
 

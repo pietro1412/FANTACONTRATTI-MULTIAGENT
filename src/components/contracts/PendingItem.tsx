@@ -1,4 +1,4 @@
-import { PlayerCell, Tag, getDurationColor, DURATION_MULTIPLIERS, type ContractPlayer } from './shared'
+import { PlayerCell, Tag, getDurationColor, getAgeColor, DURATION_MULTIPLIERS, type ContractPlayer } from './shared'
 import { Stepper } from './Stepper'
 import { NOT_DISPONIBILE } from '@/utils/stat-format'
 
@@ -46,11 +46,18 @@ export function PendingItem({
         sub={
           <>
             <span>{player.team}</span>
-            <span>· {player.age != null ? `${player.age} anni` : NOT_DISPONIBILE}</span>
             {duration === 1 && <Tag tone="danger">SCADE</Tag>}
           </>
         }
       />
+
+      {/* Age */}
+      <div className="flex lg:block items-center justify-between text-left lg:text-center">
+        <span className="micro-label lg:hidden">Età</span>
+        <span className={`stat-number text-base ${getAgeColor(player.age)}`}>
+          {player.age != null ? player.age : NOT_DISPONIBILE}
+        </span>
+      </div>
 
       <div className="flex lg:block items-center justify-between text-left lg:text-center lg:col-span-2">
         <span className="micro-label lg:hidden">Acquisto</span>
@@ -106,6 +113,14 @@ export function PendingItem({
       <div className="flex lg:block items-center justify-between text-left lg:text-center">
         <span className="micro-label lg:hidden">Rubata</span>
         <div className="stat-number text-base text-white">{newRubata}M</div>
+      </div>
+
+      {/* Fantamedia */}
+      <div className="flex lg:block items-center justify-between text-left lg:text-center">
+        <span className="micro-label lg:hidden">Fantamedia</span>
+        <span className={`stat-number text-base ${player.computedStats?.avgRating != null ? 'text-primary-400' : 'text-gray-500'}`}>
+          {player.computedStats?.avgRating != null ? player.computedStats.avgRating.toFixed(1) : NOT_DISPONIBILE}
+        </span>
       </div>
 
       <div className="hidden lg:block" />

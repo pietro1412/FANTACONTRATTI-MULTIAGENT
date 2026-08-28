@@ -843,6 +843,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
   const tableHeader = (
     <div className="hidden lg:grid contracts-grid px-4 py-2 border-b border-surface-50 bg-surface-300 flex-shrink-0">
       <span className="micro-label">Giocatore</span>
+      <span className="micro-label text-center">Età</span>
       <span className="micro-label text-center">Ingaggio attuale</span>
       <span className="micro-label text-center inline-flex items-center justify-center gap-1">
         Durata attuale
@@ -861,6 +862,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
         Rubata
         <InfoTooltip content={GLOSSARY.prezzoRubata!.short} label={GLOSSARY.prezzoRubata!.term} />
       </span>
+      <span className="micro-label text-center break-words">Fantamedia</span>
       <span className="micro-label text-center">Azione</span>
     </div>
   )

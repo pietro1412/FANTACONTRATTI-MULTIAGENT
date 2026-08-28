@@ -1,4 +1,4 @@
-import { PlayerCell, Tag, getDurationColor, DURATION_MULTIPLIERS, type ContractPlayer } from './shared'
+import { PlayerCell, Tag, getDurationColor, getAgeColor, DURATION_MULTIPLIERS, type ContractPlayer } from './shared'
 import { getRenewalConstraints } from './renewal-logic'
 import { Stepper } from './Stepper'
 import { NOT_DISPONIBILE } from '@/utils/stat-format'
@@ -95,8 +95,6 @@ export function RenewalItem({
   const sub = (
     <>
       <span>{c.player.team}</span>
-      <span>· {c.player.age != null ? `${c.player.age} anni` : NOT_DISPONIBILE}</span>
-      {rating != null && <span className="text-primary-400 font-semibold">{rating.toFixed(1)}</span>}
       {c.duration === 1 && <Tag tone="danger">SCADE</Tag>}
       {renderTags({
         canSpalmare: c.canSpalmare,
@@ -127,6 +125,14 @@ export function RenewalItem({
         nameClassName={isMarkedForRelease ? 'text-gray-400 line-through' : 'text-primary-400 hover:text-primary-300'}
         sub={sub}
       />
+
+      {/* Age */}
+      <div className="flex lg:block items-center justify-between text-left lg:text-center">
+        <span className="micro-label lg:hidden">Età</span>
+        <span className={`stat-number text-base ${getAgeColor(c.player.age)}`}>
+          {c.player.age != null ? c.player.age : NOT_DISPONIBILE}
+        </span>
+      </div>
 
       {/* Current salary (read-only, same look as the new one) */}
       <div className="flex lg:block items-center justify-between text-left lg:text-center">
@@ -214,6 +220,14 @@ export function RenewalItem({
         )}
       </div>
 
+      {/* Fantamedia */}
+      <div className="flex lg:block items-center justify-between text-left lg:text-center">
+        <span className="micro-label lg:hidden">Fantamedia</span>
+        <span className={`stat-number text-base ${rating != null ? 'text-primary-400' : 'text-gray-500'}`}>
+          {rating != null ? rating.toFixed(1) : NOT_DISPONIBILE}
+        </span>
+      </div>
+
       {/* Action */}
       <div className="flex lg:justify-center items-center justify-end">
         {inContrattiPhase && !isConsolidated ? (
@@ -251,7 +265,7 @@ export function RenewalItem({
 
       {/* Spalma persistent hint (mobile + desktop, full row) */}
       {editable && k.salaryHint && (
-        <div className="lg:col-span-8 -mt-1">
+        <div className="lg:col-span-10 -mt-1">
           <span className="font-mono text-[9.5px] text-warning-400 inline-flex items-center gap-1">
             <span className="w-1 h-1 rounded-full bg-warning-400" /> {k.salaryHint} ({c.initialSalary} ÷ {newDuration})
           </span>
