@@ -3393,65 +3393,80 @@ export async function completeRubataWithTransactions(
         })
 
         if (rosterEntry) {
-          // Create completed auction
-          const auction = await prisma.auction.create({
-            data: {
-              leagueId,
-              playerId: player.playerId,
-              marketSessionId: activeSession.id,
-              type: 'RUBATA',
-              status: 'COMPLETED',
-              basePrice: player.rubataPrice,
-              currentPrice: bidAmount,
-              sellerId: player.memberId,
-              winnerId: buyer.id,
-              endsAt: new Date(),
-            },
-          })
-
-          // Create winning bid
-          await prisma.auctionBid.create({
-            data: {
-              auctionId: auction.id,
-              bidderId: buyer.id,
-              userId: buyer.userId,
-              amount: bidAmount,
-              isWinning: true,
-            },
-          })
-
-          // Update budgets
-          // Seller receives only OFFERTA = bidAmount - salary
+          // Seller receives only OFFERTA = bidAmount - salary; l'ingaggio si sposta
+          // sul Monte Ingaggi (RUBATA.md §4.4, stessa regola di applyRubataAuctionClose
+          // nel flusso reale). PRIMA di questo fix (controllo definitivo bilanci
+          // 2026-08-28), questo percorso di simulazione admin toccava solo currentBudget
+          // e MAI totalSalaries — a differenza del flusso reale, lasciando il Monte
+          // Ingaggi di acquirente e venditore disallineato dai contratti effettivi.
+          // Inoltre le scritture erano sequenziali, non transazionali.
           const contractSalary = rosterEntry.contract?.salary ?? 0
           const sellerPayment = bidAmount - contractSalary
 
-          await prisma.leagueMember.update({
-            where: { id: buyer.id },
-            data: { currentBudget: { decrement: bidAmount } },
-          })
-
-          await prisma.leagueMember.update({
-            where: { id: player.memberId },
-            data: { currentBudget: { increment: sellerPayment } },
-          })
-
-          // Transfer roster to winner
-          await prisma.playerRoster.update({
-            where: { id: rosterEntry.id },
-            data: {
-              leagueMemberId: buyer.id,
-              acquisitionType: 'RUBATA',
-              acquisitionPrice: bidAmount,
-            },
-          })
-
-          // Transfer contract to winner
-          if (rosterEntry.contract) {
-            await prisma.playerContract.update({
-              where: { id: rosterEntry.contract.id },
-              data: { leagueMemberId: buyer.id },
+          const auction = await prisma.$transaction(async (tx) => {
+            // Create completed auction
+            const auction = await tx.auction.create({
+              data: {
+                leagueId,
+                playerId: player.playerId,
+                marketSessionId: activeSession.id,
+                type: 'RUBATA',
+                status: 'COMPLETED',
+                basePrice: player.rubataPrice,
+                currentPrice: bidAmount,
+                sellerId: player.memberId,
+                winnerId: buyer.id,
+                endsAt: new Date(),
+              },
             })
-          }
+
+            // Create winning bid
+            await tx.auctionBid.create({
+              data: {
+                auctionId: auction.id,
+                bidderId: buyer.id,
+                userId: buyer.userId,
+                amount: bidAmount,
+                isWinning: true,
+              },
+            })
+
+            await tx.leagueMember.update({
+              where: { id: buyer.id },
+              data: {
+                currentBudget: { decrement: bidAmount },
+                totalSalaries: { increment: contractSalary },
+              },
+            })
+
+            await tx.leagueMember.update({
+              where: { id: player.memberId },
+              data: {
+                currentBudget: { increment: sellerPayment },
+                totalSalaries: { decrement: contractSalary },
+              },
+            })
+
+            // Transfer roster to winner
+            await tx.playerRoster.update({
+              where: { id: rosterEntry.id },
+              data: {
+                leagueMemberId: buyer.id,
+                acquisitionType: 'RUBATA',
+                acquisitionPrice: bidAmount,
+              },
+            })
+
+            // Transfer contract to winner
+            if (rosterEntry.contract) {
+              await tx.playerContract.update({
+                where: { id: rosterEntry.contract.id },
+                data: { leagueMemberId: buyer.id },
+              })
+            }
+
+            return auction
+          })
 
           // Record movement with contract info
           await recordMovement({
