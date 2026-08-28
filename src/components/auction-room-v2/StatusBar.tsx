@@ -1,5 +1,6 @@
 import type { Membership, MyRosterSlots } from '../../types/auctionroom.types'
 import type { AuctionPhase } from './types'
+import { computeMaxAuctionBid, computeSlotReserve, sumContractSalaries } from '@/utils/finance'
 
 interface StatusBarProps {
   isConnected: boolean
@@ -23,14 +24,14 @@ interface StatusBarProps {
 function computeMaxBid(budget: number, myRosterSlots: MyRosterSlots | null | undefined): number | null {
   if (!myRosterSlots) return null
   const slots = myRosterSlots.slots
-  const emptySlots = (['P', 'D', 'C', 'A'] as const).reduce(
-    (sum, pos) => sum + (slots[pos].total - slots[pos].filled), 0
-  )
-  const monteIngaggi = (['P', 'D', 'C', 'A'] as const).reduce(
-    (sum, pos) => sum + slots[pos].players.reduce((s, p) => s + (p.contract?.salary || 0), 0), 0
+  const positions = ['P', 'D', 'C', 'A'] as const
+  const totalSlots = positions.reduce((sum, pos) => sum + slots[pos].total, 0)
+  const filledSlots = positions.reduce((sum, pos) => sum + slots[pos].filled, 0)
+  const monteIngaggi = positions.reduce(
+    (sum, pos) => sum + sumContractSalaries(slots[pos].players.map(p => p.contract)), 0
   )
   const bilancio = budget - monteIngaggi
-  return Math.max(0, bilancio - (emptySlots * 2))
+  return computeMaxAuctionBid(bilancio, computeSlotReserve(totalSlots, filledSlots))
 }
 
 export function StatusBar({

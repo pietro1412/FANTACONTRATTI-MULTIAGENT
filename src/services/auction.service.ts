@@ -1430,8 +1430,17 @@ export async function placeBid(
     slotReserve = remainingAfter * 2
   }
 
-  if (amount + calculateDefaultSalary(amount) > bilancio - slotReserve) {
-    const maxBid = bilancio - slotReserve
+  const bidCap = bilancio - slotReserve
+  if (amount + calculateDefaultSalary(amount) > bidCap) {
+    // maxBid = il prezzo più alto il cui ingaggio risultante rientra ancora nel cap —
+    // NON semplicemente `bidCap` (quello sarebbe a sua volta respinto: l'ingaggio che
+    // ne deriverebbe lo supera). Bug trovato durante il controllo definitivo bilanci
+    // 2026-08-28: il messaggio precedente mostrava un'offerta che, se ritentata
+    // identica, sarebbe stata respinta di nuovo.
+    let maxBid = Math.max(0, bidCap)
+    while (maxBid > 0 && maxBid + calculateDefaultSalary(maxBid) > bidCap) {
+      maxBid--
+    }
     return { success: false, message: `Budget insufficiente. Offerta massima: ${maxBid}${isPrimoMercato && slotReserve > 0 ? ` (riservati ${slotReserve} per ${slotReserve / 2} slot rimanenti)` : ''}` }
   }
 

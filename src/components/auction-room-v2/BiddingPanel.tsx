@@ -6,6 +6,7 @@ import { Monogram } from '@/components/ui/Monogram'
 import { POSITION_NAMES } from '../ui/PositionBadge'
 import { getTeamLogo } from '../../utils/teamLogos'
 import { getPlayerPhotoUrl } from '../../utils/player-images'
+import { computeMaxAuctionBid, computeSlotReserve, sumContractSalaries } from '@/utils/finance'
 import type { Auction, Membership, MyRosterSlots } from '../../types/auctionroom.types'
 
 interface BiddingPanelProps {
@@ -67,17 +68,19 @@ export function BiddingPanel({
   const isRoleFull = roleSlot ? roleSlot.filled >= roleSlot.total : false
   const roleSlotsLeft = roleSlot ? roleSlot.total - roleSlot.filled : null
 
-  // My max bid (same rule as the StatusBar box: balance minus 2M reserved per empty slot)
+  // My max bid — computeMaxAuctionBid è l'unica fonte di verità condivisa (mirror
+  // esatto della validazione server), vedi src/utils/finance.ts.
   const myMaxBid = (() => {
     if (!myRosterSlots || !membership) return null
     const slots = myRosterSlots.slots
-    const emptySlots = (['P', 'D', 'C', 'A'] as const).reduce(
-      (sum, pos) => sum + (slots[pos].total - slots[pos].filled), 0
+    const positions = ['P', 'D', 'C', 'A'] as const
+    const totalSlots = positions.reduce((sum, pos) => sum + slots[pos].total, 0)
+    const filledSlots = positions.reduce((sum, pos) => sum + slots[pos].filled, 0)
+    const monteIngaggi = positions.reduce(
+      (sum, pos) => sum + sumContractSalaries(slots[pos].players.map(p => p.contract)), 0
     )
-    const monteIngaggi = (['P', 'D', 'C', 'A'] as const).reduce(
-      (sum, pos) => sum + slots[pos].players.reduce((s, p) => s + (p.contract?.salary || 0), 0), 0
-    )
-    return Math.max(0, membership.currentBudget - monteIngaggi - (emptySlots * 2))
+    const bilancio = membership.currentBudget - monteIngaggi
+    return computeMaxAuctionBid(bilancio, computeSlotReserve(totalSlots, filledSlots))
   })()
 
   const photoUrl = getPlayerPhotoUrl(auction.player.apiFootballId)

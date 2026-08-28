@@ -1,4 +1,5 @@
 import { ManagerListRow } from '@/components/ui/ManagerListRow'
+import { computeMaxAuctionBid, computeSlotReserve, sumContractSalaries } from '@/utils/finance'
 import type { ManagersStatusData, ManagerData } from '../../types/auctionroom.types'
 
 interface FinancialDashboardProps {
@@ -7,13 +8,15 @@ interface FinancialDashboardProps {
   currentBidderUsername?: string | null
 }
 
+// computeMaxAuctionBid è l'unica fonte di verità condivisa (mirror esatto della
+// validazione server), vedi src/utils/finance.ts.
 export function computeManagerMaxBid(m: ManagerData): number {
-  const monteIngaggi = m.roster.reduce((sum, r) => sum + (r.contract?.salary || 0), 0)
+  const monteIngaggi = sumContractSalaries(m.roster.map(r => r.contract))
   const bilancio = m.currentBudget - monteIngaggi
-  const emptySlots = (['P', 'D', 'C', 'A'] as const).reduce(
-    (sum, pos) => sum + (m.slotsByPosition[pos].total - m.slotsByPosition[pos].filled), 0
-  )
-  return Math.max(0, bilancio - Math.max(0, emptySlots - 1))
+  const positions = ['P', 'D', 'C', 'A'] as const
+  const totalSlots = positions.reduce((sum, pos) => sum + m.slotsByPosition[pos].total, 0)
+  const filledSlots = positions.reduce((sum, pos) => sum + m.slotsByPosition[pos].filled, 0)
+  return computeMaxAuctionBid(bilancio, computeSlotReserve(totalSlots, filledSlots))
 }
 
 function isRoleFull(m: ManagerData, currentRole: string): boolean {
@@ -63,11 +66,8 @@ export function FinancialDashboard({ managersStatus, onSelectManager, currentBid
       {/* Manager rows — scroll interno */}
       <div className="panel-scroll flex-1 min-h-0">
         {sortedManagers.map(m => {
-          const monteIngaggi = m.roster.reduce((sum, r) => sum + (r.contract?.salary || 0), 0)
+          const monteIngaggi = sumContractSalaries(m.roster.map(r => r.contract))
           const bilancio = m.currentBudget - monteIngaggi
-          const emptySlots = (['P', 'D', 'C', 'A'] as const).reduce(
-            (sum, pos) => sum + (m.slotsByPosition[pos].total - m.slotsByPosition[pos].filled), 0
-          )
           const maxBid = computeManagerMaxBid(m)
           const roleSlot = m.slotsByPosition[currentRole as 'P' | 'D' | 'C' | 'A']
           const roleFull = roleSlot ? roleSlot.filled >= roleSlot.total : false
@@ -98,7 +98,7 @@ export function FinancialDashboard({ managersStatus, onSelectManager, currentBid
               smallValue={roleFull ? undefined : `bilancio ${bilancio}`}
               connectedDot={m.isConnected ?? null}
               onClick={() => { onSelectManager(m); }}
-              title={`Offerta max possibile.\nBilancio (${bilancio}M) - Slot vuoti rimanenti (${Math.max(0, emptySlots - 1)}) = ${maxBid}M`}
+              title={`Offerta massima possibile: bilancio (${bilancio}M) meno la riserva per gli slot ancora da riempire e l'ingaggio che ne deriverebbe = ${maxBid}M`}
             />
           )
         })}
