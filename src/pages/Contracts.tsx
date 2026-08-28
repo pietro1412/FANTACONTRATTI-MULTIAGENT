@@ -234,6 +234,13 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
     })
   }
 
+  function resetLocalEdit(contractId: string) {
+    setLocalEdits(prev => {
+      const { [contractId]: _removed, ...rest } = prev
+      return rest
+    })
+  }
+
   function updatePendingEdit(rosterId: string, field: 'newSalary' | 'newDuration', value: string) {
     setPendingEdits(prev => {
       const existing = prev[rosterId] ?? { newSalary: '', newDuration: '', isModified: false, previewData: null, isSaving: false }
@@ -844,14 +851,9 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
     <div className="hidden lg:grid contracts-grid px-4 py-2 border-b border-surface-50 bg-surface-300 flex-shrink-0">
       <span className="micro-label">Giocatore</span>
       <span className="micro-label text-center">Età</span>
-      <span className="micro-label text-center">Ingaggio attuale</span>
+      <span className="micro-label text-center">Ingaggio</span>
       <span className="micro-label text-center inline-flex items-center justify-center gap-1">
-        Durata attuale
-        <InfoTooltip content={GLOSSARY.durata!.short} label={GLOSSARY.durata!.term} />
-      </span>
-      <span className="micro-label text-center">Ingaggio rinnovo</span>
-      <span className="micro-label text-center inline-flex items-center justify-center gap-1">
-        Durata rinnovo
+        Durata
         <InfoTooltip content={GLOSSARY.durata!.short} label={GLOSSARY.durata!.term} />
       </span>
       <span className="micro-label text-center inline-flex items-center justify-center gap-1">
@@ -985,6 +987,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                   isConsolidated={isConsolidated}
                   onSalaryChange={(v) => { updateLocalEdit(c.id, 'newSalary', String(v)) }}
                   onDurationChange={(v) => { updateLocalEdit(c.id, 'newDuration', String(v)) }}
+                  onResetContract={() => { resetLocalEdit(c.id) }}
                   onToggleRelease={() => { toggleRelease(c.id) }}
                   onRemoveKept={() => { setExitDecisions(prev => { const next = new Map(prev); next.delete(c.id); return next }) }}
                   onViewStats={() => { setSelectedPlayer(playerInfo(c.roster.player, { salary: c.salary, duration: c.duration, rescissionClause: c.rescissionClause })) }}

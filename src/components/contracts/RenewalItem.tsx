@@ -1,3 +1,4 @@
+import { RotateCcw } from 'lucide-react'
 import { PlayerCell, Tag, getDurationColor, getAgeColor, DURATION_MULTIPLIERS, type ContractPlayer } from './shared'
 import { getRenewalConstraints } from './renewal-logic'
 import { Stepper } from './Stepper'
@@ -30,6 +31,7 @@ export interface RenewalItemProps {
   isConsolidated: boolean
   onSalaryChange: (value: number) => void
   onDurationChange: (value: number) => void
+  onResetContract: () => void
   onToggleRelease: () => void
   onRemoveKept: () => void
   onViewStats: () => void
@@ -75,6 +77,7 @@ export function RenewalItem({
   isConsolidated,
   onSalaryChange,
   onDurationChange,
+  onResetContract,
   onToggleRelease,
   onRemoveKept,
   onViewStats,
@@ -134,31 +137,34 @@ export function RenewalItem({
         </span>
       </div>
 
-      {/* Current salary (read-only, same look as the new one) */}
-      <div className="flex lg:block items-center justify-between text-left lg:text-center">
-        <span className="micro-label lg:hidden">Ingaggio attuale</span>
-        <span className="stat-number text-base text-accent-400">{c.salary}M</span>
-      </div>
-
-      {/* Current duration (read-only, same look as the new one) */}
-      <div className="flex lg:block items-center justify-between text-left lg:text-center">
-        <span className="micro-label lg:hidden">Durata attuale</span>
-        <span className={`stat-number text-base ${getDurationColor(c.duration)}`}>{c.duration}s</span>
-      </div>
-
-      {/* Renewal salary */}
-      <div className="flex lg:justify-center items-center justify-between">
-        <span className="micro-label lg:hidden">Ingaggio rinnovo</span>
+      {/* Salary (draft value; the stepper glows gold when it differs from the
+          signed contract, and the reset icon reappears next to it so the
+          user can undo without needing to see the original number). */}
+      <div className="flex lg:justify-center items-center justify-between gap-1.5">
+        <span className="micro-label lg:hidden">Ingaggio</span>
         {editable ? (
-          <Stepper
-            value={newSalary}
-            unit="ing."
-            tone="gold"
-            onDecrement={() => { onSalaryChange(Math.max(k.minSalaryAllowed, newSalary - 1)) }}
-            onIncrement={() => { onSalaryChange(newSalary + 1) }}
-            decDisabled={!k.canDecreaseSalary}
-            decTitle={!k.canDecreaseSalary ? (c.canSpalmare ? 'Ingaggio minimo raggiunto' : 'Riduci prima la durata') : undefined}
-          />
+          <>
+            <Stepper
+              value={newSalary}
+              unit="ing."
+              tone="gold"
+              onDecrement={() => { onSalaryChange(Math.max(k.minSalaryAllowed, newSalary - 1)) }}
+              onIncrement={() => { onSalaryChange(newSalary + 1) }}
+              decDisabled={!k.canDecreaseSalary}
+              decTitle={!k.canDecreaseSalary ? (c.canSpalmare ? 'Ingaggio minimo raggiunto' : 'Riduci prima la durata') : undefined}
+            />
+            {k.hasChanges && (
+              <button
+                type="button"
+                onClick={onResetContract}
+                className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-md text-gray-400 hover:text-white hover:bg-surface-100 transition-colors"
+                title={`Ripristina valore di contratto (${c.salary}M / ${c.duration}s)`}
+                aria-label="Ripristina valore di contratto originale"
+              >
+                <RotateCcw size={13} />
+              </button>
+            )}
+          </>
         ) : isConsolidated && c.draftSalary != null ? (
           <span className="stat-number text-base text-accent-400">{c.draftSalary}M</span>
         ) : (
@@ -166,9 +172,9 @@ export function RenewalItem({
         )}
       </div>
 
-      {/* Renewal duration */}
+      {/* Duration (draft value, same treatment) */}
       <div className="flex lg:justify-center items-center justify-between">
-        <span className="micro-label lg:hidden">Durata rinnovo</span>
+        <span className="micro-label lg:hidden">Durata</span>
         {editable ? (
           <Stepper
             value={newDuration}
@@ -265,7 +271,7 @@ export function RenewalItem({
 
       {/* Spalma persistent hint (mobile + desktop, full row) */}
       {editable && k.salaryHint && (
-        <div className="lg:col-span-10 -mt-1">
+        <div className="lg:col-span-8 -mt-1">
           <span className="font-mono text-[9.5px] text-warning-400 inline-flex items-center gap-1">
             <span className="w-1 h-1 rounded-full bg-warning-400" /> {k.salaryHint} ({c.initialSalary} ÷ {newDuration})
           </span>

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { RenewalItem, type RenewalItemContract } from '@/components/contracts/RenewalItem'
 import type { ContractPlayer } from '@/components/contracts/shared'
 
@@ -36,6 +36,7 @@ function renderItem(overrides: Partial<Parameters<typeof RenewalItem>[0]> = {}) 
     isConsolidated: false,
     onSalaryChange: vi.fn(),
     onDurationChange: vi.fn(),
+    onResetContract: vi.fn(),
     onToggleRelease: vi.fn(),
     onRemoveKept: vi.fn(),
     onViewStats: vi.fn(),
@@ -46,19 +47,26 @@ function renderItem(overrides: Partial<Parameters<typeof RenewalItem>[0]> = {}) 
 }
 
 describe('RenewalItem', () => {
-  it('should show current and renewal salary/duration in separate labeled columns', () => {
+  it('should show the draft salary/duration in single labeled Ingaggio/Durata columns', () => {
     renderItem({ newSalary: 10, newDuration: 3 })
-    // current read-only values
-    expect(screen.getByText('8M')).toBeInTheDocument()
-    expect(screen.getByText('2s')).toBeInTheDocument()
-    // renewal stepper values
+    // single draft stepper values (no separate "attuale" columns)
     expect(screen.getByText('10')).toBeInTheDocument()
     expect(screen.getByText('3')).toBeInTheDocument()
     // identifying labels (Axiom 9)
-    expect(screen.getByText('Ingaggio attuale')).toBeInTheDocument()
-    expect(screen.getByText('Durata attuale')).toBeInTheDocument()
-    expect(screen.getByText('Ingaggio rinnovo')).toBeInTheDocument()
-    expect(screen.getByText('Durata rinnovo')).toBeInTheDocument()
+    expect(screen.getByText('Ingaggio')).toBeInTheDocument()
+    expect(screen.getByText('Durata')).toBeInTheDocument()
+  })
+
+  it('should hide the reset control when the draft matches the signed contract', () => {
+    renderItem()
+    expect(screen.queryByRole('button', { name: /ripristina/i })).not.toBeInTheDocument()
+  })
+
+  it('should show the reset control when the draft differs, and call onResetContract on click', () => {
+    const props = renderItem({ newSalary: 10, newDuration: 3 })
+    const resetButton = screen.getByRole('button', { name: /ripristina/i })
+    fireEvent.click(resetButton)
+    expect(props.onResetContract).toHaveBeenCalledTimes(1)
   })
 
   it('should compute renewal clausola and rubata from new salary/duration', () => {

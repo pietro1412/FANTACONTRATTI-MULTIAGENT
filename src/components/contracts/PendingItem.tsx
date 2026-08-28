@@ -46,6 +46,7 @@ export function PendingItem({
         sub={
           <>
             <span>{player.team}</span>
+            <span className="text-gray-600">Acquisto {acquisitionPrice}M · min {minSalary}M</span>
             {duration === 1 && <Tag tone="danger">SCADE</Tag>}
           </>
         }
@@ -59,16 +60,8 @@ export function PendingItem({
         </span>
       </div>
 
-      <div className="flex lg:block items-center justify-between text-left lg:text-center lg:col-span-2">
-        <span className="micro-label lg:hidden">Acquisto</span>
-        <div>
-          <div className="stat-number text-base text-gray-400">{acquisitionPrice}M</div>
-          <div className="font-mono text-[9.5px] text-warning-400">min {minSalary}M</div>
-        </div>
-      </div>
-
       <div className="flex lg:justify-center items-center justify-between">
-        <span className="micro-label lg:hidden">Ingaggio rinnovo</span>
+        <span className="micro-label lg:hidden">Ingaggio</span>
         {editable ? (
           <Stepper
             value={salary}
@@ -84,7 +77,7 @@ export function PendingItem({
       </div>
 
       <div className="flex lg:justify-center items-center justify-between">
-        <span className="micro-label lg:hidden">Durata rinnovo</span>
+        <span className="micro-label lg:hidden">Durata</span>
         {editable ? (
           <Stepper
             value={duration}
