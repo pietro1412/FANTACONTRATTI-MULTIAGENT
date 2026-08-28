@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { hashPassword, verifyPassword } from '../utils/password'
 import { generateTokens, type TokenPayload } from '../utils/jwt'
 import type { RegisterInput, LoginInput } from '../utils/validation'
+import { withRetry } from '../utils/db-retry'
 
 export interface AuthResult {
   success: boolean
@@ -57,82 +58,89 @@ export async function registerUser(input: Omit<RegisterInput, 'confirmPassword'>
 export async function loginUser(input: LoginInput): Promise<AuthResult> {
   const { emailOrUsername, password } = input
 
-  // Find user by email or username
-  const user = await prisma.user.findFirst({
-    where: {
-      OR: [
-        { email: emailOrUsername },
-        { username: emailOrUsername },
-      ],
-    },
-  })
-
-  if (!user) {
-    return { success: false, message: 'Credenziali non valide' }
-  }
-
-  // Check account lockout
-  if (user.lockedUntil && user.lockedUntil > new Date()) {
-    const minutesLeft = Math.ceil((user.lockedUntil.getTime() - Date.now()) / 60000)
-    return { success: false, message: `Account bloccato. Riprova tra ${minutesLeft} minuti.` }
-  }
-
-  // Verify password
-  const isValidPassword = await verifyPassword(password, user.passwordHash)
-  if (!isValidPassword) {
-    // Increment failed attempts
-    const attempts = (user.failedLoginAttempts || 0) + 1
-    let lockedUntil: Date | null = null
-
-    if (attempts >= 20) {
-      lockedUntil = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 ore
-    } else if (attempts >= 10) {
-      lockedUntil = new Date(Date.now() + 60 * 60 * 1000) // 1 ora
-    } else if (attempts >= 5) {
-      lockedUntil = new Date(Date.now() + 15 * 60 * 1000) // 15 minuti
-    }
-
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        failedLoginAttempts: attempts,
-        lastFailedLogin: new Date(),
-        lockedUntil,
+  // Retry per cold start del pool di connessioni Neon (stesso problema/stessa
+  // soluzione già in uso in auction.service.ts::createAuctionSession) — trovato
+  // durante la verifica dal vivo del 2026-08-28: le primissime richieste di login
+  // dopo un periodo di inattività rispondevano 500 invece di un errore transitorio
+  // gestito, mentre altri path del backend erano già protetti.
+  return withRetry(async () => {
+    // Find user by email or username
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: emailOrUsername },
+          { username: emailOrUsername },
+        ],
       },
     })
 
-    if (lockedUntil) {
-      const mins = Math.ceil((lockedUntil.getTime() - Date.now()) / 60000)
-      return { success: false, message: `Troppi tentativi falliti. Account bloccato per ${mins} minuti.` }
+    if (!user) {
+      return { success: false, message: 'Credenziali non valide' }
     }
-    return { success: false, message: 'Credenziali non valide' }
-  }
 
-  // Reset failed attempts on successful login
-  if (user.failedLoginAttempts > 0) {
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { failedLoginAttempts: 0, lockedUntil: null, lastFailedLogin: null },
-    })
-  }
+    // Check account lockout
+    if (user.lockedUntil && user.lockedUntil > new Date()) {
+      const minutesLeft = Math.ceil((user.lockedUntil.getTime() - Date.now()) / 60000)
+      return { success: false, message: `Account bloccato. Riprova tra ${minutesLeft} minuti.` }
+    }
 
-  // Generate tokens
-  const tokenPayload: TokenPayload = {
-    userId: user.id,
-    email: user.email,
-    username: user.username,
-  }
-  const tokens = generateTokens(tokenPayload)
+    // Verify password
+    const isValidPassword = await verifyPassword(password, user.passwordHash)
+    if (!isValidPassword) {
+      // Increment failed attempts
+      const attempts = (user.failedLoginAttempts || 0) + 1
+      let lockedUntil: Date | null = null
 
-  return {
-    success: true,
-    user: {
-      id: user.id,
+      if (attempts >= 20) {
+        lockedUntil = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 ore
+      } else if (attempts >= 10) {
+        lockedUntil = new Date(Date.now() + 60 * 60 * 1000) // 1 ora
+      } else if (attempts >= 5) {
+        lockedUntil = new Date(Date.now() + 15 * 60 * 1000) // 15 minuti
+      }
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          failedLoginAttempts: attempts,
+          lastFailedLogin: new Date(),
+          lockedUntil,
+        },
+      })
+
+      if (lockedUntil) {
+        const mins = Math.ceil((lockedUntil.getTime() - Date.now()) / 60000)
+        return { success: false, message: `Troppi tentativi falliti. Account bloccato per ${mins} minuti.` }
+      }
+      return { success: false, message: 'Credenziali non valide' }
+    }
+
+    // Reset failed attempts on successful login
+    if (user.failedLoginAttempts > 0) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { failedLoginAttempts: 0, lockedUntil: null, lastFailedLogin: null },
+      })
+    }
+
+    // Generate tokens
+    const tokenPayload: TokenPayload = {
+      userId: user.id,
       email: user.email,
       username: user.username,
-    },
-    tokens,
-  }
+    }
+    const tokens = generateTokens(tokenPayload)
+
+    return {
+      success: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+      },
+      tokens,
+    }
+  })
 }
 
 export async function getUserById(userId: string) {
