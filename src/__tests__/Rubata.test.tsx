@@ -220,6 +220,8 @@ const mockLoadData = vi.fn()
 const mockSetError = vi.fn()
 const mockHandleSetOrder = vi.fn()
 const mockHandleGenerateBoard = vi.fn()
+const mockHandleConfirmAndGenerate = vi.fn()
+const mockHandleOpenEditOrder = vi.fn()
 const mockHandleStartRubata = vi.fn()
 const mockHandleUpdateTimers = vi.fn()
 const mockHandlePause = vi.fn()
@@ -278,6 +280,8 @@ interface TestHookReturn {
   setOfferTimer: ReturnType<typeof vi.fn>
   auctionTimer: number
   setAuctionTimer: ReturnType<typeof vi.fn>
+  isEditingOrder: boolean
+  setIsEditingOrder: ReturnType<typeof vi.fn>
   mobileBudgetExpanded: boolean
   setMobileBudgetExpanded: ReturnType<typeof vi.fn>
   readyStatus: TestReadyStatus | null
@@ -314,6 +318,8 @@ interface TestHookReturn {
   setSelectedPlayerForStats: ReturnType<typeof vi.fn>
   handleSetOrder: ReturnType<typeof vi.fn>
   handleGenerateBoard: ReturnType<typeof vi.fn>
+  handleConfirmAndGenerate: ReturnType<typeof vi.fn>
+  handleOpenEditOrder: ReturnType<typeof vi.fn>
   handleStartRubata: ReturnType<typeof vi.fn>
   handleUpdateTimers: ReturnType<typeof vi.fn>
   handlePause: ReturnType<typeof vi.fn>
@@ -366,6 +372,8 @@ const defaultHookReturn: TestHookReturn = {
   setOfferTimer: vi.fn(),
   auctionTimer: 15,
   setAuctionTimer: vi.fn(),
+  isEditingOrder: false,
+  setIsEditingOrder: vi.fn(),
   mobileBudgetExpanded: false,
   setMobileBudgetExpanded: vi.fn(),
   readyStatus: null,
@@ -402,6 +410,8 @@ const defaultHookReturn: TestHookReturn = {
   setSelectedPlayerForStats: vi.fn(),
   handleSetOrder: mockHandleSetOrder,
   handleGenerateBoard: mockHandleGenerateBoard,
+  handleConfirmAndGenerate: mockHandleConfirmAndGenerate,
+  handleOpenEditOrder: mockHandleOpenEditOrder,
   handleStartRubata: mockHandleStartRubata,
   handleUpdateTimers: mockHandleUpdateTimers,
   handlePause: mockHandlePause,
@@ -524,12 +534,11 @@ describe('Rubata', () => {
     expect(screen.getByText('Ordine Rubata')).toBeInTheDocument()
     expect(screen.getByText(/Trascina i manager per impostare l'ordine/)).toBeInTheDocument()
     expect(screen.getByText('Impostazioni Timer')).toBeInTheDocument()
-    expect(screen.getByText('Conferma Ordine')).toBeInTheDocument()
     expect(screen.getByText('Genera Tabellone')).toBeInTheDocument()
   })
 
-  // ---- Admin: Confirm order button triggers handler ----
-  it('calls handleSetOrder when "Conferma Ordine" is clicked', async () => {
+  // ---- Admin: single "Genera Tabellone" action saves order+timer+board together ----
+  it('calls handleConfirmAndGenerate (not the separate handlers) when "Genera Tabellone" is clicked', async () => {
     const user = userEvent.setup()
     hookOverrides = {
       isRubataPhase: true,
@@ -541,25 +550,10 @@ describe('Rubata', () => {
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    await user.click(screen.getByText('Conferma Ordine'))
-    expect(mockHandleSetOrder).toHaveBeenCalled()
-  })
-
-  // ---- Admin: Generate board button triggers handler ----
-  it('calls handleGenerateBoard when "Genera Tabellone" is clicked', async () => {
-    const user = userEvent.setup()
-    hookOverrides = {
-      isRubataPhase: true,
-      isOrderSet: false,
-      isAdmin: true,
-      orderDraft: [],
-      members: [],
-    }
-
-    render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
-
     await user.click(screen.getByText('Genera Tabellone'))
-    expect(mockHandleGenerateBoard).toHaveBeenCalled()
+    expect(mockHandleConfirmAndGenerate).toHaveBeenCalled()
+    expect(mockHandleSetOrder).not.toHaveBeenCalled()
+    expect(mockHandleGenerateBoard).not.toHaveBeenCalled()
   })
 
   // ---- Non-admin: Waiting for order ----
@@ -850,8 +844,8 @@ describe('Rubata', () => {
     expect(screen.getByLabelText('Sposta Bob in giù')).toBeDisabled()
   })
 
-  // ---- isSubmitting state shows "Salvando..." ----
-  it('shows "Salvando..." text on confirm order button when isSubmitting is true', () => {
+  // ---- isSubmitting state shows "Generazione in corso..." ----
+  it('shows "Generazione in corso..." on the Genera Tabellone button when isSubmitting is true', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: false,
@@ -863,12 +857,11 @@ describe('Rubata', () => {
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    expect(screen.getByText('Salvando...')).toBeInTheDocument()
+    expect(screen.getByText('Generazione in corso...')).toBeInTheDocument()
   })
 
-  // ---- Timer settings: "Salva Timer" button ----
-  it('calls handleUpdateTimers when "Salva Timer" button is clicked in setup', async () => {
-    const user = userEvent.setup()
+  // ---- Timer settings: no separate save button in setup, merged into "Genera Tabellone" ----
+  it('does not show a separate "Salva Timer" button in the setup screen', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: false,
@@ -879,8 +872,8 @@ describe('Rubata', () => {
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    await user.click(screen.getByText('Salva Timer'))
-    expect(mockHandleUpdateTimers).toHaveBeenCalled()
+    expect(screen.queryByText('Salva Timer')).not.toBeInTheDocument()
+    expect(screen.queryByText('Conferma Ordine')).not.toBeInTheDocument()
   })
 
   // ---- PAUSED state with ready status ----

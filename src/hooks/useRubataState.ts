@@ -26,6 +26,7 @@ export function useRubataState(leagueId: string) {
   const [isAdmin, setIsAdmin] = useState(false)
   const [members, setMembers] = useState<LeagueMember[]>([])
   const [orderDraft, setOrderDraft] = useState<string[]>([])
+  const [isEditingOrder, setIsEditingOrder] = useState(false)
   const [boardData, setBoardData] = useState<BoardData | null>(null)
   const [bidAmount, setBidAmount] = useState(0)
   const [error, setError] = useState('')
@@ -404,6 +405,51 @@ export function useRubataState(leagueId: string) {
   }, [leagueId, boardData?.myMemberId, readyStatus?.myMemberId])
 
   // ========== Admin Actions ==========
+
+  /**
+   * Salva ordine + timer e genera il tabellone in un'unica azione atomica.
+   * Prima erano tre bottoni indipendenti: l'admin poteva generare il tabellone
+   * senza aver salvato il timer (generateBoard non lo legge affatto), avviando
+   * la rubata con secondi vecchi/di default senza alcun avviso.
+   */
+  async function handleConfirmAndGenerate() {
+    setError('')
+    setSuccess('')
+    setIsSubmitting(true)
+
+    const orderRes = await rubataApi.setOrder(leagueId, orderDraft)
+    if (!orderRes.success) {
+      setError(orderRes.message || 'Errore nel salvataggio dell\'ordine')
+      setIsSubmitting(false)
+      return
+    }
+
+    const timerRes = await rubataApi.updateTimers(leagueId, offerTimer, auctionTimer)
+    if (!timerRes.success) {
+      setError(timerRes.message || 'Errore nel salvataggio del timer')
+      setIsSubmitting(false)
+      return
+    }
+
+    const boardRes = await rubataApi.generateBoard(leagueId)
+    if (boardRes.success) {
+      setSuccess('Tabellone generato!')
+      setIsEditingOrder(false)
+      void loadData()
+    } else {
+      setError(boardRes.message || 'Errore nella generazione del tabellone')
+    }
+    setIsSubmitting(false)
+  }
+
+  /** Apre l'editor ordine post-generazione, precaricato con l'ordine attualmente
+   * salvato (derivato dal tabellone, non da orderDraft che di default è solo
+   * l'elenco membri e potrebbe essere stale rispetto a quanto salvato). */
+  function handleOpenEditOrder() {
+    const savedOrder = boardData?.board ? Array.from(new Set(boardData.board.map(b => b.memberId))) : []
+    if (savedOrder.length > 0) setOrderDraft(savedOrder)
+    setIsEditingOrder(true)
+  }
 
   async function handleSetOrder() {
     setError('')
@@ -1247,6 +1293,9 @@ export function useRubataState(leagueId: string) {
     // Order draft + drag and drop
     orderDraft,
     setOrderDraft,
+    isEditingOrder,
+    setIsEditingOrder,
+    handleOpenEditOrder,
     draggedId,
     moveInOrder,
     handleDndDragEnd,
@@ -1278,6 +1327,7 @@ export function useRubataState(leagueId: string) {
 
     // ========== Action handlers ==========
     // Admin
+    handleConfirmAndGenerate,
     handleSetOrder,
     handleGenerateBoard,
     handleStartRubata,

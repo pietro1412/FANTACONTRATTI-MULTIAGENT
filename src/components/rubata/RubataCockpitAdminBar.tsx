@@ -11,6 +11,7 @@ export interface RubataCockpitAdminBarProps {
   isSubmitting: boolean
   currentIndex: number | null
   onStartRubata: () => void
+  onOpenEditOrder: () => void
   onPause: () => void
   onResume: () => void
   onAdvance: () => void
@@ -51,6 +52,7 @@ export function RubataCockpitAdminBar({
   isSubmitting,
   currentIndex,
   onStartRubata,
+  onOpenEditOrder,
   onPause,
   onResume,
   onAdvance,
@@ -77,6 +79,10 @@ export function RubataCockpitAdminBar({
   const [botOpen, setBotOpen] = useState(false)
 
   const showStart = rubataState === 'WAITING' || rubataState === 'PREVIEW'
+  // Il tabellone esiste ma la rubata non e' ancora avviata: l'ordine si puo'
+  // ancora correggere (rigenera il tabellone da capo, stesso pattern di showStart
+  // ma include anche READY_CHECK, la fase subito dopo la generazione).
+  const showOrderEdit = rubataState === 'READY_CHECK' || rubataState === 'PREVIEW' || rubataState === 'WAITING'
   const showResume = rubataState === 'PAUSED'
   const showPlayControls = rubataState === 'OFFERING' || rubataState === 'AUCTION'
   const showBot = rubataState === 'OFFERING' || rubataState === 'AUCTION'
@@ -94,6 +100,11 @@ export function RubataCockpitAdminBar({
       {showResume && (
         <button type="button" onClick={onResume} disabled={isSubmitting} className={ABTN_GOLD}>
           <Bell size={12} aria-hidden="true" /> Richiedi pronti
+        </button>
+      )}
+      {showOrderEdit && (
+        <button type="button" onClick={onOpenEditOrder} disabled={isSubmitting} className={ABTN_NEUTRAL}>
+          Modifica ordine
         </button>
       )}
       {showPlayControls && (

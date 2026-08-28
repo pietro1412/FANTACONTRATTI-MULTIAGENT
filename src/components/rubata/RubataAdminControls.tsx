@@ -238,6 +238,7 @@ interface GameFlowPanelProps {
   isSubmitting: boolean
   currentIndex: number | null
   onStartRubata: () => void
+  onOpenEditOrder: () => void
   onPause: () => void
   onResume: () => void
   onAdvance: () => void
@@ -250,6 +251,7 @@ export function GameFlowPanel({
   isSubmitting,
   currentIndex,
   onStartRubata,
+  onOpenEditOrder,
   onPause,
   onResume,
   onAdvance,
@@ -257,10 +259,11 @@ export function GameFlowPanel({
   onCloseAuction,
 }: GameFlowPanelProps) {
   const showStart = rubataState === 'WAITING' || rubataState === 'PREVIEW'
+  const showOrderEdit = rubataState === 'READY_CHECK' || rubataState === 'PREVIEW' || rubataState === 'WAITING'
   const showResume = rubataState === 'PAUSED'
   const showPlayControls = rubataState === 'OFFERING' || rubataState === 'AUCTION'
 
-  if (!showStart && !showResume && !showPlayControls) return null
+  if (!showStart && !showOrderEdit && !showResume && !showPlayControls) return null
 
   return (
     <div className="bg-surface-200 rounded-2xl border border-primary-500/50 overflow-hidden">
@@ -271,6 +274,11 @@ export function GameFlowPanel({
         {showStart && (
           <Button onClick={onStartRubata} disabled={isSubmitting} size="sm" className="flex-1">
             <Play size={14} aria-hidden="true" className="mr-1.5" /> Avvia Rubata
+          </Button>
+        )}
+        {showOrderEdit && (
+          <Button onClick={onOpenEditOrder} disabled={isSubmitting} variant="outline" size="sm" className="flex-1">
+            Modifica ordine
           </Button>
         )}
         {showResume && (

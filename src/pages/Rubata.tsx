@@ -3,6 +3,7 @@ import { Settings, Search, X, Swords } from 'lucide-react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useRubataState } from '../hooks/useRubataState'
 import { Button } from '../components/ui/Button'
+import { Modal, ModalHeader, ModalBody, ModalFooter } from '../components/ui/Modal'
 import { EmptyState } from '../components/ui/EmptyState'
 import { BottomSheet } from '../components/ui/BottomSheet'
 import { Navigation } from '../components/Navigation'
@@ -141,7 +142,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
     // Admin simulation
     simulateMemberId, setSimulateMemberId, simulateBidAmount, setSimulateBidAmount,
     // Order draft + drag & drop
-    orderDraft, moveInOrder,
+    orderDraft, moveInOrder, isEditingOrder, setIsEditingOrder, handleOpenEditOrder,
     handleDndDragEnd, handleDndDragStart,
     // Preferences
     preferencesMap, selectedPlayerForPrefs, openPrefsModal, closePrefsModal,
@@ -155,7 +156,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
     // Player stats
     selectedPlayerForStats, setSelectedPlayerForStats,
     // Admin handlers
-    handleSetOrder, handleGenerateBoard, handleStartRubata, handleUpdateTimers,
+    handleConfirmAndGenerate, handleStartRubata, handleUpdateTimers,
     handlePause, handleResume, handleAdvance, handleGoBack,
     handleCloseAuction, handleCompleteRubata,
     // Player handlers
@@ -423,6 +424,45 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
         />
       )}
 
+      {/* Modifica ordine (admin, tabellone gia' generato ma rubata non ancora
+          avviata): riapre lo stesso editor drag-and-drop della schermata di
+          setup e rigenera il tabellone al salvataggio. */}
+      <Modal isOpen={isEditingOrder} onClose={() => { setIsEditingOrder(false); }} size="md">
+        <ModalHeader>Modifica ordine rubata</ModalHeader>
+        <ModalBody>
+          <p className="text-sm text-gray-400 mb-4">Trascina i manager per correggere l'ordine dei turni. Il tabellone verrà rigenerato con il nuovo ordine.</p>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDndDragEnd} onDragStart={handleDndDragStart}>
+            <SortableContext items={orderDraft} strategy={verticalListSortingStrategy}>
+              <div className="space-y-2">
+                {orderDraft.map((memberId, index) => {
+                  const member = members.find(m => m.id === memberId)
+                  const memberName = member?.user?.username || member?.teamName || 'Unknown'
+                  return (
+                    <SortableOrderItem
+                      key={memberId}
+                      id={memberId}
+                      index={index}
+                      memberName={memberName}
+                      totalItems={orderDraft.length}
+                      onMoveUp={() => { moveInOrder(index, 'up'); }}
+                      onMoveDown={() => { moveInOrder(index, 'down'); }}
+                    />
+                  )
+                })}
+              </div>
+            </SortableContext>
+          </DndContext>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="outline" onClick={() => { setIsEditingOrder(false); }} disabled={isSubmitting}>
+            Annulla
+          </Button>
+          <Button onClick={() => void handleConfirmAndGenerate()} disabled={isSubmitting}>
+            {isSubmitting ? 'Rigenerazione...' : 'Salva e rigenera tabellone'}
+          </Button>
+        </ModalFooter>
+      </Modal>
+
 
       <main className={`max-w-[1600px] mx-auto px-4 py-3 md:py-8 ${isCockpit ? 'lg:w-full lg:flex-1 lg:min-h-0 lg:flex lg:flex-col lg:overflow-hidden lg:py-3' : ''}`}>
         {error && (
@@ -452,82 +492,80 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
 
         {/* Fase RUBATA - Setup ordine (Admin) */}
         {isRubataPhase && !isOrderSet && isAdmin && (
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Order Management */}
-            <div className="bg-surface-200 rounded-2xl border border-surface-50/20 overflow-hidden">
-              <div className="p-5 border-b border-surface-50/20">
-                <h3 className="micro-label">
-                  Ordine Rubata
-                </h3>
-                <p className="text-sm text-gray-400 mt-1">Trascina i manager per impostare l'ordine dei turni</p>
+          <div>
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Order Management */}
+              <div className="bg-surface-200 rounded-2xl border border-surface-50/20 overflow-hidden">
+                <div className="p-5 border-b border-surface-50/20">
+                  <h3 className="micro-label">
+                    Ordine Rubata
+                  </h3>
+                  <p className="text-sm text-gray-400 mt-1">Trascina i manager per impostare l'ordine dei turni</p>
+                </div>
+                <div className="p-5">
+                  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDndDragEnd} onDragStart={handleDndDragStart}>
+                    <SortableContext items={orderDraft} strategy={verticalListSortingStrategy}>
+                      <div className="space-y-2">
+                        {orderDraft.map((memberId, index) => {
+                          const member = members.find(m => m.id === memberId)
+                          const memberName = member?.user?.username || member?.teamName || 'Unknown'
+                          return (
+                            <SortableOrderItem
+                              key={memberId}
+                              id={memberId}
+                              index={index}
+                              memberName={memberName}
+                              totalItems={orderDraft.length}
+                              onMoveUp={() => { moveInOrder(index, 'up'); }}
+                              onMoveDown={() => { moveInOrder(index, 'down'); }}
+                            />
+                          )
+                        })}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
+                </div>
               </div>
-              <div className="p-5">
-                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDndDragEnd} onDragStart={handleDndDragStart}>
-                  <SortableContext items={orderDraft} strategy={verticalListSortingStrategy}>
-                    <div className="space-y-2 mb-4">
-                      {orderDraft.map((memberId, index) => {
-                        const member = members.find(m => m.id === memberId)
-                        const memberName = member?.user?.username || member?.teamName || 'Unknown'
-                        return (
-                          <SortableOrderItem
-                            key={memberId}
-                            id={memberId}
-                            index={index}
-                            memberName={memberName}
-                            totalItems={orderDraft.length}
-                            onMoveUp={() => { moveInOrder(index, 'up'); }}
-                            onMoveDown={() => { moveInOrder(index, 'down'); }}
-                          />
-                        )
-                      })}
-                    </div>
-                  </SortableContext>
-                </DndContext>
-                <Button onClick={() => void handleSetOrder()} disabled={isSubmitting} className="w-full">
-                  {isSubmitting ? 'Salvando...' : 'Conferma Ordine'}
-                </Button>
+
+              {/* Timer Settings */}
+              <div className="bg-surface-200 rounded-2xl border border-surface-50/20 overflow-hidden">
+                <div className="p-5 border-b border-surface-50/20">
+                  <h3 className="micro-label">
+                    Impostazioni Timer
+                  </h3>
+                </div>
+                <div className="p-5 space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-2">Timer offerta iniziale (secondi)</label>
+                    <input
+                      type="number"
+                      value={offerTimer}
+                      onChange={(e) => { setOfferTimer(parseInt(e.target.value) || 30); }}
+                      min={5}
+                      max={120}
+                      className="w-full px-4 py-2 bg-surface-300 border border-surface-50/30 rounded-xl text-white focus:border-primary-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-2">Timer asta (secondi)</label>
+                    <input
+                      type="number"
+                      value={auctionTimer}
+                      onChange={(e) => { setAuctionTimer(parseInt(e.target.value) || 15); }}
+                      min={5}
+                      max={60}
+                      className="w-full px-4 py-2 bg-surface-300 border border-surface-50/30 rounded-xl text-white focus:border-primary-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Timer Settings */}
-            <div className="bg-surface-200 rounded-2xl border border-surface-50/20 overflow-hidden">
-              <div className="p-5 border-b border-surface-50/20">
-                <h3 className="micro-label">
-                  Impostazioni Timer
-                </h3>
-              </div>
-              <div className="p-5 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">Timer offerta iniziale (secondi)</label>
-                  <input
-                    type="number"
-                    value={offerTimer}
-                    onChange={(e) => { setOfferTimer(parseInt(e.target.value) || 30); }}
-                    min={5}
-                    max={120}
-                    className="w-full px-4 py-2 bg-surface-300 border border-surface-50/30 rounded-xl text-white focus:border-primary-500 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">Timer asta (secondi)</label>
-                  <input
-                    type="number"
-                    value={auctionTimer}
-                    onChange={(e) => { setAuctionTimer(parseInt(e.target.value) || 15); }}
-                    min={5}
-                    max={60}
-                    className="w-full px-4 py-2 bg-surface-300 border border-surface-50/30 rounded-xl text-white focus:border-primary-500 focus:outline-none"
-                  />
-                </div>
-                <Button onClick={() => void handleUpdateTimers()} disabled={isSubmitting} variant="outline" className="w-full">
-                  Salva Timer
-                </Button>
-                <hr className="border-surface-50/20" />
-                <Button onClick={() => void handleGenerateBoard()} disabled={isSubmitting} className="w-full">
-                  Genera Tabellone
-                </Button>
-              </div>
-            </div>
+            {/* Azione unica: salva ordine + timer e genera il tabellone insieme
+                (prima erano 3 bottoni indipendenti — vedi commit di questa sessione) */}
+            <Button onClick={() => void handleConfirmAndGenerate()} disabled={isSubmitting} className="w-full mt-6">
+              {isSubmitting ? 'Generazione in corso...' : 'Genera Tabellone'}
+            </Button>
           </div>
         )}
 
@@ -558,6 +596,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                   isSubmitting={isSubmitting}
                   currentIndex={boardData?.currentIndex ?? null}
                   onStartRubata={() => void handleStartRubata()}
+                  onOpenEditOrder={handleOpenEditOrder}
                   onPause={() => void handlePause()}
                   onResume={() => void handleResume()}
                   onAdvance={() => void handleAdvance()}
@@ -1244,6 +1283,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                 isSubmitting={isSubmitting}
                 currentIndex={boardData?.currentIndex ?? null}
                 onStartRubata={() => void handleStartRubata()}
+                onOpenEditOrder={handleOpenEditOrder}
                 onPause={() => void handlePause()}
                 onResume={() => void handleResume()}
                 onAdvance={() => void handleAdvance()}
