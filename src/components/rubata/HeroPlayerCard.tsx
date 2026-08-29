@@ -93,6 +93,7 @@ export const HeroPlayerCard = memo(function HeroPlayerCard({
   const winningBid = activeAuction && activeAuction.bids.length > 0
     ? activeAuction.bids.find(b => b.isWinning) ?? activeAuction.bids[0]
     : null
+  const isUserWinning = winningBid?.bidderId === myMemberId
 
   const showAuctionBox = rubataState === 'AUCTION' && !!activeAuction
   const showAffordability = !isMyPlayer && residuoAfter !== null
@@ -229,62 +230,93 @@ export const HeroPlayerCard = memo(function HeroPlayerCard({
             )}
           </div>
 
-          {/* ===== Colonna destra: la decisione (offerta / CTA / controlli) ===== */}
+          {/* ===== Colonna destra: la decisione, in due barre orizzontali =====
+              BARRA 1 (stato, letta a colpo d'occhio): prezzo/esito a sinistra,
+              timer a destra sulla stessa riga — prima erano 3 blocchi impilati
+              (offerta, permettibilità, timer), causa di affollamento segnalata
+              dall'utente (2026-08-29) confrontando OFFERING vs AUCTION.
+              BARRA 2 (azione): CTA in OFFERING, controlli di rilancio + chip
+              rilanci in AUCTION — invariati, solo il timer si è spostato sopra. */}
           {hasRightColumn && (
             <div className="lg:border-l lg:border-surface-50 lg:pl-4 lg:min-w-0 lg:flex lg:flex-col lg:gap-2.5">
-              {/* During AUCTION — current bid big */}
-              {showAuctionBox && activeAuction && (() => {
-                const isUserWinning = winningBid?.bidderId === myMemberId
-                return (
-                  <div className={`mt-3 lg:mt-0 rounded-xl border px-3 py-3 text-center lg:text-left ${
-                    isUserWinning ? 'border-secondary-500/50 bg-secondary-500/5' : 'border-danger-500/50 bg-surface-300'
-                  }`}>
-                    <p className="micro-label">Offerta attuale</p>
-                    <p
-                      className={`stat-number text-[56px] md:text-[40px] lg:text-[44px] leading-none mt-1 ${
-                        isUserWinning ? 'text-secondary-400' : 'text-accent-300'
-                      }`}
-                      aria-live="polite"
-                      aria-label={`Offerta attuale: ${activeAuction.currentPrice} milioni`}
-                    >
-                      {activeAuction.currentPrice}M
-                    </p>
-                    {winningBid && (
-                      <p className="mt-1.5 inline-flex items-center gap-1.5 text-sm text-gray-400">
-                        <Monogram name={winningBid.bidder} size="xs" />
-                        {isUserWinning ? (
-                          <b className="text-secondary-400 font-semibold">la tua offerta — stai vincendo</b>
-                        ) : (
-                          <>offerta di <b className="text-white font-semibold">{winningBid.bidder}</b></>
+              {/* BARRA 1 — stato */}
+              {(showAuctionBox || showAffordability) && (
+                <div className={`mt-3 lg:mt-0 flex items-center gap-3 rounded-xl border px-3 py-3 ${
+                  showAuctionBox
+                    ? (isUserWinning ? 'border-secondary-500/50 bg-secondary-500/5' : 'border-danger-500/50 bg-surface-300')
+                    : canAfford
+                      ? 'border-secondary-500/40 bg-secondary-500/10'
+                      : 'border-danger-500/40 bg-danger-500/10'
+                }`}>
+                  <div className="flex-1 min-w-0 text-center lg:text-left">
+                    {showAuctionBox && activeAuction ? (
+                      <>
+                        <div className="flex items-center gap-2 flex-wrap justify-center lg:justify-start">
+                          <p className="micro-label">Offerta attuale</p>
+                          {showAffordability && (
+                            <span className={`inline-flex items-center gap-1 text-[11px] font-bold ${canAfford ? 'text-secondary-400' : 'text-danger-400'}`}>
+                              <span
+                                className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] flex-shrink-0 ${canAfford ? 'bg-secondary-500 text-dark-300' : 'bg-danger-500 text-white'}`}
+                                aria-hidden="true"
+                              >
+                                {canAfford ? '✓' : '!'}
+                              </span>
+                              {canAfford ? 'Te lo puoi permettere' : 'Non te lo puoi permettere'}
+                            </span>
+                          )}
+                        </div>
+                        <p
+                          className={`stat-number text-[56px] md:text-[40px] lg:text-[36px] leading-none mt-1 ${
+                            isUserWinning ? 'text-secondary-400' : 'text-accent-300'
+                          }`}
+                          aria-live="polite"
+                          aria-label={`Offerta attuale: ${activeAuction.currentPrice} milioni`}
+                        >
+                          {activeAuction.currentPrice}M
+                        </p>
+                        {winningBid && (
+                          <p className="mt-1 inline-flex items-center gap-1.5 text-sm text-gray-400">
+                            <Monogram name={winningBid.bidder} size="xs" />
+                            {isUserWinning ? (
+                              <b className="text-secondary-400 font-semibold">la tua offerta — stai vincendo</b>
+                            ) : (
+                              <>offerta di <b className="text-white font-semibold">{winningBid.bidder}</b></>
+                            )}
+                          </p>
                         )}
-                      </p>
+                      </>
+                    ) : (
+                      canAfford ? (
+                        <span className="text-sm text-gray-300">
+                          <b className="text-secondary-400 font-bold">✓ Te lo puoi permettere.</b>{' '}
+                          Bilancio dopo la rubata: <b className="font-mono text-secondary-400">{residuoAfter}M</b> su <span className="font-mono">{myResiduo}M</span>
+                        </span>
+                      ) : (
+                        <span className="text-sm text-gray-300">
+                          <b className="text-danger-400 font-bold">! Non te lo puoi permettere.</b>{' '}
+                          Ti mancano <b className="font-mono text-danger-400">{Math.abs(residuoAfter ?? 0)}M</b> sul tuo bilancio di <span className="font-mono">{myResiduo}M</span>
+                        </span>
+                      )
                     )}
                   </div>
-                )
-              })()}
-
-              {/* Affordability check */}
-              {showAffordability && (
-                canAfford ? (
-                  <div className="mt-3 lg:mt-0 flex items-center gap-2.5 rounded-lg border border-secondary-500/40 bg-secondary-500/10 px-3 py-2 text-sm">
-                    <span className="w-5 h-5 rounded-full bg-secondary-500 text-dark-300 flex items-center justify-center text-xs font-bold flex-shrink-0" aria-hidden="true">✓</span>
-                    <span className="text-gray-300">
-                      <b className="text-secondary-400 font-bold">Te lo puoi permettere.</b>{' '}
-                      Bilancio dopo la rubata: <b className="font-mono text-secondary-400">{residuoAfter}M</b> su <span className="font-mono">{myResiduo}M</span>
-                    </span>
-                  </div>
-                ) : (
-                  <div className="mt-3 lg:mt-0 flex items-center gap-2.5 rounded-lg border border-danger-500/40 bg-danger-500/10 px-3 py-2 text-sm">
-                    <span className="w-5 h-5 rounded-full bg-danger-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0" aria-hidden="true">!</span>
-                    <span className="text-gray-300">
-                      <b className="text-danger-400 font-bold">Non te lo puoi permettere.</b>{' '}
-                      Ti mancano <b className="font-mono text-danger-400">{Math.abs(residuoAfter)}M</b> sul tuo bilancio di <span className="font-mono">{myResiduo}M</span>
-                    </span>
-                  </div>
-                )
+                  {timerSeconds != null && (
+                    <div className="flex-shrink-0">
+                      <TimerDisplay seconds={timerSeconds} totalSeconds={timerTotalSeconds} size={44} />
+                    </div>
+                  )}
+                </div>
               )}
 
-              {/* CTA — only during OFFERING */}
+              {/* Timer isolato: solo se nessun box di stato è presente sopra
+                  (caso raro — es. proprietario che vede l'asta senza check di
+                  permettibilità) per non perdere comunque il conto alla rovescia. */}
+              {!showAuctionBox && !showAffordability && timerSeconds != null && (
+                <div className="mt-3 lg:mt-0 flex justify-center">
+                  <TimerDisplay seconds={timerSeconds} totalSeconds={timerTotalSeconds} size={44} />
+                </div>
+              )}
+
+              {/* BARRA 2 — azione */}
               {showCTA && (
                 <button
                   type="button"
@@ -298,15 +330,6 @@ export const HeroPlayerCard = memo(function HeroPlayerCard({
 
               {/* Auction controls (bid form + chips) live inside the arena */}
               {children}
-
-              {/* Timer — sotto l'azione (CTA "Voglio rubare" in OFFERING, o i
-                  controlli di rilancio in AUCTION), non nel box costo rubata:
-                  segnala l'urgenza vicino a dove si decide, non a un dato statico. */}
-              {timerSeconds != null && (
-                <div className="mt-3 lg:mt-0 flex justify-center">
-                  <TimerDisplay seconds={timerSeconds} totalSeconds={timerTotalSeconds} size={44} />
-                </div>
-              )}
             </div>
           )}
         </div>
