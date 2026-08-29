@@ -17,6 +17,8 @@ vi.mock('@/lib/prisma', () => {
     auctionBid: { create: vi.fn(), findFirst: vi.fn(), findMany: vi.fn(), updateMany: vi.fn() },
     rubataPreference: { findMany: vi.fn(), upsert: vi.fn(), deleteMany: vi.fn(), findFirst: vi.fn() },
     serieAPlayer: { findMany: vi.fn(), findUnique: vi.fn() },
+    playerMovement: { findFirst: vi.fn() },
+    prophecy: { findUnique: vi.fn(), create: vi.fn() },
     $transaction: vi.fn(),
   }
   p.$transaction.mockImplementation((fn: (tx: typeof p) => Promise<unknown>) => fn(p))
@@ -52,6 +54,8 @@ const mockPrisma = prisma as unknown as {
   auctionBid: { create: Mock; findFirst: Mock; findMany: Mock; updateMany: Mock }
   rubataPreference: { findMany: Mock; upsert: Mock; deleteMany: Mock; findFirst: Mock }
   serieAPlayer: { findMany: Mock; findUnique: Mock }
+  playerMovement: { findFirst: Mock }
+  prophecy: { findUnique: Mock; create: Mock }
   $transaction: Mock
 }
 
@@ -147,6 +151,9 @@ beforeEach(() => {
   // Default: no binding auto-pass preferences on the upcoming player, unless a
   // test overrides this to verify the auto-pass ready-check seeding behavior.
   mockPrisma.rubataPreference.findMany.mockResolvedValue([])
+  // Default: nessun movimento trovato per l'auction -> il nuovo blocco di
+  // persistenza Prophecy (2026-08-29) resta un no-op nei test che non lo riguardano.
+  mockPrisma.playerMovement.findFirst.mockResolvedValue(null)
 })
 
 // ==================== getRubataReadyStatus ====================
@@ -768,6 +775,87 @@ describe('acknowledgeRubataTransaction', () => {
     expect(updatedAck.data.rubataPendingAck.prophecies).toHaveLength(1)
     const firstProphecy = updatedAck.data.rubataPendingAck.prophecies[0] as { content: string }
     expect(firstProphecy.content).toBe('Questo lo rubano tutti!')
+  })
+
+  // Regression per il bug 2026-08-29: la profezia veniva scritta SOLO nel JSON
+  // rubataPendingAck (azzerato a fine fase) e non compariva mai nell'Archivio
+  // Profezie perche' non veniva mai persistita nel modello Prophecy.
+  it('should persist the prophecy in the Prophecy model when a movement exists for the auction', async () => {
+    const member = makeMember({ id: 'member-2' }) // il membro che conferma è il winner/BUYER
+    const pendingAck = {
+      auctionId: 'auction-1',
+      playerId: 'player-1',
+      playerName: 'Leao',
+      winnerId: 'member-2',
+      finalPrice: 50,
+      acknowledgedMembers: [],
+      prophecies: [],
+    }
+    mockPrisma.leagueMember.findFirst.mockResolvedValueOnce(member)
+    mockPrisma.marketSession.findFirst.mockResolvedValueOnce(
+      makeSession({ rubataState: 'PENDING_ACK', rubataPendingAck: pendingAck })
+    )
+    mockPrisma.leagueMember.findUnique.mockResolvedValueOnce(member)
+    mockPrisma.playerMovement.findFirst.mockResolvedValueOnce({
+      id: 'movement-1',
+      toMemberId: 'member-2', // stesso member -> BUYER
+      fromMemberId: 'member-1',
+    })
+    mockPrisma.prophecy.findUnique.mockResolvedValueOnce(null) // nessuna profezia già registrata
+    mockPrisma.leagueMember.findMany.mockResolvedValueOnce([
+      makeMember(),
+      member,
+    ])
+    mockPrisma.marketSession.update.mockResolvedValueOnce({})
+
+    const result = await acknowledgeRubataTransaction(LEAGUE_ID, 'user-member-2', 'Questo lo rubano tutti!')
+    expect(result.success).toBe(true)
+
+    expect(mockPrisma.playerMovement.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { auctionId: 'auction-1' } })
+    )
+    expect(mockPrisma.prophecy.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          leagueId: LEAGUE_ID,
+          playerId: 'player-1',
+          authorId: 'member-2',
+          movementId: 'movement-1',
+          authorRole: 'BUYER',
+          content: 'Questo lo rubano tutti!',
+        }),
+      })
+    )
+  })
+
+  it('should not create a duplicate Prophecy if one already exists for this movement/author', async () => {
+    const member = makeMember({ id: 'member-2' })
+    const pendingAck = {
+      auctionId: 'auction-1',
+      playerId: 'player-1',
+      playerName: 'Leao',
+      winnerId: 'member-2',
+      finalPrice: 50,
+      acknowledgedMembers: [],
+      prophecies: [],
+    }
+    mockPrisma.leagueMember.findFirst.mockResolvedValueOnce(member)
+    mockPrisma.marketSession.findFirst.mockResolvedValueOnce(
+      makeSession({ rubataState: 'PENDING_ACK', rubataPendingAck: pendingAck })
+    )
+    mockPrisma.leagueMember.findUnique.mockResolvedValueOnce(member)
+    mockPrisma.playerMovement.findFirst.mockResolvedValueOnce({
+      id: 'movement-1',
+      toMemberId: 'member-2',
+      fromMemberId: 'member-1',
+    })
+    mockPrisma.prophecy.findUnique.mockResolvedValueOnce({ id: 'existing-prophecy' })
+    mockPrisma.leagueMember.findMany.mockResolvedValueOnce([makeMember(), member])
+    mockPrisma.marketSession.update.mockResolvedValueOnce({})
+
+    const result = await acknowledgeRubataTransaction(LEAGUE_ID, 'user-member-2', 'Duplicata')
+    expect(result.success).toBe(true)
+    expect(mockPrisma.prophecy.create).not.toHaveBeenCalled()
   })
 
   it('should advance to READY_CHECK when all acknowledged and not last player', async () => {

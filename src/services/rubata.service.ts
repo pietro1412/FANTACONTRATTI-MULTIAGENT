@@ -2959,6 +2959,45 @@ export async function acknowledgeRubataTransaction(
       }]
     : existingProphecies
 
+  // Persiste la profezia anche nel modello Prophecy (Archivio Profezie): prima veniva
+  // scritta SOLO in rubataPendingAck (JSON), che si azzera a fine fase (Prisma.DbNull
+  // piu' sotto) — la profezia spariva senza mai comparire nell'archivio. Stesso pattern
+  // gia' in uso per il Primo Mercato (vedi acknowledgeAuction in auction.service.ts).
+  if (prophecy?.trim() && pendingAck.winnerId) {
+    const movement = await prisma.playerMovement.findFirst({
+      where: { auctionId: pendingAck.auctionId },
+    })
+
+    if (movement) {
+      const isBuyer = movement.toMemberId === member.id
+      const isSeller = movement.fromMemberId === member.id
+
+      if (isBuyer || isSeller) {
+        const existingProphecy = await prisma.prophecy.findUnique({
+          where: {
+            movementId_authorId: {
+              movementId: movement.id,
+              authorId: member.id,
+            },
+          },
+        })
+
+        if (!existingProphecy) {
+          await prisma.prophecy.create({
+            data: {
+              leagueId,
+              playerId: pendingAck.playerId,
+              authorId: member.id,
+              movementId: movement.id,
+              authorRole: isBuyer ? 'BUYER' : 'SELLER',
+              content: prophecy.trim(),
+            },
+          })
+        }
+      }
+    }
+  }
+
   const updatedAck = {
     ...pendingAck,
     acknowledgedMembers: [...pendingAck.acknowledgedMembers, member.id],
