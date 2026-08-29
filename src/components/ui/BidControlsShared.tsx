@@ -159,8 +159,11 @@ export function BidControlsShared({
         </button>
       </div>
 
-      {/* Stepper [−][importo][+] + RILANCIA */}
-      <div className="flex items-stretch gap-2">
+      {/* Stepper [−][importo][+] + RILANCIA. items-center (non items-stretch): il
+          bottone RILANCIA ha un'altezza fissa propria (h-12) invece di essere
+          "stirato" per pareggiare l'altezza variabile dello stepper accanto —
+          risultava sproporzionato (2026-08-29). */}
+      <div className="flex items-center gap-2">
         <div className="flex items-stretch rounded-[11px] border border-surface-50 bg-surface-300 overflow-hidden">
           <button
             type="button"
@@ -200,7 +203,7 @@ export function BidControlsShared({
           type="button"
           onClick={handleBidClick}
           disabled={isLocked || bidAmount <= currentPrice || bidAmount > budget}
-          className={`flex-1 rounded-[11px] py-2.5 font-display font-extrabold uppercase tracking-[0.05em] text-base transition-all whitespace-nowrap min-h-[44px] ${
+          className={`flex-1 h-12 flex items-center justify-center rounded-[11px] font-display font-extrabold uppercase tracking-[0.05em] text-base transition-all whitespace-nowrap ${
             isLocked || bidAmount <= currentPrice || bidAmount > budget
               ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
               : 'text-dark-300 bg-gradient-to-b from-secondary-400 to-secondary-500 hover:from-secondary-300 hover:to-secondary-400 shadow-glow-green active:scale-[0.99]'
