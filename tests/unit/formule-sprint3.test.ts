@@ -71,9 +71,10 @@ describe('P0-7: PENDING_ACK auto-advance checks acknowledgedMembers, not auction
     const fnStart = code.indexOf('export async function acknowledgeRubataTransaction')
     expect(fnStart).toBeGreaterThan(-1)
 
-    // This is a large function (~150 lines). Use a 5000 char window to capture the full body
-    // up to and including the allAcknowledged check and state transition.
-    const fnBody = code.slice(fnStart, fnStart + 5000)
+    // This is a large function (~200 lines, grew with the CAS-via-Serializable-transaction
+    // retry fix for the 2026-08-29 race condition). Use an 8000 char window to capture the
+    // full body up to and including the allAcknowledged check and state transition.
+    const fnBody = code.slice(fnStart, fnStart + 8000)
     expect(fnBody).toContain('allAcknowledged')
     expect(fnBody).toContain('every')
   })

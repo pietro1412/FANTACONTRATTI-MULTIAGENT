@@ -2525,125 +2525,142 @@ export async function setRubataReady(
     return { success: false, message: 'Non è il momento di dichiararsi pronti' }
   }
 
-  const rubataReadyMembers = (activeSession.rubataReadyMembers as string[]) || []
-
-  if (rubataReadyMembers.includes(member.id)) {
-    return { success: true, message: 'Già pronto' }
-  }
-
   // Get member username for Pusher notification
   const memberWithUser = await prisma.leagueMember.findUnique({
     where: { id: member.id },
     include: { user: { select: { username: true } } },
   })
 
-  // Check if all members are ready
   const allMembers = await prisma.leagueMember.findMany({
     where: { leagueId, status: MemberStatus.ACTIVE },
   })
 
-  // In IN_PRESENCE mode, auto-mark all members as ready (skip ready-check)
-  const updatedReadyMembers = activeSession.auctionMode === 'IN_PRESENCE'
-    ? allMembers.map(m => m.id)
-    : [...rubataReadyMembers, member.id]
+  // Fix race condition su rilanci concorrenti (2026-08-29, stessa classe del bug bid
+  // gia' corretto in bidOnRubataAuction/placeBid/bidOnFreeAgent): rubataReadyMembers
+  // e' un array JSON letto-e-riscritto senza alcuna guardia atomica. Con 8 manager che
+  // si dichiarano pronti quasi in contemporanea (scenario realistico, non raro), due
+  // update concorrenti leggono lo stesso array iniziale e l'ultimo a scrivere vince,
+  // perdendo silenziosamente i "pronto" degli altri — il ready-check non avanzava mai
+  // (osservato durante il proseguimento della Rubata su Playthrough Beta).
+  // Qui un CAS su un singolo campo scalare non e' applicabile (l'array cresce elemento
+  // per elemento): si usa una transazione Serializable con retry sul conflitto di
+  // scrittura Postgres (codice P2034), che rilegge lo stato fresco ad ogni tentativo.
+  const MAX_READY_ATTEMPTS = 6
+  for (let attempt = 0; attempt < MAX_READY_ATTEMPTS; attempt++) {
+    try {
+      const result = await prisma.$transaction(async (tx) => {
+        const fresh = await tx.marketSession.findUnique({ where: { id: activeSession.id } })
+        if (!fresh || !allowedReadyStates.includes(fresh.rubataState || '')) {
+          return { success: false, message: 'Non è il momento di dichiararsi pronti' }
+        }
 
-  const allReady = allMembers.every(m => updatedReadyMembers.includes(m.id))
+        const rubataReadyMembers = (fresh.rubataReadyMembers as string[]) || []
+        if (rubataReadyMembers.includes(member.id)) {
+          return { success: true, message: 'Già pronto' }
+        }
 
-  // Trigger Pusher event for real-time ready update (non-blocking)
-  triggerRubataReadyChanged(activeSession.id, {
-    sessionId: activeSession.id,
-    memberId: member.id,
-    memberUsername: memberWithUser?.user.username || 'Unknown',
-    isReady: true,
-    readyCount: updatedReadyMembers.length,
-    totalMembers: allMembers.length,
-    timestamp: new Date().toISOString(),
-  }).catch(() => { /* Error intentionally silenced */ })
+        // In IN_PRESENCE mode, auto-mark all members as ready (skip ready-check)
+        const updatedReadyMembers = fresh.auctionMode === 'IN_PRESENCE'
+          ? allMembers.map(m => m.id)
+          : [...rubataReadyMembers, member.id]
 
-  // If in AUCTION_READY_CHECK state and all ready, start the auction
-  if (activeSession.rubataState === 'AUCTION_READY_CHECK' && allReady) {
-    await prisma.marketSession.update({
-      where: { id: activeSession.id },
-      data: {
-        rubataReadyMembers: [],
-        rubataAuctionReadyInfo: Prisma.DbNull,
-        rubataState: 'AUCTION',
-        rubataTimerStartedAt: new Date(),
-      },
-    })
+        const allReady = allMembers.every(m => updatedReadyMembers.includes(m.id))
 
-    return {
-      success: true,
-      message: 'Tutti pronti! Asta avviata.',
-      data: { allReady: true, auctionStarted: true },
+        // If in AUCTION_READY_CHECK state and all ready, start the auction
+        if (fresh.rubataState === 'AUCTION_READY_CHECK' && allReady) {
+          await tx.marketSession.update({
+            where: { id: activeSession.id },
+            data: {
+              rubataReadyMembers: [],
+              rubataAuctionReadyInfo: Prisma.DbNull,
+              rubataState: 'AUCTION',
+              rubataTimerStartedAt: new Date(),
+            },
+          })
+          return { success: true, message: 'Tutti pronti! Asta avviata.', data: { allReady: true, auctionStarted: true }, _justBecameReady: true }
+        }
+
+        // If in PENDING_ACK state and all ready, clear pending ack and advance
+        if (fresh.rubataState === 'PENDING_ACK' && allReady) {
+          await tx.marketSession.update({
+            where: { id: activeSession.id },
+            data: {
+              rubataReadyMembers: [],
+              rubataPendingAck: Prisma.DbNull,
+              rubataState: 'OFFERING',
+              rubataTimerStartedAt: new Date(),
+            },
+          })
+          return { success: true, message: 'Tutti pronti! Si riparte.', data: { allReady: true }, _justBecameReady: true }
+        }
+
+        // If in PAUSED state and all ready, resume with saved remaining time
+        if (fresh.rubataState === 'PAUSED' && allReady) {
+          const resumeState = fresh.rubataPausedFromState || 'OFFERING'
+          const remainingSeconds = fresh.rubataPausedRemainingSeconds || 0
+          const totalSeconds = resumeState === 'AUCTION' ? fresh.rubataAuctionTimerSeconds : fresh.rubataOfferTimerSeconds
+          const offsetSeconds = totalSeconds - remainingSeconds
+          const adjustedStartTime = new Date(Date.now() - offsetSeconds * 1000)
+
+          await tx.marketSession.update({
+            where: { id: activeSession.id },
+            data: {
+              rubataReadyMembers: [],
+              rubataState: resumeState,
+              rubataTimerStartedAt: adjustedStartTime,
+              rubataPausedFromState: null,
+              rubataPausedRemainingSeconds: null,
+            },
+          })
+          return {
+            success: true,
+            message: `Tutti pronti! Rubata ripresa (${remainingSeconds} secondi rimanenti).`,
+            data: { allReady: true, resumed: true, remainingSeconds },
+            _justBecameReady: true,
+          }
+        }
+
+        await tx.marketSession.update({
+          where: { id: activeSession.id },
+          data: { rubataReadyMembers: updatedReadyMembers },
+        })
+
+        return {
+          success: true,
+          message: 'Pronto!',
+          data: { allReady, readyCount: updatedReadyMembers.length, totalMembers: allMembers.length },
+          _justBecameReady: true,
+        }
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
+
+      // Pusher: solo quando questa chiamata ha davvero registrato un nuovo "pronto"
+      // (non su "Già pronto" o su un rifiuto), con i numeri reali della transazione —
+      // spostato fuori dal loop per non spammare notifiche duplicate sui retry.
+      if (result._justBecameReady) {
+        const readyData = result.data as { readyCount?: number; totalMembers?: number } | undefined
+        triggerRubataReadyChanged(activeSession.id, {
+          sessionId: activeSession.id,
+          memberId: member.id,
+          memberUsername: memberWithUser?.user.username || 'Unknown',
+          isReady: true,
+          readyCount: readyData?.readyCount ?? allMembers.length,
+          totalMembers: readyData?.totalMembers ?? allMembers.length,
+          timestamp: new Date().toISOString(),
+        }).catch(() => { /* Error intentionally silenced */ })
+      }
+
+      const { _justBecameReady: _unused, ...serviceResult } = result
+      return serviceResult
+    } catch (e) {
+      const isSerializationConflict = e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2034'
+      if (isSerializationConflict && attempt < MAX_READY_ATTEMPTS - 1) {
+        continue
+      }
+      throw e
     }
   }
 
-  // If in PENDING_ACK state and all ready, clear pending ack and advance
-  if (activeSession.rubataState === 'PENDING_ACK' && allReady) {
-    await prisma.marketSession.update({
-      where: { id: activeSession.id },
-      data: {
-        rubataReadyMembers: [],
-        rubataPendingAck: Prisma.DbNull,
-        rubataState: 'OFFERING',
-        rubataTimerStartedAt: new Date(),
-      },
-    })
-
-    return {
-      success: true,
-      message: 'Tutti pronti! Si riparte.',
-      data: { allReady: true },
-    }
-  }
-
-  // If in PAUSED state and all ready, resume with saved remaining time
-  if (activeSession.rubataState === 'PAUSED' && allReady) {
-    const resumeState = activeSession.rubataPausedFromState || 'OFFERING'
-    const remainingSeconds = activeSession.rubataPausedRemainingSeconds || 0
-
-    // Calculate the start time to make the timer show the remaining seconds
-    // If we have 10 seconds remaining and the timer is 30 seconds total,
-    // we set timerStartedAt to (now - (30 - 10) seconds) = (now - 20 seconds)
-    const totalSeconds = resumeState === 'AUCTION'
-      ? activeSession.rubataAuctionTimerSeconds
-      : activeSession.rubataOfferTimerSeconds
-    const offsetSeconds = totalSeconds - remainingSeconds
-    const adjustedStartTime = new Date(Date.now() - offsetSeconds * 1000)
-
-    await prisma.marketSession.update({
-      where: { id: activeSession.id },
-      data: {
-        rubataReadyMembers: [],
-        rubataState: resumeState,
-        rubataTimerStartedAt: adjustedStartTime,
-        rubataPausedFromState: null,
-        rubataPausedRemainingSeconds: null,
-      },
-    })
-
-    return {
-      success: true,
-      message: `Tutti pronti! Rubata ripresa (${remainingSeconds} secondi rimanenti).`,
-      data: { allReady: true, resumed: true, remainingSeconds },
-    }
-  }
-
-  await prisma.marketSession.update({
-    where: { id: activeSession.id },
-    data: { rubataReadyMembers: updatedReadyMembers },
-  })
-
-  return {
-    success: true,
-    message: 'Pronto!',
-    data: {
-      allReady,
-      readyCount: updatedReadyMembers.length,
-      totalMembers: allMembers.length,
-    },
-  }
+  return { success: false, message: 'Troppi tentativi concorrenti, riprova.' }
 }
 
 export async function forceAllRubataReady(
@@ -2998,20 +3015,13 @@ export async function acknowledgeRubataTransaction(
     }
   }
 
-  const updatedAck = {
-    ...pendingAck,
-    acknowledgedMembers: [...pendingAck.acknowledgedMembers, member.id],
-    prophecies: newProphecies,
-  }
-
   // Check if all members have acknowledged
   const allMembers = await prisma.leagueMember.findMany({
     where: { leagueId, status: MemberStatus.ACTIVE },
   })
 
-  const allAcknowledged = allMembers.every(m => updatedAck.acknowledgedMembers.includes(m.id))
-
-  // Get contract info for winner (for post-rubata contract modification)
+  // Get contract info for winner (for post-rubata contract modification) — sola
+  // lettura, non tocca il JSON conteso, sicura fuori dalla transazione di retry.
   let winnerContractInfo = null
   if (pendingAck.winnerId === member.id) {
     const roster = await prisma.playerRoster.findFirst({
@@ -3038,82 +3048,102 @@ export async function acknowledgeRubataTransaction(
     }
   }
 
-  if (allAcknowledged) {
-    // M-9: Check if there is a next player left on the board.
-    // rubataBoardIndex was already advanced to the upcoming player when the
-    // auction closed (see closeCurrentRubataAuction) — it does NOT need another
-    // +1 here. Adding one more (as before) fired "last player" one turn early,
-    // skipping the true last player on the board whenever the upcoming index
-    // was already the final valid one.
-    const board = activeSession.rubataBoard as Array<unknown> | null
-    const currentIndex = activeSession.rubataBoardIndex ?? 0
-    const isLastPlayer = board ? currentIndex >= board.length : false
+  // Fix race condition su rilanci concorrenti (2026-08-29, stessa classe del bug
+  // gia' corretto in setRubataReady/bidOnRubataAuction): rubataPendingAck.acknowledgedMembers
+  // e' un array JSON letto-e-riscritto senza guardia atomica. Con 8 manager che
+  // confermano quasi in contemporanea, due scritture concorrenti perdono
+  // silenziosamente le conferme altrui — transazione Serializable con retry sul
+  // conflitto Postgres (P2034), che rilegge lo stato fresco ad ogni tentativo.
+  const MAX_ACK_ATTEMPTS = 6
+  for (let attempt = 0; attempt < MAX_ACK_ATTEMPTS; attempt++) {
+    try {
+      return await prisma.$transaction(async (tx) => {
+        const fresh = await tx.marketSession.findUnique({ where: { id: activeSession.id } })
+        if (!fresh || fresh.rubataState !== 'PENDING_ACK' || !fresh.rubataPendingAck) {
+          return { success: false, message: 'Nessuna transazione da confermare' }
+        }
+        const freshPendingAck = fresh.rubataPendingAck as typeof pendingAck
+        if (freshPendingAck.acknowledgedMembers.includes(member.id)) {
+          return { success: true, message: 'Già confermato' }
+        }
 
-    if (isLastPlayer) {
-      // Last player acknowledged — complete rubata phase
-      await prisma.marketSession.update({
-        where: { id: activeSession.id },
-        data: {
-          rubataPendingAck: Prisma.DbNull,
-          rubataReadyMembers: [],
-          rubataState: 'COMPLETED',
-          rubataTimerStartedAt: null,
-        },
-      })
+        const updatedAck = {
+          ...freshPendingAck,
+          acknowledgedMembers: [...freshPendingAck.acknowledgedMembers, member.id],
+          prophecies: newProphecies,
+        }
+        const allAcknowledged = allMembers.every(m => updatedAck.acknowledgedMembers.includes(m.id))
 
-      return {
-        success: true,
-        message: 'Ultimo giocatore confermato! Rubata completata!',
-        data: {
-          allAcknowledged: true,
-          completed: true,
-          winnerContractInfo,
-        },
+        if (allAcknowledged) {
+          // M-9: rubataBoardIndex e' gia' avanzato al prossimo giocatore quando
+          // l'asta si e' chiusa (vedi closeCurrentRubataAuction) — non va incrementato
+          // di nuovo qui, altrimenti si salta l'ultimo giocatore del tabellone.
+          const board = fresh.rubataBoard as Array<unknown> | null
+          const currentIndex = fresh.rubataBoardIndex ?? 0
+          const isLastPlayer = board ? currentIndex >= board.length : false
+
+          if (isLastPlayer) {
+            await tx.marketSession.update({
+              where: { id: activeSession.id },
+              data: {
+                rubataPendingAck: Prisma.DbNull,
+                rubataReadyMembers: [],
+                rubataState: 'COMPLETED',
+                rubataTimerStartedAt: null,
+              },
+            })
+            return {
+              success: true,
+              message: 'Ultimo giocatore confermato! Rubata completata!',
+              data: { allAcknowledged: true, completed: true, winnerContractInfo },
+            }
+          }
+
+          const nextPlayerForAck = (board as unknown as RubataBoardItem[] | null)?.[currentIndex]
+          const autoPassIdsForAck = nextPlayerForAck
+            ? await getAutoPassMemberIds(activeSession.id, nextPlayerForAck.playerId)
+            : []
+
+          await tx.marketSession.update({
+            where: { id: activeSession.id },
+            data: {
+              rubataPendingAck: Prisma.DbNull,
+              rubataReadyMembers: autoPassIdsForAck,
+              rubataState: 'READY_CHECK',
+            },
+          })
+          return {
+            success: true,
+            message: 'Tutti hanno confermato! Dichiararsi pronti per il prossimo giocatore.',
+            data: { allAcknowledged: true, winnerContractInfo },
+          }
+        }
+
+        await tx.marketSession.update({
+          where: { id: activeSession.id },
+          data: { rubataPendingAck: updatedAck },
+        })
+        return {
+          success: true,
+          message: 'Confermato!',
+          data: {
+            allAcknowledged: false,
+            acknowledgedCount: updatedAck.acknowledgedMembers.length,
+            totalMembers: allMembers.length,
+            winnerContractInfo,
+          },
+        }
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
+    } catch (e) {
+      const isSerializationConflict = e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2034'
+      if (isSerializationConflict && attempt < MAX_ACK_ATTEMPTS - 1) {
+        continue
       }
-    }
-
-    // Clear pending ack and move to ready check for next player.
-    // rubataBoardIndex already points at the upcoming player (advanced when the
-    // auction closed) — pre-seed members with a binding auto-pass on them as ready.
-    const nextPlayerForAck = (board as unknown as RubataBoardItem[] | null)?.[currentIndex]
-    const autoPassIdsForAck = nextPlayerForAck
-      ? await getAutoPassMemberIds(activeSession.id, nextPlayerForAck.playerId)
-      : []
-
-    await prisma.marketSession.update({
-      where: { id: activeSession.id },
-      data: {
-        rubataPendingAck: Prisma.DbNull,
-        rubataReadyMembers: autoPassIdsForAck,
-        rubataState: 'READY_CHECK',
-      },
-    })
-
-    return {
-      success: true,
-      message: 'Tutti hanno confermato! Dichiararsi pronti per il prossimo giocatore.',
-      data: {
-        allAcknowledged: true,
-        winnerContractInfo, // For contract modification modal
-      },
+      throw e
     }
   }
 
-  await prisma.marketSession.update({
-    where: { id: activeSession.id },
-    data: { rubataPendingAck: updatedAck },
-  })
-
-  return {
-    success: true,
-    message: 'Confermato!',
-    data: {
-      allAcknowledged: false,
-      acknowledgedCount: updatedAck.acknowledgedMembers.length,
-      totalMembers: allMembers.length,
-      winnerContractInfo, // For contract modification modal
-    },
-  }
+  return { success: false, message: 'Troppi tentativi concorrenti, riprova.' }
 }
 
 export async function forceAllRubataAcknowledge(

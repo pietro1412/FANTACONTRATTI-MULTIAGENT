@@ -10,7 +10,7 @@ import { Prisma } from '@prisma/client'
 vi.mock('@/lib/prisma', () => {
   const p = {
     leagueMember: { findFirst: vi.fn(), findMany: vi.fn(), findUnique: vi.fn(), update: vi.fn() },
-    marketSession: { findFirst: vi.fn(), update: vi.fn() },
+    marketSession: { findFirst: vi.fn(), findUnique: vi.fn(), update: vi.fn() },
     playerRoster: { findMany: vi.fn(), findFirst: vi.fn(), update: vi.fn() },
     playerContract: { findFirst: vi.fn(), findMany: vi.fn(), update: vi.fn(), aggregate: vi.fn() },
     auction: { findFirst: vi.fn(), create: vi.fn(), update: vi.fn(), findMany: vi.fn() },
@@ -47,7 +47,7 @@ import type { Mock } from 'vitest'
 // Cast all prisma methods as mocks for test assertions
 const mockPrisma = prisma as unknown as {
   leagueMember: { findFirst: Mock; findMany: Mock; findUnique: Mock; update: Mock }
-  marketSession: { findFirst: Mock; update: Mock }
+  marketSession: { findFirst: Mock; findUnique: Mock; update: Mock }
   playerRoster: { findMany: Mock; findFirst: Mock; update: Mock }
   playerContract: { findFirst: Mock; findMany: Mock; update: Mock; aggregate: Mock }
   auction: { findFirst: Mock; create: Mock; update: Mock; findMany: Mock }
@@ -265,6 +265,9 @@ describe('setRubataReady', () => {
     mockPrisma.marketSession.findFirst.mockResolvedValueOnce(
       makeSession({ rubataReadyMembers: [MEMBER_ID] })
     )
+    mockPrisma.marketSession.findUnique.mockResolvedValueOnce(
+      makeSession({ rubataReadyMembers: [MEMBER_ID] })
+    )
 
     const result = await setRubataReady(LEAGUE_ID, USER_ID)
     expect(result.success).toBe(true)
@@ -275,6 +278,9 @@ describe('setRubataReady', () => {
     const member = makeMember()
     mockPrisma.leagueMember.findFirst.mockResolvedValueOnce(member)
     mockPrisma.marketSession.findFirst.mockResolvedValueOnce(
+      makeSession({ rubataReadyMembers: [] })
+    )
+    mockPrisma.marketSession.findUnique.mockResolvedValueOnce(
       makeSession({ rubataReadyMembers: [] })
     )
     mockPrisma.leagueMember.findUnique.mockResolvedValueOnce(member)
@@ -303,6 +309,9 @@ describe('setRubataReady', () => {
     mockPrisma.marketSession.findFirst.mockResolvedValueOnce(
       makeSession({ rubataState: 'READY_CHECK', rubataReadyMembers: ['member-2'] })
     )
+    mockPrisma.marketSession.findUnique.mockResolvedValueOnce(
+      makeSession({ rubataState: 'READY_CHECK', rubataReadyMembers: ['member-2'] })
+    )
     mockPrisma.leagueMember.findUnique.mockResolvedValueOnce(member)
     mockPrisma.leagueMember.findMany.mockResolvedValueOnce([member, member2])
     mockPrisma.marketSession.update.mockResolvedValueOnce({})
@@ -320,6 +329,9 @@ describe('setRubataReady', () => {
     const member2 = makeMember({ id: 'member-2', userId: 'user-2' })
     mockPrisma.leagueMember.findFirst.mockResolvedValueOnce(member)
     mockPrisma.marketSession.findFirst.mockResolvedValueOnce(
+      makeSession({ rubataState: 'AUCTION_READY_CHECK', rubataReadyMembers: ['member-2'] })
+    )
+    mockPrisma.marketSession.findUnique.mockResolvedValueOnce(
       makeSession({ rubataState: 'AUCTION_READY_CHECK', rubataReadyMembers: ['member-2'] })
     )
     mockPrisma.leagueMember.findUnique.mockResolvedValueOnce(member)
@@ -353,6 +365,9 @@ describe('setRubataReady', () => {
     mockPrisma.marketSession.findFirst.mockResolvedValueOnce(
       makeSession({ rubataState: 'PENDING_ACK', rubataReadyMembers: ['member-2'] })
     )
+    mockPrisma.marketSession.findUnique.mockResolvedValueOnce(
+      makeSession({ rubataState: 'PENDING_ACK', rubataReadyMembers: ['member-2'] })
+    )
     mockPrisma.leagueMember.findUnique.mockResolvedValueOnce(member)
     mockPrisma.leagueMember.findMany.mockResolvedValueOnce([member, member2])
     mockPrisma.marketSession.update.mockResolvedValueOnce({})
@@ -376,6 +391,15 @@ describe('setRubataReady', () => {
     const member2 = makeMember({ id: 'member-2', userId: 'user-2' })
     mockPrisma.leagueMember.findFirst.mockResolvedValueOnce(member)
     mockPrisma.marketSession.findFirst.mockResolvedValueOnce(
+      makeSession({
+        rubataState: 'PAUSED',
+        rubataReadyMembers: ['member-2'],
+        rubataPausedFromState: 'OFFERING',
+        rubataPausedRemainingSeconds: 15,
+        rubataOfferTimerSeconds: 30,
+      })
+    )
+    mockPrisma.marketSession.findUnique.mockResolvedValueOnce(
       makeSession({
         rubataState: 'PAUSED',
         rubataReadyMembers: ['member-2'],
@@ -415,6 +439,9 @@ describe('setRubataReady', () => {
     mockPrisma.marketSession.findFirst.mockResolvedValueOnce(
       makeSession({ rubataState: 'READY_CHECK', auctionMode: 'IN_PRESENCE', rubataReadyMembers: [] })
     )
+    mockPrisma.marketSession.findUnique.mockResolvedValueOnce(
+      makeSession({ rubataState: 'READY_CHECK', auctionMode: 'IN_PRESENCE', rubataReadyMembers: [] })
+    )
     mockPrisma.leagueMember.findUnique.mockResolvedValueOnce(member)
     mockPrisma.leagueMember.findMany.mockResolvedValueOnce([member, member2])
     mockPrisma.marketSession.update.mockResolvedValueOnce({})
@@ -424,6 +451,45 @@ describe('setRubataReady', () => {
     // In IN_PRESENCE mode, all members auto-marked ready, so allReady should be true
     const data = result.data as { allReady: boolean }
     expect(data.allReady).toBe(true)
+  })
+
+  // Regression per la race condition 2026-08-29 (stessa classe del bug bid gia'
+  // corretto): rubataReadyMembers e' un array JSON letto-e-riscritto senza CAS.
+  // Con 8 manager che si dichiarano pronti quasi in contemporanea, il conflitto di
+  // scrittura Postgres (transazione Serializable, codice P2034) va ritentato con
+  // rilettura fresca, non propagato come errore all'utente. Scoperto ricontinuando
+  // dal vivo la Rubata di Playthrough Beta: il ready-check non avanzava mai.
+  it('retries and succeeds when the Serializable transaction hits a write conflict (P2034)', async () => {
+    const member = makeMember()
+    const member2 = makeMember({ id: 'member-2', userId: 'user-2' })
+    mockPrisma.leagueMember.findFirst.mockResolvedValueOnce(member)
+    mockPrisma.marketSession.findFirst.mockResolvedValueOnce(
+      makeSession({ rubataReadyMembers: [] })
+    )
+    mockPrisma.marketSession.findUnique.mockResolvedValue(
+      makeSession({ rubataReadyMembers: [] })
+    )
+    mockPrisma.leagueMember.findUnique.mockResolvedValueOnce(member)
+    mockPrisma.leagueMember.findMany.mockResolvedValueOnce([member, member2])
+    mockPrisma.marketSession.update.mockResolvedValueOnce({})
+
+    const conflictError = new Prisma.PrismaClientKnownRequestError('Transaction failed due to a write conflict', {
+      code: 'P2034',
+      clientVersion: '5.22.0',
+    })
+
+    let transactionCallCount = 0
+    mockPrisma.$transaction.mockImplementation(async (fn: (tx: typeof mockPrisma) => Promise<unknown>) => {
+      transactionCallCount++
+      if (transactionCallCount === 1) throw conflictError
+      return fn(mockPrisma)
+    })
+
+    const result = await setRubataReady(LEAGUE_ID, USER_ID)
+
+    expect(transactionCallCount).toBe(2)
+    expect(result.success).toBe(true)
+    expect(result.message).toBe('Pronto!')
   })
 })
 
@@ -707,6 +773,8 @@ describe('acknowledgeRubataTransaction', () => {
     mockPrisma.marketSession.findFirst.mockResolvedValueOnce(
       makeSession({ rubataState: 'PENDING_ACK', rubataPendingAck: pendingAck })
     )
+    // Nota: questo path ritorna PRIMA di entrare nella transazione (fast-path in
+    // lettura, sicuro perche' non scrive nulla), quindi non consuma marketSession.findUnique.
 
     const result = await acknowledgeRubataTransaction(LEAGUE_ID, USER_ID)
     expect(result.success).toBe(true)
@@ -726,6 +794,9 @@ describe('acknowledgeRubataTransaction', () => {
     }
     mockPrisma.leagueMember.findFirst.mockResolvedValueOnce(member)
     mockPrisma.marketSession.findFirst.mockResolvedValueOnce(
+      makeSession({ rubataState: 'PENDING_ACK', rubataPendingAck: pendingAck })
+    )
+    mockPrisma.marketSession.findUnique.mockResolvedValueOnce(
       makeSession({ rubataState: 'PENDING_ACK', rubataPendingAck: pendingAck })
     )
     mockPrisma.leagueMember.findUnique.mockResolvedValueOnce(member)
@@ -757,6 +828,9 @@ describe('acknowledgeRubataTransaction', () => {
     }
     mockPrisma.leagueMember.findFirst.mockResolvedValueOnce(member)
     mockPrisma.marketSession.findFirst.mockResolvedValueOnce(
+      makeSession({ rubataState: 'PENDING_ACK', rubataPendingAck: pendingAck })
+    )
+    mockPrisma.marketSession.findUnique.mockResolvedValueOnce(
       makeSession({ rubataState: 'PENDING_ACK', rubataPendingAck: pendingAck })
     )
     mockPrisma.leagueMember.findUnique.mockResolvedValueOnce(member)
@@ -793,6 +867,9 @@ describe('acknowledgeRubataTransaction', () => {
     }
     mockPrisma.leagueMember.findFirst.mockResolvedValueOnce(member)
     mockPrisma.marketSession.findFirst.mockResolvedValueOnce(
+      makeSession({ rubataState: 'PENDING_ACK', rubataPendingAck: pendingAck })
+    )
+    mockPrisma.marketSession.findUnique.mockResolvedValueOnce(
       makeSession({ rubataState: 'PENDING_ACK', rubataPendingAck: pendingAck })
     )
     mockPrisma.leagueMember.findUnique.mockResolvedValueOnce(member)
@@ -843,6 +920,9 @@ describe('acknowledgeRubataTransaction', () => {
     mockPrisma.marketSession.findFirst.mockResolvedValueOnce(
       makeSession({ rubataState: 'PENDING_ACK', rubataPendingAck: pendingAck })
     )
+    mockPrisma.marketSession.findUnique.mockResolvedValueOnce(
+      makeSession({ rubataState: 'PENDING_ACK', rubataPendingAck: pendingAck })
+    )
     mockPrisma.leagueMember.findUnique.mockResolvedValueOnce(member)
     mockPrisma.playerMovement.findFirst.mockResolvedValueOnce({
       id: 'movement-1',
@@ -877,6 +957,14 @@ describe('acknowledgeRubataTransaction', () => {
     ]
     mockPrisma.leagueMember.findFirst.mockResolvedValueOnce(member)
     mockPrisma.marketSession.findFirst.mockResolvedValueOnce(
+      makeSession({
+        rubataState: 'PENDING_ACK',
+        rubataPendingAck: pendingAck,
+        rubataBoard: board,
+        rubataBoardIndex: 0,
+      })
+    )
+    mockPrisma.marketSession.findUnique.mockResolvedValueOnce(
       makeSession({
         rubataState: 'PENDING_ACK',
         rubataPendingAck: pendingAck,
@@ -927,6 +1015,14 @@ describe('acknowledgeRubataTransaction', () => {
     ]
     mockPrisma.leagueMember.findFirst.mockResolvedValueOnce(member)
     mockPrisma.marketSession.findFirst.mockResolvedValueOnce(
+      makeSession({
+        rubataState: 'PENDING_ACK',
+        rubataPendingAck: pendingAck,
+        rubataBoard: board,
+        rubataBoardIndex: 0,
+      })
+    )
+    mockPrisma.marketSession.findUnique.mockResolvedValueOnce(
       makeSession({
         rubataState: 'PENDING_ACK',
         rubataPendingAck: pendingAck,
@@ -986,6 +1082,14 @@ describe('acknowledgeRubataTransaction', () => {
         rubataBoardIndex: 2,
       })
     )
+    mockPrisma.marketSession.findUnique.mockResolvedValueOnce(
+      makeSession({
+        rubataState: 'PENDING_ACK',
+        rubataPendingAck: pendingAck,
+        rubataBoard: board,
+        rubataBoardIndex: 2,
+      })
+    )
     mockPrisma.leagueMember.findUnique.mockResolvedValueOnce(member)
     mockPrisma.leagueMember.findMany.mockResolvedValueOnce([
       member,
@@ -1038,6 +1142,14 @@ describe('acknowledgeRubataTransaction', () => {
         rubataBoardIndex: 1, // upcoming player is p2, still a valid board entry
       })
     )
+    mockPrisma.marketSession.findUnique.mockResolvedValueOnce(
+      makeSession({
+        rubataState: 'PENDING_ACK',
+        rubataPendingAck: pendingAck,
+        rubataBoard: board,
+        rubataBoardIndex: 1,
+      })
+    )
     mockPrisma.leagueMember.findUnique.mockResolvedValueOnce(member)
     mockPrisma.leagueMember.findMany.mockResolvedValueOnce([
       member,
@@ -1064,6 +1176,55 @@ describe('acknowledgeRubataTransaction', () => {
         data: expect.objectContaining({ rubataState: 'COMPLETED' }),
       })
     )
+  })
+
+  // Regression per la race condition 2026-08-29 (stessa classe del bug bid/ready
+  // gia' corretto): rubataPendingAck.acknowledgedMembers e' un array JSON letto-e-
+  // riscritto senza CAS. Con 8 manager che confermano quasi in contemporanea, il
+  // conflitto di scrittura Postgres (transazione Serializable, P2034) va ritentato
+  // con rilettura fresca, non propagato come errore all'utente.
+  it('retries and succeeds when the Serializable transaction hits a write conflict (P2034)', async () => {
+    const member = makeMember()
+    const pendingAck = {
+      auctionId: 'auction-1',
+      playerId: 'player-1',
+      playerName: 'Leao',
+      winnerId: 'member-2',
+      finalPrice: 50,
+      acknowledgedMembers: [],
+      prophecies: [],
+    }
+    mockPrisma.leagueMember.findFirst.mockResolvedValueOnce(member)
+    mockPrisma.marketSession.findFirst.mockResolvedValueOnce(
+      makeSession({ rubataState: 'PENDING_ACK', rubataPendingAck: pendingAck })
+    )
+    mockPrisma.marketSession.findUnique.mockResolvedValue(
+      makeSession({ rubataState: 'PENDING_ACK', rubataPendingAck: pendingAck })
+    )
+    mockPrisma.leagueMember.findUnique.mockResolvedValueOnce(member)
+    mockPrisma.leagueMember.findMany.mockResolvedValueOnce([
+      member,
+      makeMember({ id: 'member-2' }),
+    ])
+    mockPrisma.marketSession.update.mockResolvedValueOnce({})
+
+    const conflictError = new Prisma.PrismaClientKnownRequestError('Transaction failed due to a write conflict', {
+      code: 'P2034',
+      clientVersion: '5.22.0',
+    })
+
+    let transactionCallCount = 0
+    mockPrisma.$transaction.mockImplementation(async (fn: (tx: typeof mockPrisma) => Promise<unknown>) => {
+      transactionCallCount++
+      if (transactionCallCount === 1) throw conflictError
+      return fn(mockPrisma)
+    })
+
+    const result = await acknowledgeRubataTransaction(LEAGUE_ID, USER_ID)
+
+    expect(transactionCallCount).toBe(2)
+    expect(result.success).toBe(true)
+    expect(result.message).toBe('Confermato!')
   })
 })
 
