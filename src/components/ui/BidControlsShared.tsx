@@ -164,17 +164,22 @@ export function BidControlsShared({
           "stirato" per pareggiare l'altezza variabile dello stepper accanto —
           risultava sproporzionato (2026-08-29). */}
       <div className="flex items-center gap-2">
-        <div className="flex items-stretch rounded-[11px] border border-surface-50 bg-surface-300 overflow-hidden">
+        {/* Larghezza totale FISSA (w-[144px] = 44+56+44), non piu' min-w: un
+            min-w lasciava alla larghezza reale dipendere dal rendering
+            dell'input (che con solo w-full puo' variare a seconda del
+            browser), e siccome RILANCIA e' flex-1 (spazio rimanente), ogni
+            variazione qui si ripercuoteva sul bottone (2026-08-29). */}
+        <div className="flex items-stretch w-[144px] flex-shrink-0 rounded-[11px] border border-surface-50 bg-surface-300 overflow-hidden">
           <button
             type="button"
             onClick={() => { updateBid(Math.max(minBid, bidAmount - 1)); }}
             disabled={isLocked || bidAmount <= minBid}
             aria-label="Diminuisci offerta"
-            className="w-11 bg-surface-200 text-white stat-number text-xl border-r border-surface-50 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-transform"
+            className="w-11 flex-shrink-0 bg-surface-200 text-white stat-number text-xl border-r border-surface-50 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-transform"
           >
             −
           </button>
-          <div className="flex flex-col items-center justify-center min-w-[64px] px-1.5 py-1">
+          <div className="flex flex-col items-center justify-center w-[56px] flex-shrink-0 px-1 py-1">
             <input
               type="number"
               inputMode="numeric"
@@ -192,7 +197,7 @@ export function BidControlsShared({
             onClick={() => { updateBid(bidAmount + 1); }}
             disabled={isLocked || bidAmount + 1 > budget}
             aria-label="Aumenta offerta"
-            className="w-11 bg-surface-200 text-white stat-number text-xl border-l border-surface-50 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-transform"
+            className="w-11 flex-shrink-0 bg-surface-200 text-white stat-number text-xl border-l border-surface-50 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-transform"
           >
             +
           </button>
