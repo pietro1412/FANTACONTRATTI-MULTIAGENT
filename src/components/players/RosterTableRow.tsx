@@ -1,7 +1,7 @@
 import { PlayerPhoto } from './PlayerPhoto'
 import { TeamLogo } from '@/components/ui/TeamLogo'
 import { Monogram } from '@/components/ui/Monogram'
-import { formatSeasonStats, NOT_DISPONIBILE } from '@/utils/stat-format'
+import { formatSeasonStats, NOT_DISPONIBILE, getAgeColor } from '@/utils/stat-format'
 import { isOutOfSerieA, getExitReasonLabel } from '@/components/PlayerStatsModal'
 import type { ComputedSeasonStats, RosterEntry, RosterRowStatus } from './types'
 
@@ -128,7 +128,7 @@ export function RosterTableRow({ entry, onPlayerClick, status, showQuotation }: 
       {/* Age — own column (Axiom 6) */}
       <div className="text-right">
         <span
-          className="stat-number text-sm text-gray-300"
+          className={`stat-number text-sm ${getAgeColor(player.age)}`}
           aria-label={player.age != null ? `Età ${player.age} anni` : 'Età non disponibile'}
         >
           {player.age != null ? player.age : NOT_DISPONIBILE}

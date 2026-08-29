@@ -45,16 +45,6 @@ export function getDurationColor(duration: number): string {
   }
 }
 
-// Age color (issue #206): younger is better
-export function getAgeColor(age: number | null | undefined): string {
-  if (age === null || age === undefined) return 'text-gray-500'
-  if (age < 20) return 'text-secondary-400 font-bold'
-  if (age < 25) return 'text-secondary-400'
-  if (age < 30) return 'text-warning-400'
-  if (age < 35) return 'text-warning-500'
-  return 'text-danger-400'
-}
-
 // Role accent text color for labels/legends (the on-badge text color is dark by
 // contrast, so it is not suitable outside the badge).
 export function getRoleAccentText(position: string): string {

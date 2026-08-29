@@ -15,16 +15,8 @@ import { Monogram } from '@/components/ui/Monogram'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { useToast } from '@/components/ui/Toast'
+import { getAgeColor } from '@/utils/stat-format'
 import type { BoardPlayer } from '@/types/rubata.types'
-
-// Age color coding (Stadium Nights tokens) - younger is better
-function getAgeColor(age: number | null | undefined): string {
-  if (age === null || age === undefined) return 'text-gray-500'
-  if (age < 25) return 'text-secondary-400'
-  if (age < 30) return 'text-warning-400'
-  if (age < 35) return 'text-passion-400'
-  return 'text-danger-400'
-}
 
 interface StrategyPlayer {
   rosterId: string

@@ -6,6 +6,7 @@ import { Monogram } from '@/components/ui/Monogram'
 import { POSITION_COLORS } from '../../types/rubata.types'
 import { getWatchlistCategory } from '@/types/watchlist.types'
 import { getPlayerPhotoUrl } from '../../utils/player-images'
+import { getAgeColor } from '@/utils/stat-format'
 import type {
   BoardPlayer,
   RubataStateType,
@@ -162,7 +163,7 @@ export const HeroPlayerCard = memo(function HeroPlayerCard({
                   {player.playerAge != null && (
                     <>
                       <span className="text-gray-600" aria-hidden="true">·</span>
-                      <span>{player.playerAge} anni</span>
+                      <span className={getAgeColor(player.playerAge)}>{player.playerAge} anni</span>
                     </>
                   )}
                   <span className="inline-flex items-center gap-1.5 ml-1 pl-1 pr-3 py-1 rounded-full bg-surface-300 border border-surface-50 text-xs text-gray-400">
@@ -191,9 +192,6 @@ export const HeroPlayerCard = memo(function HeroPlayerCard({
                   <div className="text-[10px] text-gray-500">ingaggio · {semestriLabel(player.contractDuration)}</div>
                 </div>
               </div>
-              {timerSeconds != null && (
-                <TimerDisplay seconds={timerSeconds} totalSeconds={timerTotalSeconds} size={44} className="ml-auto" />
-              )}
             </div>
 
             {/* Watchlist chip — stessa tassonomia di StrategieRubata */}
@@ -300,6 +298,15 @@ export const HeroPlayerCard = memo(function HeroPlayerCard({
 
               {/* Auction controls (bid form + chips) live inside the arena */}
               {children}
+
+              {/* Timer — sotto l'azione (CTA "Voglio rubare" in OFFERING, o i
+                  controlli di rilancio in AUCTION), non nel box costo rubata:
+                  segnala l'urgenza vicino a dove si decide, non a un dato statico. */}
+              {timerSeconds != null && (
+                <div className="mt-3 lg:mt-0 flex justify-center">
+                  <TimerDisplay seconds={timerSeconds} totalSeconds={timerTotalSeconds} size={44} />
+                </div>
+              )}
             </div>
           )}
         </div>

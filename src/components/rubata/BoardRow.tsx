@@ -5,6 +5,7 @@ import { PlayerPhoto } from '@/components/players/PlayerPhoto'
 import { TeamLogo } from './TeamLogo'
 import { POSITION_COLORS } from '../../types/rubata.types'
 import { getWatchlistCategory } from '@/types/watchlist.types'
+import { getAgeColor, NOT_DISPONIBILE } from '@/utils/stat-format'
 import type { BoardPlayer, RubataPreference } from '../../types/rubata.types'
 import type { ComputedSeasonStats, PlayerContractInfo } from '../PlayerStatsModal'
 
@@ -168,7 +169,7 @@ export const BoardRow = memo(function BoardRow({
           </div>
         </div>
 
-        <span className="stat-number text-sm text-gray-300 text-center">{player.playerAge ?? '—'}</span>
+        <span className={`stat-number text-sm text-center ${getAgeColor(player.playerAge)}`}>{player.playerAge ?? NOT_DISPONIBILE}</span>
 
         {passedOrStolenNote ? (
           <div className="col-span-3 text-xs px-2">{passedOrStolenNote}</div>

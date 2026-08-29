@@ -4,7 +4,7 @@ import { POSITION_GRADIENTS } from './ui/PositionBadge'
 import { ContractInline } from './ui/ContractInline'
 import { getPlayerPhotoUrl, getTeamLogoUrl } from '../utils/player-images'
 import { historyApi } from '../services/api'
-import { NOT_DISPONIBILE } from '../utils/stat-format'
+import { NOT_DISPONIBILE, getAgeColor } from '../utils/stat-format'
 import type { PlayerCareer } from './history/PlayerCareerPanel'
 
 // Italian labels for player movement types (shared with PlayerCareerPanel data shape)
@@ -39,16 +39,6 @@ function formatCareerDate(dateStr: string): string {
 }
 
 const API_URL = String(import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:3003'))
-
-// Age color function - younger is better
-function getAgeColor(age: number | null | undefined): string {
-  if (age === null || age === undefined) return 'text-gray-500'
-  if (age < 20) return 'text-emerald-400 font-bold'
-  if (age < 25) return 'text-green-400'
-  if (age < 30) return 'text-yellow-400'
-  if (age < 35) return 'text-orange-400'
-  return 'text-red-400'
-}
 
 // Legacy stats structure from API-Football (kept for backward compatibility)
 export interface PlayerStats {

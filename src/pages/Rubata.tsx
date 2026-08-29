@@ -896,8 +896,16 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                 return null
               })()}
 
-              {/* Striscia PRONTI sottile — desktop (P6) */}
+              {/* Striscia PRONTI sottile — desktop (P6). Solo negli stati dove
+                  dichiararsi pronti ha senso (setRubataReady lo accetta solo
+                  li'); altrove (OFFERING/AUCTION) era mostrata comunque,
+                  rumore senza significato durante la decisione/il rilancio. */}
               {readyStatus && readyStatus.totalMembers > 0 && (
+                rubataState === 'READY_CHECK' ||
+                rubataState === 'PENDING_ACK' ||
+                rubataState === 'AUCTION_READY_CHECK' ||
+                rubataState === 'PAUSED'
+              ) && (
                 <div className="hidden lg:block">
                   <MemberReadyChips
                     done={readyStatus.readyMembers}

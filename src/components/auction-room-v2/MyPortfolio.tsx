@@ -5,7 +5,7 @@ import { getTeamLogo } from '../../utils/teamLogos'
 import { getPlayerPhotoUrl } from '../../utils/player-images'
 import { PlayerStatsModal } from '../PlayerStatsModal'
 import type { PlayerInfo } from '../PlayerStatsModal'
-import { NOT_DISPONIBILE } from '@/utils/stat-format'
+import { NOT_DISPONIBILE, getAgeColor } from '@/utils/stat-format'
 
 interface MyPortfolioProps {
   myRosterSlots: MyRosterSlots | null
@@ -14,15 +14,6 @@ interface MyPortfolioProps {
 }
 
 const POSITIONS = ['P', 'D', 'C', 'A'] as const
-
-function getAgeColor(age: number | null | undefined): string {
-  if (age == null) return 'text-gray-500'
-  if (age < 20) return 'text-emerald-400'
-  if (age < 25) return 'text-green-400'
-  if (age < 30) return 'text-yellow-400'
-  if (age < 35) return 'text-orange-400'
-  return 'text-red-400'
-}
 
 function SlotPlayerPhoto({ apiFootballId, playerName, position, posGradient }: {
   apiFootballId?: number | null

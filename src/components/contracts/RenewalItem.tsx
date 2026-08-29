@@ -1,8 +1,8 @@
 import { RotateCcw } from 'lucide-react'
-import { PlayerCell, Tag, getDurationColor, getAgeColor, DURATION_MULTIPLIERS, type ContractPlayer } from './shared'
+import { PlayerCell, Tag, getDurationColor, DURATION_MULTIPLIERS, type ContractPlayer } from './shared'
 import { getRenewalConstraints } from './renewal-logic'
 import { Stepper } from './Stepper'
-import { NOT_DISPONIBILE } from '@/utils/stat-format'
+import { NOT_DISPONIBILE, getAgeColor } from '@/utils/stat-format'
 
 export interface RenewalItemContract {
   id: string

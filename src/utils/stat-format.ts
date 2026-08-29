@@ -36,6 +36,23 @@ export function formatStat(
   return `${formatted}${suffix}`
 }
 
+/**
+ * Age color coding (younger is better) — canonical reference is the "N anni"
+ * chip in PlayerStatsModal's header. Reuse this everywhere age is shown with
+ * color instead of re-deriving thresholds: several call sites had drifted to
+ * their own variant (different thresholds, theme tokens instead of raw
+ * Tailwind colors), giving the same player a different age color depending
+ * on which page you were looking at.
+ */
+export function getAgeColor(age: number | null | undefined): string {
+  if (age === null || age === undefined) return 'text-gray-500'
+  if (age < 20) return 'text-emerald-400 font-bold'
+  if (age < 25) return 'text-green-400'
+  if (age < 30) return 'text-yellow-400'
+  if (age < 35) return 'text-orange-400'
+  return 'text-red-400'
+}
+
 /** Minimal shape needed to format the season mini-stats (appearances/goals/assists/rating). */
 export interface SeasonStatsInput {
   appearances?: number | null

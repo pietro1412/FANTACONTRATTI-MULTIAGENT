@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { getTeamLogo } from '../../utils/teamLogos'
 import { getPlayerPhotoUrl } from '../../utils/player-images'
 import { POSITION_GRADIENTS, POSITION_FILTER_COLORS, POSITION_NAMES } from '../ui/PositionBadge'
+import { getAgeColor } from '../../utils/stat-format'
 
 interface PlayerCardProps {
   name: string
@@ -15,15 +16,6 @@ interface PlayerCardProps {
   assists?: number | null
   avgRating?: number | null
   size?: 'sm' | 'md' | 'lg'
-}
-
-function getAgeColor(age: number | null | undefined): string {
-  if (age == null) return 'text-gray-500'
-  if (age < 20) return 'text-emerald-400'
-  if (age < 25) return 'text-green-400'
-  if (age < 30) return 'text-yellow-400'
-  if (age < 35) return 'text-orange-400'
-  return 'text-red-400'
 }
 
 function getAgeBg(age: number | null | undefined): string {
