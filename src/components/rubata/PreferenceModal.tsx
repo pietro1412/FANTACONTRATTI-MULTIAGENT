@@ -32,13 +32,14 @@ interface RubataPreference {
 }
 
 interface BoardPlayerBase {
-  rosterId: string
+  rosterId?: string
   playerName: string
   playerTeam: string
   playerPosition: 'P' | 'D' | 'C' | 'A'
   playerAge?: number | null
   playerApiFootballId?: number | null
-  rubataPrice: number
+  /** Assente per gli svincolati: nessun prezzo fisso, e' un'asta al rilancio senza prezzo predeterminato. */
+  rubataPrice?: number
   preference?: RubataPreference | null
 }
 
@@ -95,9 +96,11 @@ export function PreferenceModal({ player, onClose, onSave, onDelete, isSubmittin
               <span className={getAgeColor(player.playerAge)}>
                 • {player.playerAge != null ? `${player.playerAge} anni` : NOT_DISPONIBILE}
               </span>
-              <span className="ml-1 px-2 py-0.5 rounded bg-primary-500/20 text-primary-400 font-medium text-xs flex-shrink-0">
-                {player.rubataPrice}M
-              </span>
+              {player.rubataPrice != null && (
+                <span className="ml-1 px-2 py-0.5 rounded bg-primary-500/20 text-primary-400 font-medium text-xs flex-shrink-0">
+                  {player.rubataPrice}M
+                </span>
+              )}
             </div>
           </div>
         </div>

@@ -32,6 +32,10 @@ import {
   // Admin pause/resume
   pauseSvincolati,
   resumeSvincolati,
+  // Preferenze (tab Strategie)
+  getSvincolatiPreferences,
+  setSvincolatiPreference,
+  deleteSvincolatiPreference,
 } from '../../services/svincolati.service'
 import { simulateBotBidding, getBotMembers } from '../../services/bot.service'
 import { authMiddleware } from '../middleware/auth'
@@ -597,6 +601,79 @@ router.post('/:leagueId/svincolati/resume', authMiddleware, async (req: Request,
     res.json(result)
   } catch (error) {
     console.error('Resume svincolati error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// ==================== PREFERENZE (TAB STRATEGIE) ====================
+
+// GET /api/leagues/:leagueId/svincolati/preferences - Get my preferences
+router.get('/leagues/:leagueId/svincolati/preferences', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const leagueId = req.params.leagueId as string
+    const result = await getSvincolatiPreferences(leagueId, req.user!.userId)
+
+    if (!result.success) {
+      res.status(400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Get svincolati preferences error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// PUT /api/leagues/:leagueId/svincolati/preferences/:playerId - Set preference for a player
+router.put('/leagues/:leagueId/svincolati/preferences/:playerId', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const leagueId = req.params.leagueId as string
+    const playerId = req.params.playerId as string
+    const { isWatchlist, isAutoPass, maxBid, priority, notes } = req.body as {
+      isWatchlist?: boolean
+      isAutoPass?: boolean
+      maxBid?: number | null
+      priority?: number | null
+      notes?: string | null
+    }
+
+    const result = await setSvincolatiPreference(leagueId, req.user!.userId, playerId, {
+      isWatchlist,
+      isAutoPass,
+      maxBid,
+      priority,
+      notes,
+    })
+
+    if (!result.success) {
+      res.status(400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Set svincolati preference error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// DELETE /api/leagues/:leagueId/svincolati/preferences/:playerId - Delete preference
+router.delete('/leagues/:leagueId/svincolati/preferences/:playerId', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const leagueId = req.params.leagueId as string
+    const playerId = req.params.playerId as string
+
+    const result = await deleteSvincolatiPreference(leagueId, req.user!.userId, playerId)
+
+    if (!result.success) {
+      res.status(400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Delete svincolati preference error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })

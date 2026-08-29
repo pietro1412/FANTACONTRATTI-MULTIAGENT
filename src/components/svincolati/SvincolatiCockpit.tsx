@@ -12,13 +12,15 @@ import { AdminTestFab } from '../auction/AdminTestFab'
 import { SvincolatiCockpitAdminBar, SvincolatiTestPanel } from './SvincolatiCockpitAdminBar'
 import { FreeAgentTableRow } from './FreeAgentTableRow'
 import { SvincolatiActivityFeed } from './SvincolatiActivityFeed'
+import { SvincolatiStrategySummary } from './SvincolatiStrategySummary'
+import { PreferenceModal } from '../rubata/PreferenceModal'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { getTeamLogo } from '../../utils/teamLogos'
 import { getPlayerPhotoUrl } from '../../utils/player-images'
 import { NOT_DISPONIBILE, getAgeColor } from '../../utils/stat-format'
 import { SERIE_A_TEAMS } from '../../types/svincolati.types'
-import type { BoardState, Player, SvincolatiActivityItem } from '../../types/svincolati.types'
+import type { BoardState, Player, SvincolatiActivityItem, SvincolatiPreference, SvincolatiPrefsPlayer } from '../../types/svincolati.types'
 
 /** Badge ruolo 46px stile mockup (P oro, D blu, C verde, A rosso) */
 const ROLE_BADGE: Record<string, string> = {
@@ -36,6 +38,15 @@ export interface SvincolatiCockpitProps {
   leagueId: string
   freeAgents: Player[]
   activityFeed: SvincolatiActivityItem[]
+  // Strategie (watchlist/priorità/note)
+  preferencesMap: Map<string, SvincolatiPreference>
+  selectedPlayerForPrefs: SvincolatiPrefsPlayer | null
+  onOpenPrefsModal: (player: SvincolatiPrefsPlayer) => void
+  onClosePrefsModal: () => void
+  onSavePreference: (data: { isWatchlist: boolean; isAutoPass: boolean; maxBid: number | null; priority: number | null; notes: string | null }) => Promise<void>
+  onDeletePreference: () => Promise<void>
+  onBulkSetPreference: (playerIds: string[], data: { isWatchlist?: boolean; isAutoPass?: boolean; maxBid?: number | null }) => Promise<void>
+  onImportPreferences: (strategies: Array<{ playerId: string; isWatchlist: boolean; isAutoPass: boolean; maxBid: number | null; priority: number | null; notes: string | null }>) => Promise<void>
   currentUsername: string | undefined
   isPusherConnected: boolean
   isSubmitting: boolean
@@ -117,6 +128,10 @@ export function SvincolatiCockpit(props: SvincolatiCockpitProps) {
   // solo durante NOMINATION dopo la conferma del nominatore.
   const readyRelevant = state === 'NOMINATION' && board.nominatorConfirmed
 
+  // Stesso guard del backend (setSvincolatiPreference/deleteSvincolatiPreference):
+  // non modificabili durante un'asta attiva.
+  const canEditPreferences = state !== 'AUCTION'
+
   // Ordinamento colonna (client-side sull'array gia' caricato — capacita' nuova,
   // non presente nemmeno in Rubata, sensata qui perche' il pool e' un catalogo
   // da esplorare e non un tabellone a ordine fisso).
@@ -137,6 +152,18 @@ export function SvincolatiCockpit(props: SvincolatiCockpitProps) {
     }
     return [...freeAgents].sort((a, b) => (getValue(a) - getValue(b)) * dir)
   }, [freeAgents, sortKey, sortDir])
+
+  const handleOpenPrefsModal = (p: Player & { preference: SvincolatiPreference | null }) => {
+    props.onOpenPrefsModal({
+      playerId: p.id,
+      playerName: p.name,
+      playerTeam: p.team,
+      playerPosition: p.position as 'P' | 'D' | 'C' | 'A',
+      playerAge: p.age,
+      playerApiFootballId: p.apiFootballId,
+      preference: p.preference,
+    })
+  }
 
   const handleSort = (key: SortKey) => {
     setSortKey(prevKey => {
@@ -391,6 +418,21 @@ export function SvincolatiCockpit(props: SvincolatiCockpitProps) {
                     label: 'Attività',
                     content: <SvincolatiActivityFeed items={props.activityFeed} />,
                   },
+                  {
+                    key: 'strategie',
+                    label: 'Strategie',
+                    content: (
+                      <SvincolatiStrategySummary
+                        freeAgents={freeAgents}
+                        preferencesMap={props.preferencesMap}
+                        onOpenPrefsModal={props.onOpenPrefsModal}
+                        canEditPreferences={canEditPreferences}
+                        onBulkSetPreference={props.onBulkSetPreference}
+                        onImportPreferences={props.onImportPreferences}
+                        isSubmitting={props.isSubmitting}
+                      />
+                    ),
+                  },
                 ]}
               />
             </div>
@@ -416,6 +458,20 @@ export function SvincolatiCockpit(props: SvincolatiCockpitProps) {
                 <SvincolatiActivityFeed items={props.activityFeed} />
               </div>
             )}
+            <div className="lg:hidden bg-surface-200 border border-surface-50 rounded-xl overflow-hidden">
+              <div className="px-3.5 py-2.5 border-b border-surface-50">
+                <h3 className="micro-label">Strategie</h3>
+              </div>
+              <SvincolatiStrategySummary
+                freeAgents={freeAgents}
+                preferencesMap={props.preferencesMap}
+                onOpenPrefsModal={props.onOpenPrefsModal}
+                canEditPreferences={canEditPreferences}
+                onBulkSetPreference={props.onBulkSetPreference}
+                onImportPreferences={props.onImportPreferences}
+                isSubmitting={props.isSubmitting}
+              />
+            </div>
 
             <div className="bg-surface-200 border border-surface-50 rounded-xl px-3.5 py-2.5 flex-shrink-0">
               {board.isFinished ? (
@@ -564,6 +620,9 @@ export function SvincolatiCockpit(props: SvincolatiCockpitProps) {
                           leagueId={props.leagueId}
                           nominable={canNominate && !props.isSubmitting}
                           onNominate={props.onNominate}
+                          preference={props.preferencesMap.get(player.id)}
+                          canEditPreferences={canEditPreferences}
+                          onOpenPrefsModal={handleOpenPrefsModal}
                         />
                       </div>
                     )
@@ -577,6 +636,9 @@ export function SvincolatiCockpit(props: SvincolatiCockpitProps) {
                     leagueId={props.leagueId}
                     nominable={canNominate && !props.isSubmitting}
                     onNominate={props.onNominate}
+                    preference={props.preferencesMap.get(player.id)}
+                    canEditPreferences={canEditPreferences}
+                    onOpenPrefsModal={handleOpenPrefsModal}
                   />
                 ))
               )}
@@ -584,6 +646,17 @@ export function SvincolatiCockpit(props: SvincolatiCockpitProps) {
           </div>
         </div>
       </div>
+
+      {/* Modale Strategie: watchlist/priorità/note per un giocatore libero */}
+      {props.selectedPlayerForPrefs && (
+        <PreferenceModal
+          player={props.selectedPlayerForPrefs}
+          onClose={props.onClosePrefsModal}
+          onSave={props.onSavePreference}
+          onDelete={props.onDeletePreference}
+          isSubmitting={props.isSubmitting}
+        />
+      )}
 
       {/* Controlli admin di TEST in floating button (solo dev) */}
       <AdminTestFab isAdmin={isAdmin}>

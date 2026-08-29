@@ -1347,6 +1347,27 @@ export const svincolatiApi = {
 
   resume: (leagueId: string) =>
     request(`/api/leagues/${leagueId}/svincolati/resume`, { method: 'POST' }),
+
+  // Preferenze (tab Strategie)
+  getPreferences: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/svincolati/preferences`),
+
+  setPreference: (leagueId: string, playerId: string, preference: {
+    isWatchlist?: boolean
+    isAutoPass?: boolean
+    maxBid?: number | null
+    priority?: number | null
+    notes?: string | null
+  }) =>
+    request(`/api/leagues/${leagueId}/svincolati/preferences/${playerId}`, {
+      method: 'PUT',
+      body: JSON.stringify(preference),
+    }),
+
+  deletePreference: (leagueId: string, playerId: string) =>
+    request(`/api/leagues/${leagueId}/svincolati/preferences/${playerId}`, {
+      method: 'DELETE',
+    }),
 }
 
 // Admin API

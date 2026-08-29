@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { arrayMove } from '@dnd-kit/sortable'
 import type { DragEndEvent } from '@dnd-kit/core'
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog'
@@ -13,6 +13,8 @@ import type {
   ManagerRosterPlayer,
   SelectedManagerData,
   SvincolatiActivityItem,
+  SvincolatiPreference,
+  SvincolatiPrefsPlayer,
 } from '../types/svincolati.types'
 
 export function useSvincolatiState(leagueId: string) {
@@ -25,6 +27,10 @@ export function useSvincolatiState(leagueId: string) {
 
   // Attività (feed acquisizioni della sessione corrente, tab "Attività")
   const [activityFeed, setActivityFeed] = useState<SvincolatiActivityItem[]>([])
+
+  // Strategie (watchlist/priorità/note per-giocatore, tab "Strategie")
+  const [rawPreferences, setRawPreferences] = useState<SvincolatiPreference[]>([])
+  const [selectedPlayerForPrefs, setSelectedPlayerForPrefs] = useState<SvincolatiPrefsPlayer | null>(null)
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('')
@@ -114,6 +120,101 @@ export function useSvincolatiState(leagueId: string) {
       setActivityFeed(res.data as SvincolatiActivityItem[])
     }
   }, [leagueId])
+
+  const loadPreferences = useCallback(async () => {
+    const res = await svincolatiApi.getPreferences(leagueId)
+    if (res.success && res.data) {
+      const data = res.data as { preferences: SvincolatiPreference[] }
+      setRawPreferences(data.preferences ?? [])
+    }
+  }, [leagueId])
+
+  const preferencesMap = useMemo(() => {
+    const map = new Map<string, SvincolatiPreference>()
+    rawPreferences.forEach(p => { map.set(p.playerId, p); })
+    return map
+  }, [rawPreferences])
+
+  function openPrefsModal(player: SvincolatiPrefsPlayer) {
+    setSelectedPlayerForPrefs(player)
+  }
+
+  function closePrefsModal() {
+    setSelectedPlayerForPrefs(null)
+  }
+
+  async function handleSavePreference(data: { isWatchlist: boolean; isAutoPass: boolean; maxBid: number | null; priority: number | null; notes: string | null }) {
+    if (!selectedPlayerForPrefs) return
+    setError('')
+    setIsSubmitting(true)
+
+    const res = await svincolatiApi.setPreference(leagueId, selectedPlayerForPrefs.playerId, data)
+
+    if (res.success) {
+      setSuccess('Preferenza salvata!')
+      await loadPreferences()
+      closePrefsModal()
+    } else {
+      setError(res.message || 'Errore')
+    }
+    setIsSubmitting(false)
+  }
+
+  async function handleDeletePreference() {
+    if (!selectedPlayerForPrefs) return
+    setError('')
+    setIsSubmitting(true)
+
+    const res = await svincolatiApi.deletePreference(leagueId, selectedPlayerForPrefs.playerId)
+    if (res.success) {
+      setSuccess('Preferenza rimossa!')
+      await loadPreferences()
+      closePrefsModal()
+    } else {
+      setError(res.message || 'Errore')
+    }
+    setIsSubmitting(false)
+  }
+
+  async function handleBulkSetPreference(playerIds: string[], data: { isWatchlist?: boolean; isAutoPass?: boolean; maxBid?: number | null }) {
+    setError('')
+    setIsSubmitting(true)
+    let successCount = 0
+    for (const playerId of playerIds) {
+      const res = await svincolatiApi.setPreference(leagueId, playerId, data)
+      if (res.success) successCount++
+    }
+    if (successCount > 0) {
+      setSuccess(`Strategia applicata a ${successCount} giocatori`)
+      await loadPreferences()
+    } else {
+      setError('Nessuna strategia applicata')
+    }
+    setIsSubmitting(false)
+  }
+
+  async function handleImportPreferences(strategies: Array<{ playerId: string; isWatchlist: boolean; isAutoPass: boolean; maxBid: number | null; priority: number | null; notes: string | null }>) {
+    setError('')
+    setIsSubmitting(true)
+    let successCount = 0
+    for (const s of strategies) {
+      const res = await svincolatiApi.setPreference(leagueId, s.playerId, {
+        isWatchlist: s.isWatchlist,
+        isAutoPass: s.isAutoPass,
+        maxBid: s.maxBid,
+        priority: s.priority,
+        notes: s.notes,
+      })
+      if (res.success) successCount++
+    }
+    if (successCount > 0) {
+      setSuccess(`Importate ${successCount} strategie`)
+      await loadPreferences()
+    } else {
+      setError('Nessuna strategia importata')
+    }
+    setIsSubmitting(false)
+  }
 
   useEffect(() => {
     void loadInitialData()
@@ -319,6 +420,7 @@ export function useSvincolatiState(leagueId: string) {
 
     await loadFreeAgents()
     void loadActivityFeed()
+    void loadPreferences()
     setIsLoading(false)
   }
 
@@ -877,6 +979,16 @@ export function useSvincolatiState(leagueId: string) {
 
     // Attività
     activityFeed,
+
+    // Strategie
+    preferencesMap,
+    selectedPlayerForPrefs,
+    openPrefsModal,
+    closePrefsModal,
+    handleSavePreference,
+    handleDeletePreference,
+    handleBulkSetPreference,
+    handleImportPreferences,
 
     // Filters
     searchQuery,

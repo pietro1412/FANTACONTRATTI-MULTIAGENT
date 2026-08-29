@@ -38,6 +38,30 @@ export interface Player {
   computedStats?: ComputedSeasonStats | null
 }
 
+/** Shape delle preferenze Svincolati — stesso modello Prisma RubataPreference,
+ * campo watchlistCategory volutamente escluso (tassonomia "DA_RUBARE/..."
+ * specifica di Rubata, non ha senso per un giocatore libero). */
+export interface SvincolatiPreference {
+  id: string
+  playerId: string
+  isWatchlist: boolean
+  isAutoPass: boolean
+  maxBid: number | null
+  priority: number | null
+  notes: string | null
+}
+
+/** Player nella forma richiesta da PreferenceModal (players/rubata condiviso). */
+export interface SvincolatiPrefsPlayer {
+  playerId: string
+  playerName: string
+  playerTeam: string
+  playerPosition: 'P' | 'D' | 'C' | 'A'
+  playerAge?: number | null
+  playerApiFootballId?: number | null
+  preference: SvincolatiPreference | null
+}
+
 export interface SvincolatiActivityItem {
   id: string
   player: Player

@@ -63,6 +63,9 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
     isLoading, board,
     freeAgents,
     activityFeed,
+    preferencesMap,
+    selectedPlayerForPrefs, openPrefsModal, closePrefsModal,
+    handleSavePreference, handleDeletePreference, handleBulkSetPreference, handleImportPreferences,
     searchQuery, setSearchQuery,
     selectedPosition, setSelectedPosition,
     selectedTeam, setSelectedTeam,
@@ -411,6 +414,14 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
           leagueId={leagueId}
           freeAgents={freeAgents}
           activityFeed={activityFeed}
+          preferencesMap={preferencesMap}
+          selectedPlayerForPrefs={selectedPlayerForPrefs}
+          onOpenPrefsModal={openPrefsModal}
+          onClosePrefsModal={closePrefsModal}
+          onSavePreference={handleSavePreference}
+          onDeletePreference={handleDeletePreference}
+          onBulkSetPreference={handleBulkSetPreference}
+          onImportPreferences={handleImportPreferences}
           currentUsername={currentUsername}
           isPusherConnected={isPusherConnected}
           isSubmitting={isSubmitting}

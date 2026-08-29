@@ -2663,3 +2663,154 @@ export async function resumeSvincolati(
     data: { remainingSeconds, resumedToState: resumeState },
   }
 }
+
+// ==================== PREFERENZE (TAB STRATEGIE) ====================
+//
+// Riusano lo stesso modello Prisma RubataPreference (prisma/schemas/rubata.prisma)
+// via nuove funzioni dedicate qui, invece di richiamare getRubataPreferences/
+// setRubataPreference/deleteRubataPreference da rubata.service.ts: quelle
+// funzioni sono gia' "lenient" (fallback su qualunque sessione attiva se non
+// trovano una sessione RUBATA, quindi avrebbero funzionato anche in
+// ASTA_SVINCOLATI), ma il loro guard "non modificare durante l'asta attiva"
+// e' legato a rubataState — irrilevante qui — e chiamare funzioni "Rubata"
+// da una route Svincolati sarebbe comunque fonte di confusione. Stessa
+// tabella, stesso shape, guard equivalente su svincolatiState.
+
+export async function getSvincolatiPreferences(
+  leagueId: string,
+  userId: string
+): Promise<ServiceResult> {
+  const member = await prisma.leagueMember.findFirst({
+    where: { leagueId, userId, status: MemberStatus.ACTIVE },
+  })
+
+  if (!member) {
+    return { success: false, message: 'Non sei membro di questa lega' }
+  }
+
+  const session = await prisma.marketSession.findFirst({ where: { leagueId, status: 'ACTIVE', currentPhase: 'ASTA_SVINCOLATI' } })
+    ?? await prisma.marketSession.findFirst({ where: { leagueId, status: 'ACTIVE' } })
+    ?? await prisma.marketSession.findFirst({ where: { leagueId }, orderBy: { createdAt: 'desc' } })
+
+  if (!session) {
+    return { success: false, message: 'Nessuna sessione trovata per questa lega' }
+  }
+
+  const preferences = await prisma.rubataPreference.findMany({
+    where: { sessionId: session.id, memberId: member.id },
+    include: {
+      player: { select: { id: true, name: true, team: true, position: true, quotation: true } },
+    },
+    orderBy: [{ priority: 'asc' }, { createdAt: 'desc' }],
+  })
+
+  return {
+    success: true,
+    data: { preferences, sessionId: session.id, memberId: member.id },
+  }
+}
+
+export async function setSvincolatiPreference(
+  leagueId: string,
+  userId: string,
+  playerId: string,
+  preference: {
+    isWatchlist?: boolean
+    isAutoPass?: boolean
+    maxBid?: number | null
+    priority?: number | null
+    notes?: string | null
+  }
+): Promise<ServiceResult> {
+  const member = await prisma.leagueMember.findFirst({
+    where: { leagueId, userId, status: MemberStatus.ACTIVE },
+  })
+
+  if (!member) {
+    return { success: false, message: 'Non sei membro di questa lega' }
+  }
+
+  let session = await prisma.marketSession.findFirst({ where: { leagueId, status: 'ACTIVE', currentPhase: 'ASTA_SVINCOLATI' } })
+
+  if (session?.svincolatiState === 'AUCTION') {
+    return { success: false, message: 'Non puoi modificare le preferenze durante l\'asta attiva' }
+  }
+
+  session ??= await prisma.marketSession.findFirst({ where: { leagueId, status: 'ACTIVE' } })
+    ?? await prisma.marketSession.findFirst({ where: { leagueId }, orderBy: { createdAt: 'desc' } })
+
+  if (!session) {
+    return { success: false, message: 'Nessuna sessione trovata per questa lega' }
+  }
+
+  const player = await prisma.serieAPlayer.findUnique({ where: { id: playerId } })
+
+  if (!player) {
+    return { success: false, message: 'Giocatore non trovato' }
+  }
+
+  const result = await prisma.rubataPreference.upsert({
+    where: {
+      sessionId_memberId_playerId: { sessionId: session.id, memberId: member.id, playerId },
+    },
+    create: {
+      sessionId: session.id,
+      memberId: member.id,
+      playerId,
+      isWatchlist: preference.isWatchlist ?? false,
+      isAutoPass: preference.isAutoPass ?? false,
+      maxBid: preference.maxBid,
+      priority: preference.priority,
+      notes: preference.notes,
+    },
+    update: {
+      isWatchlist: preference.isWatchlist,
+      isAutoPass: preference.isAutoPass,
+      maxBid: preference.maxBid,
+      priority: preference.priority,
+      notes: preference.notes,
+    },
+    include: {
+      player: { select: { id: true, name: true, team: true, position: true } },
+    },
+  })
+
+  return {
+    success: true,
+    message: 'Preferenza salvata',
+    data: result,
+  }
+}
+
+export async function deleteSvincolatiPreference(
+  leagueId: string,
+  userId: string,
+  playerId: string
+): Promise<ServiceResult> {
+  const member = await prisma.leagueMember.findFirst({
+    where: { leagueId, userId, status: MemberStatus.ACTIVE },
+  })
+
+  if (!member) {
+    return { success: false, message: 'Non sei membro di questa lega' }
+  }
+
+  let session = await prisma.marketSession.findFirst({ where: { leagueId, status: 'ACTIVE', currentPhase: 'ASTA_SVINCOLATI' } })
+
+  if (session?.svincolatiState === 'AUCTION') {
+    return { success: false, message: 'Non puoi modificare le preferenze durante l\'asta attiva' }
+  }
+
+  session ??= await prisma.marketSession.findFirst({ where: { leagueId, status: 'ACTIVE' } })
+    ?? await prisma.marketSession.findFirst({ where: { leagueId }, orderBy: { createdAt: 'desc' } })
+
+  if (!session) {
+    return { success: false, message: 'Nessuna sessione trovata per questa lega' }
+  }
+
+  await prisma.rubataPreference.deleteMany({
+    where: { sessionId: session.id, memberId: member.id, playerId },
+  })
+
+  return { success: true, message: 'Preferenza rimossa' }
+}
