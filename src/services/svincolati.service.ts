@@ -367,9 +367,20 @@ export async function getFreeAgentsHistory(
     return { success: false, message: 'Non sei membro di questa lega' }
   }
 
+  // Scoping alla sessione ASTA_SVINCOLATI corrente (fix: prima prendeva le
+  // ultime 50 aste FREE_BID di tutta la lega, di qualunque sessione passata —
+  // inutilizzabile come feed "Attività" della sessione in corso).
+  const activeSession = await prisma.marketSession.findFirst({
+    where: { leagueId, status: 'ACTIVE', currentPhase: 'ASTA_SVINCOLATI' },
+  })
+
+  if (!activeSession) {
+    return { success: true, data: [] }
+  }
+
   const completedAuctions = await prisma.auction.findMany({
     where: {
-      leagueId,
+      marketSessionId: activeSession.id,
       type: 'FREE_BID',
       status: AuctionStatus.COMPLETED,
     },

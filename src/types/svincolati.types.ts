@@ -38,6 +38,14 @@ export interface Player {
   computedStats?: ComputedSeasonStats | null
 }
 
+export interface SvincolatiActivityItem {
+  id: string
+  player: Player
+  winner: string | undefined
+  finalPrice: number
+  closedAt: string | null
+}
+
 export interface TurnMember {
   id: string
   username: string

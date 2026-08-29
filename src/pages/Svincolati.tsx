@@ -62,6 +62,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
   const {
     isLoading, board,
     freeAgents,
+    activityFeed,
     searchQuery, setSearchQuery,
     selectedPosition, setSelectedPosition,
     selectedTeam, setSelectedTeam,
@@ -409,6 +410,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
           board={board}
           leagueId={leagueId}
           freeAgents={freeAgents}
+          activityFeed={activityFeed}
           currentUsername={currentUsername}
           isPusherConnected={isPusherConnected}
           isSubmitting={isSubmitting}

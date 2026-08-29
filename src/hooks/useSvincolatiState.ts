@@ -12,6 +12,7 @@ import type {
   ContractForModification,
   ManagerRosterPlayer,
   SelectedManagerData,
+  SvincolatiActivityItem,
 } from '../types/svincolati.types'
 
 export function useSvincolatiState(leagueId: string) {
@@ -21,6 +22,9 @@ export function useSvincolatiState(leagueId: string) {
 
   // Free agents
   const [freeAgents, setFreeAgents] = useState<Player[]>([])
+
+  // Attività (feed acquisizioni della sessione corrente, tab "Attività")
+  const [activityFeed, setActivityFeed] = useState<SvincolatiActivityItem[]>([])
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('')
@@ -104,6 +108,13 @@ export function useSvincolatiState(leagueId: string) {
     }
   }, [leagueId, selectedPosition, selectedTeam, searchQuery, minQuotation, maxQuotation])
 
+  const loadActivityFeed = useCallback(async () => {
+    const res = await svincolatiApi.getHistory(leagueId)
+    if (res.success && res.data) {
+      setActivityFeed(res.data as SvincolatiActivityItem[])
+    }
+  }, [leagueId])
+
   useEffect(() => {
     void loadInitialData()
   }, [leagueId])
@@ -153,6 +164,7 @@ export function useSvincolatiState(leagueId: string) {
     },
     onSvincolatiAuctionClosed: () => {
       void loadBoard()
+      void loadActivityFeed()
     },
     onSvincolatiTurnAdvanced: () => {
       void loadBoard()
@@ -306,6 +318,7 @@ export function useSvincolatiState(leagueId: string) {
     }
 
     await loadFreeAgents()
+    void loadActivityFeed()
     setIsLoading(false)
   }
 
@@ -861,6 +874,9 @@ export function useSvincolatiState(leagueId: string) {
 
     // Free agents
     freeAgents,
+
+    // Attività
+    activityFeed,
 
     // Filters
     searchQuery,

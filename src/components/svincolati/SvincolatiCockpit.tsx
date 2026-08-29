@@ -11,13 +11,14 @@ import { PanelTabs } from '@/components/ui/PanelTabs'
 import { AdminTestFab } from '../auction/AdminTestFab'
 import { SvincolatiCockpitAdminBar, SvincolatiTestPanel } from './SvincolatiCockpitAdminBar'
 import { FreeAgentTableRow } from './FreeAgentTableRow'
+import { SvincolatiActivityFeed } from './SvincolatiActivityFeed'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { getTeamLogo } from '../../utils/teamLogos'
 import { getPlayerPhotoUrl } from '../../utils/player-images'
 import { NOT_DISPONIBILE, getAgeColor } from '../../utils/stat-format'
 import { SERIE_A_TEAMS } from '../../types/svincolati.types'
-import type { BoardState, Player } from '../../types/svincolati.types'
+import type { BoardState, Player, SvincolatiActivityItem } from '../../types/svincolati.types'
 
 /** Badge ruolo 46px stile mockup (P oro, D blu, C verde, A rosso) */
 const ROLE_BADGE: Record<string, string> = {
@@ -34,6 +35,7 @@ export interface SvincolatiCockpitProps {
   board: BoardState
   leagueId: string
   freeAgents: Player[]
+  activityFeed: SvincolatiActivityItem[]
   currentUsername: string | undefined
   isPusherConnected: boolean
   isSubmitting: boolean
@@ -384,6 +386,11 @@ export function SvincolatiCockpit(props: SvincolatiCockpitProps) {
                       />
                     ),
                   },
+                  {
+                    key: 'attivita',
+                    label: 'Attività',
+                    content: <SvincolatiActivityFeed items={props.activityFeed} />,
+                  },
                 ]}
               />
             </div>
@@ -399,6 +406,16 @@ export function SvincolatiCockpit(props: SvincolatiCockpitProps) {
                 />
               </div>
             </div>
+            {/* Attività — su mobile non esistono tab, ripetuta in flusso sotto
+                i Direttori Generali come fa Rubata con Attività/Strategie. */}
+            {props.activityFeed.length > 0 && (
+              <div className="lg:hidden bg-surface-200 border border-surface-50 rounded-xl overflow-hidden">
+                <div className="px-3.5 py-2.5 border-b border-surface-50">
+                  <h3 className="micro-label">Attività</h3>
+                </div>
+                <SvincolatiActivityFeed items={props.activityFeed} />
+              </div>
+            )}
 
             <div className="bg-surface-200 border border-surface-50 rounded-xl px-3.5 py-2.5 flex-shrink-0">
               {board.isFinished ? (
