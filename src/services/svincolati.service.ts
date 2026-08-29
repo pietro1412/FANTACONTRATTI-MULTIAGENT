@@ -13,6 +13,12 @@ import {
 } from './pusher.service'
 import type { ServiceResult } from '@/shared/types/service-result'
 
+// Segnala un rollback volontario della transazione di rilancio: il currentPrice
+// letto prima della transazione non combacia più (bid concorrente vincente nel
+// frattempo). Va gestito con un retry a rilettura fresca, non rilanciato come errore.
+class ConcurrentBidError extends Error {}
+
+const MAX_BID_ATTEMPTS = 5
 
 // ==================== HEARTBEAT / CONNECTION STATUS ====================
 
@@ -197,12 +203,8 @@ export async function bidOnFreeAgent(
     }
   }
 
-  // Check bid amount
-  if (amount <= auction.currentPrice) {
-    return { success: false, message: `L'offerta deve essere maggiore di ${auction.currentPrice}` }
-  }
-
   // Check budget using bilancio (budget - monteIngaggi): bilancio >= offerta + ingaggio_default (Bibbia §5.2)
+  // Non dipende da currentPrice: verificato una sola volta, fuori dal loop di retry.
   const monteIngaggiBid = await prisma.playerContract.aggregate({
     where: { leagueMemberId: bidder.id },
     _sum: { salary: true },
@@ -250,37 +252,66 @@ export async function bidOnFreeAgent(
 
   // Get timer settings from session
   const timerSeconds = auction.marketSession?.svincolatiTimerSeconds ?? auction.marketSession?.auctionTimerSeconds ?? 30
-  const newTimerExpires = new Date(Date.now() + timerSeconds * 1000)
 
-  // Place bid and reset timer
-  await prisma.$transaction(async (tx) => {
-    // Mark previous bids as not winning
-    await tx.auctionBid.updateMany({
-      where: { auctionId },
-      data: { isWinning: false },
-    })
+  // Fix race condition rilanci concorrenti (2026-08-29, docs/reviews/fix-plan-race-bid-2026-08-29.md):
+  // CAS via updateMany guardato su currentPrice + retry con rilettura fresca (vedi bidOnRubataAuction).
+  let currentPrice = auction.currentPrice
+  let newTimerExpires = new Date(Date.now() + timerSeconds * 1000)
+  let attempt = 0
+  for (; attempt < MAX_BID_ATTEMPTS; attempt++) {
+    if (attempt > 0) {
+      const fresh = await prisma.auction.findUnique({ where: { id: auctionId } })
+      if (!fresh || fresh.status !== 'ACTIVE') {
+        return { success: false, message: 'Asta non attiva' }
+      }
+      currentPrice = fresh.currentPrice
+    }
 
-    // Create new bid
-    await tx.auctionBid.create({
-      data: {
-        auctionId,
-        bidderId: bidder.id,
-        userId,
-        amount,
-        isWinning: true,
-      },
-    })
+    if (amount <= currentPrice) {
+      return { success: false, message: `L'offerta deve essere maggiore di ${currentPrice}` }
+    }
 
-    // Update auction current price and RESET TIMER
-    await tx.auction.update({
-      where: { id: auctionId },
-      data: {
-        currentPrice: amount,
-        timerExpiresAt: newTimerExpires,
-        timerSeconds,
-      },
-    })
-  })
+    newTimerExpires = new Date(Date.now() + timerSeconds * 1000)
+
+    try {
+      await prisma.$transaction(async (tx) => {
+        const claim = await tx.auction.updateMany({
+          where: { id: auctionId, currentPrice },
+          data: { currentPrice: amount, timerExpiresAt: newTimerExpires, timerSeconds },
+        })
+        if (claim.count === 0) {
+          throw new ConcurrentBidError()
+        }
+
+        // Mark previous bids as not winning
+        await tx.auctionBid.updateMany({
+          where: { auctionId },
+          data: { isWinning: false },
+        })
+
+        // Create new bid
+        await tx.auctionBid.create({
+          data: {
+            auctionId,
+            bidderId: bidder.id,
+            userId,
+            amount,
+            isWinning: true,
+          },
+        })
+      })
+      break
+    } catch (e) {
+      if (e instanceof ConcurrentBidError) {
+        continue
+      }
+      throw e
+    }
+  }
+
+  if (attempt >= MAX_BID_ATTEMPTS) {
+    return { success: false, message: 'Troppi rilanci concorrenti in questo istante, riprova.' }
+  }
 
   // Trigger Pusher event for real-time bid (non-blocking)
   const bidderWithUser = await prisma.leagueMember.findUnique({

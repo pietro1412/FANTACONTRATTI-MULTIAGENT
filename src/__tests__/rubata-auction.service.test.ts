@@ -19,7 +19,7 @@ const mockPrisma = {
   marketSession: { findFirst: vi.fn(), update: vi.fn() },
   playerRoster: { findMany: vi.fn(), findFirst: vi.fn(), update: vi.fn() },
   playerContract: { findFirst: vi.fn(), update: vi.fn(), aggregate: vi.fn() },
-  auction: { findFirst: vi.fn(), create: vi.fn(), update: vi.fn(), findMany: vi.fn() },
+  auction: { findFirst: vi.fn(), findUnique: vi.fn(), create: vi.fn(), update: vi.fn(), findMany: vi.fn() },
   auctionBid: { findFirst: vi.fn(), findMany: vi.fn(), create: vi.fn(), updateMany: vi.fn() },
   playerMovement: { findFirst: vi.fn(), create: vi.fn() },
   serieAPlayer: { findUnique: vi.fn() },
@@ -146,7 +146,7 @@ beforeEach(() => {
       marketSession: { update: vi.fn() },
       playerRoster: { findFirst: vi.fn(), update: vi.fn() },
       playerContract: { findFirst: vi.fn(), update: vi.fn() },
-      auction: { create: vi.fn().mockResolvedValue({ id: AUCTION_ID }), update: vi.fn(), findFirst: vi.fn() },
+      auction: { create: vi.fn().mockResolvedValue({ id: AUCTION_ID }), update: vi.fn(), updateMany: vi.fn().mockResolvedValue({ count: 1 }), findFirst: vi.fn() },
       auctionBid: { create: vi.fn(), findFirst: vi.fn(), updateMany: vi.fn() },
       playerMovement: { create: vi.fn() },
     }
@@ -390,6 +390,99 @@ describe('bidOnRubataAuction', () => {
 
     expect(result.success).toBe(false)
     expect(result.message).toContain('Budget insufficiente')
+  })
+
+  // Regression per il fix race condition 2026-08-29 (docs/reviews/fix-plan-race-bid-2026-08-29.md):
+  // bidOnRubataAuction e' il sito confermato buggato empiricamente su produzione.
+  describe('CAS + retry su rilanci concorrenti', () => {
+    it('fa vincere comunque un rilancio piu alto se il primo tentativo perde la CAS contro un bid concorrente', async () => {
+      const { bidOnRubataAuction } = await getService()
+
+      mockPrisma.leagueMember.findFirst.mockResolvedValue(makeMember())
+      mockPrisma.marketSession.findFirst.mockResolvedValue(makeSession({ rubataState: 'AUCTION' }))
+      mockPrisma.auction.findFirst.mockResolvedValue(makeAuction({ currentPrice: 20 }))
+      mockPrisma.playerContract.aggregate.mockResolvedValue({ _sum: { salary: 10 } })
+      mockPrisma.leagueMember.findUnique.mockResolvedValue({ id: MEMBER_ID, user: { username: 'Bidder' } })
+      mockPrisma.serieAPlayer.findUnique.mockResolvedValue({ id: PLAYER_ID, name: 'Test Player' })
+
+      // Rilettura fresca al 2o tentativo: un bid concorrente ha alzato il prezzo a 22
+      // nel frattempo, ma la nostra offerta di 25 e' comunque piu alta e deve vincere.
+      mockPrisma.auction.findUnique.mockResolvedValue(makeAuction({ currentPrice: 22, status: 'ACTIVE' }))
+
+      let transactionCallCount = 0
+      mockPrisma.$transaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {
+        transactionCallCount++
+        const txMock = {
+          auctionBid: { updateMany: vi.fn(), create: vi.fn() },
+          marketSession: { update: vi.fn() },
+          auction: { updateMany: vi.fn().mockResolvedValue(transactionCallCount === 1 ? { count: 0 } : { count: 1 }) },
+        }
+        return fn(txMock)
+      })
+
+      const result = await bidOnRubataAuction(LEAGUE_ID, USER_ID, 25)
+
+      expect(result.success).toBe(true)
+      const data = result.data as { currentPrice: number }
+      expect(data.currentPrice).toBe(25)
+      expect(transactionCallCount).toBe(2)
+    })
+
+    it('respinge in modo pulito (senza loop) se dopo la CAS persa la rilettura mostra un prezzo non piu superabile', async () => {
+      const { bidOnRubataAuction } = await getService()
+
+      mockPrisma.leagueMember.findFirst.mockResolvedValue(makeMember())
+      mockPrisma.marketSession.findFirst.mockResolvedValue(makeSession({ rubataState: 'AUCTION' }))
+      mockPrisma.auction.findFirst.mockResolvedValue(makeAuction({ currentPrice: 20 }))
+      mockPrisma.playerContract.aggregate.mockResolvedValue({ _sum: { salary: 10 } })
+
+      // Rilettura fresca: il prezzo e' gia' salito a 25 (pari alla nostra offerta) -> non vince piu.
+      mockPrisma.auction.findUnique.mockResolvedValue(makeAuction({ currentPrice: 25, status: 'ACTIVE' }))
+
+      let transactionCallCount = 0
+      mockPrisma.$transaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {
+        transactionCallCount++
+        const txMock = {
+          auctionBid: { updateMany: vi.fn(), create: vi.fn() },
+          marketSession: { update: vi.fn() },
+          auction: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
+        }
+        return fn(txMock)
+      })
+
+      const result = await bidOnRubataAuction(LEAGUE_ID, USER_ID, 25)
+
+      expect(result.success).toBe(false)
+      expect(result.message).toContain('maggiore di 25')
+      expect(transactionCallCount).toBe(1) // un solo tentativo: il secondo giro respinge prima di ritentare la transazione
+    })
+
+    it('rinuncia dopo MAX_BID_ATTEMPTS tentativi con un messaggio onesto, senza accettare mai un\'offerta superata', async () => {
+      const { bidOnRubataAuction } = await getService()
+
+      mockPrisma.leagueMember.findFirst.mockResolvedValue(makeMember())
+      mockPrisma.marketSession.findFirst.mockResolvedValue(makeSession({ rubataState: 'AUCTION' }))
+      mockPrisma.auction.findFirst.mockResolvedValue(makeAuction({ currentPrice: 20 }))
+      mockPrisma.playerContract.aggregate.mockResolvedValue({ _sum: { salary: 10 } })
+
+      // Ogni rilettura mostra un prezzo comunque inferiore alla nostra offerta (25),
+      // ma la CAS perde sempre: contesa perpetua, deve arrendersi senza scrivere nulla.
+      mockPrisma.auction.findUnique.mockResolvedValue(makeAuction({ currentPrice: 21, status: 'ACTIVE' }))
+
+      mockPrisma.$transaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {
+        const txMock = {
+          auctionBid: { updateMany: vi.fn(), create: vi.fn() },
+          marketSession: { update: vi.fn() },
+          auction: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
+        }
+        return fn(txMock)
+      })
+
+      const result = await bidOnRubataAuction(LEAGUE_ID, USER_ID, 25)
+
+      expect(result.success).toBe(false)
+      expect(result.message).toContain('Troppi rilanci concorrenti')
+    })
   })
 })
 

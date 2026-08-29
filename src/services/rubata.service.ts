@@ -6,6 +6,12 @@ import { triggerRubataBidPlaced, triggerRubataStealDeclared, triggerRubataReadyC
 import { computeSeasonStatsBatch, computeAutoTagsBatch, type ComputedSeasonStats, type AutoTagId } from './player-stats.service'
 import type { ServiceResult } from '@/shared/types/service-result'
 
+// Segnala un rollback volontario della transazione di rilancio: il currentPrice
+// letto prima della transazione non combacia più (bid concorrente vincente nel
+// frattempo). Va gestito con un retry a rilettura fresca, non rilanciato come errore.
+class ConcurrentBidError extends Error {}
+
+const MAX_BID_ATTEMPTS = 5
 
 // Type for rubata board items stored in session JSON
 interface RubataBoardItem {
@@ -486,12 +492,8 @@ export async function bidOnRubata(
     return { success: false, message: 'Non puoi fare offerte per un tuo giocatore' }
   }
 
-  // Check bid amount
-  if (amount <= auction.currentPrice) {
-    return { success: false, message: `L'offerta deve essere maggiore di ${auction.currentPrice}` }
-  }
-
   // Check budget using bilancio (budget - monteIngaggi). Rubata price includes salary. Reserve 1.
+  // Non dipende da currentPrice: verificato una sola volta, fuori dal loop di retry.
   const monteIngaggiOld = await prisma.playerContract.aggregate({
     where: { leagueMemberId: bidder.id },
     _sum: { salary: true },
@@ -502,31 +504,62 @@ export async function bidOnRubata(
     return { success: false, message: `Budget insufficiente. Offerta massima: ${maxBidOld}` }
   }
 
-  // Place bid
-  await prisma.$transaction(async (tx) => {
-    // Mark previous bids as not winning
-    await tx.auctionBid.updateMany({
-      where: { auctionId },
-      data: { isWinning: false },
-    })
+  // Fix race condition rilanci concorrenti (2026-08-29, docs/reviews/fix-plan-race-bid-2026-08-29.md):
+  // CAS via updateMany guardato su currentPrice + retry con rilettura fresca (vedi bidOnRubataAuction).
+  let currentPrice = auction.currentPrice
+  let attempt = 0
+  for (; attempt < MAX_BID_ATTEMPTS; attempt++) {
+    if (attempt > 0) {
+      const fresh = await prisma.auction.findUnique({ where: { id: auctionId } })
+      if (!fresh || fresh.status !== 'ACTIVE') {
+        return { success: false, message: 'Asta non attiva' }
+      }
+      currentPrice = fresh.currentPrice
+    }
 
-    // Create new bid
-    await tx.auctionBid.create({
-      data: {
-        auctionId,
-        bidderId: bidder.id,
-        userId,
-        amount,
-        isWinning: true,
-      },
-    })
+    if (amount <= currentPrice) {
+      return { success: false, message: `L'offerta deve essere maggiore di ${currentPrice}` }
+    }
 
-    // Update auction current price
-    await tx.auction.update({
-      where: { id: auctionId },
-      data: { currentPrice: amount },
-    })
-  })
+    try {
+      await prisma.$transaction(async (tx) => {
+        const claim = await tx.auction.updateMany({
+          where: { id: auctionId, currentPrice },
+          data: { currentPrice: amount },
+        })
+        if (claim.count === 0) {
+          throw new ConcurrentBidError()
+        }
+
+        // Mark previous bids as not winning
+        await tx.auctionBid.updateMany({
+          where: { auctionId },
+          data: { isWinning: false },
+        })
+
+        // Create new bid
+        await tx.auctionBid.create({
+          data: {
+            auctionId,
+            bidderId: bidder.id,
+            userId,
+            amount,
+            isWinning: true,
+          },
+        })
+      })
+      break
+    } catch (e) {
+      if (e instanceof ConcurrentBidError) {
+        continue
+      }
+      throw e
+    }
+  }
+
+  if (attempt >= MAX_BID_ATTEMPTS) {
+    return { success: false, message: 'Troppi rilanci concorrenti in questo istante, riprova.' }
+  }
 
   return {
     success: true,
@@ -1648,12 +1681,8 @@ export async function bidOnRubataAuction(
     return { success: false, message: 'Non puoi fare offerte per un tuo giocatore' }
   }
 
-  // Check bid is higher
-  if (amount <= activeAuction.currentPrice) {
-    return { success: false, message: `L'offerta deve essere maggiore di ${activeAuction.currentPrice}` }
-  }
-
   // Check budget using bilancio (budget - monteIngaggi). Rubata price includes salary.
+  // Non dipende da currentPrice: verificato una sola volta, fuori dal loop di retry.
   const monteIngaggiBidR = await prisma.playerContract.aggregate({
     where: { leagueMemberId: member.id },
     _sum: { salary: true },
@@ -1661,6 +1690,72 @@ export async function bidOnRubataAuction(
   const bilancioBidR = member.currentBudget - (monteIngaggiBidR._sum.salary || 0)
   if (amount > bilancioBidR) {
     return { success: false, message: `Budget insufficiente. Necessario: ${amount}, Bilancio disponibile: ${bilancioBidR}` }
+  }
+
+  // Fix race condition rilanci concorrenti (2026-08-29, docs/reviews/fix-plan-race-bid-2026-08-29.md):
+  // check-then-act su currentPrice senza CAS permetteva a due bid concorrenti di
+  // passare entrambi la validazione contro lo stesso prezzo "vecchio". CAS via
+  // updateMany guardato su currentPrice + retry con rilettura fresca: un bid più
+  // alto arrivato dopo uno più basso deve comunque poter vincere, non solo abortire.
+  let currentPrice = activeAuction.currentPrice
+  let attempt = 0
+  for (; attempt < MAX_BID_ATTEMPTS; attempt++) {
+    if (attempt > 0) {
+      const fresh = await prisma.auction.findUnique({ where: { id: activeAuction.id } })
+      if (!fresh || fresh.status !== 'ACTIVE') {
+        return { success: false, message: 'Asta non attiva' }
+      }
+      currentPrice = fresh.currentPrice
+    }
+
+    if (amount <= currentPrice) {
+      return { success: false, message: `L'offerta deve essere maggiore di ${currentPrice}` }
+    }
+
+    try {
+      await prisma.$transaction(async (tx) => {
+        const claim = await tx.auction.updateMany({
+          where: { id: activeAuction.id, currentPrice },
+          data: { currentPrice: amount },
+        })
+        if (claim.count === 0) {
+          throw new ConcurrentBidError()
+        }
+
+        // Mark previous bids as not winning
+        await tx.auctionBid.updateMany({
+          where: { auctionId: activeAuction.id },
+          data: { isWinning: false },
+        })
+
+        // Create new bid
+        await tx.auctionBid.create({
+          data: {
+            auctionId: activeAuction.id,
+            bidderId: member.id,
+            userId,
+            amount,
+            isWinning: true,
+          },
+        })
+
+        // Reset auction timer
+        await tx.marketSession.update({
+          where: { id: activeSession.id },
+          data: { rubataTimerStartedAt: new Date() },
+        })
+      })
+      break
+    } catch (e) {
+      if (e instanceof ConcurrentBidError) {
+        continue
+      }
+      throw e
+    }
+  }
+
+  if (attempt >= MAX_BID_ATTEMPTS) {
+    return { success: false, message: 'Troppi rilanci concorrenti in questo istante, riprova.' }
   }
 
   // Get member username and player info for Pusher notification
@@ -1671,38 +1766,6 @@ export async function bidOnRubataAuction(
 
   const playerInfo = await prisma.serieAPlayer.findUnique({
     where: { id: activeAuction.playerId },
-  })
-
-  // Place bid and reset timer
-  await prisma.$transaction(async (tx) => {
-    // Mark previous bids as not winning
-    await tx.auctionBid.updateMany({
-      where: { auctionId: activeAuction.id },
-      data: { isWinning: false },
-    })
-
-    // Create new bid
-    await tx.auctionBid.create({
-      data: {
-        auctionId: activeAuction.id,
-        bidderId: member.id,
-        userId,
-        amount,
-        isWinning: true,
-      },
-    })
-
-    // Update auction current price
-    await tx.auction.update({
-      where: { id: activeAuction.id },
-      data: { currentPrice: amount },
-    })
-
-    // Reset auction timer
-    await tx.marketSession.update({
-      where: { id: activeSession.id },
-      data: { rubataTimerStartedAt: new Date() },
-    })
   })
 
   // Trigger Pusher event for real-time update (non-blocking)

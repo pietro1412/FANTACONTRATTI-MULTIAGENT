@@ -25,6 +25,12 @@ import { logError } from './app-log.service'
 
 import type { ServiceResult } from '@/shared/types/service-result'
 
+// Segnala un rollback volontario della transazione di rilancio: il currentPrice
+// letto prima della transazione non combacia più (bid concorrente vincente nel
+// frattempo). Va gestito con un retry a rilettura fresca, non rilanciato come errore.
+class ConcurrentBidError extends Error {}
+
+const MAX_BID_ATTEMPTS = 5
 
 // ==================== PLAYER STATS ENRICHMENT ====================
 
@@ -1462,12 +1468,7 @@ export async function placeBid(
     return { success: false, message: `Budget insufficiente. Offerta massima: ${maxBid}${isPrimoMercato && slotReserve > 0 ? ` (riservati ${slotReserve} per ${slotReserve / 2} slot rimanenti)` : ''}` }
   }
 
-  // Check minimum bid
-  if (amount <= auction.currentPrice) {
-    return { success: false, message: `Offerta minima: ${auction.currentPrice + 1}` }
-  }
-
-  // Check roster slots
+  // Check roster slots (non dipende da currentPrice: verificato una sola volta, fuori dal loop di retry)
   const position = auction.player.position
   const rosterCount = await prisma.playerRoster.count({
     where: {
@@ -1491,56 +1492,94 @@ export async function placeBid(
     return { success: false, message: `Hai già raggiunto il limite di ${maxSlots} giocatori in questo ruolo` }
   }
 
-  // Remove previous winning status
-  await prisma.auctionBid.updateMany({
-    where: {
-      auctionId,
-      isWinning: true,
-    },
-    data: {
-      isWinning: false,
-    },
-  })
-
-  // Create bid
-  const bid = await prisma.auctionBid.create({
-    data: {
-      auctionId,
-      bidderId: member.id,
-      userId,
-      amount,
-      isWinning: true,
-    },
-    include: {
-      bidder: {
-        select: {
-          teamName: true,
-          user: {
-            select: { username: true },
-          },
-        },
-      },
-    },
-  })
-
-  // Update auction current price and RESET TIMER
   const session = await prisma.marketSession.findFirst({
     where: {
       auctions: { some: { id: auctionId } },
     },
   })
-
   const timerSeconds = session?.auctionTimerSeconds ?? 30
-  const newTimerExpires = new Date(Date.now() + timerSeconds * 1000)
 
-  await prisma.auction.update({
-    where: { id: auctionId },
-    data: {
-      currentPrice: amount,
-      timerExpiresAt: newTimerExpires,
-      timerSeconds,
-    },
-  })
+  // Fix race condition rilanci concorrenti (2026-08-29, docs/reviews/fix-plan-race-bid-2026-08-29.md):
+  // check-then-act su currentPrice senza CAS (e senza nemmeno una transazione) permetteva
+  // a due bid concorrenti di passare entrambi la validazione contro lo stesso prezzo
+  // "vecchio". CAS via updateMany guardato su currentPrice + retry con rilettura fresca:
+  // un bid più alto arrivato dopo uno più basso deve comunque poter vincere, non abortire.
+  type PlacedBid = Prisma.AuctionBidGetPayload<{
+    include: { bidder: { select: { teamName: true; user: { select: { username: true } } } } }
+  }>
+  let currentPrice = auction.currentPrice
+  let bid: PlacedBid | undefined
+  let newTimerExpires = new Date(Date.now() + timerSeconds * 1000)
+  let attempt = 0
+  for (; attempt < MAX_BID_ATTEMPTS; attempt++) {
+    if (attempt > 0) {
+      const fresh = await prisma.auction.findUnique({ where: { id: auctionId } })
+      if (!fresh || fresh.status !== 'ACTIVE') {
+        return { success: false, message: 'Asta non attiva' }
+      }
+      currentPrice = fresh.currentPrice
+    }
+
+    if (amount <= currentPrice) {
+      return { success: false, message: `Offerta minima: ${currentPrice + 1}` }
+    }
+
+    newTimerExpires = new Date(Date.now() + timerSeconds * 1000)
+
+    try {
+      bid = await prisma.$transaction(async (tx) => {
+        const claim = await tx.auction.updateMany({
+          where: { id: auctionId, currentPrice },
+          data: { currentPrice: amount, timerExpiresAt: newTimerExpires, timerSeconds },
+        })
+        if (claim.count === 0) {
+          throw new ConcurrentBidError()
+        }
+
+        // Remove previous winning status
+        await tx.auctionBid.updateMany({
+          where: {
+            auctionId,
+            isWinning: true,
+          },
+          data: {
+            isWinning: false,
+          },
+        })
+
+        // Create bid
+        return tx.auctionBid.create({
+          data: {
+            auctionId,
+            bidderId: member.id,
+            userId,
+            amount,
+            isWinning: true,
+          },
+          include: {
+            bidder: {
+              select: {
+                teamName: true,
+                user: {
+                  select: { username: true },
+                },
+              },
+            },
+          },
+        })
+      })
+      break
+    } catch (e) {
+      if (e instanceof ConcurrentBidError) {
+        continue
+      }
+      throw e
+    }
+  }
+
+  if (attempt >= MAX_BID_ATTEMPTS || !bid) {
+    return { success: false, message: 'Troppi rilanci concorrenti in questo istante, riprova.' }
+  }
 
   // Trigger Pusher event for bid placed (fire and forget)
   if (auction.marketSessionId) {
