@@ -765,10 +765,13 @@ describe('advanceRubataPlayer', () => {
     const data = result.data as { completed: boolean }
     expect(data.completed).toBe(true)
 
-    // Should set state to COMPLETED
+    // Should set state to COMPLETED and advance rubataBoardIndex past the
+    // end of the board — otherwise the frontend (isCurrent = globalIndex ===
+    // rubataBoardIndex) keeps showing the last player as "SUL PIATTO" forever
+    // even though the phase is already COMPLETATA.
     expect(mockPrisma.marketSession.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ rubataState: 'COMPLETED' }),
+        data: expect.objectContaining({ rubataState: 'COMPLETED', rubataBoardIndex: 1 }),
       })
     )
   })

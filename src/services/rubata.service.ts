@@ -1020,6 +1020,7 @@ export async function getRubataBoard(
           await prisma.marketSession.update({
             where: { id: activeSession.id },
             data: {
+              rubataBoardIndex: nextIndex,
               rubataState: 'COMPLETED',
               rubataTimerStartedAt: null,
             },
@@ -1831,6 +1832,7 @@ export async function advanceRubataPlayer(
     await prisma.marketSession.update({
       where: { id: activeSession.id },
       data: {
+        rubataBoardIndex: nextIndex,
         rubataState: 'COMPLETED',
         rubataTimerStartedAt: null,
       },

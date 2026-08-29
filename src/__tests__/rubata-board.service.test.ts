@@ -745,9 +745,14 @@ describe('getRubataBoard', () => {
 
     expect(result.success).toBe(true)
 
+    // rubataBoardIndex must advance past the end of the board on completion —
+    // otherwise the frontend (isCurrent = globalIndex === rubataBoardIndex)
+    // keeps showing the last player as "SUL PIATTO" even though the phase is
+    // already COMPLETATA.
     expect(prismaMock.marketSession.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
+          rubataBoardIndex: board.length,
           rubataState: 'COMPLETED',
           rubataTimerStartedAt: null,
         }),
