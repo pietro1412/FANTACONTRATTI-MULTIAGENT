@@ -4,7 +4,6 @@ import { TimerDisplay } from '@/components/ui/TimerDisplay'
 import { BidControlsShared } from '@/components/ui/BidControlsShared'
 import { BidChips } from '@/components/ui/BidChips'
 import { ManagerListRow } from '@/components/ui/ManagerListRow'
-import { MemberReadyChips } from '@/components/ui/MemberReadyChips'
 import { Monogram } from '@/components/ui/Monogram'
 import { PlayerName } from '@/components/players/PlayerName'
 import { AdminTestFab } from '../auction/AdminTestFab'
@@ -12,7 +11,8 @@ import { SvincolatiCockpitAdminBar, SvincolatiTestPanel } from './SvincolatiCock
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { getTeamLogo } from '../../utils/teamLogos'
-import { NOT_DISPONIBILE } from '../../utils/stat-format'
+import { getPlayerPhotoUrl } from '../../utils/player-images'
+import { NOT_DISPONIBILE, getAgeColor } from '../../utils/stat-format'
 import { SERIE_A_TEAMS } from '../../types/svincolati.types'
 import type { BoardState, Player } from '../../types/svincolati.types'
 
@@ -100,9 +100,10 @@ export function SvincolatiCockpit(props: SvincolatiCockpitProps) {
   const totalMembers = board.turnOrder.length
   const canNominate = state === 'READY_CHECK' && board.isMyTurn && !board.pendingPlayer
 
-  // Ready check: chip pronti (P6) da turnOrder + readyMembers
-  const readyDone = board.turnOrder.filter(m => board.readyMembers.includes(m.id)).map(m => ({ id: m.id, username: m.username }))
-  const readyPending = board.turnOrder.filter(m => !board.readyMembers.includes(m.id)).map(m => ({ id: m.id, username: m.username }))
+  // Ready check: pallino "pronto" per-riga sul pannello Direttori Generali (pattern
+  // gia' adottato in Rubata per eliminare la striscia di avatar separata) — rilevante
+  // solo durante NOMINATION dopo la conferma del nominatore.
+  const readyRelevant = state === 'NOMINATION' && board.nominatorConfirmed
 
   return (
     <CockpitShell
@@ -148,6 +149,7 @@ export function SvincolatiCockpit(props: SvincolatiCockpitProps) {
                     {index + 1}
                   </span>
                 )
+                const readyDot = readyRelevant ? board.readyMembers.includes(member.id) : undefined
                 return (
                   <ManagerListRow
                     key={member.id}
@@ -156,7 +158,8 @@ export function SvincolatiCockpit(props: SvincolatiCockpitProps) {
                     isHolding={isCurrent}
                     dim={dim}
                     leadingBadge={badge}
-                    connectedDot={member.isConnected ?? null}
+                    readyDot={readyDot}
+                    connectedDot={readyDot == null ? (member.isConnected ?? null) : null}
                     statusLine={
                       isCurrent ? (
                         <span className="text-accent-400 font-semibold">Sta chiamando…</span>
@@ -164,6 +167,8 @@ export function SvincolatiCockpit(props: SvincolatiCockpitProps) {
                         <span className="text-accent-400 font-mono text-[9px] font-bold border border-accent-500/50 rounded px-1.5 py-px tracking-[0.05em]">PASS</span>
                       ) : hasFinished ? (
                         <span className="text-gray-400 font-mono text-[9px] font-bold border border-surface-50 rounded px-1.5 py-px tracking-[0.05em]">FINITO</span>
+                      ) : readyDot != null ? (
+                        readyDot ? <span className="text-secondary-400">Pronto</span> : <span className="text-gray-400">In attesa</span>
                       ) : 'In gara'
                     }
                     bigValue={`${member.budget}M`}
@@ -231,7 +236,7 @@ export function SvincolatiCockpit(props: SvincolatiCockpitProps) {
               <p className="micro-label text-accent-400 mb-3">
                 {board.pendingNominatorId === board.myMemberId && !board.nominatorConfirmed ? 'Conferma la tua scelta' : `${board.nominatorUsername ?? ''} ha chiamato`}
               </p>
-              <PlayerHead player={board.pendingPlayer} />
+              <PlayerHead player={board.pendingPlayer} leagueId={props.leagueId} />
 
               {board.pendingNominatorId === board.myMemberId && !board.nominatorConfirmed && (
                 <div className="mt-4 flex gap-3">
@@ -246,7 +251,12 @@ export function SvincolatiCockpit(props: SvincolatiCockpitProps) {
 
               {board.nominatorConfirmed && (
                 <div className="mt-4 space-y-3">
-                  <MemberReadyChips done={readyDone} pending={readyPending} doneLabel="pronto" variant="strip" />
+                  {/* Chi e' pronto si vede riga-per-riga nel pannello Direttori Generali
+                      (readyDot su ManagerListRow) — niente striscia di avatar duplicata,
+                      stesso decluttering gia' adottato in Rubata. */}
+                  <p className="text-center text-xs text-gray-500">
+                    Pronti {board.readyMembers.length}/{totalMembers}
+                  </p>
                   {board.pendingNominatorId !== board.myMemberId ? (
                     !board.readyMembers.includes(board.myMemberId) ? (
                       <Button onClick={props.onMarkReady} disabled={props.isSubmitting} className="w-full py-3 font-bold">
@@ -273,7 +283,7 @@ export function SvincolatiCockpit(props: SvincolatiCockpitProps) {
                 )}
               </div>
 
-              <PlayerHead player={auction.player} nominator={board.nominatorUsername} />
+              <PlayerHead player={auction.player} nominator={board.nominatorUsername} leagueId={props.leagueId} />
 
               {/* Box prezzo + timer (P1) */}
               <div className="flex items-center gap-5 bg-surface-300 border border-accent-500/40 rounded-xl px-4 py-3">
@@ -476,7 +486,7 @@ export function SvincolatiCockpit(props: SvincolatiCockpitProps) {
                       <span className="block text-[11px] text-gray-500 truncate">
                         {player.team}
                         <span className="text-gray-600" aria-hidden="true"> · </span>
-                        <span className="font-mono">{player.age != null ? `${player.age} anni` : NOT_DISPONIBILE}</span>
+                        <span className={`font-mono ${getAgeColor(player.age)}`}>{player.age != null ? `${player.age} anni` : NOT_DISPONIBILE}</span>
                       </span>
                     </span>
                     {canNominate && (
@@ -557,15 +567,31 @@ function SvincolatiHeader({ board, isPusherConnected }: SvincolatiCockpitProps) 
   )
 }
 
-/* ── Testa giocatore: badge ruolo 46px + nome + squadra (+ chip nominatore) ── */
-function PlayerHead({ player, nominator }: { player: Player; nominator?: string | null }) {
+/* ── Testa giocatore: foto/badge ruolo 46px + nome cliccabile (Assioma 7) +
+   squadra (+ chip nominatore) — stesso pattern di HeroPlayerCard in Rubata ── */
+function PlayerHead({ player, nominator, leagueId }: { player: Player; nominator?: string | null; leagueId: string }) {
   return (
     <div className="flex items-center gap-3.5 flex-wrap">
-      <span className={`w-[46px] h-[46px] rounded-[10px] flex items-center justify-center text-xl font-display font-extrabold flex-shrink-0 ${ROLE_BADGE[player.position] ?? ''}`}>
-        {player.position}
-      </span>
+      {player.apiFootballId ? (
+        <img
+          src={getPlayerPhotoUrl(player.apiFootballId)}
+          alt={player.name}
+          className="w-[46px] h-[46px] rounded-full object-cover bg-surface-300 border-2 border-accent-500/60 flex-shrink-0"
+          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+        />
+      ) : (
+        <span className={`w-[46px] h-[46px] rounded-[10px] flex items-center justify-center text-xl font-display font-extrabold flex-shrink-0 ${ROLE_BADGE[player.position] ?? ''}`}>
+          {player.position}
+        </span>
+      )}
       <div className="min-w-0 flex-1">
-        <p className="font-display text-2xl lg:text-[26px] font-bold text-white leading-tight truncate">{player.name}</p>
+        <PlayerName
+          player={{ name: player.name, team: player.team, position: player.position, quotation: player.quotation, age: player.age }}
+          leagueId={leagueId}
+          leaguePlayerId={player.id}
+          truncate
+          className="font-display text-2xl lg:text-[26px] font-bold text-white leading-tight block text-left"
+        />
         <p className="text-sm text-gray-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
           {POS_NAMES[player.position] || player.position}
           <span className="text-gray-600" aria-hidden="true">·</span>
@@ -574,7 +600,7 @@ function PlayerHead({ player, nominator }: { player: Player; nominator?: string 
           </span>
           <b className="text-gray-200 font-semibold">{player.team}</b>
           <span className="text-gray-600" aria-hidden="true">·</span>
-          <span className="font-mono text-gray-300">{player.age != null ? `${player.age} anni` : NOT_DISPONIBILE}</span>
+          <span className={`font-mono ${getAgeColor(player.age)}`}>{player.age != null ? `${player.age} anni` : NOT_DISPONIBILE}</span>
         </p>
       </div>
       {nominator && (

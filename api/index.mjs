@@ -265734,7 +265734,7 @@ __export(api_football_service_exports, {
   syncStats: () => syncStats,
   syncStatsInternal: () => syncStatsInternal
 });
-import { Prisma as Prisma7 } from "@prisma/client";
+import { Prisma as Prisma6 } from "@prisma/client";
 async function apiFootballFetch(endpoint, params = {}) {
   const apiKey = process.env.API_FOOTBALL_KEY;
   if (!apiKey) {
@@ -266097,7 +266097,7 @@ async function getSyncStatus(userId) {
   try {
     const totalPlayers = await prisma.serieAPlayer.count({ where: { isActive: true } });
     const matched = await prisma.serieAPlayer.count({ where: { isActive: true, apiFootballId: { not: null } } });
-    const withStats = await prisma.serieAPlayer.count({ where: { isActive: true, apiFootballStats: { not: Prisma7.JsonNull } } });
+    const withStats = await prisma.serieAPlayer.count({ where: { isActive: true, apiFootballStats: { not: Prisma6.JsonNull } } });
     const lastSynced = await prisma.serieAPlayer.findFirst({
       where: { statsSyncedAt: { not: null } },
       orderBy: { statsSyncedAt: "desc" },
@@ -266744,7 +266744,7 @@ async function removeMatch(userId, playerId) {
       where: { id: playerId },
       data: {
         apiFootballId: null,
-        apiFootballStats: Prisma7.DbNull,
+        apiFootballStats: Prisma6.DbNull,
         statsSyncedAt: null
       }
     });
@@ -282018,6 +282018,62 @@ function hashToken(token) {
   return crypto.createHash("sha256").update(token).digest("hex");
 }
 
+// src/utils/db-retry.ts
+var DEFAULT_OPTIONS = {
+  maxRetries: 3,
+  initialDelayMs: 1e3,
+  maxDelayMs: 1e4,
+  backoffMultiplier: 2
+};
+var RETRYABLE_ERROR_CODES = [
+  "P1001",
+  // Can't reach database server
+  "P1002",
+  // Database server timed out
+  "P1008",
+  // Operations timed out
+  "P1017",
+  // Server has closed the connection
+  "P2024"
+  // Timed out fetching a new connection from the connection pool
+];
+function isRetryableError(error46) {
+  if (error46 && typeof error46 === "object" && "code" in error46) {
+    const code = error46.code;
+    return RETRYABLE_ERROR_CODES.includes(code);
+  }
+  return false;
+}
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+async function withRetry(operation, options = {}) {
+  const opts = { ...DEFAULT_OPTIONS, ...options };
+  let lastError;
+  let delay = opts.initialDelayMs;
+  for (let attempt = 1; attempt <= opts.maxRetries + 1; attempt++) {
+    try {
+      return await operation();
+    } catch (error46) {
+      lastError = error46;
+      if (!isRetryableError(error46)) {
+        throw error46;
+      }
+      if (attempt > opts.maxRetries) {
+        console.error(`[DB-RETRY] Tutti i ${opts.maxRetries} tentativi falliti`);
+        throw error46;
+      }
+      console.warn(
+        `[DB-RETRY] Tentativo ${attempt}/${opts.maxRetries} fallito, riprovo tra ${delay}ms...`,
+        error46.code
+      );
+      await sleep(delay);
+      delay = Math.min(delay * opts.backoffMultiplier, opts.maxDelayMs);
+    }
+  }
+  throw lastError;
+}
+
 // src/services/auth.service.ts
 async function registerUser(input) {
   const { email: email3, username, password } = input;
@@ -282050,67 +282106,69 @@ async function registerUser(input) {
 }
 async function loginUser(input) {
   const { emailOrUsername, password } = input;
-  const user = await prisma.user.findFirst({
-    where: {
-      OR: [
-        { email: emailOrUsername },
-        { username: emailOrUsername }
-      ]
-    }
-  });
-  if (!user) {
-    return { success: false, message: "Credenziali non valide" };
-  }
-  if (user.lockedUntil && user.lockedUntil > /* @__PURE__ */ new Date()) {
-    const minutesLeft = Math.ceil((user.lockedUntil.getTime() - Date.now()) / 6e4);
-    return { success: false, message: `Account bloccato. Riprova tra ${minutesLeft} minuti.` };
-  }
-  const isValidPassword = await verifyPassword(password, user.passwordHash);
-  if (!isValidPassword) {
-    const attempts = (user.failedLoginAttempts || 0) + 1;
-    let lockedUntil = null;
-    if (attempts >= 20) {
-      lockedUntil = new Date(Date.now() + 24 * 60 * 60 * 1e3);
-    } else if (attempts >= 10) {
-      lockedUntil = new Date(Date.now() + 60 * 60 * 1e3);
-    } else if (attempts >= 5) {
-      lockedUntil = new Date(Date.now() + 15 * 60 * 1e3);
-    }
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        failedLoginAttempts: attempts,
-        lastFailedLogin: /* @__PURE__ */ new Date(),
-        lockedUntil
+  return withRetry(async () => {
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: emailOrUsername },
+          { username: emailOrUsername }
+        ]
       }
     });
-    if (lockedUntil) {
-      const mins = Math.ceil((lockedUntil.getTime() - Date.now()) / 6e4);
-      return { success: false, message: `Troppi tentativi falliti. Account bloccato per ${mins} minuti.` };
+    if (!user) {
+      return { success: false, message: "Credenziali non valide" };
     }
-    return { success: false, message: "Credenziali non valide" };
-  }
-  if (user.failedLoginAttempts > 0) {
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { failedLoginAttempts: 0, lockedUntil: null, lastFailedLogin: null }
-    });
-  }
-  const tokenPayload = {
-    userId: user.id,
-    email: user.email,
-    username: user.username
-  };
-  const tokens = generateTokens(tokenPayload);
-  return {
-    success: true,
-    user: {
-      id: user.id,
+    if (user.lockedUntil && user.lockedUntil > /* @__PURE__ */ new Date()) {
+      const minutesLeft = Math.ceil((user.lockedUntil.getTime() - Date.now()) / 6e4);
+      return { success: false, message: `Account bloccato. Riprova tra ${minutesLeft} minuti.` };
+    }
+    const isValidPassword = await verifyPassword(password, user.passwordHash);
+    if (!isValidPassword) {
+      const attempts = (user.failedLoginAttempts || 0) + 1;
+      let lockedUntil = null;
+      if (attempts >= 20) {
+        lockedUntil = new Date(Date.now() + 24 * 60 * 60 * 1e3);
+      } else if (attempts >= 10) {
+        lockedUntil = new Date(Date.now() + 60 * 60 * 1e3);
+      } else if (attempts >= 5) {
+        lockedUntil = new Date(Date.now() + 15 * 60 * 1e3);
+      }
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          failedLoginAttempts: attempts,
+          lastFailedLogin: /* @__PURE__ */ new Date(),
+          lockedUntil
+        }
+      });
+      if (lockedUntil) {
+        const mins = Math.ceil((lockedUntil.getTime() - Date.now()) / 6e4);
+        return { success: false, message: `Troppi tentativi falliti. Account bloccato per ${mins} minuti.` };
+      }
+      return { success: false, message: "Credenziali non valide" };
+    }
+    if (user.failedLoginAttempts > 0) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { failedLoginAttempts: 0, lockedUntil: null, lastFailedLogin: null }
+      });
+    }
+    const tokenPayload = {
+      userId: user.id,
       email: user.email,
       username: user.username
-    },
-    tokens
-  };
+    };
+    const tokens = generateTokens(tokenPayload);
+    return {
+      success: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username
+      },
+      tokens
+    };
+  });
 }
 async function getUserById(userId) {
   return prisma.user.findUnique({
@@ -284942,7 +285000,7 @@ var import_express3 = __toESM(require_express2(), 1);
 
 // src/services/league.service.ts
 init_prisma();
-import { MemberRole, MemberStatus as MemberStatus2, JoinType as JoinType2, TradeStatus } from "@prisma/client";
+import { MemberRole, MemberStatus as MemberStatus5, JoinType as JoinType2, TradeStatus } from "@prisma/client";
 
 // src/services/player-stats.service.ts
 init_prisma();
@@ -285095,2307 +285153,13 @@ async function computeAutoTagsBatch(players, season = CURRENT_SEASON) {
   return result;
 }
 
-// src/services/league.service.ts
-var emailService2 = null;
-async function getEmailService() {
-  if (emailService2) return emailService2;
-  try {
-    const { GmailEmailService: GmailEmailService2 } = await Promise.resolve().then(() => (init_gmail_email_service(), gmail_email_service_exports));
-    emailService2 = new GmailEmailService2();
-    return emailService2;
-  } catch {
-    return null;
-  }
-}
-async function createLeague(userId, input) {
-  const minParticipants = 6;
-  const maxParticipants = input.maxParticipants ?? 20;
-  if (minParticipants < 6) {
-    return { success: false, message: "Il numero minimo di partecipanti deve essere almeno 6" };
-  }
-  if (maxParticipants > 20) {
-    return { success: false, message: "Il numero massimo di partecipanti non pu\xF2 superare 20" };
-  }
-  if (minParticipants > maxParticipants) {
-    return { success: false, message: "Il numero minimo non pu\xF2 essere maggiore del massimo" };
-  }
-  if (input.goalkeeperSlots < 3) {
-    return { success: false, message: "Gli slot portiere devono essere almeno 3" };
-  }
-  if (input.defenderSlots < 8) {
-    return { success: false, message: "Gli slot difensore devono essere almeno 8" };
-  }
-  if (input.midfielderSlots < 8) {
-    return { success: false, message: "Gli slot centrocampo devono essere almeno 8" };
-  }
-  if (input.forwardSlots < 6) {
-    return { success: false, message: "Gli slot attacco devono essere almeno 6" };
-  }
-  if (!input.teamName || input.teamName.trim().length < 2) {
-    return { success: false, message: "Il nome della squadra \xE8 obbligatorio (minimo 2 caratteri)" };
-  }
-  if (input.imageUrl && !input.imageUrl.startsWith("data:image/")) {
-    return { success: false, message: "Formato immagine non valido" };
-  }
-  const league = await prisma.league.create({
-    data: {
-      name: input.name,
-      description: input.description,
-      imageUrl: input.imageUrl || null,
-      minParticipants,
-      maxParticipants,
-      initialBudget: input.initialBudget,
-      goalkeeperSlots: input.goalkeeperSlots,
-      defenderSlots: input.defenderSlots,
-      midfielderSlots: input.midfielderSlots,
-      forwardSlots: input.forwardSlots,
-      isPublic: input.isPublic,
-      members: {
-        create: {
-          userId,
-          role: MemberRole.ADMIN,
-          status: MemberStatus2.ACTIVE,
-          joinType: JoinType2.CREATOR,
-          teamName: input.teamName.trim(),
-          currentBudget: input.initialBudget
-        }
-      }
-    },
-    include: {
-      members: {
-        include: {
-          user: {
-            select: {
-              id: true,
-              username: true,
-              email: true
-            }
-          }
-        }
-      }
-    }
-  });
-  return {
-    success: true,
-    message: "Lega creata con successo",
-    data: {
-      ...league,
-      inviteCode: league.inviteCode
-    }
-  };
-}
-async function getLeaguesByUser(userId) {
-  const memberships = await prisma.leagueMember.findMany({
-    where: {
-      userId,
-      status: { in: [MemberStatus2.ACTIVE, MemberStatus2.PENDING] }
-    },
-    include: {
-      league: {
-        include: {
-          members: {
-            where: { status: MemberStatus2.ACTIVE },
-            select: {
-              id: true,
-              role: true,
-              user: {
-                select: {
-                  id: true,
-                  username: true
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  });
-  return {
-    success: true,
-    data: memberships.map((m) => ({
-      membership: {
-        id: m.id,
-        role: m.role,
-        status: m.status,
-        currentBudget: m.currentBudget
-      },
-      league: m.league
-    }))
-  };
-}
-function detectYourTurn(session, memberId, hasActiveAuction) {
-  const turnHolderAt = (order, index) => {
-    if (!Array.isArray(order)) return null;
-    if (typeof index !== "number" || index < 0 || index >= order.length) return null;
-    const holder = order[index];
-    return typeof holder === "string" ? holder : null;
-  };
-  if (session.type === "PRIMO_MERCATO" || session.currentPhase === "ASTA_LIBERA") {
-    if (hasActiveAuction) return null;
-    if (turnHolderAt(session.turnOrder, session.currentTurnIndex) === memberId) {
-      return { kind: "auction", sessionId: session.id };
-    }
-    return null;
-  }
-  if (session.currentPhase === "ASTA_SVINCOLATI") {
-    if (session.svincolatiState !== "READY_CHECK") return null;
-    if (turnHolderAt(session.svincolatiTurnOrder, session.svincolatiCurrentTurnIndex) === memberId) {
-      return { kind: "svincolati", sessionId: session.id };
-    }
-    return null;
-  }
-  return null;
-}
-async function getDashboardSummary(userId) {
-  const memberships = await prisma.leagueMember.findMany({
-    where: { userId, status: MemberStatus2.ACTIVE },
-    select: { id: true, leagueId: true, role: true }
-  });
-  const now = /* @__PURE__ */ new Date();
-  const summaries = {};
-  await Promise.all(
-    memberships.map(async (m) => {
-      const activeSession = await prisma.marketSession.findFirst({
-        where: { leagueId: m.leagueId, status: "ACTIVE" },
-        select: {
-          id: true,
-          type: true,
-          currentPhase: true,
-          turnOrder: true,
-          currentTurnIndex: true,
-          svincolatiTurnOrder: true,
-          svincolatiCurrentTurnIndex: true,
-          svincolatiState: true
-        },
-        orderBy: { createdAt: "desc" }
-      });
-      const isAdmin = m.role === MemberRole.ADMIN;
-      const needsAuctionCheck = !!activeSession && (activeSession.type === "PRIMO_MERCATO" || activeSession.currentPhase === "ASTA_LIBERA");
-      const [tradeOffersReceived, pendingJoinRequests, pendingAppeals, consolidation, activeAuctionCount] = await Promise.all([
-        activeSession ? prisma.tradeOffer.count({
-          where: {
-            receiverId: userId,
-            status: TradeStatus.PENDING,
-            marketSessionId: activeSession.id,
-            expiresAt: { gte: now }
-          }
-        }) : Promise.resolve(0),
-        isAdmin ? prisma.leagueMember.count({
-          where: { leagueId: m.leagueId, status: MemberStatus2.PENDING }
-        }) : Promise.resolve(0),
-        isAdmin ? prisma.auctionAppeal.count({
-          where: { auction: { leagueId: m.leagueId }, status: "PENDING" }
-        }) : Promise.resolve(0),
-        activeSession && activeSession.currentPhase === "CONTRATTI" ? prisma.contractConsolidation.findUnique({
-          where: { sessionId_memberId: { sessionId: activeSession.id, memberId: m.id } },
-          select: { id: true }
-        }) : Promise.resolve(null),
-        needsAuctionCheck ? prisma.auction.count({
-          where: { marketSessionId: activeSession.id, status: "ACTIVE" }
-        }) : Promise.resolve(0)
-      ]);
-      const needsConsolidation = !!activeSession && activeSession.currentPhase === "CONTRATTI" && !consolidation;
-      const turnTarget = activeSession ? detectYourTurn(activeSession, m.id, activeAuctionCount > 0) : null;
-      summaries[m.leagueId] = {
-        phase: activeSession ? { type: activeSession.type, currentPhase: activeSession.currentPhase } : null,
-        tradeOffersReceived,
-        isAdmin,
-        pendingJoinRequests,
-        pendingAppeals,
-        needsConsolidation,
-        isYourTurn: turnTarget !== null,
-        turnTarget
-      };
-    })
-  );
-  return { success: true, data: { summaries } };
-}
-async function getLeagueById(leagueId, userId) {
-  const league = await prisma.league.findUnique({
-    where: { id: leagueId },
-    include: {
-      members: {
-        include: {
-          user: {
-            select: {
-              id: true,
-              username: true,
-              email: true,
-              profilePhoto: true
-            }
-          },
-          // Include roster with contracts to calculate total salaries
-          roster: {
-            where: { status: "ACTIVE" },
-            include: {
-              contract: {
-                select: { salary: true }
-              }
-            }
-          }
-        }
-      }
-    }
-  });
-  if (!league) {
-    return { success: false, message: "Lega non trovata" };
-  }
-  const membership = league.members.find((m) => m.userId === userId);
-  const membersWithBalance = league.members.map((member) => {
-    const totalSalaries = member.roster.reduce((sum, r) => sum + (r.contract?.salary || 0), 0);
-    const balance = member.currentBudget - totalSalaries;
-    return {
-      ...member,
-      roster: void 0,
-      // Don't expose roster details
-      totalSalaries,
-      balance
-    };
-  });
-  return {
-    success: true,
-    data: {
-      league: {
-        ...league,
-        members: membersWithBalance
-      },
-      userMembership: membership ? {
-        ...membership,
-        roster: void 0,
-        totalSalaries: membership.roster.reduce((sum, r) => sum + (r.contract?.salary || 0), 0),
-        balance: membership.currentBudget - membership.roster.reduce((sum, r) => sum + (r.contract?.salary || 0), 0)
-      } : null,
-      isAdmin: membership?.role === MemberRole.ADMIN
-    }
-  };
-}
-async function getLeagueByInviteCode(inviteCode) {
-  const league = await prisma.league.findFirst({
-    where: {
-      id: { startsWith: inviteCode }
-    },
-    include: {
-      members: {
-        where: { status: MemberStatus2.ACTIVE },
-        select: {
-          id: true,
-          role: true,
-          user: {
-            select: {
-              id: true,
-              username: true
-            }
-          }
-        }
-      }
-    }
-  });
-  if (!league) {
-    return { success: false, message: "Codice invito non valido" };
-  }
-  return {
-    success: true,
-    data: {
-      id: league.id,
-      name: league.name,
-      description: league.description,
-      maxParticipants: league.maxParticipants,
-      currentParticipants: league.members.length,
-      status: league.status
-    }
-  };
-}
-async function sendJoinRequestEmail(league, userId, teamName, leagueId) {
-  try {
-    const adminMember = league.members.find((m) => m.role === MemberRole.ADMIN);
-    if (adminMember?.user?.email) {
-      const requester = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { username: true }
-      });
-      const adminPanelUrl = `${process.env.FRONTEND_URL || "http://localhost:5173"}/leagues/${leagueId}/admin?tab=members`;
-      const emailSvc = await getEmailService();
-      if (emailSvc) {
-        await emailSvc.sendJoinRequestNotificationEmail(
-          adminMember.user.email,
-          league.name,
-          requester?.username || "Utente",
-          teamName,
-          adminPanelUrl
-        );
-      }
-    }
-  } catch {
-  }
-}
-async function requestJoinLeague(leagueId, userId, teamName) {
-  const league = await prisma.league.findUnique({
-    where: { id: leagueId },
-    include: {
-      members: {
-        where: { status: MemberStatus2.ACTIVE },
-        include: {
-          user: {
-            select: { email: true }
-          }
-        }
-      }
-    }
-  });
-  if (!league) {
-    return { success: false, message: "Lega non trovata" };
-  }
-  if (!league.isPublic) {
-    return { success: false, message: "Questa lega \xE8 privata: l'accesso \xE8 solo su invito" };
-  }
-  if (league.status !== "DRAFT") {
-    return { success: false, message: "La lega \xE8 gi\xE0 stata avviata, non puoi richiedere di partecipare" };
-  }
-  if (league.members.length >= league.maxParticipants) {
-    return { success: false, message: "Lega al completo" };
-  }
-  const existingMembership = await prisma.leagueMember.findUnique({
-    where: {
-      userId_leagueId: {
-        userId,
-        leagueId
-      }
-    }
-  });
-  if (existingMembership) {
-    if (existingMembership.status === MemberStatus2.ACTIVE) {
-      return { success: false, message: "Sei gi\xE0 membro di questa lega" };
-    }
-    if (existingMembership.status === MemberStatus2.PENDING) {
-      return { success: false, message: "Hai gi\xE0 una richiesta in attesa" };
-    }
-    if (existingMembership.status === MemberStatus2.SUSPENDED) {
-      return { success: false, message: "Il tuo account \xE8 stato sospeso da questa lega" };
-    }
-    if (existingMembership.status === MemberStatus2.LEFT) {
-      if (!teamName || teamName.trim().length < 2) {
-        return { success: false, message: "Il nome della squadra \xE8 obbligatorio (minimo 2 caratteri)" };
-      }
-      const membership2 = await prisma.leagueMember.update({
-        where: { id: existingMembership.id },
-        data: {
-          status: MemberStatus2.PENDING,
-          teamName: teamName.trim(),
-          joinType: JoinType2.REQUEST
-        }
-      });
-      await sendJoinRequestEmail(league, userId, teamName.trim(), leagueId);
-      return {
-        success: true,
-        message: "Richiesta di partecipazione inviata",
-        data: membership2
-      };
-    }
-  }
-  if (!teamName || teamName.trim().length < 2) {
-    return { success: false, message: "Il nome della squadra \xE8 obbligatorio (minimo 2 caratteri)" };
-  }
-  const membership = await prisma.leagueMember.create({
-    data: {
-      userId,
-      leagueId,
-      role: MemberRole.MANAGER,
-      status: MemberStatus2.PENDING,
-      joinType: JoinType2.REQUEST,
-      teamName: teamName.trim(),
-      currentBudget: 0
-      // Will be set when approved
-    }
-  });
-  await sendJoinRequestEmail(league, userId, teamName.trim(), leagueId);
-  return {
-    success: true,
-    message: "Richiesta di partecipazione inviata",
-    data: membership
-  };
-}
-async function getLeagueMembers(leagueId, userId) {
-  const adminCheck = await prisma.leagueMember.findFirst({
-    where: {
-      leagueId,
-      userId,
-      role: MemberRole.ADMIN,
-      status: MemberStatus2.ACTIVE
-    }
-  });
-  const members = await prisma.leagueMember.findMany({
-    where: { leagueId },
-    include: {
-      user: {
-        select: {
-          id: true,
-          username: true,
-          email: true,
-          profilePhoto: true
-        }
-      }
-    },
-    orderBy: [
-      { status: "asc" },
-      { role: "asc" },
-      { joinedAt: "asc" }
-    ]
-  });
-  return {
-    success: true,
-    data: {
-      members,
-      isAdmin: !!adminCheck
-    }
-  };
-}
-async function getPendingJoinRequests(leagueId, userId) {
-  const adminCheck = await prisma.leagueMember.findFirst({
-    where: {
-      leagueId,
-      userId,
-      role: MemberRole.ADMIN,
-      status: MemberStatus2.ACTIVE
-    }
-  });
-  if (!adminCheck) {
-    return { success: false, message: "Non autorizzato" };
-  }
-  const pendingRequests = await prisma.leagueMember.findMany({
-    where: {
-      leagueId,
-      status: MemberStatus2.PENDING
-    },
-    include: {
-      user: {
-        select: {
-          id: true,
-          username: true,
-          email: true,
-          profilePhoto: true
-        }
-      }
-    },
-    orderBy: { joinedAt: "desc" }
-  });
-  return {
-    success: true,
-    data: pendingRequests
-  };
-}
-async function updateMemberStatus(leagueId, memberId, adminUserId, action) {
-  const admin = await prisma.leagueMember.findFirst({
-    where: {
-      leagueId,
-      userId: adminUserId,
-      role: MemberRole.ADMIN,
-      status: MemberStatus2.ACTIVE
-    }
-  });
-  if (!admin) {
-    return { success: false, message: "Non autorizzato" };
-  }
-  const member = await prisma.leagueMember.findUnique({
-    where: { id: memberId },
-    include: {
-      league: true,
-      user: { select: { email: true } }
-    }
-  });
-  if (!member || member.leagueId !== leagueId) {
-    return { success: false, message: "Membro non trovato" };
-  }
-  if (member.role === MemberRole.ADMIN && action === "kick") {
-    return { success: false, message: "Non puoi rimuovere un admin" };
-  }
-  if (action === "kick" && member.league.status === "ACTIVE") {
-    return { success: false, message: "Non puoi rimuovere membri dopo l'avvio della lega" };
-  }
-  if (action === "accept") {
-    if (member.status !== MemberStatus2.PENDING) {
-      return { success: false, message: "Questo membro non ha una richiesta in attesa" };
-    }
-    if (member.league.status === "ACTIVE") {
-      return { success: false, message: "Non puoi accettare nuovi membri dopo l'avvio della lega" };
-    }
-    await prisma.leagueMember.update({
-      where: { id: memberId },
-      data: {
-        status: MemberStatus2.ACTIVE,
-        currentBudget: member.league.initialBudget
-      }
-    });
-    if (member.user?.email) {
-      const recipientEmail = member.user.email;
-      const leagueName = member.league.name;
-      const leagueUrl = `${process.env.FRONTEND_URL || "http://localhost:5173"}/leagues/${leagueId}`;
-      void (async () => {
-        try {
-          const emailSvc = await getEmailService();
-          if (emailSvc) {
-            await emailSvc.sendJoinRequestResponseEmail(
-              recipientEmail,
-              leagueName,
-              true,
-              // approved
-              leagueUrl
-            );
-          }
-        } catch {
-        }
-      })();
-    }
-    return { success: true, message: "Membro accettato" };
-  }
-  if (action === "reject" || action === "kick") {
-    await prisma.leagueMember.update({
-      where: { id: memberId },
-      data: { status: MemberStatus2.LEFT }
-    });
-    if (action === "reject" && member.user?.email) {
-      const recipientEmail = member.user.email;
-      const leagueName = member.league.name;
-      void (async () => {
-        try {
-          const emailSvc = await getEmailService();
-          if (emailSvc) {
-            await emailSvc.sendJoinRequestResponseEmail(
-              recipientEmail,
-              leagueName,
-              false
-              // rejected
-            );
-          }
-        } catch {
-        }
-      })();
-    }
-    if (action === "kick" && member.user?.email) {
-      const recipientEmail = member.user.email;
-      const leagueName = member.league.name;
-      void (async () => {
-        try {
-          const emailSvc = await getEmailService();
-          if (emailSvc) {
-            await emailSvc.sendMemberExpelledEmail(
-              recipientEmail,
-              leagueName
-            );
-          }
-        } catch {
-        }
-      })();
-    }
-    return {
-      success: true,
-      message: action === "reject" ? "Richiesta rifiutata" : "Membro rimosso"
-    };
-  }
-  return { success: false, message: "Azione non valida" };
-}
-async function startLeague(leagueId, adminUserId) {
-  const admin = await prisma.leagueMember.findFirst({
-    where: {
-      leagueId,
-      userId: adminUserId,
-      role: MemberRole.ADMIN,
-      status: MemberStatus2.ACTIVE
-    }
-  });
-  if (!admin) {
-    return { success: false, message: "Non autorizzato" };
-  }
-  const league = await prisma.league.findUnique({
-    where: { id: leagueId },
-    include: {
-      members: {
-        where: { status: MemberStatus2.ACTIVE }
-      }
-    }
-  });
-  if (!league) {
-    return { success: false, message: "Lega non trovata" };
-  }
-  if (league.status !== "DRAFT") {
-    return { success: false, message: "La lega \xE8 gi\xE0 stata avviata" };
-  }
-  const activeMembers = league.members.length;
-  const PLATFORM_MIN_PARTICIPANTS = 6;
-  const minRequired = Math.max(PLATFORM_MIN_PARTICIPANTS, league.minParticipants ?? PLATFORM_MIN_PARTICIPANTS);
-  if (activeMembers < minRequired) {
-    return {
-      success: false,
-      message: `Servono almeno ${minRequired} partecipanti per avviare la lega (attualmente ${activeMembers})`
-    };
-  }
-  if (activeMembers > league.maxParticipants) {
-    return {
-      success: false,
-      message: `Troppi partecipanti: massimo ${league.maxParticipants} (attualmente ${activeMembers})`
-    };
-  }
-  if (league.requireEvenNumber && activeMembers % 2 !== 0) {
-    return {
-      success: false,
-      message: `Il numero di partecipanti deve essere pari (attualmente ${activeMembers})`
-    };
-  }
-  await prisma.league.update({
-    where: { id: leagueId },
-    data: { status: "ACTIVE" }
-  });
-  await prisma.leagueMember.updateMany({
-    where: {
-      leagueId,
-      status: MemberStatus2.PENDING
-    },
-    data: { status: MemberStatus2.LEFT }
-  });
-  return {
-    success: true,
-    message: "Lega avviata con successo!",
-    data: { participantsCount: activeMembers }
-  };
-}
-async function leaveLeague(leagueId, userId) {
-  const member = await prisma.leagueMember.findFirst({
-    where: {
-      leagueId,
-      userId,
-      status: { in: [MemberStatus2.ACTIVE, MemberStatus2.PENDING] }
-    },
-    include: { league: true }
-  });
-  if (!member) {
-    return { success: false, message: "Non sei membro di questa lega" };
-  }
-  if (member.status === MemberStatus2.PENDING) {
-    await prisma.leagueMember.update({
-      where: { id: member.id },
-      data: { status: MemberStatus2.LEFT }
-    });
-    return { success: true, message: "Richiesta di partecipazione annullata" };
-  }
-  if (member.league.status === "ACTIVE") {
-    return { success: false, message: "Non puoi lasciare la lega dopo che \xE8 stata avviata" };
-  }
-  if (member.role === MemberRole.ADMIN) {
-    return { success: false, message: "L'admin non pu\xF2 lasciare la lega. Trasferisci il ruolo di admin o elimina la lega." };
-  }
-  await prisma.leagueMember.update({
-    where: { id: member.id },
-    data: { status: MemberStatus2.LEFT }
-  });
-  return { success: true, message: "Hai lasciato la lega" };
-}
-async function cancelJoinRequest(leagueId, userId) {
-  const member = await prisma.leagueMember.findFirst({
-    where: {
-      leagueId,
-      userId,
-      status: MemberStatus2.PENDING
-    }
-  });
-  if (!member) {
-    return { success: false, message: "Nessuna richiesta pendente trovata" };
-  }
-  await prisma.leagueMember.update({
-    where: { id: member.id },
-    data: { status: MemberStatus2.LEFT }
-  });
-  return { success: true, message: "Richiesta di partecipazione annullata" };
-}
-async function updateLeague(leagueId, userId, input) {
-  const admin = await prisma.leagueMember.findFirst({
-    where: {
-      leagueId,
-      userId,
-      role: MemberRole.ADMIN,
-      status: MemberStatus2.ACTIVE
-    }
-  });
-  if (!admin) {
-    return { success: false, message: "Non autorizzato" };
-  }
-  const league = await prisma.league.update({
-    where: { id: leagueId },
-    data: input
-  });
-  return {
-    success: true,
-    message: "Lega aggiornata",
-    data: league
-  };
-}
-async function updateLeagueImage(leagueId, userId, imageData) {
-  const admin = await prisma.leagueMember.findFirst({
-    where: { leagueId, userId, role: MemberRole.ADMIN, status: MemberStatus2.ACTIVE }
-  });
-  if (!admin) {
-    return { success: false, message: "Non autorizzato" };
-  }
-  if (!imageData) {
-    return { success: false, message: "Nessuna immagine fornita" };
-  }
-  if (!imageData.startsWith("data:image/")) {
-    return { success: false, message: "Formato immagine non valido" };
-  }
-  if (imageData.length > 7e5) {
-    return { success: false, message: "Immagine troppo grande (max 500KB)" };
-  }
-  const league = await prisma.league.update({
-    where: { id: leagueId },
-    data: { imageUrl: imageData },
-    select: { id: true, name: true, imageUrl: true }
-  });
-  return { success: true, message: "Immagine della lega aggiornata", data: league };
-}
-async function removeLeagueImage(leagueId, userId) {
-  const admin = await prisma.leagueMember.findFirst({
-    where: { leagueId, userId, role: MemberRole.ADMIN, status: MemberStatus2.ACTIVE }
-  });
-  if (!admin) {
-    return { success: false, message: "Non autorizzato" };
-  }
-  await prisma.league.update({
-    where: { id: leagueId },
-    data: { imageUrl: null }
-  });
-  return { success: true, message: "Immagine della lega rimossa" };
-}
-async function getLeagueIdentity(leagueId, userId) {
-  const membership = await prisma.leagueMember.findFirst({
-    where: { leagueId, userId, status: MemberStatus2.ACTIVE },
-    select: { id: true }
-  });
-  if (!membership) {
-    return { success: false, message: "Non autorizzato" };
-  }
-  const league = await prisma.league.findUnique({
-    where: { id: leagueId },
-    select: { id: true, name: true, imageUrl: true }
-  });
-  if (!league) {
-    return { success: false, message: "Lega non trovata" };
-  }
-  return { success: true, data: league };
-}
-async function getAllRosters(leagueId, userId) {
-  const membership = await prisma.leagueMember.findFirst({
-    where: {
-      leagueId,
-      userId,
-      status: MemberStatus2.ACTIVE
-    }
-  });
-  if (!membership) {
-    return { success: false, message: "Non autorizzato" };
-  }
-  const activeContrattiSession = await prisma.marketSession.findFirst({
-    where: {
-      leagueId,
-      status: "ACTIVE",
-      currentPhase: "CONTRATTI"
-    }
-  });
-  const hideOthersContracts = !!activeContrattiSession;
-  const league = await prisma.league.findUnique({
-    where: { id: leagueId },
-    select: {
-      id: true,
-      name: true,
-      members: {
-        where: { status: MemberStatus2.ACTIVE },
-        select: {
-          id: true,
-          userId: true,
-          role: true,
-          teamName: true,
-          currentBudget: true,
-          user: {
-            select: {
-              username: true
-            }
-          },
-          roster: {
-            where: { status: "ACTIVE" },
-            select: {
-              id: true,
-              playerId: true,
-              acquisitionPrice: true,
-              acquisitionType: true,
-              player: {
-                select: {
-                  id: true,
-                  name: true,
-                  team: true,
-                  position: true,
-                  quotation: true,
-                  age: true,
-                  apiFootballId: true,
-                  apiFootballStats: true,
-                  statsSyncedAt: true
-                }
-              },
-              contract: {
-                select: {
-                  id: true,
-                  salary: true,
-                  duration: true,
-                  rescissionClause: true,
-                  signedAt: true
-                }
-              }
-            },
-            orderBy: [
-              { player: { position: "asc" } },
-              { player: { name: "asc" } }
-            ]
-          }
-        }
-      }
-    }
-  });
-  if (!league) {
-    return { success: false, message: "Lega non trovata" };
-  }
-  const allPlayerIds = league.members.flatMap(
-    (m) => m.roster.map((r) => r.playerId)
-  );
-  const statsMap = await computeSeasonStatsBatch(allPlayerIds);
-  const processedMembers = league.members.map((member) => {
-    const processedRoster = member.roster.map((r) => ({
-      ...r,
-      player: {
-        ...r.player,
-        computedStats: statsMap.get(r.playerId) || null
-      },
-      contract: hideOthersContracts && member.userId !== userId ? null : r.contract
-    }));
-    return {
-      ...member,
-      roster: processedRoster
-    };
-  });
-  return {
-    success: true,
-    data: {
-      id: league.id,
-      name: league.name,
-      members: processedMembers,
-      currentUserId: userId,
-      isAdmin: membership.role === MemberRole.ADMIN,
-      inContrattiPhase: hideOthersContracts
-    }
-  };
-}
-async function searchLeagues(userId, query) {
-  if (!query || query.trim().length < 2) {
-    return { success: false, message: "Inserisci almeno 2 caratteri per la ricerca" };
-  }
-  const searchTerm = query.trim();
-  const leagues = await prisma.league.findMany({
-    where: {
-      // Solo leghe pubbliche compaiono nei risultati di ricerca
-      isPublic: true,
-      OR: [
-        // Ricerca per nome lega
-        { name: { contains: searchTerm, mode: "insensitive" } },
-        // Ricerca per codice invito (primi 8 caratteri dell'ID)
-        { id: { startsWith: searchTerm } },
-        // Ricerca per username o email di membri
-        {
-          members: {
-            some: {
-              status: MemberStatus2.ACTIVE,
-              user: {
-                OR: [
-                  { username: { contains: searchTerm, mode: "insensitive" } },
-                  { email: { contains: searchTerm, mode: "insensitive" } }
-                ]
-              }
-            }
-          }
-        }
-      ]
-    },
-    include: {
-      members: {
-        where: { status: MemberStatus2.ACTIVE },
-        include: {
-          user: {
-            select: {
-              id: true,
-              username: true
-            }
-          }
-        }
-      }
-    },
-    take: 20,
-    // Limita risultati
-    orderBy: { createdAt: "desc" }
-  });
-  const userMemberships = await prisma.leagueMember.findMany({
-    where: {
-      userId,
-      status: { in: [MemberStatus2.ACTIVE, MemberStatus2.PENDING] }
-    },
-    select: { leagueId: true }
-  });
-  const userLeagueIds = new Set(userMemberships.map((m) => m.leagueId));
-  const filteredLeagues = leagues.filter((league) => !userLeagueIds.has(league.id)).map((league) => {
-    const admin = league.members.find((m) => m.role === MemberRole.ADMIN);
-    return {
-      id: league.id,
-      name: league.name,
-      description: league.description,
-      inviteCode: league.id.substring(0, 8),
-      status: league.status,
-      maxParticipants: league.maxParticipants,
-      currentParticipants: league.members.length,
-      adminUsername: admin?.user.username || "N/A",
-      createdAt: league.createdAt
-    };
-  });
-  return {
-    success: true,
-    data: filteredLeagues
-  };
-}
-async function getLeagueFinancialsSnapshot(leagueId, membership, sessionId) {
-  const snapshots = await prisma.managerSessionSnapshot.findMany({
-    where: { marketSessionId: sessionId },
-    include: {
-      leagueMember: {
-        select: {
-          id: true,
-          teamName: true,
-          user: { select: { username: true } }
-        }
-      }
-    },
-    orderBy: { createdAt: "desc" }
-  });
-  if (snapshots.length === 0) {
-    return null;
-  }
-  const snapshotByMember = /* @__PURE__ */ new Map();
-  const priority = { PHASE_END: 3, PHASE_START: 2, SESSION_START: 1 };
-  for (const snap of snapshots) {
-    const existing = snapshotByMember.get(snap.leagueMemberId);
-    const snapPrio = priority[snap.snapshotType] || 0;
-    const existPrio = existing ? priority[existing.snapshotType] || 0 : 0;
-    if (!existing || snapPrio > existPrio) {
-      snapshotByMember.set(snap.leagueMemberId, snap);
-    }
-  }
-  const league = await prisma.league.findUnique({
-    where: { id: leagueId },
-    select: {
-      name: true,
-      goalkeeperSlots: true,
-      defenderSlots: true,
-      midfielderSlots: true,
-      forwardSlots: true
-    }
-  });
-  const maxSlots = league ? league.goalkeeperSlots + league.defenderSlots + league.midfielderSlots + league.forwardSlots : 25;
-  const session = await prisma.marketSession.findUnique({
-    where: { id: sessionId },
-    select: { type: true, currentPhase: true, status: true }
-  });
-  const teamsData = Array.from(snapshotByMember.values()).map((snap) => {
-    const budget = snap.budget;
-    const annualContractCost = snap.totalSalaries;
-    const slotCount = snap.contractCount;
-    return {
-      memberId: snap.leagueMemberId,
-      teamName: snap.leagueMember.teamName || snap.leagueMember.user.username,
-      username: snap.leagueMember.user.username,
-      budget,
-      annualContractCost,
-      totalContractCost: 0,
-      // Not available in snapshot
-      totalAcquisitionCost: 0,
-      // Not available in snapshot
-      slotCount,
-      slotsFree: maxSlots - slotCount,
-      maxSlots,
-      ageDistribution: { under20: 0, under25: 0, under30: 0, over30: 0, unknown: 0 },
-      positionDistribution: { P: 0, D: 0, C: 0, A: 0 },
-      players: [],
-      // Not available in snapshot
-      preRenewalContractCost: annualContractCost,
-      postRenewalContractCost: null,
-      costByPosition: {
-        P: { preRenewal: 0, postRenewal: null },
-        D: { preRenewal: 0, postRenewal: null },
-        C: { preRenewal: 0, postRenewal: null },
-        A: { preRenewal: 0, postRenewal: null }
-      },
-      isConsolidated: false,
-      consolidatedAt: null,
-      preConsolidationBudget: null,
-      totalReleaseCosts: snap.totalReleaseCosts ?? null,
-      totalIndemnities: snap.totalIndemnities ?? null,
-      totalRenewalCosts: snap.totalRenewalCosts ?? null
-    };
-  });
-  const marketSessions = await prisma.marketSession.findMany({
-    where: { leagueId },
-    select: { id: true, type: true, currentPhase: true, status: true, createdAt: true },
-    orderBy: { createdAt: "desc" }
-  });
-  return {
-    success: true,
-    data: {
-      leagueName: league?.name,
-      maxSlots,
-      teams: teamsData,
-      isAdmin: membership.role === MemberRole.ADMIN,
-      inContrattiPhase: false,
-      availableSessions: marketSessions.map((s) => ({
-        id: s.id,
-        sessionType: s.type,
-        currentPhase: s.currentPhase,
-        status: s.status,
-        createdAt: s.createdAt
-      })),
-      // Flag per il frontend: stiamo mostrando dati storici
-      isHistorical: true,
-      historicalSessionType: session?.type,
-      historicalPhase: session?.currentPhase
-    }
-  };
-}
-async function getLeagueFinancials(leagueId, userId, sessionId) {
-  try {
-    const membership = await prisma.leagueMember.findFirst({
-      where: {
-        leagueId,
-        userId,
-        status: MemberStatus2.ACTIVE
-      }
-    });
-    if (!membership) {
-      return { success: false, message: "Non sei membro di questa lega" };
-    }
-    if (sessionId) {
-      const snapshotResult = await getLeagueFinancialsSnapshot(leagueId, membership, sessionId);
-      if (snapshotResult) return snapshotResult;
-    }
-    const activeContrattiSession = await prisma.marketSession.findFirst({
-      where: {
-        leagueId,
-        status: "ACTIVE",
-        currentPhase: "CONTRATTI"
-      }
-    });
-    const inContrattiPhase = !!activeContrattiSession;
-    let consolidationMap = /* @__PURE__ */ new Map();
-    if (inContrattiPhase && activeContrattiSession) {
-      const consolidations = await prisma.contractConsolidation.findMany({
-        where: { sessionId: activeContrattiSession.id }
-      });
-      consolidationMap = new Map(consolidations.map((c) => [c.memberId, c.consolidatedAt]));
-    }
-    const activeAstaLiberaSession = await prisma.marketSession.findFirst({
-      where: {
-        leagueId,
-        status: "ACTIVE",
-        currentPhase: "ASTA_LIBERA"
-      }
-    });
-    const inAstaLiberaPhase = !!activeAstaLiberaSession;
-    const activeSession = await prisma.marketSession.findFirst({
-      where: { leagueId, status: "ACTIVE" },
-      orderBy: { createdAt: "desc" }
-    });
-    const phaseStartMap = /* @__PURE__ */ new Map();
-    const phaseEndMap = /* @__PURE__ */ new Map();
-    if (activeSession) {
-      const snapshots = await prisma.managerSessionSnapshot.findMany({
-        where: {
-          marketSessionId: activeSession.id,
-          snapshotType: { in: ["PHASE_START", "PHASE_END"] }
-        }
-      });
-      for (const snap of snapshots) {
-        if (snap.snapshotType === "PHASE_START") {
-          phaseStartMap.set(snap.leagueMemberId, {
-            budget: snap.budget,
-            totalSalaries: snap.totalSalaries,
-            contractCount: snap.contractCount
-          });
-        } else if (snap.snapshotType === "PHASE_END") {
-          phaseEndMap.set(snap.leagueMemberId, {
-            totalReleaseCosts: snap.totalReleaseCosts,
-            totalIndemnities: snap.totalIndemnities,
-            totalRenewalCosts: snap.totalRenewalCosts,
-            preConsolidationBudget: snap.budget
-          });
-        }
-      }
-    }
-    const snapshotMap = phaseEndMap;
-    const tradeBudgetMap = /* @__PURE__ */ new Map();
-    if (activeSession) {
-      const acceptedTrades = await prisma.tradeOffer.findMany({
-        where: {
-          marketSessionId: activeSession.id,
-          status: "ACCEPTED",
-          OR: [{ offeredBudget: { gt: 0 } }, { requestedBudget: { gt: 0 } }]
-        },
-        select: { senderId: true, receiverId: true, offeredBudget: true, requestedBudget: true }
-      });
-      for (const trade of acceptedTrades) {
-        const sKey = `user:${trade.senderId}`;
-        const rKey = `user:${trade.receiverId}`;
-        const sExisting = tradeBudgetMap.get(sKey) || { budgetIn: 0, budgetOut: 0 };
-        sExisting.budgetOut += trade.offeredBudget;
-        sExisting.budgetIn += trade.requestedBudget;
-        tradeBudgetMap.set(sKey, sExisting);
-        const rExisting = tradeBudgetMap.get(rKey) || { budgetIn: 0, budgetOut: 0 };
-        rExisting.budgetIn += trade.offeredBudget;
-        rExisting.budgetOut += trade.requestedBudget;
-        tradeBudgetMap.set(rKey, rExisting);
-      }
-    }
-    const releasedSalariesMap = /* @__PURE__ */ new Map();
-    if (inContrattiPhase && activeContrattiSession) {
-      const releaseHistory = await prisma.contractHistory.findMany({
-        where: {
-          marketSessionId: activeContrattiSession.id,
-          eventType: { in: ["RELEASE_NORMAL", "RELEASE_ESTERO", "RELEASE_RETROCESSO"] }
-        },
-        select: {
-          leagueMemberId: true,
-          previousSalary: true
-        }
-      });
-      for (const h of releaseHistory) {
-        const existing = releasedSalariesMap.get(h.leagueMemberId) || { totalSalary: 0, count: 0 };
-        existing.totalSalary += h.previousSalary || 0;
-        existing.count += 1;
-        releasedSalariesMap.set(h.leagueMemberId, existing);
-      }
-    }
-    const members = await prisma.leagueMember.findMany({
-      where: {
-        leagueId,
-        status: MemberStatus2.ACTIVE
-      },
-      include: {
-        user: {
-          select: { username: true }
-        },
-        roster: {
-          // Durante CONTRATTI, include anche RELEASED per mostrare stato pre-consolidamento
-          where: inContrattiPhase ? { status: { in: ["ACTIVE", "RELEASED"] } } : { status: "ACTIVE" },
-          select: {
-            status: true,
-            acquisitionPrice: true,
-            player: {
-              select: {
-                id: true,
-                name: true,
-                team: true,
-                position: true,
-                quotation: true,
-                age: true,
-                apiFootballId: true
-              }
-            },
-            contract: {
-              select: {
-                salary: true,
-                duration: true,
-                rescissionClause: true,
-                draftSalary: true,
-                draftDuration: true,
-                draftReleased: true,
-                // Pre-consolidation values for privacy during CONTRATTI phase
-                preConsolidationSalary: true,
-                preConsolidationDuration: true
-              }
-            }
-          }
-        }
-      },
-      orderBy: { teamName: "asc" }
-    });
-    const league = await prisma.league.findUnique({
-      where: { id: leagueId },
-      select: {
-        name: true,
-        goalkeeperSlots: true,
-        defenderSlots: true,
-        midfielderSlots: true,
-        forwardSlots: true
-      }
-    });
-    const maxSlots = league ? league.goalkeeperSlots + league.defenderSlots + league.midfielderSlots + league.forwardSlots : 25;
-    const allMembersConsolidated = inContrattiPhase ? members.every((m) => consolidationMap.has(m.id)) : false;
-    const teamsData = members.map((member) => {
-      const isConsolidated = consolidationMap.has(member.id);
-      const consolidatedAt = consolidationMap.get(member.id) || null;
-      const canSeeDraft = false;
-      const players = member.roster.map((r) => {
-        let preRenewalSalary;
-        if (inContrattiPhase && isConsolidated && r.contract?.preConsolidationSalary != null) {
-          preRenewalSalary = r.contract.preConsolidationSalary;
-        } else {
-          preRenewalSalary = r.contract?.salary || 0;
-        }
-        const postRenewalSalary = null;
-        let displaySalary;
-        if (inContrattiPhase && isConsolidated && r.contract?.preConsolidationSalary != null) {
-          displaySalary = r.contract.preConsolidationSalary;
-        } else {
-          displaySalary = r.contract?.salary || 0;
-        }
-        let displayDuration;
-        if (inContrattiPhase && isConsolidated && r.contract?.preConsolidationDuration != null) {
-          displayDuration = r.contract.preConsolidationDuration;
-        } else {
-          displayDuration = r.contract?.duration || 0;
-        }
-        return {
-          id: r.player.id,
-          name: r.player.name,
-          team: r.player.team,
-          position: r.player.position,
-          quotation: r.player.quotation,
-          age: r.player.age,
-          apiFootballId: r.player.apiFootballId,
-          salary: displaySalary,
-          duration: displayDuration,
-          clause: r.contract?.rescissionClause || 0,
-          // #193: Pre/Post renewal values
-          preRenewalSalary,
-          postRenewalSalary,
-          draftDuration: canSeeDraft ? r.contract?.draftDuration ?? null : null,
-          draftReleased: canSeeDraft ? r.contract?.draftReleased ?? false : false
-        };
-      });
-      let annualContractCost;
-      let slotCount;
-      const activePlayers = players.filter((p) => {
-        const rosterEntry = member.roster.find((r) => r.player.id === p.id);
-        return rosterEntry?.status === "ACTIVE";
-      });
-      if (inContrattiPhase && !allMembersConsolidated) {
-        const activeRosterSalaries = activePlayers.reduce((sum, p) => sum + p.preRenewalSalary, 0);
-        const releasedData2 = releasedSalariesMap.get(member.id);
-        const releasedSalaries2 = releasedData2?.totalSalary || 0;
-        const releasedCount = releasedData2?.count || 0;
-        annualContractCost = activeRosterSalaries + releasedSalaries2;
-        slotCount = activePlayers.length + releasedCount;
-      } else {
-        annualContractCost = activePlayers.reduce((sum, p) => sum + p.salary, 0);
-        slotCount = activePlayers.length;
-      }
-      const totalContractCost = players.reduce((sum, p) => sum + p.salary * p.duration, 0);
-      const releasedData = releasedSalariesMap.get(member.id);
-      const releasedSalaries = releasedData?.totalSalary || 0;
-      const basePreRenewalCost = players.filter((p) => {
-        const rosterEntry = member.roster.find((r) => r.player.id === p.id);
-        return rosterEntry?.status === "ACTIVE";
-      }).reduce((sum, p) => sum + p.preRenewalSalary, 0);
-      const preRenewalContractCost = basePreRenewalCost + releasedSalaries;
-      let postRenewalContractCost = null;
-      if (canSeeDraft) {
-        postRenewalContractCost = players.reduce((sum, p) => {
-          if (p.draftReleased) return sum;
-          return sum + (p.postRenewalSalary ?? p.preRenewalSalary);
-        }, 0);
-      }
-      const costByPosition = {
-        P: { preRenewal: 0, postRenewal: null },
-        D: { preRenewal: 0, postRenewal: null },
-        C: { preRenewal: 0, postRenewal: null },
-        A: { preRenewal: 0, postRenewal: null }
-      };
-      for (const p of players) {
-        const pos = p.position;
-        if (costByPosition[pos]) {
-          costByPosition[pos].preRenewal += p.preRenewalSalary;
-          if (canSeeDraft && !p.draftReleased) {
-            if (costByPosition[pos].postRenewal === null) {
-              costByPosition[pos].postRenewal = 0;
-            }
-            costByPosition[pos].postRenewal += p.postRenewalSalary ?? p.preRenewalSalary;
-          }
-        }
-      }
-      const under20 = players.filter((p) => p.age != null && p.age < 20).length;
-      const under25 = players.filter((p) => p.age != null && p.age >= 20 && p.age < 25).length;
-      const under30 = players.filter((p) => p.age != null && p.age >= 25 && p.age < 30).length;
-      const over30 = players.filter((p) => p.age != null && p.age >= 30).length;
-      const ageUnknown = players.filter((p) => p.age == null).length;
-      const byPosition = {
-        P: players.filter((p) => p.position === "P").length,
-        D: players.filter((p) => p.position === "D").length,
-        C: players.filter((p) => p.position === "C").length,
-        A: players.filter((p) => p.position === "A").length
-      };
-      let displayBudget;
-      if (member.preConsolidationBudget != null) {
-        displayBudget = member.preConsolidationBudget;
-      } else {
-        displayBudget = member.currentBudget;
-      }
-      const snapshot = snapshotMap.get(member.id);
-      const totalAcquisitionCost = member.roster.filter((r) => r.status === "ACTIVE").reduce((sum, r) => sum + (r.acquisitionPrice || 0), 0);
-      return {
-        memberId: member.id,
-        teamName: member.teamName || member.user.username,
-        username: member.user.username,
-        budget: displayBudget,
-        annualContractCost,
-        totalContractCost,
-        totalAcquisitionCost,
-        slotCount,
-        slotsFree: maxSlots - slotCount,
-        maxSlots,
-        ageDistribution: {
-          under20,
-          under25,
-          under30,
-          over30,
-          unknown: ageUnknown
-        },
-        positionDistribution: byPosition,
-        players,
-        // Include player details for drill-down
-        // #193: Pre/Post renewal data
-        preRenewalContractCost,
-        postRenewalContractCost,
-        costByPosition,
-        isConsolidated,
-        consolidatedAt,
-        // New: Detailed financial breakdown from session snapshot
-        preConsolidationBudget: member.preConsolidationBudget ?? snapshot?.preConsolidationBudget ?? null,
-        totalReleaseCosts: snapshot?.totalReleaseCosts ?? null,
-        totalIndemnities: snapshot?.totalIndemnities ?? null,
-        totalRenewalCosts: snapshot?.totalRenewalCosts ?? null,
-        // Trade budget transfers
-        tradeBudgetIn: tradeBudgetMap.get(`user:${member.userId}`)?.budgetIn ?? 0,
-        tradeBudgetOut: tradeBudgetMap.get(`user:${member.userId}`)?.budgetOut ?? 0,
-        // Budget reservation during ASTA_LIBERA (primo mercato)
-        ...inAstaLiberaPhase ? (() => {
-          const bilancio = displayBudget - annualContractCost;
-          const slotsFree = maxSlots - slotCount;
-          const slotReserve = slotsFree * 2;
-          return {
-            slotReserve,
-            availableBilancio: bilancio - slotReserve
-          };
-        })() : {}
-      };
-    });
-    const marketSessions = await prisma.marketSession.findMany({
-      where: { leagueId },
-      select: {
-        id: true,
-        type: true,
-        currentPhase: true,
-        status: true,
-        createdAt: true
-      },
-      orderBy: { createdAt: "desc" }
-    });
-    const availableSessions = marketSessions.map((s) => ({
-      id: s.id,
-      sessionType: s.type,
-      currentPhase: s.currentPhase,
-      status: s.status,
-      createdAt: s.createdAt
-    }));
-    return {
-      success: true,
-      data: {
-        leagueName: league?.name,
-        maxSlots,
-        teams: teamsData,
-        isAdmin: membership.role === MemberRole.ADMIN,
-        // #193: Phase info
-        inContrattiPhase,
-        // Budget reservation during primo mercato
-        inAstaLiberaPhase,
-        // OSS-6: Available sessions for phase selector
-        availableSessions
-      }
-    };
-  } catch (error46) {
-    return { success: false, message: `Errore nel caricamento dati finanziari: ${error46.message}` };
-  }
-}
-async function getFinancialTimeline(leagueId, userId, memberId) {
-  try {
-    const league = await prisma.league.findUnique({
-      where: { id: leagueId },
-      include: {
-        members: {
-          where: { status: MemberStatus2.ACTIVE },
-          include: { user: { select: { id: true, username: true } } }
-        }
-      }
-    });
-    if (!league) return { success: false, message: "Lega non trovata" };
-    const membership = league.members.find((m) => m.userId === userId);
-    if (!membership) return { success: false, message: "Non sei membro di questa lega" };
-    const targetMemberId = memberId || membership.id;
-    const targetMember = league.members.find((m) => m.id === targetMemberId);
-    if (!targetMember) return { success: false, message: "Membro non trovato" };
-    const contractHistory = await prisma.contractHistory.findMany({
-      where: { leagueMemberId: targetMemberId },
-      include: {
-        player: { select: { id: true, name: true, team: true, position: true, quotation: true, apiFootballId: true } },
-        marketSession: { select: { id: true, type: true, currentPhase: true, status: true, createdAt: true } }
-      },
-      orderBy: { createdAt: "desc" }
-    });
-    const snapshots = await prisma.managerSessionSnapshot.findMany({
-      where: { leagueMemberId: targetMemberId },
-      include: {
-        marketSession: { select: { id: true, type: true, currentPhase: true } }
-      },
-      orderBy: { createdAt: "asc" }
-    });
-    const trades = await prisma.tradeOffer.findMany({
-      where: {
-        marketSession: { leagueId },
-        status: TradeStatus.ACCEPTED,
-        OR: [
-          { senderId: targetMember.userId },
-          { receiverId: targetMember.userId }
-        ]
-      },
-      include: {
-        sender: { select: { id: true, username: true } },
-        receiver: { select: { id: true, username: true } },
-        marketSession: { select: { id: true, type: true, currentPhase: true } }
-      },
-      orderBy: { respondedAt: "desc" }
-    });
-    const EVENT_TYPE_LABELS = {
-      SESSION_START_SNAPSHOT: "Inizio Sessione",
-      DURATION_DECREMENT: "Decremento Durata",
-      AUTO_RELEASE_EXPIRED: "Svincolo Automatico",
-      RENEWAL: "Rinnovo",
-      SPALMA: "Spalma",
-      RELEASE_NORMAL: "Taglio",
-      RELEASE_ESTERO: "Taglio (Estero)",
-      RELEASE_RETROCESSO: "Taglio (Retrocesso)",
-      KEEP_ESTERO: "Mantenuto (Estero)",
-      KEEP_RETROCESSO: "Mantenuto (Retrocesso)",
-      INDEMNITY_RECEIVED: "Indennizzo Ricevuto"
-    };
-    const EVENT_TYPE_COLORS = {
-      SESSION_START_SNAPSHOT: "blue",
-      DURATION_DECREMENT: "gray",
-      AUTO_RELEASE_EXPIRED: "red",
-      RENEWAL: "amber",
-      SPALMA: "purple",
-      RELEASE_NORMAL: "red",
-      RELEASE_ESTERO: "red",
-      RELEASE_RETROCESSO: "red",
-      KEEP_ESTERO: "green",
-      KEEP_RETROCESSO: "green",
-      INDEMNITY_RECEIVED: "green"
-    };
-    const timelineEvents = contractHistory.map((ch) => ({
-      id: ch.id,
-      type: "contract",
-      eventType: ch.eventType,
-      label: EVENT_TYPE_LABELS[ch.eventType] || ch.eventType,
-      color: EVENT_TYPE_COLORS[ch.eventType] || "gray",
-      playerId: ch.player.id,
-      playerName: ch.player.name,
-      playerTeam: ch.player.team,
-      playerPosition: ch.player.position,
-      playerQuotation: ch.player.quotation,
-      playerApiFootballId: ch.player.apiFootballId,
-      previousSalary: ch.previousSalary,
-      previousDuration: ch.previousDuration,
-      previousClause: ch.previousClause,
-      newSalary: ch.newSalary,
-      newDuration: ch.newDuration,
-      newClause: ch.newClause,
-      cost: ch.cost,
-      income: ch.income,
-      notes: ch.notes,
-      sessionType: ch.marketSession.type,
-      sessionPhase: ch.marketSession.currentPhase,
-      createdAt: ch.createdAt.toISOString()
-    }));
-    const tradeEvents = trades.map((t) => {
-      const isSender = t.senderId === targetMember.userId;
-      return {
-        id: t.id,
-        type: "trade",
-        eventType: "TRADE",
-        label: "Scambio",
-        color: "purple",
-        isSender,
-        counterpart: isSender ? t.receiver.username : t.sender.username,
-        offeredBudget: t.offeredBudget,
-        requestedBudget: t.requestedBudget,
-        offeredPlayers: t.offeredPlayers,
-        requestedPlayers: t.requestedPlayers,
-        sessionType: t.marketSession.type,
-        sessionPhase: t.marketSession.currentPhase,
-        createdAt: (t.respondedAt || t.createdAt).toISOString()
-      };
-    });
-    const trendData = snapshots.map((s) => ({
-      id: s.id,
-      type: s.snapshotType,
-      budget: s.budget,
-      totalSalaries: s.totalSalaries,
-      balance: s.balance,
-      totalIndemnities: s.totalIndemnities,
-      totalReleaseCosts: s.totalReleaseCosts,
-      contractCount: s.contractCount,
-      sessionType: s.marketSession.type,
-      sessionPhase: s.marketSession.currentPhase,
-      createdAt: s.createdAt.toISOString()
-    }));
-    return {
-      success: true,
-      data: {
-        memberId: targetMemberId,
-        teamName: targetMember.teamName,
-        username: targetMember.user.username,
-        events: [...timelineEvents, ...tradeEvents].sort(
-          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        ),
-        trendData
-      }
-    };
-  } catch (error46) {
-    return { success: false, message: `Errore nel caricamento timeline: ${error46.message}` };
-  }
-}
-async function getFinancialTrends(leagueId, userId) {
-  try {
-    const league = await prisma.league.findUnique({
-      where: { id: leagueId },
-      include: {
-        members: {
-          where: { status: MemberStatus2.ACTIVE },
-          select: { id: true, userId: true, teamName: true }
-        }
-      }
-    });
-    if (!league) return { success: false, message: "Lega non trovata" };
-    const membership = league.members.find((m) => m.userId === userId);
-    if (!membership) return { success: false, message: "Non sei membro di questa lega" };
-    const allSnapshots = await prisma.managerSessionSnapshot.findMany({
-      where: {
-        leagueMemberId: { in: league.members.map((m) => m.id) }
-      },
-      include: {
-        marketSession: { select: { id: true, type: true, currentPhase: true } }
-      },
-      orderBy: { createdAt: "asc" }
-    });
-    const memberMap = new Map(league.members.map((m) => [m.id, m]));
-    const trends = {};
-    for (const snap of allSnapshots) {
-      const member = memberMap.get(snap.leagueMemberId);
-      if (!member) continue;
-      const key = member.teamName ?? member.id;
-      if (!trends[key]) trends[key] = [];
-      trends[key]?.push({
-        snapshotType: snap.snapshotType,
-        budget: snap.budget,
-        totalSalaries: snap.totalSalaries,
-        balance: snap.balance,
-        sessionType: snap.marketSession.type,
-        sessionPhase: snap.marketSession.currentPhase,
-        createdAt: snap.createdAt.toISOString()
-      });
-    }
-    return {
-      success: true,
-      data: { trends }
-    };
-  } catch (error46) {
-    return { success: false, message: `Errore nel caricamento trends: ${error46.message}` };
-  }
-}
-async function getStrategySummary(leagueId, userId) {
-  try {
-    const member = await prisma.leagueMember.findFirst({
-      where: {
-        leagueId,
-        userId,
-        status: MemberStatus2.ACTIVE
-      }
-    });
-    if (!member) {
-      return { success: false, message: "Non sei membro di questa lega" };
-    }
-    const counts = await prisma.rubataPreference.groupBy({
-      by: ["watchlistCategory"],
-      where: { memberId: member.id, isWatchlist: true },
-      _count: true
-    });
-    const topPriority = await prisma.rubataPreference.count({
-      where: { memberId: member.id, priority: { gte: 8 } }
-    });
-    let targets = 0;
-    let watching = 0;
-    let toSell = 0;
-    let total = 0;
-    for (const row of counts) {
-      const count = row._count;
-      total += count;
-      switch (row.watchlistCategory) {
-        case "DA_RUBARE":
-          targets += count;
-          break;
-        case "SOTTO_OSSERVAZIONE":
-          watching += count;
-          break;
-        case "DA_VENDERE":
-          toSell += count;
-          break;
-      }
-    }
-    return {
-      success: true,
-      data: { targets, topPriority, watching, toSell, total }
-    };
-  } catch (error46) {
-    return { success: false, message: `Errore nel caricamento strategie: ${error46.message}` };
-  }
-}
-
-// src/api/routes/leagues.ts
-var router3 = (0, import_express3.Router)();
-router3.post("/", authMiddleware, async (req, res) => {
-  try {
-    const validation = createLeagueSchema.safeParse(req.body);
-    if (!validation.success) {
-      res.status(400).json({
-        success: false,
-        message: "Dati non validi",
-        errors: validation.error.issues
-      });
-      return;
-    }
-    const result = await createLeague(req.user.userId, validation.data);
-    if (!result.success) {
-      res.status(400).json(result);
-      return;
-    }
-    res.status(201).json(result);
-  } catch (error46) {
-    console.error("Create league error:", error46);
-    res.status(500).json({ success: false, message: "Errore interno del server" });
-  }
-});
-router3.get("/", authMiddleware, async (req, res) => {
-  try {
-    const result = await getLeaguesByUser(req.user.userId);
-    res.json(result);
-  } catch (error46) {
-    console.error("Get leagues error:", error46);
-    res.status(500).json({ success: false, message: "Errore interno del server" });
-  }
-});
-router3.get("/dashboard-summary", authMiddleware, async (req, res) => {
-  try {
-    const result = await getDashboardSummary(req.user.userId);
-    res.json(result);
-  } catch (error46) {
-    console.error("Dashboard summary error:", error46);
-    res.status(500).json({ success: false, message: "Errore interno del server" });
-  }
-});
-router3.get("/join/:code", optionalAuthMiddleware, async (req, res) => {
-  try {
-    const code = req.params.code;
-    const result = await getLeagueByInviteCode(code);
-    if (!result.success) {
-      res.status(404).json(result);
-      return;
-    }
-    res.json(result);
-  } catch (error46) {
-    console.error("Get league by invite error:", error46);
-    res.status(500).json({ success: false, message: "Errore interno del server" });
-  }
-});
-router3.get("/search", authMiddleware, async (req, res) => {
-  try {
-    const query = req.query.q;
-    const result = await searchLeagues(req.user.userId, query);
-    if (!result.success) {
-      res.status(400).json(result);
-      return;
-    }
-    res.json(result);
-  } catch (error46) {
-    console.error("Search leagues error:", error46);
-    res.status(500).json({ success: false, message: "Errore interno del server" });
-  }
-});
-router3.get("/:id", authMiddleware, async (req, res) => {
-  try {
-    const id = req.params.id;
-    const result = await getLeagueById(id, req.user.userId);
-    if (!result.success) {
-      res.status(404).json(result);
-      return;
-    }
-    res.json(result);
-  } catch (error46) {
-    console.error("Get league error:", error46);
-    res.status(500).json({ success: false, message: "Errore interno del server" });
-  }
-});
-router3.put("/:id", authMiddleware, async (req, res) => {
-  try {
-    const id = req.params.id;
-    const validation = updateLeagueSchema.safeParse(req.body);
-    if (!validation.success) {
-      res.status(400).json({
-        success: false,
-        message: "Dati non validi",
-        errors: validation.error.issues
-      });
-      return;
-    }
-    const result = await updateLeague(id, req.user.userId, validation.data);
-    if (!result.success) {
-      res.status(result.message === "Non autorizzato" ? 403 : 400).json(result);
-      return;
-    }
-    res.json(result);
-  } catch (error46) {
-    console.error("Update league error:", error46);
-    res.status(500).json({ success: false, message: "Errore interno del server" });
-  }
-});
-router3.put("/:id/image", authMiddleware, async (req, res) => {
-  try {
-    const id = req.params.id;
-    const { imageData } = req.body;
-    if (!imageData) {
-      res.status(400).json({ success: false, message: "Nessuna immagine fornita" });
-      return;
-    }
-    const result = await updateLeagueImage(id, req.user.userId, imageData);
-    if (!result.success) {
-      res.status(result.message === "Non autorizzato" ? 403 : 400).json(result);
-      return;
-    }
-    res.json(result);
-  } catch (error46) {
-    console.error("Update league image error:", error46);
-    res.status(500).json({ success: false, message: "Errore interno del server" });
-  }
-});
-router3.delete("/:id/image", authMiddleware, async (req, res) => {
-  try {
-    const id = req.params.id;
-    const result = await removeLeagueImage(id, req.user.userId);
-    if (!result.success) {
-      res.status(result.message === "Non autorizzato" ? 403 : 400).json(result);
-      return;
-    }
-    res.json(result);
-  } catch (error46) {
-    console.error("Remove league image error:", error46);
-    res.status(500).json({ success: false, message: "Errore interno del server" });
-  }
-});
-router3.get("/:id/identity", authMiddleware, async (req, res) => {
-  try {
-    const id = req.params.id;
-    const result = await getLeagueIdentity(id, req.user.userId);
-    if (!result.success) {
-      res.status(result.message === "Non autorizzato" ? 403 : 404).json(result);
-      return;
-    }
-    res.json(result);
-  } catch (error46) {
-    console.error("Get league identity error:", error46);
-    res.status(500).json({ success: false, message: "Errore interno del server" });
-  }
-});
-router3.post("/:id/join", authMiddleware, async (req, res) => {
-  try {
-    const id = req.params.id;
-    const { teamName } = req.body;
-    const result = await requestJoinLeague(id, req.user.userId, teamName);
-    if (!result.success) {
-      res.status(400).json(result);
-      return;
-    }
-    res.status(201).json(result);
-  } catch (error46) {
-    console.error("Join league error:", error46);
-    res.status(500).json({ success: false, message: "Errore interno del server" });
-  }
-});
-router3.get("/:id/members", authMiddleware, async (req, res) => {
-  try {
-    const id = req.params.id;
-    const result = await getLeagueMembers(id, req.user.userId);
-    if (!result.success) {
-      res.status(404).json(result);
-      return;
-    }
-    res.json(result);
-  } catch (error46) {
-    console.error("Get members error:", error46);
-    res.status(500).json({ success: false, message: "Errore interno del server" });
-  }
-});
-router3.get("/:id/pending-requests", authMiddleware, async (req, res) => {
-  try {
-    const id = req.params.id;
-    const result = await getPendingJoinRequests(id, req.user.userId);
-    if (!result.success) {
-      res.status(result.message === "Non autorizzato" ? 403 : 404).json(result);
-      return;
-    }
-    res.json(result);
-  } catch (error46) {
-    console.error("Get pending requests error:", error46);
-    res.status(500).json({ success: false, message: "Errore interno del server" });
-  }
-});
-router3.get("/:id/rosters", authMiddleware, async (req, res) => {
-  try {
-    const id = req.params.id;
-    const result = await getAllRosters(id, req.user.userId);
-    if (!result.success) {
-      res.status(403).json(result);
-      return;
-    }
-    res.json(result);
-  } catch (error46) {
-    console.error("Get rosters error:", error46);
-    res.status(500).json({ success: false, message: "Errore interno del server" });
-  }
-});
-router3.put("/:id/members/:memberId", authMiddleware, async (req, res) => {
-  try {
-    const id = req.params.id;
-    const memberId = req.params.memberId;
-    const { action } = req.body;
-    if (!action || !["accept", "reject", "kick"].includes(action)) {
-      res.status(400).json({ success: false, message: "Azione non valida" });
-      return;
-    }
-    const result = await updateMemberStatus(
-      id,
-      memberId,
-      req.user.userId,
-      action
-    );
-    if (!result.success) {
-      res.status(result.message === "Non autorizzato" ? 403 : 400).json(result);
-      return;
-    }
-    res.json(result);
-  } catch (error46) {
-    console.error("Update member error:", error46);
-    res.status(500).json({ success: false, message: "Errore interno del server" });
-  }
-});
-router3.post("/:id/start", authMiddleware, async (req, res) => {
-  try {
-    const id = req.params.id;
-    const result = await startLeague(id, req.user.userId);
-    if (!result.success) {
-      res.status(result.message === "Non autorizzato" ? 403 : 400).json(result);
-      return;
-    }
-    res.json(result);
-  } catch (error46) {
-    console.error("Start league error:", error46);
-    res.status(500).json({ success: false, message: "Errore interno del server" });
-  }
-});
-router3.post("/:id/leave", authMiddleware, async (req, res) => {
-  try {
-    const id = req.params.id;
-    const result = await leaveLeague(id, req.user.userId);
-    if (!result.success) {
-      res.status(400).json(result);
-      return;
-    }
-    res.json(result);
-  } catch (error46) {
-    console.error("Leave league error:", error46);
-    res.status(500).json({ success: false, message: "Errore interno del server" });
-  }
-});
-router3.post("/:id/cancel-request", authMiddleware, async (req, res) => {
-  try {
-    const id = req.params.id;
-    const result = await cancelJoinRequest(id, req.user.userId);
-    if (!result.success) {
-      res.status(400).json(result);
-      return;
-    }
-    res.json(result);
-  } catch (error46) {
-    console.error("Cancel join request error:", error46);
-    res.status(500).json({ success: false, message: "Errore interno del server" });
-  }
-});
-router3.get("/:id/financials/timeline", authMiddleware, async (req, res) => {
-  try {
-    const id = req.params.id;
-    const memberId = req.query.memberId;
-    const result = await getFinancialTimeline(id, req.user.userId, memberId);
-    if (!result.success) {
-      res.status(result.message === "Non sei membro di questa lega" ? 403 : 404).json(result);
-      return;
-    }
-    res.json(result);
-  } catch (error46) {
-    console.error("Get financial timeline error:", error46);
-    res.status(500).json({ success: false, message: "Errore interno del server" });
-  }
-});
-router3.get("/:id/financials/trends", authMiddleware, async (req, res) => {
-  try {
-    const id = req.params.id;
-    const result = await getFinancialTrends(id, req.user.userId);
-    if (!result.success) {
-      res.status(result.message === "Non sei membro di questa lega" ? 403 : 404).json(result);
-      return;
-    }
-    res.json(result);
-  } catch (error46) {
-    console.error("Get financial trends error:", error46);
-    res.status(500).json({ success: false, message: "Errore interno del server" });
-  }
-});
-router3.get("/:id/financials", authMiddleware, async (req, res) => {
-  try {
-    const id = req.params.id;
-    const sessionId = req.query.sessionId;
-    const result = await getLeagueFinancials(id, req.user.userId, sessionId);
-    if (!result.success) {
-      res.status(result.message === "Non sei membro di questa lega" ? 403 : 404).json(result);
-      return;
-    }
-    res.json(result);
-  } catch (error46) {
-    console.error("Get league financials error:", error46);
-    res.status(500).json({ success: false, message: "Errore interno del server" });
-  }
-});
-router3.get("/:id/strategy-summary", authMiddleware, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const result = await getStrategySummary(id, req.user.userId);
-    if (!result.success) {
-      res.status(result.message === "Non sei membro di questa lega" ? 403 : 400).json(result);
-      return;
-    }
-    res.json(result);
-  } catch (error46) {
-    console.error("Get strategy summary error:", error46);
-    res.status(500).json({ success: false, message: "Errore interno del server" });
-  }
-});
-var leagues_default = router3;
-
-// src/api/routes/players.ts
-var import_express4 = __toESM(require_express2(), 1);
-init_prisma();
-import { Prisma as Prisma2 } from "@prisma/client";
-
-// src/services/player.service.ts
-init_prisma();
-async function getPlayers(filters = {}) {
-  const where = {
-    isActive: true
-  };
-  if (filters.available) {
-    where.listStatus = "IN_LIST";
-  }
-  if (filters.position) {
-    where.position = filters.position;
-  }
-  if (filters.team) {
-    where.team = filters.team;
-  }
-  if (filters.search) {
-    where.OR = [
-      { name: { contains: filters.search, mode: "insensitive" } },
-      { team: { contains: filters.search, mode: "insensitive" } }
-    ];
-  }
-  const players = await prisma.serieAPlayer.findMany({
-    where,
-    orderBy: [
-      { quotation: "desc" },
-      { name: "asc" }
-    ]
-  });
-  if (filters.available && filters.leagueId) {
-    const rosteredPlayerIds = await prisma.playerRoster.findMany({
-      where: {
-        leagueMember: {
-          leagueId: filters.leagueId
-        },
-        status: "ACTIVE"
-      },
-      select: {
-        playerId: true
-      }
-    });
-    const rosteredIds = new Set(rosteredPlayerIds.map((r) => r.playerId));
-    return players.filter((p) => !rosteredIds.has(p.id));
-  }
-  return players;
-}
-async function getPlayerById(playerId) {
-  return prisma.serieAPlayer.findUnique({
-    where: { id: playerId }
-  });
-}
-async function getTeams() {
-  const teams = await prisma.serieAPlayer.groupBy({
-    by: ["team"],
-    _count: true,
-    orderBy: {
-      team: "asc"
-    }
-  });
-  return teams.map((t) => ({
-    name: t.team,
-    playerCount: t._count
-  }));
-}
-
-// src/api/routes/players.ts
-var router4 = (0, import_express4.Router)();
-router4.get("/", authMiddleware, async (req, res) => {
-  try {
-    const { position, team, search, available, leagueId } = req.query;
-    const filters = {};
-    if (position && ["P", "D", "C", "A"].includes(position)) {
-      filters.position = position;
-    }
-    if (team) {
-      filters.team = team;
-    }
-    if (search) {
-      filters.search = search;
-    }
-    if (available === "true" && leagueId) {
-      filters.available = true;
-      filters.leagueId = leagueId;
-    }
-    const players = await getPlayers(filters);
-    const enrichedPlayers = players.map((p) => {
-      const stats = p.apiFootballStats;
-      return {
-        ...p,
-        appearances: stats?.games?.appearences ?? null,
-        goals: stats?.goals?.total ?? null,
-        assists: stats?.goals?.assists ?? null,
-        avgRating: stats?.games?.rating ? Math.round(stats.games.rating * 10) / 10 : null
-      };
-    });
-    res.json({
-      success: true,
-      data: enrichedPlayers
-    });
-  } catch (error46) {
-    console.error("Get players error:", error46);
-    res.status(500).json({ success: false, message: "Errore interno del server" });
-  }
-});
-router4.get("/teams", authMiddleware, async (_req, res) => {
-  try {
-    const teams = await getTeams();
-    res.json({
-      success: true,
-      data: teams
-    });
-  } catch (error46) {
-    console.error("Get teams error:", error46);
-    res.status(500).json({ success: false, message: "Errore interno del server" });
-  }
-});
-router4.get("/stats", authMiddleware, async (req, res) => {
-  try {
-    const { position, team, search, sortBy, sortOrder, page, limit } = req.query;
-    const where = {
-      isActive: true,
-      apiFootballStats: { not: Prisma2.DbNull }
-      // Only players with stats
-    };
-    if (position && ["P", "D", "C", "A"].includes(position)) {
-      where.position = position;
-    }
-    if (team) {
-      where.team = team;
-    }
-    if (search) {
-      where.name = { contains: search, mode: "insensitive" };
-    }
-    const pageNum = Math.max(1, parseInt(page) || 1);
-    const limitNum = Math.min(100, Math.max(10, parseInt(limit) || 50));
-    const skip = (pageNum - 1) * limitNum;
-    const total = await prisma.serieAPlayer.count({ where });
-    const players = await prisma.serieAPlayer.findMany({
-      where,
-      select: {
-        id: true,
-        name: true,
-        team: true,
-        position: true,
-        quotation: true,
-        apiFootballId: true,
-        apiFootballStats: true,
-        statsSyncedAt: true
-      },
-      // Keep the user-selected criterion; add role+name as coherent tiebreaker
-      orderBy: sortBy === "quotation" ? [{ quotation: sortOrder === "asc" ? "asc" : "desc" }, { position: "asc" }, { name: "asc" }] : sortBy === "team" ? [{ team: sortOrder === "asc" ? "asc" : "desc" }, { position: "asc" }, { name: "asc" }] : sortBy === "position" ? [{ position: sortOrder === "asc" ? "asc" : "desc" }, { name: "asc" }] : [{ name: sortOrder === "asc" ? "asc" : "desc" }, { position: "asc" }],
-      skip,
-      take: limitNum
-    });
-    const playersWithStats = players.map((p) => {
-      const stats = p.apiFootballStats;
-      return {
-        id: p.id,
-        name: p.name,
-        team: p.team,
-        position: p.position,
-        quotation: p.quotation,
-        apiFootballId: p.apiFootballId,
-        statsSyncedAt: p.statsSyncedAt,
-        stats: stats ? {
-          appearances: stats.games?.appearences ?? 0,
-          minutes: stats.games?.minutes ?? 0,
-          rating: stats.games?.rating ?? null,
-          goals: stats.goals?.total ?? 0,
-          assists: stats.goals?.assists ?? 0,
-          yellowCards: stats.cards?.yellow ?? 0,
-          redCards: stats.cards?.red ?? 0,
-          passesTotal: stats.passes?.total ?? 0,
-          passesKey: stats.passes?.key ?? 0,
-          passAccuracy: stats.passes?.accuracy ?? null,
-          shotsTotal: stats.shots?.total ?? 0,
-          shotsOn: stats.shots?.on ?? 0,
-          tacklesTotal: stats.tackles?.total ?? 0,
-          interceptions: stats.tackles?.interceptions ?? 0,
-          dribblesAttempts: stats.dribbles?.attempts ?? 0,
-          dribblesSuccess: stats.dribbles?.success ?? 0,
-          penaltyScored: stats.penalty?.scored ?? 0,
-          penaltyMissed: stats.penalty?.missed ?? 0
-        } : null
-      };
-    });
-    res.json({
-      success: true,
-      data: {
-        players: playersWithStats,
-        pagination: {
-          page: pageNum,
-          limit: limitNum,
-          total,
-          totalPages: Math.ceil(total / limitNum)
-        }
-      }
-    });
-  } catch (error46) {
-    console.error("Get player stats error:", error46);
-    res.status(500).json({ success: false, message: "Errore interno del server" });
-  }
-});
-router4.get("/:apiFootballId/match-history", authMiddleware, async (req, res) => {
-  try {
-    const apiFootballId = parseInt(req.params.apiFootballId);
-    if (isNaN(apiFootballId)) {
-      res.status(400).json({ success: false, message: "apiFootballId non valido" });
-      return;
-    }
-    const player = await prisma.serieAPlayer.findFirst({
-      where: { apiFootballId },
-      select: { id: true }
-    });
-    if (!player) {
-      res.status(404).json({ success: false, message: "Giocatore non trovato" });
-      return;
-    }
-    const matches = await prisma.playerMatchRating.findMany({
-      where: { playerId: player.id },
-      orderBy: { matchDate: "desc" },
-      select: {
-        matchDate: true,
-        round: true,
-        rating: true,
-        minutesPlayed: true,
-        goals: true,
-        assists: true
-      }
-    });
-    res.json({
-      success: true,
-      data: matches.map((m) => ({
-        matchDate: m.matchDate.toISOString().split("T")[0],
-        round: m.round ?? "",
-        rating: m.rating,
-        minutesPlayed: m.minutesPlayed ?? 0,
-        goals: m.goals ?? 0,
-        assists: m.assists ?? 0
-      }))
-    });
-  } catch (error46) {
-    console.error("Get player match history error:", error46);
-    res.status(500).json({ success: false, message: "Errore interno del server" });
-  }
-});
-router4.get("/:id", authMiddleware, async (req, res) => {
-  try {
-    const id = req.params.id;
-    const player = await getPlayerById(id);
-    if (!player) {
-      res.status(404).json({ success: false, message: "Giocatore non trovato" });
-      return;
-    }
-    res.json({
-      success: true,
-      data: player
-    });
-  } catch (error46) {
-    console.error("Get player error:", error46);
-    res.status(500).json({ success: false, message: "Errore interno del server" });
-  }
-});
-var players_default = router4;
-
-// src/api/routes/auctions.ts
-var import_express5 = __toESM(require_express2(), 1);
-
-// src/services/auction.service.ts
-init_prisma();
-import { AuctionStatus, AuctionType, MemberRole as MemberRole2, MemberStatus as MemberStatus7, AcquisitionType as AcquisitionType2, RosterStatus as RosterStatus4, Position, Prisma as Prisma3 } from "@prisma/client";
-
 // src/services/contract.service.ts
 init_prisma();
-import { MemberStatus as MemberStatus5, RosterStatus as RosterStatus2, AcquisitionType, MovementType } from "@prisma/client";
+import { MemberStatus as MemberStatus4, RosterStatus as RosterStatus2, AcquisitionType, MovementType } from "@prisma/client";
 
 // src/services/movement.service.ts
 init_prisma();
-import { MemberStatus as MemberStatus3, ProphecyRole } from "@prisma/client";
+import { MemberStatus as MemberStatus2, ProphecyRole } from "@prisma/client";
 async function recordMovement(data) {
   try {
     const movement = await prisma.playerMovement.create({
@@ -287427,7 +285191,7 @@ async function getLeagueMovements(leagueId, userId, options) {
     where: {
       leagueId,
       userId,
-      status: MemberStatus3.ACTIVE
+      status: MemberStatus2.ACTIVE
     }
   });
   if (!member) {
@@ -287563,7 +285327,7 @@ async function getPlayerHistory(leagueId, playerId, userId) {
     where: {
       leagueId,
       userId,
-      status: MemberStatus3.ACTIVE
+      status: MemberStatus2.ACTIVE
     }
   });
   if (!member) {
@@ -287675,7 +285439,7 @@ async function addProphecy(movementId, userId, content) {
     where: {
       leagueId: movement.leagueId,
       userId,
-      status: MemberStatus3.ACTIVE
+      status: MemberStatus2.ACTIVE
     }
   });
   if (!member) {
@@ -287736,7 +285500,7 @@ async function getPlayerProphecies(leagueId, playerId, userId) {
     where: {
       leagueId,
       userId,
-      status: MemberStatus3.ACTIVE
+      status: MemberStatus2.ACTIVE
     }
   });
   if (!member) {
@@ -287785,7 +285549,7 @@ async function canMakeProphecy(movementId, userId) {
     where: {
       leagueId: movement.leagueId,
       userId,
-      status: MemberStatus3.ACTIVE
+      status: MemberStatus2.ACTIVE
     }
   });
   if (!member) {
@@ -287835,7 +285599,7 @@ async function canMakeProphecy(movementId, userId) {
 
 // src/services/contract-history.service.ts
 init_prisma();
-import { MemberStatus as MemberStatus4, RosterStatus } from "@prisma/client";
+import { MemberStatus as MemberStatus3, RosterStatus } from "@prisma/client";
 async function createContractHistoryEntries(inputs) {
   try {
     const result = await prisma.contractHistory.createMany({
@@ -287909,7 +285673,7 @@ async function createSessionStartSnapshots(marketSessionId, leagueId) {
     const members = await prisma.leagueMember.findMany({
       where: {
         leagueId,
-        status: MemberStatus4.ACTIVE
+        status: MemberStatus3.ACTIVE
       }
     });
     for (const member of members) {
@@ -287945,7 +285709,7 @@ async function getSessionContractHistory(marketSessionId, leagueMemberId, userId
     where: {
       id: leagueMemberId,
       user: { id: userId },
-      status: MemberStatus4.ACTIVE
+      status: MemberStatus3.ACTIVE
     }
   });
   if (!member) {
@@ -287979,7 +285743,7 @@ async function getFullSessionContractHistory(marketSessionId, userId, leagueId) 
       leagueId,
       userId,
       role: "ADMIN",
-      status: MemberStatus4.ACTIVE
+      status: MemberStatus3.ACTIVE
     }
   });
   if (!member) {
@@ -288017,7 +285781,7 @@ async function getManagerSessionSummary(marketSessionId, leagueMemberId, userId)
     where: {
       id: leagueMemberId,
       user: { id: userId },
-      status: MemberStatus4.ACTIVE
+      status: MemberStatus3.ACTIVE
     },
     include: {
       user: { select: { username: true } }
@@ -288099,7 +285863,7 @@ async function getContractPhaseProspetto(leagueId, userId) {
     where: {
       leagueId,
       userId,
-      status: MemberStatus4.ACTIVE
+      status: MemberStatus3.ACTIVE
     }
   });
   if (!member) {
@@ -288266,7 +286030,7 @@ async function getHistoricalSessionSummaries(leagueId, userId) {
     where: {
       leagueId,
       userId,
-      status: MemberStatus4.ACTIVE
+      status: MemberStatus3.ACTIVE
     }
   });
   if (!member) {
@@ -288339,7 +286103,7 @@ async function getMarketOpeningEvents(leagueId, userId) {
     where: {
       leagueId,
       userId,
-      status: MemberStatus4.ACTIVE
+      status: MemberStatus3.ACTIVE
     }
   });
   if (!member) {
@@ -288467,6 +286231,7 @@ var DURATION_MULTIPLIERS = {
 var MAX_DURATION = 4;
 var MIN_SALARY_PERCENTAGE = 0.1;
 var MAX_ROSTER_SIZE = 29;
+var DEFAULT_CONTRACT_DURATION = 3;
 var DEFAULT_INDENNIZZO_ESTERO = 50;
 function getMultiplier(duration3) {
   return DURATION_MULTIPLIERS[duration3] ?? 3;
@@ -288520,7 +286285,7 @@ async function getContracts(leagueId, userId) {
     where: {
       leagueId,
       userId,
-      status: MemberStatus5.ACTIVE
+      status: MemberStatus4.ACTIVE
     }
   });
   if (!member) {
@@ -289083,24 +286848,26 @@ async function releasePlayer(contractId, userId) {
     return { success: false, message: `Budget insufficiente. Costo taglio: ${releaseCost}, Budget: ${member.currentBudget}` };
   }
   const playerName = player.name;
-  await prisma.playerContract.delete({
-    where: { id: contractId }
-  });
-  await prisma.playerRoster.update({
-    where: { id: contract.rosterId },
-    data: {
-      status: RosterStatus2.RELEASED,
-      releasedAt: /* @__PURE__ */ new Date()
-    }
-  });
-  await prisma.leagueMember.update({
-    where: { id: member.id },
-    data: {
-      currentBudget: {
-        decrement: releaseCost
+  await prisma.$transaction([
+    prisma.playerContract.delete({
+      where: { id: contractId }
+    }),
+    prisma.playerRoster.update({
+      where: { id: contract.rosterId },
+      data: {
+        status: RosterStatus2.RELEASED,
+        releasedAt: /* @__PURE__ */ new Date()
       }
-    }
-  });
+    }),
+    prisma.leagueMember.update({
+      where: { id: member.id },
+      data: {
+        currentBudget: {
+          decrement: releaseCost
+        }
+      }
+    })
+  ]);
   const activeSession = await prisma.marketSession.findFirst({
     where: {
       leagueId: contract.roster.leagueMember.leagueId,
@@ -289222,7 +286989,7 @@ async function getConsolidationStatus(leagueId, userId) {
     where: {
       leagueId,
       userId,
-      status: MemberStatus5.ACTIVE
+      status: MemberStatus4.ACTIVE
     }
   });
   if (!member) {
@@ -289268,7 +287035,7 @@ async function consolidateContracts(leagueId, userId, renewals, newContracts) {
     where: {
       leagueId,
       userId,
-      status: MemberStatus5.ACTIVE
+      status: MemberStatus4.ACTIVE
     }
   });
   if (!member) {
@@ -289605,6 +287372,10 @@ async function consolidateContracts(leagueId, userId, renewals, newContracts) {
           `Monte ingaggi (${postMonteIngaggi}) supera il budget (${postMember.currentBudget}) dopo il consolidamento`
         );
       }
+      await tx.leagueMember.update({
+        where: { id: member.id },
+        data: { totalSalaries: postMonteIngaggi }
+      });
       await tx.contractConsolidation.create({
         data: {
           sessionId: activeSession.id,
@@ -289645,7 +287416,7 @@ async function getAllConsolidationStatus(leagueId, userId) {
     where: {
       leagueId,
       userId,
-      status: MemberStatus5.ACTIVE
+      status: MemberStatus4.ACTIVE
     }
   });
   if (!member) {
@@ -289674,7 +287445,7 @@ async function getAllConsolidationStatus(leagueId, userId) {
   const allMembers = await prisma.leagueMember.findMany({
     where: {
       leagueId,
-      status: MemberStatus5.ACTIVE
+      status: MemberStatus4.ACTIVE
     },
     include: {
       user: { select: { id: true, username: true } },
@@ -289715,7 +287486,7 @@ async function simulateAllConsolidation(leagueId, userId) {
     where: {
       leagueId,
       userId,
-      status: MemberStatus5.ACTIVE
+      status: MemberStatus4.ACTIVE
     }
   });
   if (!member) {
@@ -289737,7 +287508,7 @@ async function simulateAllConsolidation(leagueId, userId) {
   const allMembers = await prisma.leagueMember.findMany({
     where: {
       leagueId,
-      status: MemberStatus5.ACTIVE
+      status: MemberStatus4.ACTIVE
     },
     include: {
       roster: { where: { status: RosterStatus2.ACTIVE } },
@@ -289782,7 +287553,7 @@ async function canAdvanceFromContratti(sessionId) {
   const allMembers = await prisma.leagueMember.findMany({
     where: {
       leagueId: session.leagueId,
-      status: MemberStatus5.ACTIVE
+      status: MemberStatus4.ACTIVE
     },
     include: {
       roster: { where: { status: RosterStatus2.ACTIVE } },
@@ -289811,7 +287582,7 @@ async function saveDrafts(leagueId, userId, renewals, newContracts, releases = [
     where: {
       leagueId,
       userId,
-      status: MemberStatus5.ACTIVE
+      status: MemberStatus4.ACTIVE
     }
   });
   if (!member) {
@@ -290045,11 +287816,15 @@ async function getConsolidationReceiptData(leagueId, memberId) {
   }
   const consolidation = await prisma.contractConsolidation.findFirst({
     where: { memberId },
-    orderBy: { consolidatedAt: "desc" }
+    orderBy: { consolidatedAt: "desc" },
+    include: {
+      session: { select: { season: true, semester: true } }
+    }
   });
   if (!consolidation) {
     return { success: false, message: "Nessun consolidamento trovato" };
   }
+  const sessionName = `Stagione ${consolidation.session.season} - ${consolidation.session.semester === 1 ? "Estate" : "Inverno"}`;
   const contracts = await prisma.playerContract.findMany({
     where: {
       leagueMemberId: memberId
@@ -290058,6 +287833,13 @@ async function getConsolidationReceiptData(leagueId, memberId) {
       roster: {
         include: {
           player: true
+        }
+      }
+    },
+    orderBy: {
+      roster: {
+        player: {
+          position: "asc"
         }
       }
     }
@@ -290099,6 +287881,7 @@ async function getConsolidationReceiptData(leagueId, memberId) {
       managerEmail: member.user.email,
       teamName: member.teamName || member.user.username,
       leagueName: member.league.name,
+      sessionName,
       consolidationDate: consolidation.consolidatedAt,
       transactionId: consolidation.id,
       renewals,
@@ -290108,6 +287891,2333 @@ async function getConsolidationReceiptData(leagueId, memberId) {
     }
   };
 }
+
+// src/services/league.service.ts
+var emailService2 = null;
+async function getEmailService() {
+  if (emailService2) return emailService2;
+  try {
+    const { GmailEmailService: GmailEmailService2 } = await Promise.resolve().then(() => (init_gmail_email_service(), gmail_email_service_exports));
+    emailService2 = new GmailEmailService2();
+    return emailService2;
+  } catch {
+    return null;
+  }
+}
+async function createLeague(userId, input) {
+  const minParticipants = 6;
+  const maxParticipants = input.maxParticipants ?? 20;
+  if (minParticipants < 6) {
+    return { success: false, message: "Il numero minimo di partecipanti deve essere almeno 6" };
+  }
+  if (maxParticipants > 20) {
+    return { success: false, message: "Il numero massimo di partecipanti non pu\xF2 superare 20" };
+  }
+  if (minParticipants > maxParticipants) {
+    return { success: false, message: "Il numero minimo non pu\xF2 essere maggiore del massimo" };
+  }
+  if (input.goalkeeperSlots < 3) {
+    return { success: false, message: "Gli slot portiere devono essere almeno 3" };
+  }
+  if (input.defenderSlots < 8) {
+    return { success: false, message: "Gli slot difensore devono essere almeno 8" };
+  }
+  if (input.midfielderSlots < 8) {
+    return { success: false, message: "Gli slot centrocampo devono essere almeno 8" };
+  }
+  if (input.forwardSlots < 6) {
+    return { success: false, message: "Gli slot attacco devono essere almeno 6" };
+  }
+  if (!input.teamName || input.teamName.trim().length < 2) {
+    return { success: false, message: "Il nome della squadra \xE8 obbligatorio (minimo 2 caratteri)" };
+  }
+  if (input.imageUrl && !input.imageUrl.startsWith("data:image/")) {
+    return { success: false, message: "Formato immagine non valido" };
+  }
+  const league = await prisma.league.create({
+    data: {
+      name: input.name,
+      description: input.description,
+      imageUrl: input.imageUrl || null,
+      minParticipants,
+      maxParticipants,
+      initialBudget: input.initialBudget,
+      goalkeeperSlots: input.goalkeeperSlots,
+      defenderSlots: input.defenderSlots,
+      midfielderSlots: input.midfielderSlots,
+      forwardSlots: input.forwardSlots,
+      isPublic: input.isPublic,
+      members: {
+        create: {
+          userId,
+          role: MemberRole.ADMIN,
+          status: MemberStatus5.ACTIVE,
+          joinType: JoinType2.CREATOR,
+          teamName: input.teamName.trim(),
+          currentBudget: input.initialBudget
+        }
+      }
+    },
+    include: {
+      members: {
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              email: true
+            }
+          }
+        }
+      }
+    }
+  });
+  return {
+    success: true,
+    message: "Lega creata con successo",
+    data: {
+      ...league,
+      inviteCode: league.inviteCode
+    }
+  };
+}
+async function getLeaguesByUser(userId) {
+  const memberships = await prisma.leagueMember.findMany({
+    where: {
+      userId,
+      status: { in: [MemberStatus5.ACTIVE, MemberStatus5.PENDING] }
+    },
+    include: {
+      league: {
+        include: {
+          members: {
+            where: { status: MemberStatus5.ACTIVE },
+            select: {
+              id: true,
+              role: true,
+              user: {
+                select: {
+                  id: true,
+                  username: true
+                }
+              }
+            }
+          },
+          // Solo per derivare isFirstMarketCompleted: non esposto grezzo in risposta.
+          marketSessions: {
+            where: { type: "PRIMO_MERCATO", status: "COMPLETED" },
+            select: { id: true },
+            take: 1
+          }
+        }
+      }
+    }
+  });
+  return {
+    success: true,
+    data: memberships.map((m) => {
+      const { marketSessions, ...league } = m.league;
+      return {
+        membership: {
+          id: m.id,
+          role: m.role,
+          status: m.status,
+          currentBudget: m.currentBudget,
+          totalSalaries: m.totalSalaries
+        },
+        league: { ...league, isFirstMarketCompleted: marketSessions.length > 0 }
+      };
+    })
+  };
+}
+function detectYourTurn(session, memberId, hasActiveAuction) {
+  const turnHolderAt = (order, index) => {
+    if (!Array.isArray(order)) return null;
+    if (typeof index !== "number" || index < 0 || index >= order.length) return null;
+    const holder = order[index];
+    return typeof holder === "string" ? holder : null;
+  };
+  if (session.type === "PRIMO_MERCATO" || session.currentPhase === "ASTA_LIBERA") {
+    if (hasActiveAuction) return null;
+    if (turnHolderAt(session.turnOrder, session.currentTurnIndex) === memberId) {
+      return { kind: "auction", sessionId: session.id };
+    }
+    return null;
+  }
+  if (session.currentPhase === "ASTA_SVINCOLATI") {
+    if (session.svincolatiState !== "READY_CHECK") return null;
+    if (turnHolderAt(session.svincolatiTurnOrder, session.svincolatiCurrentTurnIndex) === memberId) {
+      return { kind: "svincolati", sessionId: session.id };
+    }
+    return null;
+  }
+  return null;
+}
+async function getDashboardSummary(userId) {
+  const memberships = await prisma.leagueMember.findMany({
+    where: { userId, status: MemberStatus5.ACTIVE },
+    select: { id: true, leagueId: true, role: true }
+  });
+  const now = /* @__PURE__ */ new Date();
+  const summaries = {};
+  await Promise.all(
+    memberships.map(async (m) => {
+      const activeSession = await prisma.marketSession.findFirst({
+        where: { leagueId: m.leagueId, status: "ACTIVE" },
+        select: {
+          id: true,
+          type: true,
+          currentPhase: true,
+          turnOrder: true,
+          currentTurnIndex: true,
+          svincolatiTurnOrder: true,
+          svincolatiCurrentTurnIndex: true,
+          svincolatiState: true
+        },
+        orderBy: { createdAt: "desc" }
+      });
+      const isAdmin = m.role === MemberRole.ADMIN;
+      const needsAuctionCheck = !!activeSession && (activeSession.type === "PRIMO_MERCATO" || activeSession.currentPhase === "ASTA_LIBERA");
+      const [tradeOffersReceived, pendingJoinRequests, pendingAppeals, consolidation, activeAuctionCount] = await Promise.all([
+        activeSession ? prisma.tradeOffer.count({
+          where: {
+            receiverId: userId,
+            status: TradeStatus.PENDING,
+            marketSessionId: activeSession.id,
+            expiresAt: { gte: now }
+          }
+        }) : Promise.resolve(0),
+        isAdmin ? prisma.leagueMember.count({
+          where: { leagueId: m.leagueId, status: MemberStatus5.PENDING }
+        }) : Promise.resolve(0),
+        isAdmin ? prisma.auctionAppeal.count({
+          where: { auction: { leagueId: m.leagueId }, status: "PENDING" }
+        }) : Promise.resolve(0),
+        activeSession && activeSession.currentPhase === "CONTRATTI" ? prisma.contractConsolidation.findUnique({
+          where: { sessionId_memberId: { sessionId: activeSession.id, memberId: m.id } },
+          select: { id: true }
+        }) : Promise.resolve(null),
+        needsAuctionCheck ? prisma.auction.count({
+          where: { marketSessionId: activeSession.id, status: "ACTIVE" }
+        }) : Promise.resolve(0)
+      ]);
+      const needsConsolidation = !!activeSession && activeSession.currentPhase === "CONTRATTI" && !consolidation;
+      const turnTarget = activeSession ? detectYourTurn(activeSession, m.id, activeAuctionCount > 0) : null;
+      summaries[m.leagueId] = {
+        phase: activeSession ? { type: activeSession.type, currentPhase: activeSession.currentPhase } : null,
+        tradeOffersReceived,
+        isAdmin,
+        pendingJoinRequests,
+        pendingAppeals,
+        needsConsolidation,
+        isYourTurn: turnTarget !== null,
+        turnTarget
+      };
+    })
+  );
+  return { success: true, data: { summaries } };
+}
+async function getLeagueById(leagueId, userId) {
+  const league = await prisma.league.findUnique({
+    where: { id: leagueId },
+    include: {
+      members: {
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              email: true,
+              profilePhoto: true
+            }
+          },
+          // Include roster with contracts to calculate total salaries
+          roster: {
+            where: { status: "ACTIVE" },
+            include: {
+              contract: {
+                select: { salary: true }
+              }
+            }
+          }
+        }
+      }
+    }
+  });
+  if (!league) {
+    return { success: false, message: "Lega non trovata" };
+  }
+  const membership = league.members.find((m) => m.userId === userId);
+  const membersWithBalance = league.members.map((member) => {
+    const balance = member.currentBudget - member.totalSalaries;
+    return {
+      ...member,
+      roster: void 0,
+      // Don't expose roster details
+      balance
+    };
+  });
+  return {
+    success: true,
+    data: {
+      league: {
+        ...league,
+        members: membersWithBalance
+      },
+      userMembership: membership ? {
+        ...membership,
+        roster: void 0,
+        balance: membership.currentBudget - membership.totalSalaries
+      } : null,
+      isAdmin: membership?.role === MemberRole.ADMIN
+    }
+  };
+}
+async function getLeagueByInviteCode(inviteCode) {
+  const league = await prisma.league.findFirst({
+    where: {
+      id: { startsWith: inviteCode }
+    },
+    include: {
+      members: {
+        where: { status: MemberStatus5.ACTIVE },
+        select: {
+          id: true,
+          role: true,
+          user: {
+            select: {
+              id: true,
+              username: true
+            }
+          }
+        }
+      }
+    }
+  });
+  if (!league) {
+    return { success: false, message: "Codice invito non valido" };
+  }
+  return {
+    success: true,
+    data: {
+      id: league.id,
+      name: league.name,
+      description: league.description,
+      maxParticipants: league.maxParticipants,
+      currentParticipants: league.members.length,
+      status: league.status
+    }
+  };
+}
+async function sendJoinRequestEmail(league, userId, teamName, leagueId) {
+  try {
+    const adminMember = league.members.find((m) => m.role === MemberRole.ADMIN);
+    if (adminMember?.user?.email) {
+      const requester = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { username: true }
+      });
+      const adminPanelUrl = `${process.env.FRONTEND_URL || "http://localhost:5173"}/leagues/${leagueId}/admin?tab=members`;
+      const emailSvc = await getEmailService();
+      if (emailSvc) {
+        await emailSvc.sendJoinRequestNotificationEmail(
+          adminMember.user.email,
+          league.name,
+          requester?.username || "Utente",
+          teamName,
+          adminPanelUrl
+        );
+      }
+    }
+  } catch {
+  }
+}
+async function requestJoinLeague(leagueId, userId, teamName) {
+  const league = await prisma.league.findUnique({
+    where: { id: leagueId },
+    include: {
+      members: {
+        where: { status: MemberStatus5.ACTIVE },
+        include: {
+          user: {
+            select: { email: true }
+          }
+        }
+      }
+    }
+  });
+  if (!league) {
+    return { success: false, message: "Lega non trovata" };
+  }
+  if (!league.isPublic) {
+    return { success: false, message: "Questa lega \xE8 privata: l'accesso \xE8 solo su invito" };
+  }
+  if (league.status !== "DRAFT") {
+    return { success: false, message: "La lega \xE8 gi\xE0 stata avviata, non puoi richiedere di partecipare" };
+  }
+  if (league.members.length >= league.maxParticipants) {
+    return { success: false, message: "Lega al completo" };
+  }
+  const existingMembership = await prisma.leagueMember.findUnique({
+    where: {
+      userId_leagueId: {
+        userId,
+        leagueId
+      }
+    }
+  });
+  if (existingMembership) {
+    if (existingMembership.status === MemberStatus5.ACTIVE) {
+      return { success: false, message: "Sei gi\xE0 membro di questa lega" };
+    }
+    if (existingMembership.status === MemberStatus5.PENDING) {
+      return { success: false, message: "Hai gi\xE0 una richiesta in attesa" };
+    }
+    if (existingMembership.status === MemberStatus5.SUSPENDED) {
+      return { success: false, message: "Il tuo account \xE8 stato sospeso da questa lega" };
+    }
+    if (existingMembership.status === MemberStatus5.LEFT) {
+      if (!teamName || teamName.trim().length < 2) {
+        return { success: false, message: "Il nome della squadra \xE8 obbligatorio (minimo 2 caratteri)" };
+      }
+      const membership2 = await prisma.leagueMember.update({
+        where: { id: existingMembership.id },
+        data: {
+          status: MemberStatus5.PENDING,
+          teamName: teamName.trim(),
+          joinType: JoinType2.REQUEST
+        }
+      });
+      await sendJoinRequestEmail(league, userId, teamName.trim(), leagueId);
+      return {
+        success: true,
+        message: "Richiesta di partecipazione inviata",
+        data: membership2
+      };
+    }
+  }
+  if (!teamName || teamName.trim().length < 2) {
+    return { success: false, message: "Il nome della squadra \xE8 obbligatorio (minimo 2 caratteri)" };
+  }
+  const membership = await prisma.leagueMember.create({
+    data: {
+      userId,
+      leagueId,
+      role: MemberRole.MANAGER,
+      status: MemberStatus5.PENDING,
+      joinType: JoinType2.REQUEST,
+      teamName: teamName.trim(),
+      currentBudget: 0
+      // Will be set when approved
+    }
+  });
+  await sendJoinRequestEmail(league, userId, teamName.trim(), leagueId);
+  return {
+    success: true,
+    message: "Richiesta di partecipazione inviata",
+    data: membership
+  };
+}
+async function getLeagueMembers(leagueId, userId) {
+  const adminCheck = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId,
+      role: MemberRole.ADMIN,
+      status: MemberStatus5.ACTIVE
+    }
+  });
+  const members = await prisma.leagueMember.findMany({
+    where: { leagueId },
+    include: {
+      user: {
+        select: {
+          id: true,
+          username: true,
+          email: true,
+          profilePhoto: true
+        }
+      }
+    },
+    orderBy: [
+      { status: "asc" },
+      { role: "asc" },
+      { joinedAt: "asc" }
+    ]
+  });
+  return {
+    success: true,
+    data: {
+      members,
+      isAdmin: !!adminCheck
+    }
+  };
+}
+async function getPendingJoinRequests(leagueId, userId) {
+  const adminCheck = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId,
+      role: MemberRole.ADMIN,
+      status: MemberStatus5.ACTIVE
+    }
+  });
+  if (!adminCheck) {
+    return { success: false, message: "Non autorizzato" };
+  }
+  const pendingRequests = await prisma.leagueMember.findMany({
+    where: {
+      leagueId,
+      status: MemberStatus5.PENDING
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          username: true,
+          email: true,
+          profilePhoto: true
+        }
+      }
+    },
+    orderBy: { joinedAt: "desc" }
+  });
+  return {
+    success: true,
+    data: pendingRequests
+  };
+}
+async function updateMemberStatus(leagueId, memberId, adminUserId, action) {
+  const admin = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId: adminUserId,
+      role: MemberRole.ADMIN,
+      status: MemberStatus5.ACTIVE
+    }
+  });
+  if (!admin) {
+    return { success: false, message: "Non autorizzato" };
+  }
+  const member = await prisma.leagueMember.findUnique({
+    where: { id: memberId },
+    include: {
+      league: true,
+      user: { select: { email: true } }
+    }
+  });
+  if (!member || member.leagueId !== leagueId) {
+    return { success: false, message: "Membro non trovato" };
+  }
+  if (member.role === MemberRole.ADMIN && action === "kick") {
+    return { success: false, message: "Non puoi rimuovere un admin" };
+  }
+  if (action === "kick" && member.league.status === "ACTIVE") {
+    return { success: false, message: "Non puoi rimuovere membri dopo l'avvio della lega" };
+  }
+  if (action === "accept") {
+    if (member.status !== MemberStatus5.PENDING) {
+      return { success: false, message: "Questo membro non ha una richiesta in attesa" };
+    }
+    if (member.league.status === "ACTIVE") {
+      return { success: false, message: "Non puoi accettare nuovi membri dopo l'avvio della lega" };
+    }
+    await prisma.leagueMember.update({
+      where: { id: memberId },
+      data: {
+        status: MemberStatus5.ACTIVE,
+        currentBudget: member.league.initialBudget
+      }
+    });
+    if (member.user?.email) {
+      const recipientEmail = member.user.email;
+      const leagueName = member.league.name;
+      const leagueUrl = `${process.env.FRONTEND_URL || "http://localhost:5173"}/leagues/${leagueId}`;
+      void (async () => {
+        try {
+          const emailSvc = await getEmailService();
+          if (emailSvc) {
+            await emailSvc.sendJoinRequestResponseEmail(
+              recipientEmail,
+              leagueName,
+              true,
+              // approved
+              leagueUrl
+            );
+          }
+        } catch {
+        }
+      })();
+    }
+    return { success: true, message: "Membro accettato" };
+  }
+  if (action === "reject" || action === "kick") {
+    await prisma.leagueMember.update({
+      where: { id: memberId },
+      data: { status: MemberStatus5.LEFT }
+    });
+    if (action === "reject" && member.user?.email) {
+      const recipientEmail = member.user.email;
+      const leagueName = member.league.name;
+      void (async () => {
+        try {
+          const emailSvc = await getEmailService();
+          if (emailSvc) {
+            await emailSvc.sendJoinRequestResponseEmail(
+              recipientEmail,
+              leagueName,
+              false
+              // rejected
+            );
+          }
+        } catch {
+        }
+      })();
+    }
+    if (action === "kick" && member.user?.email) {
+      const recipientEmail = member.user.email;
+      const leagueName = member.league.name;
+      void (async () => {
+        try {
+          const emailSvc = await getEmailService();
+          if (emailSvc) {
+            await emailSvc.sendMemberExpelledEmail(
+              recipientEmail,
+              leagueName
+            );
+          }
+        } catch {
+        }
+      })();
+    }
+    return {
+      success: true,
+      message: action === "reject" ? "Richiesta rifiutata" : "Membro rimosso"
+    };
+  }
+  return { success: false, message: "Azione non valida" };
+}
+async function startLeague(leagueId, adminUserId) {
+  const admin = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId: adminUserId,
+      role: MemberRole.ADMIN,
+      status: MemberStatus5.ACTIVE
+    }
+  });
+  if (!admin) {
+    return { success: false, message: "Non autorizzato" };
+  }
+  const league = await prisma.league.findUnique({
+    where: { id: leagueId },
+    include: {
+      members: {
+        where: { status: MemberStatus5.ACTIVE }
+      }
+    }
+  });
+  if (!league) {
+    return { success: false, message: "Lega non trovata" };
+  }
+  if (league.status !== "DRAFT") {
+    return { success: false, message: "La lega \xE8 gi\xE0 stata avviata" };
+  }
+  const activeMembers = league.members.length;
+  const PLATFORM_MIN_PARTICIPANTS = 6;
+  const minRequired = Math.max(PLATFORM_MIN_PARTICIPANTS, league.minParticipants ?? PLATFORM_MIN_PARTICIPANTS);
+  if (activeMembers < minRequired) {
+    return {
+      success: false,
+      message: `Servono almeno ${minRequired} partecipanti per avviare la lega (attualmente ${activeMembers})`
+    };
+  }
+  if (activeMembers > league.maxParticipants) {
+    return {
+      success: false,
+      message: `Troppi partecipanti: massimo ${league.maxParticipants} (attualmente ${activeMembers})`
+    };
+  }
+  if (league.requireEvenNumber && activeMembers % 2 !== 0) {
+    return {
+      success: false,
+      message: `Il numero di partecipanti deve essere pari (attualmente ${activeMembers})`
+    };
+  }
+  await prisma.league.update({
+    where: { id: leagueId },
+    data: { status: "ACTIVE" }
+  });
+  await prisma.leagueMember.updateMany({
+    where: {
+      leagueId,
+      status: MemberStatus5.PENDING
+    },
+    data: { status: MemberStatus5.LEFT }
+  });
+  return {
+    success: true,
+    message: "Lega avviata con successo!",
+    data: { participantsCount: activeMembers }
+  };
+}
+async function leaveLeague(leagueId, userId) {
+  const member = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId,
+      status: { in: [MemberStatus5.ACTIVE, MemberStatus5.PENDING] }
+    },
+    include: { league: true }
+  });
+  if (!member) {
+    return { success: false, message: "Non sei membro di questa lega" };
+  }
+  if (member.status === MemberStatus5.PENDING) {
+    await prisma.leagueMember.update({
+      where: { id: member.id },
+      data: { status: MemberStatus5.LEFT }
+    });
+    return { success: true, message: "Richiesta di partecipazione annullata" };
+  }
+  if (member.league.status === "ACTIVE") {
+    return { success: false, message: "Non puoi lasciare la lega dopo che \xE8 stata avviata" };
+  }
+  if (member.role === MemberRole.ADMIN) {
+    return { success: false, message: "L'admin non pu\xF2 lasciare la lega. Trasferisci il ruolo di admin o elimina la lega." };
+  }
+  await prisma.leagueMember.update({
+    where: { id: member.id },
+    data: { status: MemberStatus5.LEFT }
+  });
+  return { success: true, message: "Hai lasciato la lega" };
+}
+async function cancelJoinRequest(leagueId, userId) {
+  const member = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId,
+      status: MemberStatus5.PENDING
+    }
+  });
+  if (!member) {
+    return { success: false, message: "Nessuna richiesta pendente trovata" };
+  }
+  await prisma.leagueMember.update({
+    where: { id: member.id },
+    data: { status: MemberStatus5.LEFT }
+  });
+  return { success: true, message: "Richiesta di partecipazione annullata" };
+}
+async function updateLeague(leagueId, userId, input) {
+  const admin = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId,
+      role: MemberRole.ADMIN,
+      status: MemberStatus5.ACTIVE
+    }
+  });
+  if (!admin) {
+    return { success: false, message: "Non autorizzato" };
+  }
+  const league = await prisma.league.update({
+    where: { id: leagueId },
+    data: input
+  });
+  return {
+    success: true,
+    message: "Lega aggiornata",
+    data: league
+  };
+}
+async function updateLeagueImage(leagueId, userId, imageData) {
+  const admin = await prisma.leagueMember.findFirst({
+    where: { leagueId, userId, role: MemberRole.ADMIN, status: MemberStatus5.ACTIVE }
+  });
+  if (!admin) {
+    return { success: false, message: "Non autorizzato" };
+  }
+  if (!imageData) {
+    return { success: false, message: "Nessuna immagine fornita" };
+  }
+  if (!imageData.startsWith("data:image/")) {
+    return { success: false, message: "Formato immagine non valido" };
+  }
+  if (imageData.length > 7e5) {
+    return { success: false, message: "Immagine troppo grande (max 500KB)" };
+  }
+  const league = await prisma.league.update({
+    where: { id: leagueId },
+    data: { imageUrl: imageData },
+    select: { id: true, name: true, imageUrl: true }
+  });
+  return { success: true, message: "Immagine della lega aggiornata", data: league };
+}
+async function removeLeagueImage(leagueId, userId) {
+  const admin = await prisma.leagueMember.findFirst({
+    where: { leagueId, userId, role: MemberRole.ADMIN, status: MemberStatus5.ACTIVE }
+  });
+  if (!admin) {
+    return { success: false, message: "Non autorizzato" };
+  }
+  await prisma.league.update({
+    where: { id: leagueId },
+    data: { imageUrl: null }
+  });
+  return { success: true, message: "Immagine della lega rimossa" };
+}
+async function getLeagueIdentity(leagueId, userId) {
+  const membership = await prisma.leagueMember.findFirst({
+    where: { leagueId, userId, status: MemberStatus5.ACTIVE },
+    select: { id: true }
+  });
+  if (!membership) {
+    return { success: false, message: "Non autorizzato" };
+  }
+  const league = await prisma.league.findUnique({
+    where: { id: leagueId },
+    select: { id: true, name: true, imageUrl: true }
+  });
+  if (!league) {
+    return { success: false, message: "Lega non trovata" };
+  }
+  return { success: true, data: league };
+}
+async function getAllRosters(leagueId, userId) {
+  const membership = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId,
+      status: MemberStatus5.ACTIVE
+    }
+  });
+  if (!membership) {
+    return { success: false, message: "Non autorizzato" };
+  }
+  const activeContrattiSession = await prisma.marketSession.findFirst({
+    where: {
+      leagueId,
+      status: "ACTIVE",
+      currentPhase: "CONTRATTI"
+    }
+  });
+  const inContrattiPhase = !!activeContrattiSession;
+  const recurrentSession = await prisma.marketSession.findFirst({
+    where: { leagueId, type: "MERCATO_RICORRENTE" },
+    select: { id: true }
+  });
+  const firstMarketConcluded = !!recurrentSession;
+  const league = await prisma.league.findUnique({
+    where: { id: leagueId },
+    select: {
+      id: true,
+      name: true,
+      members: {
+        where: { status: MemberStatus5.ACTIVE },
+        select: {
+          id: true,
+          userId: true,
+          role: true,
+          teamName: true,
+          currentBudget: true,
+          totalSalaries: true,
+          user: {
+            select: {
+              username: true
+            }
+          },
+          roster: {
+            where: { status: "ACTIVE" },
+            select: {
+              id: true,
+              playerId: true,
+              acquisitionPrice: true,
+              acquisitionType: true,
+              player: {
+                select: {
+                  id: true,
+                  name: true,
+                  team: true,
+                  position: true,
+                  quotation: true,
+                  age: true,
+                  apiFootballId: true,
+                  apiFootballStats: true,
+                  statsSyncedAt: true,
+                  listStatus: true,
+                  exitReason: true
+                }
+              },
+              contract: {
+                select: {
+                  id: true,
+                  salary: true,
+                  duration: true,
+                  rescissionClause: true,
+                  signedAt: true,
+                  // Pre-consolidation values: during CONTRATTI we show the old contract
+                  preConsolidationSalary: true,
+                  preConsolidationDuration: true
+                }
+              }
+            },
+            orderBy: [
+              { player: { position: "asc" } },
+              { player: { name: "asc" } }
+            ]
+          }
+        }
+      }
+    }
+  });
+  if (!league) {
+    return { success: false, message: "Lega non trovata" };
+  }
+  const allPlayerIds = league.members.flatMap(
+    (m) => m.roster.map((r) => r.playerId)
+  );
+  const statsMap = await computeSeasonStatsBatch(allPlayerIds);
+  const processedMembers = league.members.map((member) => {
+    const processedRoster = member.roster.map((r) => {
+      let contract = r.contract;
+      if (inContrattiPhase && contract) {
+        const salary = contract.preConsolidationSalary ?? contract.salary;
+        const duration3 = contract.preConsolidationDuration ?? contract.duration;
+        contract = {
+          ...contract,
+          salary,
+          duration: duration3,
+          rescissionClause: calculateRescissionClause(salary, duration3)
+        };
+      }
+      return {
+        ...r,
+        player: {
+          ...r.player,
+          computedStats: statsMap.get(r.playerId) || null
+        },
+        contract
+      };
+    });
+    return {
+      ...member,
+      roster: processedRoster
+    };
+  });
+  return {
+    success: true,
+    data: {
+      id: league.id,
+      name: league.name,
+      members: processedMembers,
+      currentUserId: userId,
+      isAdmin: membership.role === MemberRole.ADMIN,
+      inContrattiPhase,
+      firstMarketConcluded
+    }
+  };
+}
+async function searchLeagues(userId, query) {
+  if (!query || query.trim().length < 2) {
+    return { success: false, message: "Inserisci almeno 2 caratteri per la ricerca" };
+  }
+  const searchTerm = query.trim();
+  const leagues = await prisma.league.findMany({
+    where: {
+      // Solo leghe pubbliche compaiono nei risultati di ricerca
+      isPublic: true,
+      OR: [
+        // Ricerca per nome lega
+        { name: { contains: searchTerm, mode: "insensitive" } },
+        // Ricerca per codice invito (primi 8 caratteri dell'ID)
+        { id: { startsWith: searchTerm } },
+        // Ricerca per username o email di membri
+        {
+          members: {
+            some: {
+              status: MemberStatus5.ACTIVE,
+              user: {
+                OR: [
+                  { username: { contains: searchTerm, mode: "insensitive" } },
+                  { email: { contains: searchTerm, mode: "insensitive" } }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    include: {
+      members: {
+        where: { status: MemberStatus5.ACTIVE },
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true
+            }
+          }
+        }
+      }
+    },
+    take: 20,
+    // Limita risultati
+    orderBy: { createdAt: "desc" }
+  });
+  const userMemberships = await prisma.leagueMember.findMany({
+    where: {
+      userId,
+      status: { in: [MemberStatus5.ACTIVE, MemberStatus5.PENDING] }
+    },
+    select: { leagueId: true }
+  });
+  const userLeagueIds = new Set(userMemberships.map((m) => m.leagueId));
+  const filteredLeagues = leagues.filter((league) => !userLeagueIds.has(league.id)).map((league) => {
+    const admin = league.members.find((m) => m.role === MemberRole.ADMIN);
+    return {
+      id: league.id,
+      name: league.name,
+      description: league.description,
+      inviteCode: league.id.substring(0, 8),
+      status: league.status,
+      maxParticipants: league.maxParticipants,
+      currentParticipants: league.members.length,
+      adminUsername: admin?.user.username || "N/A",
+      createdAt: league.createdAt
+    };
+  });
+  return {
+    success: true,
+    data: filteredLeagues
+  };
+}
+async function getLeagueFinancialsSnapshot(leagueId, membership, sessionId) {
+  const snapshots = await prisma.managerSessionSnapshot.findMany({
+    where: { marketSessionId: sessionId },
+    include: {
+      leagueMember: {
+        select: {
+          id: true,
+          teamName: true,
+          user: { select: { username: true } }
+        }
+      }
+    },
+    orderBy: { createdAt: "desc" }
+  });
+  if (snapshots.length === 0) {
+    return null;
+  }
+  const snapshotByMember = /* @__PURE__ */ new Map();
+  const priority = { PHASE_END: 3, PHASE_START: 2, SESSION_START: 1 };
+  for (const snap of snapshots) {
+    const existing = snapshotByMember.get(snap.leagueMemberId);
+    const snapPrio = priority[snap.snapshotType] || 0;
+    const existPrio = existing ? priority[existing.snapshotType] || 0 : 0;
+    if (!existing || snapPrio > existPrio) {
+      snapshotByMember.set(snap.leagueMemberId, snap);
+    }
+  }
+  const league = await prisma.league.findUnique({
+    where: { id: leagueId },
+    select: {
+      name: true,
+      goalkeeperSlots: true,
+      defenderSlots: true,
+      midfielderSlots: true,
+      forwardSlots: true
+    }
+  });
+  const maxSlots = league ? league.goalkeeperSlots + league.defenderSlots + league.midfielderSlots + league.forwardSlots : 25;
+  const session = await prisma.marketSession.findUnique({
+    where: { id: sessionId },
+    select: { type: true, currentPhase: true, status: true }
+  });
+  const teamsData = Array.from(snapshotByMember.values()).map((snap) => {
+    const budget = snap.budget;
+    const annualContractCost = snap.totalSalaries;
+    const slotCount = snap.contractCount;
+    return {
+      memberId: snap.leagueMemberId,
+      teamName: snap.leagueMember.teamName || snap.leagueMember.user.username,
+      username: snap.leagueMember.user.username,
+      budget,
+      annualContractCost,
+      totalContractCost: 0,
+      // Not available in snapshot
+      totalAcquisitionCost: 0,
+      // Not available in snapshot
+      slotCount,
+      slotsFree: maxSlots - slotCount,
+      maxSlots,
+      ageDistribution: { under20: 0, under25: 0, under30: 0, over30: 0, unknown: 0 },
+      positionDistribution: { P: 0, D: 0, C: 0, A: 0 },
+      players: [],
+      // Not available in snapshot
+      preRenewalContractCost: annualContractCost,
+      postRenewalContractCost: null,
+      costByPosition: {
+        P: { preRenewal: 0, postRenewal: null },
+        D: { preRenewal: 0, postRenewal: null },
+        C: { preRenewal: 0, postRenewal: null },
+        A: { preRenewal: 0, postRenewal: null }
+      },
+      isConsolidated: false,
+      consolidatedAt: null,
+      preConsolidationBudget: null,
+      totalReleaseCosts: snap.totalReleaseCosts ?? null,
+      totalIndemnities: snap.totalIndemnities ?? null,
+      totalRenewalCosts: snap.totalRenewalCosts ?? null
+    };
+  });
+  const marketSessions = await prisma.marketSession.findMany({
+    where: { leagueId },
+    select: { id: true, type: true, currentPhase: true, status: true, createdAt: true },
+    orderBy: { createdAt: "desc" }
+  });
+  return {
+    success: true,
+    data: {
+      leagueName: league?.name,
+      maxSlots,
+      teams: teamsData,
+      isAdmin: membership.role === MemberRole.ADMIN,
+      inContrattiPhase: false,
+      availableSessions: marketSessions.map((s) => ({
+        id: s.id,
+        sessionType: s.type,
+        currentPhase: s.currentPhase,
+        status: s.status,
+        createdAt: s.createdAt
+      })),
+      // Flag per il frontend: stiamo mostrando dati storici
+      isHistorical: true,
+      historicalSessionType: session?.type,
+      historicalPhase: session?.currentPhase
+    }
+  };
+}
+async function getLeagueFinancials(leagueId, userId, sessionId) {
+  try {
+    const membership = await prisma.leagueMember.findFirst({
+      where: {
+        leagueId,
+        userId,
+        status: MemberStatus5.ACTIVE
+      }
+    });
+    if (!membership) {
+      return { success: false, message: "Non sei membro di questa lega" };
+    }
+    if (sessionId) {
+      const snapshotResult = await getLeagueFinancialsSnapshot(leagueId, membership, sessionId);
+      if (snapshotResult) return snapshotResult;
+    }
+    const activeContrattiSession = await prisma.marketSession.findFirst({
+      where: {
+        leagueId,
+        status: "ACTIVE",
+        currentPhase: "CONTRATTI"
+      }
+    });
+    const inContrattiPhase = !!activeContrattiSession;
+    let consolidationMap = /* @__PURE__ */ new Map();
+    if (inContrattiPhase && activeContrattiSession) {
+      const consolidations = await prisma.contractConsolidation.findMany({
+        where: { sessionId: activeContrattiSession.id }
+      });
+      consolidationMap = new Map(consolidations.map((c) => [c.memberId, c.consolidatedAt]));
+    }
+    const activeAstaLiberaSession = await prisma.marketSession.findFirst({
+      where: {
+        leagueId,
+        status: "ACTIVE",
+        currentPhase: "ASTA_LIBERA"
+      }
+    });
+    const inAstaLiberaPhase = !!activeAstaLiberaSession;
+    const activeSession = await prisma.marketSession.findFirst({
+      where: { leagueId, status: "ACTIVE" },
+      orderBy: { createdAt: "desc" }
+    });
+    const phaseStartMap = /* @__PURE__ */ new Map();
+    const phaseEndMap = /* @__PURE__ */ new Map();
+    if (activeSession) {
+      const snapshots = await prisma.managerSessionSnapshot.findMany({
+        where: {
+          marketSessionId: activeSession.id,
+          snapshotType: { in: ["PHASE_START", "PHASE_END"] }
+        }
+      });
+      for (const snap of snapshots) {
+        if (snap.snapshotType === "PHASE_START") {
+          phaseStartMap.set(snap.leagueMemberId, {
+            budget: snap.budget,
+            totalSalaries: snap.totalSalaries,
+            contractCount: snap.contractCount
+          });
+        } else if (snap.snapshotType === "PHASE_END") {
+          phaseEndMap.set(snap.leagueMemberId, {
+            totalReleaseCosts: snap.totalReleaseCosts,
+            totalIndemnities: snap.totalIndemnities,
+            totalRenewalCosts: snap.totalRenewalCosts,
+            preConsolidationBudget: snap.budget
+          });
+        }
+      }
+    }
+    const snapshotMap = phaseEndMap;
+    const tradeBudgetMap = /* @__PURE__ */ new Map();
+    if (activeSession) {
+      const acceptedTrades = await prisma.tradeOffer.findMany({
+        where: {
+          marketSessionId: activeSession.id,
+          status: "ACCEPTED",
+          OR: [{ offeredBudget: { gt: 0 } }, { requestedBudget: { gt: 0 } }]
+        },
+        select: { senderId: true, receiverId: true, offeredBudget: true, requestedBudget: true }
+      });
+      for (const trade of acceptedTrades) {
+        const sKey = `user:${trade.senderId}`;
+        const rKey = `user:${trade.receiverId}`;
+        const sExisting = tradeBudgetMap.get(sKey) || { budgetIn: 0, budgetOut: 0 };
+        sExisting.budgetOut += trade.offeredBudget;
+        sExisting.budgetIn += trade.requestedBudget;
+        tradeBudgetMap.set(sKey, sExisting);
+        const rExisting = tradeBudgetMap.get(rKey) || { budgetIn: 0, budgetOut: 0 };
+        rExisting.budgetIn += trade.offeredBudget;
+        rExisting.budgetOut += trade.requestedBudget;
+        tradeBudgetMap.set(rKey, rExisting);
+      }
+    }
+    const releasedSalariesMap = /* @__PURE__ */ new Map();
+    if (inContrattiPhase && activeContrattiSession) {
+      const releaseHistory = await prisma.contractHistory.findMany({
+        where: {
+          marketSessionId: activeContrattiSession.id,
+          eventType: { in: ["RELEASE_NORMAL", "RELEASE_ESTERO", "RELEASE_RETROCESSO"] }
+        },
+        select: {
+          leagueMemberId: true,
+          previousSalary: true
+        }
+      });
+      for (const h of releaseHistory) {
+        const existing = releasedSalariesMap.get(h.leagueMemberId) || { totalSalary: 0, count: 0 };
+        existing.totalSalary += h.previousSalary || 0;
+        existing.count += 1;
+        releasedSalariesMap.set(h.leagueMemberId, existing);
+      }
+    }
+    const members = await prisma.leagueMember.findMany({
+      where: {
+        leagueId,
+        status: MemberStatus5.ACTIVE
+      },
+      include: {
+        user: {
+          select: { username: true }
+        },
+        roster: {
+          // Durante CONTRATTI, include anche RELEASED per mostrare stato pre-consolidamento
+          where: inContrattiPhase ? { status: { in: ["ACTIVE", "RELEASED"] } } : { status: "ACTIVE" },
+          select: {
+            status: true,
+            acquisitionPrice: true,
+            player: {
+              select: {
+                id: true,
+                name: true,
+                team: true,
+                position: true,
+                quotation: true,
+                age: true,
+                apiFootballId: true
+              }
+            },
+            contract: {
+              select: {
+                salary: true,
+                duration: true,
+                rescissionClause: true,
+                draftSalary: true,
+                draftDuration: true,
+                draftReleased: true,
+                // Pre-consolidation values for privacy during CONTRATTI phase
+                preConsolidationSalary: true,
+                preConsolidationDuration: true
+              }
+            }
+          }
+        }
+      },
+      orderBy: { teamName: "asc" }
+    });
+    const league = await prisma.league.findUnique({
+      where: { id: leagueId },
+      select: {
+        name: true,
+        goalkeeperSlots: true,
+        defenderSlots: true,
+        midfielderSlots: true,
+        forwardSlots: true
+      }
+    });
+    const maxSlots = league ? league.goalkeeperSlots + league.defenderSlots + league.midfielderSlots + league.forwardSlots : 25;
+    const allMembersConsolidated = inContrattiPhase ? members.every((m) => consolidationMap.has(m.id)) : false;
+    const teamsData = members.map((member) => {
+      const isConsolidated = consolidationMap.has(member.id);
+      const consolidatedAt = consolidationMap.get(member.id) || null;
+      const canSeeDraft = false;
+      const players = member.roster.map((r) => {
+        let preRenewalSalary;
+        if (inContrattiPhase && isConsolidated && r.contract?.preConsolidationSalary != null) {
+          preRenewalSalary = r.contract.preConsolidationSalary;
+        } else {
+          preRenewalSalary = r.contract?.salary || 0;
+        }
+        const postRenewalSalary = null;
+        let displaySalary;
+        if (inContrattiPhase && isConsolidated && r.contract?.preConsolidationSalary != null) {
+          displaySalary = r.contract.preConsolidationSalary;
+        } else {
+          displaySalary = r.contract?.salary || 0;
+        }
+        let displayDuration;
+        if (inContrattiPhase && isConsolidated && r.contract?.preConsolidationDuration != null) {
+          displayDuration = r.contract.preConsolidationDuration;
+        } else {
+          displayDuration = r.contract?.duration || 0;
+        }
+        return {
+          id: r.player.id,
+          name: r.player.name,
+          team: r.player.team,
+          position: r.player.position,
+          quotation: r.player.quotation,
+          age: r.player.age,
+          apiFootballId: r.player.apiFootballId,
+          salary: displaySalary,
+          duration: displayDuration,
+          clause: r.contract?.rescissionClause || 0,
+          // #193: Pre/Post renewal values
+          preRenewalSalary,
+          postRenewalSalary,
+          draftDuration: canSeeDraft ? r.contract?.draftDuration ?? null : null,
+          draftReleased: canSeeDraft ? r.contract?.draftReleased ?? false : false
+        };
+      });
+      let annualContractCost;
+      let slotCount;
+      const activePlayers = players.filter((p) => {
+        const rosterEntry = member.roster.find((r) => r.player.id === p.id);
+        return rosterEntry?.status === "ACTIVE";
+      });
+      if (inContrattiPhase && !allMembersConsolidated) {
+        const activeRosterSalaries = activePlayers.reduce((sum, p) => sum + p.preRenewalSalary, 0);
+        const releasedData2 = releasedSalariesMap.get(member.id);
+        const releasedSalaries2 = releasedData2?.totalSalary || 0;
+        const releasedCount = releasedData2?.count || 0;
+        annualContractCost = activeRosterSalaries + releasedSalaries2;
+        slotCount = activePlayers.length + releasedCount;
+      } else {
+        annualContractCost = member.totalSalaries;
+        slotCount = activePlayers.length;
+      }
+      const totalContractCost = players.reduce((sum, p) => sum + p.salary * p.duration, 0);
+      const releasedData = releasedSalariesMap.get(member.id);
+      const releasedSalaries = releasedData?.totalSalary || 0;
+      const basePreRenewalCost = players.filter((p) => {
+        const rosterEntry = member.roster.find((r) => r.player.id === p.id);
+        return rosterEntry?.status === "ACTIVE";
+      }).reduce((sum, p) => sum + p.preRenewalSalary, 0);
+      const preRenewalContractCost = basePreRenewalCost + releasedSalaries;
+      let postRenewalContractCost = null;
+      if (canSeeDraft) {
+        postRenewalContractCost = players.reduce((sum, p) => {
+          if (p.draftReleased) return sum;
+          return sum + (p.postRenewalSalary ?? p.preRenewalSalary);
+        }, 0);
+      }
+      const costByPosition = {
+        P: { preRenewal: 0, postRenewal: null },
+        D: { preRenewal: 0, postRenewal: null },
+        C: { preRenewal: 0, postRenewal: null },
+        A: { preRenewal: 0, postRenewal: null }
+      };
+      for (const p of players) {
+        const pos = p.position;
+        if (costByPosition[pos]) {
+          costByPosition[pos].preRenewal += p.preRenewalSalary;
+          if (canSeeDraft && !p.draftReleased) {
+            if (costByPosition[pos].postRenewal === null) {
+              costByPosition[pos].postRenewal = 0;
+            }
+            costByPosition[pos].postRenewal += p.postRenewalSalary ?? p.preRenewalSalary;
+          }
+        }
+      }
+      const under20 = players.filter((p) => p.age != null && p.age < 20).length;
+      const under25 = players.filter((p) => p.age != null && p.age >= 20 && p.age < 25).length;
+      const under30 = players.filter((p) => p.age != null && p.age >= 25 && p.age < 30).length;
+      const over30 = players.filter((p) => p.age != null && p.age >= 30).length;
+      const ageUnknown = players.filter((p) => p.age == null).length;
+      const byPosition = {
+        P: players.filter((p) => p.position === "P").length,
+        D: players.filter((p) => p.position === "D").length,
+        C: players.filter((p) => p.position === "C").length,
+        A: players.filter((p) => p.position === "A").length
+      };
+      let displayBudget;
+      if (member.preConsolidationBudget != null) {
+        displayBudget = member.preConsolidationBudget;
+      } else {
+        displayBudget = member.currentBudget;
+      }
+      const snapshot = snapshotMap.get(member.id);
+      const totalAcquisitionCost = member.roster.filter((r) => r.status === "ACTIVE").reduce((sum, r) => sum + (r.acquisitionPrice || 0), 0);
+      return {
+        memberId: member.id,
+        teamName: member.teamName || member.user.username,
+        username: member.user.username,
+        budget: displayBudget,
+        annualContractCost,
+        totalContractCost,
+        totalAcquisitionCost,
+        slotCount,
+        slotsFree: maxSlots - slotCount,
+        maxSlots,
+        ageDistribution: {
+          under20,
+          under25,
+          under30,
+          over30,
+          unknown: ageUnknown
+        },
+        positionDistribution: byPosition,
+        players,
+        // Include player details for drill-down
+        // #193: Pre/Post renewal data
+        preRenewalContractCost,
+        postRenewalContractCost,
+        costByPosition,
+        isConsolidated,
+        consolidatedAt,
+        // New: Detailed financial breakdown from session snapshot
+        preConsolidationBudget: member.preConsolidationBudget ?? snapshot?.preConsolidationBudget ?? null,
+        totalReleaseCosts: snapshot?.totalReleaseCosts ?? null,
+        totalIndemnities: snapshot?.totalIndemnities ?? null,
+        totalRenewalCosts: snapshot?.totalRenewalCosts ?? null,
+        // Trade budget transfers
+        tradeBudgetIn: tradeBudgetMap.get(`user:${member.userId}`)?.budgetIn ?? 0,
+        tradeBudgetOut: tradeBudgetMap.get(`user:${member.userId}`)?.budgetOut ?? 0,
+        // Budget reservation during ASTA_LIBERA (primo mercato)
+        ...inAstaLiberaPhase ? (() => {
+          const bilancio = displayBudget - annualContractCost;
+          const slotsFree = maxSlots - slotCount;
+          const slotReserve = slotsFree * 2;
+          return {
+            slotReserve,
+            availableBilancio: bilancio - slotReserve
+          };
+        })() : {}
+      };
+    });
+    const marketSessions = await prisma.marketSession.findMany({
+      where: { leagueId },
+      select: {
+        id: true,
+        type: true,
+        currentPhase: true,
+        status: true,
+        createdAt: true
+      },
+      orderBy: { createdAt: "desc" }
+    });
+    const availableSessions = marketSessions.map((s) => ({
+      id: s.id,
+      sessionType: s.type,
+      currentPhase: s.currentPhase,
+      status: s.status,
+      createdAt: s.createdAt
+    }));
+    return {
+      success: true,
+      data: {
+        leagueName: league?.name,
+        maxSlots,
+        teams: teamsData,
+        isAdmin: membership.role === MemberRole.ADMIN,
+        // #193: Phase info
+        inContrattiPhase,
+        // Budget reservation during primo mercato
+        inAstaLiberaPhase,
+        // OSS-6: Available sessions for phase selector
+        availableSessions
+      }
+    };
+  } catch (error46) {
+    return { success: false, message: `Errore nel caricamento dati finanziari: ${error46.message}` };
+  }
+}
+async function getFinancialTimeline(leagueId, userId, memberId) {
+  try {
+    const league = await prisma.league.findUnique({
+      where: { id: leagueId },
+      include: {
+        members: {
+          where: { status: MemberStatus5.ACTIVE },
+          include: { user: { select: { id: true, username: true } } }
+        }
+      }
+    });
+    if (!league) return { success: false, message: "Lega non trovata" };
+    const membership = league.members.find((m) => m.userId === userId);
+    if (!membership) return { success: false, message: "Non sei membro di questa lega" };
+    const targetMemberId = memberId || membership.id;
+    const targetMember = league.members.find((m) => m.id === targetMemberId);
+    if (!targetMember) return { success: false, message: "Membro non trovato" };
+    const contractHistory = await prisma.contractHistory.findMany({
+      where: { leagueMemberId: targetMemberId },
+      include: {
+        player: { select: { id: true, name: true, team: true, position: true, quotation: true, apiFootballId: true } },
+        marketSession: { select: { id: true, type: true, currentPhase: true, status: true, createdAt: true } }
+      },
+      orderBy: { createdAt: "desc" }
+    });
+    const snapshots = await prisma.managerSessionSnapshot.findMany({
+      where: { leagueMemberId: targetMemberId },
+      include: {
+        marketSession: { select: { id: true, type: true, currentPhase: true } }
+      },
+      orderBy: { createdAt: "asc" }
+    });
+    const trades = await prisma.tradeOffer.findMany({
+      where: {
+        marketSession: { leagueId },
+        status: TradeStatus.ACCEPTED,
+        OR: [
+          { senderId: targetMember.userId },
+          { receiverId: targetMember.userId }
+        ]
+      },
+      include: {
+        sender: { select: { id: true, username: true } },
+        receiver: { select: { id: true, username: true } },
+        marketSession: { select: { id: true, type: true, currentPhase: true } }
+      },
+      orderBy: { respondedAt: "desc" }
+    });
+    const EVENT_TYPE_LABELS = {
+      SESSION_START_SNAPSHOT: "Inizio Sessione",
+      DURATION_DECREMENT: "Decremento Durata",
+      AUTO_RELEASE_EXPIRED: "Svincolo Automatico",
+      RENEWAL: "Rinnovo",
+      SPALMA: "Spalma",
+      RELEASE_NORMAL: "Taglio",
+      RELEASE_ESTERO: "Taglio (Estero)",
+      RELEASE_RETROCESSO: "Taglio (Retrocesso)",
+      KEEP_ESTERO: "Mantenuto (Estero)",
+      KEEP_RETROCESSO: "Mantenuto (Retrocesso)",
+      INDEMNITY_RECEIVED: "Indennizzo Ricevuto"
+    };
+    const EVENT_TYPE_COLORS = {
+      SESSION_START_SNAPSHOT: "blue",
+      DURATION_DECREMENT: "gray",
+      AUTO_RELEASE_EXPIRED: "red",
+      RENEWAL: "amber",
+      SPALMA: "purple",
+      RELEASE_NORMAL: "red",
+      RELEASE_ESTERO: "red",
+      RELEASE_RETROCESSO: "red",
+      KEEP_ESTERO: "green",
+      KEEP_RETROCESSO: "green",
+      INDEMNITY_RECEIVED: "green"
+    };
+    const timelineEvents = contractHistory.map((ch) => ({
+      id: ch.id,
+      type: "contract",
+      eventType: ch.eventType,
+      label: EVENT_TYPE_LABELS[ch.eventType] || ch.eventType,
+      color: EVENT_TYPE_COLORS[ch.eventType] || "gray",
+      playerId: ch.player.id,
+      playerName: ch.player.name,
+      playerTeam: ch.player.team,
+      playerPosition: ch.player.position,
+      playerQuotation: ch.player.quotation,
+      playerApiFootballId: ch.player.apiFootballId,
+      previousSalary: ch.previousSalary,
+      previousDuration: ch.previousDuration,
+      previousClause: ch.previousClause,
+      newSalary: ch.newSalary,
+      newDuration: ch.newDuration,
+      newClause: ch.newClause,
+      cost: ch.cost,
+      income: ch.income,
+      notes: ch.notes,
+      sessionType: ch.marketSession.type,
+      sessionPhase: ch.marketSession.currentPhase,
+      createdAt: ch.createdAt.toISOString()
+    }));
+    const tradeEvents = trades.map((t) => {
+      const isSender = t.senderId === targetMember.userId;
+      return {
+        id: t.id,
+        type: "trade",
+        eventType: "TRADE",
+        label: "Scambio",
+        color: "purple",
+        isSender,
+        counterpart: isSender ? t.receiver.username : t.sender.username,
+        offeredBudget: t.offeredBudget,
+        requestedBudget: t.requestedBudget,
+        offeredPlayers: t.offeredPlayers,
+        requestedPlayers: t.requestedPlayers,
+        sessionType: t.marketSession.type,
+        sessionPhase: t.marketSession.currentPhase,
+        createdAt: (t.respondedAt || t.createdAt).toISOString()
+      };
+    });
+    const trendData = snapshots.map((s) => ({
+      id: s.id,
+      type: s.snapshotType,
+      budget: s.budget,
+      totalSalaries: s.totalSalaries,
+      balance: s.balance,
+      totalIndemnities: s.totalIndemnities,
+      totalReleaseCosts: s.totalReleaseCosts,
+      contractCount: s.contractCount,
+      sessionType: s.marketSession.type,
+      sessionPhase: s.marketSession.currentPhase,
+      createdAt: s.createdAt.toISOString()
+    }));
+    return {
+      success: true,
+      data: {
+        memberId: targetMemberId,
+        teamName: targetMember.teamName,
+        username: targetMember.user.username,
+        events: [...timelineEvents, ...tradeEvents].sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        ),
+        trendData
+      }
+    };
+  } catch (error46) {
+    return { success: false, message: `Errore nel caricamento timeline: ${error46.message}` };
+  }
+}
+async function getFinancialTrends(leagueId, userId) {
+  try {
+    const league = await prisma.league.findUnique({
+      where: { id: leagueId },
+      include: {
+        members: {
+          where: { status: MemberStatus5.ACTIVE },
+          select: { id: true, userId: true, teamName: true }
+        }
+      }
+    });
+    if (!league) return { success: false, message: "Lega non trovata" };
+    const membership = league.members.find((m) => m.userId === userId);
+    if (!membership) return { success: false, message: "Non sei membro di questa lega" };
+    const allSnapshots = await prisma.managerSessionSnapshot.findMany({
+      where: {
+        leagueMemberId: { in: league.members.map((m) => m.id) }
+      },
+      include: {
+        marketSession: { select: { id: true, type: true, currentPhase: true } }
+      },
+      orderBy: { createdAt: "asc" }
+    });
+    const memberMap = new Map(league.members.map((m) => [m.id, m]));
+    const trends = {};
+    for (const snap of allSnapshots) {
+      const member = memberMap.get(snap.leagueMemberId);
+      if (!member) continue;
+      const key = member.teamName ?? member.id;
+      if (!trends[key]) trends[key] = [];
+      trends[key]?.push({
+        snapshotType: snap.snapshotType,
+        budget: snap.budget,
+        totalSalaries: snap.totalSalaries,
+        balance: snap.balance,
+        sessionType: snap.marketSession.type,
+        sessionPhase: snap.marketSession.currentPhase,
+        createdAt: snap.createdAt.toISOString()
+      });
+    }
+    return {
+      success: true,
+      data: { trends }
+    };
+  } catch (error46) {
+    return { success: false, message: `Errore nel caricamento trends: ${error46.message}` };
+  }
+}
+async function getStrategySummary(leagueId, userId) {
+  try {
+    const member = await prisma.leagueMember.findFirst({
+      where: {
+        leagueId,
+        userId,
+        status: MemberStatus5.ACTIVE
+      }
+    });
+    if (!member) {
+      return { success: false, message: "Non sei membro di questa lega" };
+    }
+    const counts = await prisma.rubataPreference.groupBy({
+      by: ["watchlistCategory"],
+      where: { memberId: member.id, isWatchlist: true },
+      _count: true
+    });
+    const topPriority = await prisma.rubataPreference.count({
+      where: { memberId: member.id, priority: { gte: 8 } }
+    });
+    let targets = 0;
+    let watching = 0;
+    let toSell = 0;
+    let total = 0;
+    for (const row of counts) {
+      const count = row._count;
+      total += count;
+      switch (row.watchlistCategory) {
+        case "DA_RUBARE":
+          targets += count;
+          break;
+        case "SOTTO_OSSERVAZIONE":
+          watching += count;
+          break;
+        case "DA_VENDERE":
+          toSell += count;
+          break;
+      }
+    }
+    return {
+      success: true,
+      data: { targets, topPriority, watching, toSell, total }
+    };
+  } catch (error46) {
+    return { success: false, message: `Errore nel caricamento strategie: ${error46.message}` };
+  }
+}
+
+// src/api/routes/leagues.ts
+var router3 = (0, import_express3.Router)();
+router3.post("/", authMiddleware, async (req, res) => {
+  try {
+    const validation = createLeagueSchema.safeParse(req.body);
+    if (!validation.success) {
+      res.status(400).json({
+        success: false,
+        message: "Dati non validi",
+        errors: validation.error.issues
+      });
+      return;
+    }
+    const result = await createLeague(req.user.userId, validation.data);
+    if (!result.success) {
+      res.status(400).json(result);
+      return;
+    }
+    res.status(201).json(result);
+  } catch (error46) {
+    console.error("Create league error:", error46);
+    res.status(500).json({ success: false, message: "Errore interno del server" });
+  }
+});
+router3.get("/", authMiddleware, async (req, res) => {
+  try {
+    const result = await getLeaguesByUser(req.user.userId);
+    res.json(result);
+  } catch (error46) {
+    console.error("Get leagues error:", error46);
+    res.status(500).json({ success: false, message: "Errore interno del server" });
+  }
+});
+router3.get("/dashboard-summary", authMiddleware, async (req, res) => {
+  try {
+    const result = await getDashboardSummary(req.user.userId);
+    res.json(result);
+  } catch (error46) {
+    console.error("Dashboard summary error:", error46);
+    res.status(500).json({ success: false, message: "Errore interno del server" });
+  }
+});
+router3.get("/join/:code", optionalAuthMiddleware, async (req, res) => {
+  try {
+    const code = req.params.code;
+    const result = await getLeagueByInviteCode(code);
+    if (!result.success) {
+      res.status(404).json(result);
+      return;
+    }
+    res.json(result);
+  } catch (error46) {
+    console.error("Get league by invite error:", error46);
+    res.status(500).json({ success: false, message: "Errore interno del server" });
+  }
+});
+router3.get("/search", authMiddleware, async (req, res) => {
+  try {
+    const query = req.query.q;
+    const result = await searchLeagues(req.user.userId, query);
+    if (!result.success) {
+      res.status(400).json(result);
+      return;
+    }
+    res.json(result);
+  } catch (error46) {
+    console.error("Search leagues error:", error46);
+    res.status(500).json({ success: false, message: "Errore interno del server" });
+  }
+});
+router3.get("/:id", authMiddleware, async (req, res) => {
+  try {
+    const id = req.params.id;
+    const result = await getLeagueById(id, req.user.userId);
+    if (!result.success) {
+      res.status(404).json(result);
+      return;
+    }
+    res.json(result);
+  } catch (error46) {
+    console.error("Get league error:", error46);
+    res.status(500).json({ success: false, message: "Errore interno del server" });
+  }
+});
+router3.put("/:id", authMiddleware, async (req, res) => {
+  try {
+    const id = req.params.id;
+    const validation = updateLeagueSchema.safeParse(req.body);
+    if (!validation.success) {
+      res.status(400).json({
+        success: false,
+        message: "Dati non validi",
+        errors: validation.error.issues
+      });
+      return;
+    }
+    const result = await updateLeague(id, req.user.userId, validation.data);
+    if (!result.success) {
+      res.status(result.message === "Non autorizzato" ? 403 : 400).json(result);
+      return;
+    }
+    res.json(result);
+  } catch (error46) {
+    console.error("Update league error:", error46);
+    res.status(500).json({ success: false, message: "Errore interno del server" });
+  }
+});
+router3.put("/:id/image", authMiddleware, async (req, res) => {
+  try {
+    const id = req.params.id;
+    const { imageData } = req.body;
+    if (!imageData) {
+      res.status(400).json({ success: false, message: "Nessuna immagine fornita" });
+      return;
+    }
+    const result = await updateLeagueImage(id, req.user.userId, imageData);
+    if (!result.success) {
+      res.status(result.message === "Non autorizzato" ? 403 : 400).json(result);
+      return;
+    }
+    res.json(result);
+  } catch (error46) {
+    console.error("Update league image error:", error46);
+    res.status(500).json({ success: false, message: "Errore interno del server" });
+  }
+});
+router3.delete("/:id/image", authMiddleware, async (req, res) => {
+  try {
+    const id = req.params.id;
+    const result = await removeLeagueImage(id, req.user.userId);
+    if (!result.success) {
+      res.status(result.message === "Non autorizzato" ? 403 : 400).json(result);
+      return;
+    }
+    res.json(result);
+  } catch (error46) {
+    console.error("Remove league image error:", error46);
+    res.status(500).json({ success: false, message: "Errore interno del server" });
+  }
+});
+router3.get("/:id/identity", authMiddleware, async (req, res) => {
+  try {
+    const id = req.params.id;
+    const result = await getLeagueIdentity(id, req.user.userId);
+    if (!result.success) {
+      res.status(result.message === "Non autorizzato" ? 403 : 404).json(result);
+      return;
+    }
+    res.json(result);
+  } catch (error46) {
+    console.error("Get league identity error:", error46);
+    res.status(500).json({ success: false, message: "Errore interno del server" });
+  }
+});
+router3.post("/:id/join", authMiddleware, async (req, res) => {
+  try {
+    const id = req.params.id;
+    const { teamName } = req.body;
+    const result = await requestJoinLeague(id, req.user.userId, teamName);
+    if (!result.success) {
+      res.status(400).json(result);
+      return;
+    }
+    res.status(201).json(result);
+  } catch (error46) {
+    console.error("Join league error:", error46);
+    res.status(500).json({ success: false, message: "Errore interno del server" });
+  }
+});
+router3.get("/:id/members", authMiddleware, async (req, res) => {
+  try {
+    const id = req.params.id;
+    const result = await getLeagueMembers(id, req.user.userId);
+    if (!result.success) {
+      res.status(404).json(result);
+      return;
+    }
+    res.json(result);
+  } catch (error46) {
+    console.error("Get members error:", error46);
+    res.status(500).json({ success: false, message: "Errore interno del server" });
+  }
+});
+router3.get("/:id/pending-requests", authMiddleware, async (req, res) => {
+  try {
+    const id = req.params.id;
+    const result = await getPendingJoinRequests(id, req.user.userId);
+    if (!result.success) {
+      res.status(result.message === "Non autorizzato" ? 403 : 404).json(result);
+      return;
+    }
+    res.json(result);
+  } catch (error46) {
+    console.error("Get pending requests error:", error46);
+    res.status(500).json({ success: false, message: "Errore interno del server" });
+  }
+});
+router3.get("/:id/rosters", authMiddleware, async (req, res) => {
+  try {
+    const id = req.params.id;
+    const result = await getAllRosters(id, req.user.userId);
+    if (!result.success) {
+      res.status(403).json(result);
+      return;
+    }
+    res.json(result);
+  } catch (error46) {
+    console.error("Get rosters error:", error46);
+    res.status(500).json({ success: false, message: "Errore interno del server" });
+  }
+});
+router3.put("/:id/members/:memberId", authMiddleware, async (req, res) => {
+  try {
+    const id = req.params.id;
+    const memberId = req.params.memberId;
+    const { action } = req.body;
+    if (!action || !["accept", "reject", "kick"].includes(action)) {
+      res.status(400).json({ success: false, message: "Azione non valida" });
+      return;
+    }
+    const result = await updateMemberStatus(
+      id,
+      memberId,
+      req.user.userId,
+      action
+    );
+    if (!result.success) {
+      res.status(result.message === "Non autorizzato" ? 403 : 400).json(result);
+      return;
+    }
+    res.json(result);
+  } catch (error46) {
+    console.error("Update member error:", error46);
+    res.status(500).json({ success: false, message: "Errore interno del server" });
+  }
+});
+router3.post("/:id/start", authMiddleware, async (req, res) => {
+  try {
+    const id = req.params.id;
+    const result = await startLeague(id, req.user.userId);
+    if (!result.success) {
+      res.status(result.message === "Non autorizzato" ? 403 : 400).json(result);
+      return;
+    }
+    res.json(result);
+  } catch (error46) {
+    console.error("Start league error:", error46);
+    res.status(500).json({ success: false, message: "Errore interno del server" });
+  }
+});
+router3.post("/:id/leave", authMiddleware, async (req, res) => {
+  try {
+    const id = req.params.id;
+    const result = await leaveLeague(id, req.user.userId);
+    if (!result.success) {
+      res.status(400).json(result);
+      return;
+    }
+    res.json(result);
+  } catch (error46) {
+    console.error("Leave league error:", error46);
+    res.status(500).json({ success: false, message: "Errore interno del server" });
+  }
+});
+router3.post("/:id/cancel-request", authMiddleware, async (req, res) => {
+  try {
+    const id = req.params.id;
+    const result = await cancelJoinRequest(id, req.user.userId);
+    if (!result.success) {
+      res.status(400).json(result);
+      return;
+    }
+    res.json(result);
+  } catch (error46) {
+    console.error("Cancel join request error:", error46);
+    res.status(500).json({ success: false, message: "Errore interno del server" });
+  }
+});
+router3.get("/:id/financials/timeline", authMiddleware, async (req, res) => {
+  try {
+    const id = req.params.id;
+    const memberId = req.query.memberId;
+    const result = await getFinancialTimeline(id, req.user.userId, memberId);
+    if (!result.success) {
+      res.status(result.message === "Non sei membro di questa lega" ? 403 : 404).json(result);
+      return;
+    }
+    res.json(result);
+  } catch (error46) {
+    console.error("Get financial timeline error:", error46);
+    res.status(500).json({ success: false, message: "Errore interno del server" });
+  }
+});
+router3.get("/:id/financials/trends", authMiddleware, async (req, res) => {
+  try {
+    const id = req.params.id;
+    const result = await getFinancialTrends(id, req.user.userId);
+    if (!result.success) {
+      res.status(result.message === "Non sei membro di questa lega" ? 403 : 404).json(result);
+      return;
+    }
+    res.json(result);
+  } catch (error46) {
+    console.error("Get financial trends error:", error46);
+    res.status(500).json({ success: false, message: "Errore interno del server" });
+  }
+});
+router3.get("/:id/financials", authMiddleware, async (req, res) => {
+  try {
+    const id = req.params.id;
+    const sessionId = req.query.sessionId;
+    const result = await getLeagueFinancials(id, req.user.userId, sessionId);
+    if (!result.success) {
+      res.status(result.message === "Non sei membro di questa lega" ? 403 : 404).json(result);
+      return;
+    }
+    res.json(result);
+  } catch (error46) {
+    console.error("Get league financials error:", error46);
+    res.status(500).json({ success: false, message: "Errore interno del server" });
+  }
+});
+router3.get("/:id/strategy-summary", authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await getStrategySummary(id, req.user.userId);
+    if (!result.success) {
+      res.status(result.message === "Non sei membro di questa lega" ? 403 : 400).json(result);
+      return;
+    }
+    res.json(result);
+  } catch (error46) {
+    console.error("Get strategy summary error:", error46);
+    res.status(500).json({ success: false, message: "Errore interno del server" });
+  }
+});
+var leagues_default = router3;
+
+// src/api/routes/players.ts
+var import_express4 = __toESM(require_express2(), 1);
+init_prisma();
+
+// src/services/player.service.ts
+init_prisma();
+async function getPlayers(filters = {}) {
+  const where = {
+    isActive: true
+  };
+  if (filters.available) {
+    where.listStatus = "IN_LIST";
+  }
+  if (filters.position) {
+    where.position = filters.position;
+  }
+  if (filters.team) {
+    where.team = filters.team;
+  }
+  if (filters.search) {
+    where.OR = [
+      { name: { contains: filters.search, mode: "insensitive" } },
+      { team: { contains: filters.search, mode: "insensitive" } }
+    ];
+  }
+  const players = await prisma.serieAPlayer.findMany({
+    where,
+    orderBy: [
+      { quotation: "desc" },
+      { name: "asc" }
+    ]
+  });
+  if (filters.available && filters.leagueId) {
+    const rosteredPlayerIds = await prisma.playerRoster.findMany({
+      where: {
+        leagueMember: {
+          leagueId: filters.leagueId
+        },
+        status: "ACTIVE"
+      },
+      select: {
+        playerId: true
+      }
+    });
+    const rosteredIds = new Set(rosteredPlayerIds.map((r) => r.playerId));
+    return players.filter((p) => !rosteredIds.has(p.id));
+  }
+  return players;
+}
+async function getPlayerById(playerId) {
+  return prisma.serieAPlayer.findUnique({
+    where: { id: playerId }
+  });
+}
+async function getTeams() {
+  const teams = await prisma.serieAPlayer.groupBy({
+    by: ["team"],
+    _count: true,
+    orderBy: {
+      team: "asc"
+    }
+  });
+  return teams.map((t) => ({
+    name: t.team,
+    playerCount: t._count
+  }));
+}
+
+// src/api/routes/players.ts
+var router4 = (0, import_express4.Router)();
+router4.get("/", authMiddleware, async (req, res) => {
+  try {
+    const { position, team, search, available, leagueId } = req.query;
+    const filters = {};
+    if (position && ["P", "D", "C", "A"].includes(position)) {
+      filters.position = position;
+    }
+    if (team) {
+      filters.team = team;
+    }
+    if (search) {
+      filters.search = search;
+    }
+    if (available === "true" && leagueId) {
+      filters.available = true;
+      filters.leagueId = leagueId;
+    }
+    const players = await getPlayers(filters);
+    const statsMap = await computeSeasonStatsBatch(players.map((p) => p.id));
+    const enrichedPlayers = players.map((p) => {
+      const stats = p.apiFootballStats;
+      return {
+        ...p,
+        appearances: stats?.games?.appearences ?? null,
+        goals: stats?.goals?.total ?? null,
+        assists: stats?.goals?.assists ?? null,
+        avgRating: stats?.games?.rating ? Math.round(stats.games.rating * 10) / 10 : null,
+        computedStats: statsMap.get(p.id) || null
+      };
+    });
+    res.json({
+      success: true,
+      data: enrichedPlayers
+    });
+  } catch (error46) {
+    console.error("Get players error:", error46);
+    res.status(500).json({ success: false, message: "Errore interno del server" });
+  }
+});
+router4.get("/teams", authMiddleware, async (_req, res) => {
+  try {
+    const teams = await getTeams();
+    res.json({
+      success: true,
+      data: teams
+    });
+  } catch (error46) {
+    console.error("Get teams error:", error46);
+    res.status(500).json({ success: false, message: "Errore interno del server" });
+  }
+});
+router4.get("/stats", authMiddleware, async (req, res) => {
+  try {
+    const { position, team, search, sortBy, sortOrder, page, limit } = req.query;
+    const where = {
+      isActive: true
+    };
+    if (position && ["P", "D", "C", "A"].includes(position)) {
+      where.position = position;
+    }
+    if (team) {
+      where.team = team;
+    }
+    if (search) {
+      where.name = { contains: search, mode: "insensitive" };
+    }
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(100, Math.max(10, parseInt(limit) || 50));
+    const skip = (pageNum - 1) * limitNum;
+    const total = await prisma.serieAPlayer.count({ where });
+    const players = await prisma.serieAPlayer.findMany({
+      where,
+      select: {
+        id: true,
+        name: true,
+        team: true,
+        position: true,
+        quotation: true,
+        apiFootballId: true,
+        apiFootballStats: true,
+        statsSyncedAt: true
+      },
+      // Keep the user-selected criterion; add role+name as coherent tiebreaker
+      orderBy: sortBy === "quotation" ? [{ quotation: sortOrder === "asc" ? "asc" : "desc" }, { position: "asc" }, { name: "asc" }] : sortBy === "team" ? [{ team: sortOrder === "asc" ? "asc" : "desc" }, { position: "asc" }, { name: "asc" }] : sortBy === "position" ? [{ position: sortOrder === "asc" ? "asc" : "desc" }, { name: "asc" }] : [{ name: sortOrder === "asc" ? "asc" : "desc" }, { position: "asc" }],
+      skip,
+      take: limitNum
+    });
+    const statsMap = await computeSeasonStatsBatch(players.map((p) => p.id));
+    const playersWithStats = players.map((p) => {
+      const stats = p.apiFootballStats;
+      return {
+        id: p.id,
+        name: p.name,
+        team: p.team,
+        position: p.position,
+        quotation: p.quotation,
+        apiFootballId: p.apiFootballId,
+        statsSyncedAt: p.statsSyncedAt,
+        computedStats: statsMap.get(p.id) || null,
+        stats: stats ? {
+          appearances: stats.games?.appearences ?? 0,
+          minutes: stats.games?.minutes ?? 0,
+          rating: stats.games?.rating ?? null,
+          goals: stats.goals?.total ?? 0,
+          assists: stats.goals?.assists ?? 0,
+          yellowCards: stats.cards?.yellow ?? 0,
+          redCards: stats.cards?.red ?? 0,
+          passesTotal: stats.passes?.total ?? 0,
+          passesKey: stats.passes?.key ?? 0,
+          passAccuracy: stats.passes?.accuracy ?? null,
+          shotsTotal: stats.shots?.total ?? 0,
+          shotsOn: stats.shots?.on ?? 0,
+          tacklesTotal: stats.tackles?.total ?? 0,
+          interceptions: stats.tackles?.interceptions ?? 0,
+          dribblesAttempts: stats.dribbles?.attempts ?? 0,
+          dribblesSuccess: stats.dribbles?.success ?? 0,
+          penaltyScored: stats.penalty?.scored ?? 0,
+          penaltyMissed: stats.penalty?.missed ?? 0
+        } : null
+      };
+    });
+    res.json({
+      success: true,
+      data: {
+        players: playersWithStats,
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total,
+          totalPages: Math.ceil(total / limitNum)
+        }
+      }
+    });
+  } catch (error46) {
+    console.error("Get player stats error:", error46);
+    res.status(500).json({ success: false, message: "Errore interno del server" });
+  }
+});
+router4.get("/:apiFootballId/match-history", authMiddleware, async (req, res) => {
+  try {
+    const apiFootballId = parseInt(req.params.apiFootballId);
+    if (isNaN(apiFootballId)) {
+      res.status(400).json({ success: false, message: "apiFootballId non valido" });
+      return;
+    }
+    const player = await prisma.serieAPlayer.findFirst({
+      where: { apiFootballId },
+      select: { id: true }
+    });
+    if (!player) {
+      res.status(404).json({ success: false, message: "Giocatore non trovato" });
+      return;
+    }
+    const matches = await prisma.playerMatchRating.findMany({
+      where: { playerId: player.id },
+      orderBy: { matchDate: "desc" },
+      select: {
+        matchDate: true,
+        round: true,
+        rating: true,
+        minutesPlayed: true,
+        goals: true,
+        assists: true
+      }
+    });
+    res.json({
+      success: true,
+      data: matches.map((m) => ({
+        matchDate: m.matchDate.toISOString().split("T")[0],
+        round: m.round ?? "",
+        rating: m.rating,
+        minutesPlayed: m.minutesPlayed ?? 0,
+        goals: m.goals ?? 0,
+        assists: m.assists ?? 0
+      }))
+    });
+  } catch (error46) {
+    console.error("Get player match history error:", error46);
+    res.status(500).json({ success: false, message: "Errore interno del server" });
+  }
+});
+router4.get("/:id", authMiddleware, async (req, res) => {
+  try {
+    const id = req.params.id;
+    const player = await getPlayerById(id);
+    if (!player) {
+      res.status(404).json({ success: false, message: "Giocatore non trovato" });
+      return;
+    }
+    res.json({
+      success: true,
+      data: player
+    });
+  } catch (error46) {
+    console.error("Get player error:", error46);
+    res.status(500).json({ success: false, message: "Errore interno del server" });
+  }
+});
+var players_default = router4;
+
+// src/api/routes/auctions.ts
+var import_express5 = __toESM(require_express2(), 1);
+
+// src/services/auction.service.ts
+init_prisma();
+import { AuctionStatus, AuctionType, MemberRole as MemberRole2, MemberStatus as MemberStatus7, AcquisitionType as AcquisitionType2, RosterStatus as RosterStatus4, Position, Prisma as Prisma2 } from "@prisma/client";
 
 // src/services/indemnity-phase.service.ts
 init_prisma();
@@ -290161,62 +290271,6 @@ async function autoReleaseRitiratiPlayers(leagueId, sessionId) {
     });
   }
   return { released: releasedNames.length, players: releasedNames };
-}
-
-// src/utils/db-retry.ts
-var DEFAULT_OPTIONS = {
-  maxRetries: 3,
-  initialDelayMs: 1e3,
-  maxDelayMs: 1e4,
-  backoffMultiplier: 2
-};
-var RETRYABLE_ERROR_CODES = [
-  "P1001",
-  // Can't reach database server
-  "P1002",
-  // Database server timed out
-  "P1008",
-  // Operations timed out
-  "P1017",
-  // Server has closed the connection
-  "P2024"
-  // Timed out fetching a new connection from the connection pool
-];
-function isRetryableError(error46) {
-  if (error46 && typeof error46 === "object" && "code" in error46) {
-    const code = error46.code;
-    return RETRYABLE_ERROR_CODES.includes(code);
-  }
-  return false;
-}
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-async function withRetry(operation, options = {}) {
-  const opts = { ...DEFAULT_OPTIONS, ...options };
-  let lastError;
-  let delay = opts.initialDelayMs;
-  for (let attempt = 1; attempt <= opts.maxRetries + 1; attempt++) {
-    try {
-      return await operation();
-    } catch (error46) {
-      lastError = error46;
-      if (!isRetryableError(error46)) {
-        throw error46;
-      }
-      if (attempt > opts.maxRetries) {
-        console.error(`[DB-RETRY] Tutti i ${opts.maxRetries} tentativi falliti`);
-        throw error46;
-      }
-      console.warn(
-        `[DB-RETRY] Tentativo ${attempt}/${opts.maxRetries} fallito, riprovo tra ${delay}ms...`,
-        error46.code
-      );
-      await sleep(delay);
-      delay = Math.min(delay * opts.backoffMultiplier, opts.maxDelayMs);
-    }
-  }
-  throw lastError;
 }
 
 // src/services/notification.service.ts
@@ -290503,6 +290557,9 @@ async function getRecentLogs(options = {}) {
 }
 
 // src/services/auction.service.ts
+var ConcurrentBidError = class extends Error {
+};
+var MAX_BID_ATTEMPTS = 5;
 function enrichPlayerWithStats(player) {
   const stats = player.apiFootballStats;
   return {
@@ -290913,6 +290970,12 @@ async function setMarketPhase(sessionId, adminUserId, phase) {
       }
     });
   }
+  if (session.currentPhase === "OFFERTE_PRE_RINNOVO" && phase !== "OFFERTE_PRE_RINNOVO" || session.currentPhase === "OFFERTE_POST_ASTA_SVINCOLATI" && phase !== "OFFERTE_POST_ASTA_SVINCOLATI") {
+    await prisma.tradeOffer.updateMany({
+      where: { marketSessionId: sessionId, status: "PENDING" },
+      data: { status: "EXPIRED" }
+    });
+  }
   const updatedSession = await prisma.marketSession.update({
     where: { id: sessionId },
     data: {
@@ -291035,7 +291098,7 @@ async function closeAuctionSession(sessionId, adminUserId) {
     });
     for (const roster of rostersWithoutContracts) {
       const salary = calculateDefaultSalary(roster.acquisitionPrice);
-      const duration3 = 3;
+      const duration3 = DEFAULT_CONTRACT_DURATION;
       const rescissionClause = calculateRescissionClause(salary, duration3);
       await prisma.playerContract.create({
         data: {
@@ -291049,6 +291112,17 @@ async function closeAuctionSession(sessionId, adminUserId) {
         }
       });
       contractsCreated++;
+    }
+    const salaryByMember = await prisma.playerContract.groupBy({
+      by: ["leagueMemberId"],
+      where: { leagueMember: { leagueId: session.leagueId, status: MemberStatus7.ACTIVE } },
+      _sum: { salary: true }
+    });
+    for (const row of salaryByMember) {
+      await prisma.leagueMember.update({
+        where: { id: row.leagueMemberId },
+        data: { totalSalaries: row._sum.salary || 0 }
+      });
     }
   }
   await prisma.marketSession.update({
@@ -291280,100 +291354,108 @@ async function getCurrentAuction(sessionId, userId) {
   if (auction && auction.timerExpiresAt && /* @__PURE__ */ new Date() > auction.timerExpiresAt) {
     const winningBid = auction.bids.find((b) => b.isWinning);
     if (winningBid) {
-      const rosterEntry = await prisma.playerRoster.create({
-        data: {
-          leagueMemberId: winningBid.bidderId,
-          playerId: auction.playerId,
-          acquisitionPrice: winningBid.amount,
-          acquisitionType: AcquisitionType2.FIRST_MARKET,
-          status: RosterStatus4.ACTIVE
-        }
-      });
       const salary = calculateDefaultSalary(winningBid.amount);
-      const duration3 = 3;
+      const duration3 = DEFAULT_CONTRACT_DURATION;
       const rescissionClause = calculateRescissionClause(salary, duration3);
-      await prisma.playerContract.create({
-        data: {
-          rosterId: rosterEntry.id,
-          leagueMemberId: winningBid.bidderId,
-          salary,
-          duration: duration3,
-          initialSalary: salary,
-          initialDuration: duration3,
-          rescissionClause
-        }
+      const claimed = await prisma.$transaction(async (tx) => {
+        const claim = await tx.auction.updateMany({
+          where: { id: auction.id, status: AuctionStatus.ACTIVE },
+          data: {
+            status: AuctionStatus.COMPLETED,
+            winnerId: winningBid.bidderId,
+            endsAt: /* @__PURE__ */ new Date()
+          }
+        });
+        if (claim.count === 0) return false;
+        const rosterEntry = await tx.playerRoster.create({
+          data: {
+            leagueMemberId: winningBid.bidderId,
+            playerId: auction.playerId,
+            acquisitionPrice: winningBid.amount,
+            acquisitionType: AcquisitionType2.FIRST_MARKET,
+            status: RosterStatus4.ACTIVE
+          }
+        });
+        await tx.playerContract.create({
+          data: {
+            rosterId: rosterEntry.id,
+            leagueMemberId: winningBid.bidderId,
+            salary,
+            duration: duration3,
+            initialSalary: salary,
+            initialDuration: duration3,
+            rescissionClause
+          }
+        });
+        await tx.leagueMember.update({
+          where: { id: winningBid.bidderId },
+          data: {
+            currentBudget: { decrement: winningBid.amount }
+          }
+        });
+        return true;
       });
-      await prisma.leagueMember.update({
-        where: { id: winningBid.bidderId },
-        data: {
-          currentBudget: { decrement: winningBid.amount }
-        }
-      });
-      await prisma.auction.update({
-        where: { id: auction.id },
-        data: {
-          status: AuctionStatus.COMPLETED,
+      if (claimed) {
+        const movementId = await recordMovement({
+          leagueId: auction.leagueId,
+          playerId: auction.playerId,
+          movementType: "FIRST_MARKET",
+          toMemberId: winningBid.bidderId,
+          price: winningBid.amount,
+          auctionId: auction.id,
+          marketSessionId: sessionId,
+          newSalary: salary,
+          newDuration: duration3,
+          newClause: rescissionClause
+        });
+        justCompleted = {
+          playerId: auction.playerId,
+          playerName: auction.player.name,
           winnerId: winningBid.bidderId,
-          endsAt: /* @__PURE__ */ new Date()
-        }
-      });
-      const movementId = await recordMovement({
-        leagueId: auction.leagueId,
-        playerId: auction.playerId,
-        movementType: "FIRST_MARKET",
-        toMemberId: winningBid.bidderId,
-        price: winningBid.amount,
-        auctionId: auction.id,
-        marketSessionId: sessionId,
-        newSalary: salary,
-        newDuration: duration3,
-        newClause: rescissionClause
-      });
-      justCompleted = {
-        playerId: auction.playerId,
-        playerName: auction.player.name,
-        winnerId: winningBid.bidderId,
-        winnerName: winningBid.bidder.user.username,
-        amount: winningBid.amount,
-        movementId
-      };
-      void triggerAuctionClosed(sessionId, {
-        auctionId: auction.id,
-        playerId: auction.playerId,
-        playerName: auction.player.name,
-        winnerId: winningBid.bidderId,
-        winnerName: winningBid.bidder.user.username,
-        finalPrice: winningBid.amount,
-        wasUnsold: false,
-        timestamp: (/* @__PURE__ */ new Date()).toISOString()
-      });
+          winnerName: winningBid.bidder.user.username,
+          amount: winningBid.amount,
+          movementId
+        };
+        void triggerAuctionClosed(sessionId, {
+          auctionId: auction.id,
+          playerId: auction.playerId,
+          playerName: auction.player.name,
+          winnerId: winningBid.bidderId,
+          winnerName: winningBid.bidder.user.username,
+          finalPrice: winningBid.amount,
+          wasUnsold: false,
+          timestamp: (/* @__PURE__ */ new Date()).toISOString()
+        });
+      }
       auction = null;
     } else {
-      await prisma.auction.update({
-        where: { id: auction.id },
+      const claim = await prisma.auction.updateMany({
+        where: { id: auction.id, status: AuctionStatus.ACTIVE },
         data: {
           status: AuctionStatus.NO_BIDS,
           endsAt: /* @__PURE__ */ new Date()
         }
       });
-      justCompleted = {
-        playerId: auction.playerId,
-        playerName: auction.player.name,
-        winnerId: "",
-        winnerName: "",
-        amount: 0,
-        movementId: null
-      };
-      void triggerAuctionClosed(sessionId, {
-        auctionId: auction.id,
-        playerId: auction.playerId,
-        playerName: auction.player.name,
-        winnerId: null,
-        winnerName: null,
-        finalPrice: null,
-        wasUnsold: true,
-        timestamp: (/* @__PURE__ */ new Date()).toISOString()
-      });
+      if (claim.count > 0) {
+        justCompleted = {
+          playerId: auction.playerId,
+          playerName: auction.player.name,
+          winnerId: "",
+          winnerName: "",
+          amount: 0,
+          movementId: null
+        };
+        void triggerAuctionClosed(sessionId, {
+          auctionId: auction.id,
+          playerId: auction.playerId,
+          playerName: auction.player.name,
+          winnerId: null,
+          winnerName: null,
+          finalPrice: null,
+          wasUnsold: true,
+          timestamp: (/* @__PURE__ */ new Date()).toISOString()
+        });
+      }
       auction = null;
     }
   }
@@ -291538,12 +291620,13 @@ async function placeBid(auctionId, userId, amount) {
     const remainingAfter = Math.max(0, totalSlots - filledSlots - 1);
     slotReserve = remainingAfter * 2;
   }
-  if (amount + calculateDefaultSalary(amount) > bilancio - slotReserve) {
-    const maxBid = bilancio - slotReserve;
+  const bidCap = bilancio - slotReserve;
+  if (amount + calculateDefaultSalary(amount) > bidCap) {
+    let maxBid = Math.max(0, bidCap);
+    while (maxBid > 0 && maxBid + calculateDefaultSalary(maxBid) > bidCap) {
+      maxBid--;
+    }
     return { success: false, message: `Budget insufficiente. Offerta massima: ${maxBid}${isPrimoMercato && slotReserve > 0 ? ` (riservati ${slotReserve} per ${slotReserve / 2} slot rimanenti)` : ""}` };
-  }
-  if (amount <= auction.currentPrice) {
-    return { success: false, message: `Offerta minima: ${auction.currentPrice + 1}` };
   }
   const position = auction.player.position;
   const rosterCount = await prisma.playerRoster.count({
@@ -291565,49 +291648,77 @@ async function placeBid(auctionId, userId, amount) {
   if (rosterCount >= maxSlots) {
     return { success: false, message: `Hai gi\xE0 raggiunto il limite di ${maxSlots} giocatori in questo ruolo` };
   }
-  await prisma.auctionBid.updateMany({
-    where: {
-      auctionId,
-      isWinning: true
-    },
-    data: {
-      isWinning: false
-    }
-  });
-  const bid = await prisma.auctionBid.create({
-    data: {
-      auctionId,
-      bidderId: member.id,
-      userId,
-      amount,
-      isWinning: true
-    },
-    include: {
-      bidder: {
-        select: {
-          teamName: true,
-          user: {
-            select: { username: true }
-          }
-        }
-      }
-    }
-  });
   const session = await prisma.marketSession.findFirst({
     where: {
       auctions: { some: { id: auctionId } }
     }
   });
   const timerSeconds = session?.auctionTimerSeconds ?? 30;
-  const newTimerExpires = new Date(Date.now() + timerSeconds * 1e3);
-  await prisma.auction.update({
-    where: { id: auctionId },
-    data: {
-      currentPrice: amount,
-      timerExpiresAt: newTimerExpires,
-      timerSeconds
+  let currentPrice = auction.currentPrice;
+  let bid;
+  let newTimerExpires = new Date(Date.now() + timerSeconds * 1e3);
+  let attempt = 0;
+  for (; attempt < MAX_BID_ATTEMPTS; attempt++) {
+    if (attempt > 0) {
+      const fresh = await prisma.auction.findUnique({ where: { id: auctionId } });
+      if (!fresh || fresh.status !== "ACTIVE") {
+        return { success: false, message: "Asta non attiva" };
+      }
+      currentPrice = fresh.currentPrice;
     }
-  });
+    if (amount <= currentPrice) {
+      return { success: false, message: `Offerta minima: ${currentPrice + 1}` };
+    }
+    newTimerExpires = new Date(Date.now() + timerSeconds * 1e3);
+    try {
+      bid = await prisma.$transaction(async (tx) => {
+        const claim = await tx.auction.updateMany({
+          where: { id: auctionId, currentPrice },
+          data: { currentPrice: amount, timerExpiresAt: newTimerExpires, timerSeconds }
+        });
+        if (claim.count === 0) {
+          throw new ConcurrentBidError();
+        }
+        await tx.auctionBid.updateMany({
+          where: {
+            auctionId,
+            isWinning: true
+          },
+          data: {
+            isWinning: false
+          }
+        });
+        return tx.auctionBid.create({
+          data: {
+            auctionId,
+            bidderId: member.id,
+            userId,
+            amount,
+            isWinning: true
+          },
+          include: {
+            bidder: {
+              select: {
+                teamName: true,
+                user: {
+                  select: { username: true }
+                }
+              }
+            }
+          }
+        });
+      });
+      break;
+    } catch (e) {
+      if (e instanceof ConcurrentBidError) {
+        continue;
+      }
+      throw e;
+    }
+  }
+  if (attempt >= MAX_BID_ATTEMPTS || !bid) {
+    return { success: false, message: "Troppi rilanci concorrenti in questo istante, riprova." };
+  }
   if (auction.marketSessionId) {
     void triggerBidPlaced(auction.marketSessionId, {
       auctionId: auction.id,
@@ -291672,13 +291783,16 @@ async function closeAuction(auctionId, adminUserId) {
   }
   const winningBid = auction.bids[0];
   if (!winningBid) {
-    await prisma.auction.update({
-      where: { id: auctionId },
+    const claim = await prisma.auction.updateMany({
+      where: { id: auctionId, status: AuctionStatus.ACTIVE },
       data: {
         status: AuctionStatus.NO_BIDS,
         endsAt: /* @__PURE__ */ new Date()
       }
     });
+    if (claim.count === 0) {
+      return { success: false, message: "Asta gi\xE0 chiusa (da un'altra richiesta concorrente)" };
+    }
     if (auction.marketSessionId) {
       void triggerAuctionClosed(auction.marketSessionId, {
         auctionId: auction.id,
@@ -291698,45 +291812,52 @@ async function closeAuction(auctionId, adminUserId) {
     };
   }
   const winner = winningBid.bidder;
-  const rosterEntry = await prisma.playerRoster.create({
-    data: {
-      leagueMemberId: winner.id,
-      playerId: auction.playerId,
-      acquisitionPrice: winningBid.amount,
-      acquisitionType: AcquisitionType2.FIRST_MARKET,
-      status: RosterStatus4.ACTIVE
-    }
-  });
   const salary = calculateDefaultSalary(winningBid.amount);
-  const duration3 = 3;
+  const duration3 = DEFAULT_CONTRACT_DURATION;
   const rescissionClause = calculateRescissionClause(salary, duration3);
-  await prisma.playerContract.create({
-    data: {
-      rosterId: rosterEntry.id,
-      leagueMemberId: winner.id,
-      salary,
-      duration: duration3,
-      initialSalary: salary,
-      initialDuration: duration3,
-      rescissionClause
-    }
-  });
-  await prisma.leagueMember.update({
-    where: { id: winner.id },
-    data: {
-      currentBudget: {
-        decrement: winningBid.amount
+  const claimed = await prisma.$transaction(async (tx) => {
+    const claim = await tx.auction.updateMany({
+      where: { id: auctionId, status: AuctionStatus.ACTIVE },
+      data: {
+        status: AuctionStatus.COMPLETED,
+        winnerId: winner.id,
+        endsAt: /* @__PURE__ */ new Date()
       }
-    }
+    });
+    if (claim.count === 0) return false;
+    const rosterEntry = await tx.playerRoster.create({
+      data: {
+        leagueMemberId: winner.id,
+        playerId: auction.playerId,
+        acquisitionPrice: winningBid.amount,
+        acquisitionType: AcquisitionType2.FIRST_MARKET,
+        status: RosterStatus4.ACTIVE
+      }
+    });
+    await tx.playerContract.create({
+      data: {
+        rosterId: rosterEntry.id,
+        leagueMemberId: winner.id,
+        salary,
+        duration: duration3,
+        initialSalary: salary,
+        initialDuration: duration3,
+        rescissionClause
+      }
+    });
+    await tx.leagueMember.update({
+      where: { id: winner.id },
+      data: {
+        currentBudget: {
+          decrement: winningBid.amount
+        }
+      }
+    });
+    return true;
   });
-  await prisma.auction.update({
-    where: { id: auctionId },
-    data: {
-      status: AuctionStatus.COMPLETED,
-      winnerId: winner.id,
-      endsAt: /* @__PURE__ */ new Date()
-    }
-  });
+  if (!claimed) {
+    return { success: false, message: "Asta gi\xE0 chiusa (da un'altra richiesta concorrente)" };
+  }
   const session = await prisma.marketSession.findFirst({
     where: { auctions: { some: { id: auctionId } } }
   });
@@ -292276,7 +292397,7 @@ async function resumeAuction(leagueId, adminUserId) {
     data: {
       status: AuctionStatus.ACTIVE,
       timerExpiresAt: new Date(Date.now() + remainingSeconds * 1e3),
-      resumeReadyMembers: Prisma3.DbNull
+      resumeReadyMembers: Prisma2.DbNull
     }
   });
   if (auction.marketSessionId) {
@@ -292613,7 +292734,7 @@ async function reopenAuction(leagueId, auctionId, adminUserId) {
           data: {
             svincolatiState: "AWAITING_RESUME",
             svincolatiTimerStartedAt: null,
-            svincolatiPendingAck: Prisma3.DbNull
+            svincolatiPendingAck: Prisma2.DbNull
           }
         });
       }
@@ -292622,7 +292743,7 @@ async function reopenAuction(leagueId, auctionId, adminUserId) {
           pendingNominationPlayerId: null,
           pendingNominatorId: null,
           nominatorConfirmed: false,
-          readyMembers: Prisma3.JsonNull
+          readyMembers: Prisma2.JsonNull
         };
         if (restoredTurnIndex !== null) {
           sessionData.currentTurnIndex = restoredTurnIndex;
@@ -293173,43 +293294,6 @@ async function forceAcknowledgeAll(sessionId, adminUserId) {
     data: { created, total: allMembers.length }
   };
 }
-async function forceAllReady(sessionId, adminUserId) {
-  const session = await prisma.marketSession.findUnique({
-    where: { id: sessionId },
-    include: { league: true }
-  });
-  if (!session) {
-    return { success: false, message: "Sessione non trovata" };
-  }
-  const admin = await prisma.leagueMember.findFirst({
-    where: {
-      leagueId: session.leagueId,
-      userId: adminUserId,
-      role: MemberRole2.ADMIN,
-      status: MemberStatus7.ACTIVE
-    }
-  });
-  if (!admin) {
-    return { success: false, message: "Non autorizzato" };
-  }
-  if (!session.pendingNominationPlayerId) {
-    return { success: false, message: "Nessuna nomination in attesa" };
-  }
-  const allMembers = await prisma.leagueMember.findMany({
-    where: {
-      leagueId: session.leagueId,
-      status: MemberStatus7.ACTIVE
-    }
-  });
-  const allMemberIds = allMembers.map((m) => m.id);
-  await prisma.marketSession.update({
-    where: { id: sessionId },
-    data: {
-      readyMembers: allMemberIds
-    }
-  });
-  return await startPendingAuction(sessionId);
-}
 async function setPendingNomination(sessionId, playerId, userId) {
   const session = await prisma.marketSession.findUnique({
     where: { id: sessionId },
@@ -293410,20 +293494,7 @@ async function confirmNomination(sessionId, userId) {
     timerDuration: session.auctionTimerSeconds,
     timestamp: (/* @__PURE__ */ new Date()).toISOString()
   });
-  const totalMembers = await prisma.leagueMember.count({
-    where: {
-      leagueId: session.leagueId,
-      status: MemberStatus7.ACTIVE
-    }
-  });
-  if (totalMembers === 1 || session.auctionMode === "IN_PRESENCE") {
-    return await startPendingAuction(sessionId);
-  }
-  return {
-    success: true,
-    message: `Scelta confermata! In attesa che gli altri siano pronti.`,
-    data: { player: session.pendingNominationPlayer }
-  };
+  return await startPendingAuction(sessionId);
 }
 async function cancelNomination(sessionId, userId) {
   const session = await prisma.marketSession.findUnique({
@@ -293598,7 +293669,7 @@ async function startPendingAuction(sessionId) {
     data: {
       pendingNominationPlayerId: null,
       pendingNominatorId: null,
-      readyMembers: Prisma3.JsonNull
+      readyMembers: Prisma2.JsonNull
     }
   });
   void triggerAuctionStarted(sessionId, {
@@ -293732,7 +293803,7 @@ async function cancelPendingNomination(sessionId, userId) {
     data: {
       pendingNominationPlayerId: null,
       pendingNominatorId: null,
-      readyMembers: Prisma3.JsonNull
+      readyMembers: Prisma2.JsonNull
     }
   });
   return {
@@ -293918,6 +293989,7 @@ async function getManagersStatus(sessionId, userId) {
         position: r.player.position,
         acquisitionPrice: r.acquisitionPrice,
         quotation: r.player.quotation,
+        apiFootballId: r.player.apiFootballId ?? null,
         contract: r.contract ? {
           salary: r.contract.salary,
           duration: r.contract.duration,
@@ -294126,7 +294198,7 @@ async function resolveAppeal(appealId, userId, decision, resolutionNote) {
             data: {
               svincolatiState: "AWAITING_RESUME",
               svincolatiTimerStartedAt: null,
-              svincolatiPendingAck: Prisma3.DbNull
+              svincolatiPendingAck: Prisma2.DbNull
               // Pulisci il pending ack precedente
             }
           });
@@ -294299,7 +294371,7 @@ async function acknowledgeAppealDecision(auctionId, userId) {
               svincolatiPendingPlayerId: null,
               svincolatiPendingNominatorId: null,
               svincolatiNominatorConfirmed: false,
-              svincolatiPendingAck: Prisma3.DbNull,
+              svincolatiPendingAck: Prisma2.DbNull,
               svincolatiReadyMembers: []
             }
           });
@@ -294312,7 +294384,7 @@ async function acknowledgeAppealDecision(auctionId, userId) {
               svincolatiPendingPlayerId: null,
               svincolatiPendingNominatorId: null,
               svincolatiNominatorConfirmed: false,
-              svincolatiPendingAck: Prisma3.DbNull,
+              svincolatiPendingAck: Prisma2.DbNull,
               svincolatiReadyMembers: [],
               svincolatiPassedMembers: newPassedMembers
             }
@@ -294551,7 +294623,7 @@ async function forceAllAppealDecisionAcks(auctionId, adminUserId) {
             svincolatiPendingPlayerId: null,
             svincolatiPendingNominatorId: null,
             svincolatiNominatorConfirmed: false,
-            svincolatiPendingAck: Prisma3.DbNull,
+            svincolatiPendingAck: Prisma2.DbNull,
             svincolatiReadyMembers: []
           }
         });
@@ -294564,7 +294636,7 @@ async function forceAllAppealDecisionAcks(auctionId, adminUserId) {
             svincolatiPendingPlayerId: null,
             svincolatiPendingNominatorId: null,
             svincolatiNominatorConfirmed: false,
-            svincolatiPendingAck: Prisma3.DbNull,
+            svincolatiPendingAck: Prisma2.DbNull,
             svincolatiReadyMembers: [],
             svincolatiPassedMembers: newPassedMembers
           }
@@ -294872,7 +294944,7 @@ async function completeAllRosterSlots(sessionId, userId) {
           }
         });
         const salary = calculateDefaultSalary(finalPrice);
-        const duration3 = 3;
+        const duration3 = DEFAULT_CONTRACT_DURATION;
         const rescissionClause = calculateRescissionClause(salary, duration3);
         await prisma.playerContract.create({
           data: {
@@ -296017,20 +296089,6 @@ router5.post("/auctions/sessions/:sessionId/force-acknowledge-all", authMiddlewa
     res.status(500).json({ success: false, message: "Errore interno del server" });
   }
 });
-router5.post("/auctions/sessions/:sessionId/force-all-ready", authMiddleware, async (req, res) => {
-  try {
-    const sessionId = req.params.sessionId;
-    const result = await forceAllReady(sessionId, req.user.userId);
-    if (!result.success) {
-      res.status(result.message === "Non autorizzato" ? 403 : 400).json(result);
-      return;
-    }
-    res.json(result);
-  } catch (error46) {
-    console.error("Force all ready error:", error46);
-    res.status(500).json({ success: false, message: "Errore interno del server" });
-  }
-});
 router5.post("/auctions/:auctionId/bot-bid", authMiddleware, async (req, res) => {
   try {
     const auctionId = req.params.auctionId;
@@ -296388,7 +296446,9 @@ function drawManagerInfo(doc, data) {
   doc.fontSize(12).fillColor("#1a1c20").font("Helvetica-Bold").text(data.leagueName, rightCol, startY + 14);
   doc.fontSize(10).fillColor("#6b7280").font("Helvetica").text("Data Consolidamento:", rightCol, startY + 35);
   doc.fontSize(12).fillColor("#1a1c20").font("Helvetica-Bold").text(formatDate(data.consolidationDate), rightCol, startY + 49);
-  doc.y = startY + 80;
+  doc.fontSize(10).fillColor("#6b7280").font("Helvetica").text("Sessione:", leftCol, startY + 70);
+  doc.fontSize(12).fillColor("#1a1c20").font("Helvetica-Bold").text(data.sessionName, leftCol, startY + 84);
+  doc.y = startY + 115;
   doc.moveTo(50, doc.y).lineTo(doc.page.width - 50, doc.y).strokeColor("#e5e7eb").lineWidth(1).stroke();
   doc.y += 15;
 }
@@ -296598,6 +296658,7 @@ function generateContractsExcel(data) {
   const summaryData = [
     { "Voce": "Squadra", "Valore": data.teamName },
     { "Voce": "Lega", "Valore": data.leagueName },
+    { "Voce": "Sessione", "Valore": data.sessionName },
     { "Voce": "Data Export", "Valore": formatDate2(data.exportDate) },
     { "Voce": "", "Valore": "" },
     { "Voce": "Contratti Attivi", "Valore": data.contracts.length },
@@ -296877,6 +296938,7 @@ async function generateAndSendReceipt(leagueId, memberId) {
       managerName: data.managerName,
       teamName: data.teamName,
       leagueName: data.leagueName,
+      sessionName: data.sessionName,
       consolidationDate: data.consolidationDate,
       transactionId: data.transactionId,
       renewals: data.renewals,
@@ -296896,7 +296958,10 @@ async function generateAndSendReceipt(leagueId, memberId) {
           include: {
             player: true,
             contract: true
-          }
+          },
+          // Speculare all'ordine di getContracts() (ruolo P->D->C->A): stesso motivo
+          // del fix sull'ordine dei rinnovi nel PDF (2026-08-29).
+          orderBy: { player: { position: "asc" } }
         }
       }
     });
@@ -296904,6 +296969,7 @@ async function generateAndSendReceipt(leagueId, memberId) {
       const excelData = {
         teamName: data.teamName,
         leagueName: data.leagueName,
+        sessionName: data.sessionName,
         exportDate: /* @__PURE__ */ new Date(),
         contracts: member.roster.filter((r) => r.contract).map((r) => {
           const c = r.contract;
@@ -297009,10 +297075,16 @@ router6.get("/leagues/:leagueId/contracts/export-excel", authMiddleware, async (
       res.status(400).json({ success: false, message: "Membro non trovato" });
       return;
     }
+    const activeSession = await prisma.marketSession.findFirst({
+      where: { leagueId, status: "ACTIVE", currentPhase: "CONTRATTI" },
+      select: { season: true, semester: true }
+    });
+    const sessionName = activeSession ? `Stagione ${activeSession.season} - ${activeSession.semester === 1 ? "Estate" : "Inverno"}` : "N.D.";
     const data = result.data;
     const excelData = {
       teamName: member.teamName || member.user.username,
       leagueName: member.league.name,
+      sessionName,
       exportDate: /* @__PURE__ */ new Date(),
       contracts: data.contracts.map((c) => {
         const isSpalmaActive = c.canSpalmare && c.draftDuration !== null && c.draftDuration > 1;
@@ -297129,11 +297201,7 @@ async function createTradeOffer(leagueId, fromUserId, toMemberId, offeredPlayerI
   if (offeredBudget < 0 || requestedBudget < 0) {
     return { success: false, message: "I budget devono essere positivi" };
   }
-  const monteIngaggiFrom = await prisma.playerContract.aggregate({
-    where: { leagueMemberId: fromMember.id },
-    _sum: { salary: true }
-  });
-  const bilancioFrom = fromMember.currentBudget - (monteIngaggiFrom._sum.salary || 0);
+  const bilancioFrom = fromMember.currentBudget - fromMember.totalSalaries;
   if (offeredBudget > bilancioFrom) {
     return { success: false, message: `Non hai abbastanza bilancio. Disponibile: ${bilancioFrom}` };
   }
@@ -297437,19 +297505,11 @@ async function acceptTrade(tradeId, userId) {
   if (!senderMember || !receiverMember) {
     return { success: false, message: "Uno dei membri non \xE8 pi\xF9 attivo nella lega" };
   }
-  const monteIngaggiReceiver = await prisma.playerContract.aggregate({
-    where: { leagueMemberId: receiverMember.id },
-    _sum: { salary: true }
-  });
-  const bilancioReceiver = receiverMember.currentBudget - (monteIngaggiReceiver._sum.salary || 0);
+  const bilancioReceiver = receiverMember.currentBudget - receiverMember.totalSalaries;
   if (trade.requestedBudget > bilancioReceiver) {
     return { success: false, message: `Bilancio insufficiente. Richiesto: ${trade.requestedBudget}, Disponibile: ${bilancioReceiver}` };
   }
-  const monteIngaggiSender = await prisma.playerContract.aggregate({
-    where: { leagueMemberId: senderMember.id },
-    _sum: { salary: true }
-  });
-  const bilancioSender = senderMember.currentBudget - (monteIngaggiSender._sum.salary || 0);
+  const bilancioSender = senderMember.currentBudget - senderMember.totalSalaries;
   if (trade.offeredBudget > bilancioSender) {
     return { success: false, message: "Il mittente non ha pi\xF9 abbastanza bilancio per questa offerta" };
   }
@@ -298092,7 +298152,10 @@ var import_express8 = __toESM(require_express2(), 1);
 
 // src/services/rubata.service.ts
 init_prisma();
-import { MemberStatus as MemberStatus10, RosterStatus as RosterStatus6, AuctionStatus as AuctionStatus3, Prisma as Prisma4 } from "@prisma/client";
+import { MemberStatus as MemberStatus10, RosterStatus as RosterStatus6, AuctionStatus as AuctionStatus3, Prisma as Prisma3 } from "@prisma/client";
+var ConcurrentBidError2 = class extends Error {
+};
+var MAX_BID_ATTEMPTS2 = 5;
 var rubataHeartbeats = /* @__PURE__ */ new Map();
 var RUBATA_HEARTBEAT_TIMEOUT = 45e3;
 function registerRubataHeartbeat(leagueId, memberId) {
@@ -298421,9 +298484,6 @@ async function bidOnRubata(auctionId, userId, amount) {
   if (bidder.id === auction.sellerId) {
     return { success: false, message: "Non puoi fare offerte per un tuo giocatore" };
   }
-  if (amount <= auction.currentPrice) {
-    return { success: false, message: `L'offerta deve essere maggiore di ${auction.currentPrice}` };
-  }
   const monteIngaggiOld = await prisma.playerContract.aggregate({
     where: { leagueMemberId: bidder.id },
     _sum: { salary: true }
@@ -298433,25 +298493,53 @@ async function bidOnRubata(auctionId, userId, amount) {
   if (amount > maxBidOld) {
     return { success: false, message: `Budget insufficiente. Offerta massima: ${maxBidOld}` };
   }
-  await prisma.$transaction(async (tx) => {
-    await tx.auctionBid.updateMany({
-      where: { auctionId },
-      data: { isWinning: false }
-    });
-    await tx.auctionBid.create({
-      data: {
-        auctionId,
-        bidderId: bidder.id,
-        userId,
-        amount,
-        isWinning: true
+  let currentPrice = auction.currentPrice;
+  let attempt = 0;
+  for (; attempt < MAX_BID_ATTEMPTS2; attempt++) {
+    if (attempt > 0) {
+      const fresh = await prisma.auction.findUnique({ where: { id: auctionId } });
+      if (!fresh || fresh.status !== "ACTIVE") {
+        return { success: false, message: "Asta non attiva" };
       }
-    });
-    await tx.auction.update({
-      where: { id: auctionId },
-      data: { currentPrice: amount }
-    });
-  });
+      currentPrice = fresh.currentPrice;
+    }
+    if (amount <= currentPrice) {
+      return { success: false, message: `L'offerta deve essere maggiore di ${currentPrice}` };
+    }
+    try {
+      await prisma.$transaction(async (tx) => {
+        const claim = await tx.auction.updateMany({
+          where: { id: auctionId, currentPrice },
+          data: { currentPrice: amount }
+        });
+        if (claim.count === 0) {
+          throw new ConcurrentBidError2();
+        }
+        await tx.auctionBid.updateMany({
+          where: { auctionId },
+          data: { isWinning: false }
+        });
+        await tx.auctionBid.create({
+          data: {
+            auctionId,
+            bidderId: bidder.id,
+            userId,
+            amount,
+            isWinning: true
+          }
+        });
+      });
+      break;
+    } catch (e) {
+      if (e instanceof ConcurrentBidError2) {
+        continue;
+      }
+      throw e;
+    }
+  }
+  if (attempt >= MAX_BID_ATTEMPTS2) {
+    return { success: false, message: "Troppi rilanci concorrenti in questo istante, riprova." };
+  }
   return {
     success: true,
     message: `Offerta di ${amount} registrata`,
@@ -298525,11 +298613,17 @@ async function closeRubataAuction(auctionId, adminUserId) {
     const offerta = payment - contractSalary;
     await tx.leagueMember.update({
       where: { id: winningBid.bidderId },
-      data: { currentBudget: { decrement: offerta } }
+      data: {
+        currentBudget: { decrement: offerta },
+        totalSalaries: { increment: contractSalary }
+      }
     });
     await tx.leagueMember.update({
       where: { id: auction.sellerId },
-      data: { currentBudget: { increment: offerta } }
+      data: {
+        currentBudget: { increment: offerta },
+        totalSalaries: { decrement: contractSalary }
+      }
     });
     await tx.playerRoster.update({
       where: { id: rosterEntry.id },
@@ -298710,13 +298804,14 @@ async function generateRubataBoard(leagueId, adminUserId) {
       });
     }
   }
+  const initialAutoPassIds = board[0] ? await getAutoPassMemberIds(activeSession.id, board[0].playerId) : [];
   await prisma.marketSession.update({
     where: { id: activeSession.id },
     data: {
       rubataBoard: board,
       rubataBoardIndex: 0,
       rubataState: "READY_CHECK",
-      rubataReadyMembers: []
+      rubataReadyMembers: initialAutoPassIds
     }
   });
   return {
@@ -298761,10 +298856,13 @@ async function getRubataBoard(leagueId, userId) {
         const board2 = activeSession.rubataBoard;
         const currentIndex = activeSession.rubataBoardIndex ?? 0;
         const nextIndex = currentIndex + 1;
+        const nextPlayer = board2[nextIndex];
+        const autoPassIds = nextPlayer ? await getAutoPassMemberIds(activeSession.id, nextPlayer.playerId) : [];
         if (nextIndex >= board2.length) {
           await prisma.marketSession.update({
             where: { id: activeSession.id },
             data: {
+              rubataBoardIndex: nextIndex,
               rubataState: "COMPLETED",
               rubataTimerStartedAt: null
             }
@@ -298776,7 +298874,7 @@ async function getRubataBoard(leagueId, userId) {
               rubataBoardIndex: nextIndex,
               rubataState: "READY_CHECK",
               rubataTimerStartedAt: null,
-              rubataReadyMembers: []
+              rubataReadyMembers: autoPassIds
             }
           });
         }
@@ -298901,7 +298999,7 @@ async function getRubataBoard(leagueId, userId) {
       await prisma.marketSession.update({
         where: { id: activeSession.id },
         data: {
-          rubataPendingAck: Prisma4.DbNull,
+          rubataPendingAck: Prisma3.DbNull,
           rubataReadyMembers: [],
           rubataState: "READY_CHECK"
         }
@@ -299271,9 +299369,6 @@ async function bidOnRubataAuction(leagueId, userId, amount) {
   if (activeAuction.sellerId === member.id) {
     return { success: false, message: "Non puoi fare offerte per un tuo giocatore" };
   }
-  if (amount <= activeAuction.currentPrice) {
-    return { success: false, message: `L'offerta deve essere maggiore di ${activeAuction.currentPrice}` };
-  }
   const monteIngaggiBidR = await prisma.playerContract.aggregate({
     where: { leagueMemberId: member.id },
     _sum: { salary: true }
@@ -299282,35 +299377,63 @@ async function bidOnRubataAuction(leagueId, userId, amount) {
   if (amount > bilancioBidR) {
     return { success: false, message: `Budget insufficiente. Necessario: ${amount}, Bilancio disponibile: ${bilancioBidR}` };
   }
+  let currentPrice = activeAuction.currentPrice;
+  let attempt = 0;
+  for (; attempt < MAX_BID_ATTEMPTS2; attempt++) {
+    if (attempt > 0) {
+      const fresh = await prisma.auction.findUnique({ where: { id: activeAuction.id } });
+      if (!fresh || fresh.status !== "ACTIVE") {
+        return { success: false, message: "Asta non attiva" };
+      }
+      currentPrice = fresh.currentPrice;
+    }
+    if (amount <= currentPrice) {
+      return { success: false, message: `L'offerta deve essere maggiore di ${currentPrice}` };
+    }
+    try {
+      await prisma.$transaction(async (tx) => {
+        const claim = await tx.auction.updateMany({
+          where: { id: activeAuction.id, currentPrice },
+          data: { currentPrice: amount }
+        });
+        if (claim.count === 0) {
+          throw new ConcurrentBidError2();
+        }
+        await tx.auctionBid.updateMany({
+          where: { auctionId: activeAuction.id },
+          data: { isWinning: false }
+        });
+        await tx.auctionBid.create({
+          data: {
+            auctionId: activeAuction.id,
+            bidderId: member.id,
+            userId,
+            amount,
+            isWinning: true
+          }
+        });
+        await tx.marketSession.update({
+          where: { id: activeSession.id },
+          data: { rubataTimerStartedAt: /* @__PURE__ */ new Date() }
+        });
+      });
+      break;
+    } catch (e) {
+      if (e instanceof ConcurrentBidError2) {
+        continue;
+      }
+      throw e;
+    }
+  }
+  if (attempt >= MAX_BID_ATTEMPTS2) {
+    return { success: false, message: "Troppi rilanci concorrenti in questo istante, riprova." };
+  }
   const memberWithUser = await prisma.leagueMember.findUnique({
     where: { id: member.id },
     include: { user: { select: { username: true } } }
   });
   const playerInfo = await prisma.serieAPlayer.findUnique({
     where: { id: activeAuction.playerId }
-  });
-  await prisma.$transaction(async (tx) => {
-    await tx.auctionBid.updateMany({
-      where: { auctionId: activeAuction.id },
-      data: { isWinning: false }
-    });
-    await tx.auctionBid.create({
-      data: {
-        auctionId: activeAuction.id,
-        bidderId: member.id,
-        userId,
-        amount,
-        isWinning: true
-      }
-    });
-    await tx.auction.update({
-      where: { id: activeAuction.id },
-      data: { currentPrice: amount }
-    });
-    await tx.marketSession.update({
-      where: { id: activeSession.id },
-      data: { rubataTimerStartedAt: /* @__PURE__ */ new Date() }
-    });
   });
   triggerRubataBidPlaced(activeSession.id, {
     sessionId: activeSession.id,
@@ -299360,6 +299483,7 @@ async function advanceRubataPlayer(leagueId, adminUserId) {
     await prisma.marketSession.update({
       where: { id: activeSession.id },
       data: {
+        rubataBoardIndex: nextIndex,
         rubataState: "COMPLETED",
         rubataTimerStartedAt: null
       }
@@ -299861,10 +299985,6 @@ async function setRubataReady(leagueId, userId) {
   if (!allowedReadyStates.includes(activeSession.rubataState || "")) {
     return { success: false, message: "Non \xE8 il momento di dichiararsi pronti" };
   }
-  const rubataReadyMembers = activeSession.rubataReadyMembers || [];
-  if (rubataReadyMembers.includes(member.id)) {
-    return { success: true, message: "Gi\xE0 pronto" };
-  }
   const memberWithUser = await prisma.leagueMember.findUnique({
     where: { id: member.id },
     include: { user: { select: { username: true } } }
@@ -299872,85 +299992,113 @@ async function setRubataReady(leagueId, userId) {
   const allMembers = await prisma.leagueMember.findMany({
     where: { leagueId, status: MemberStatus10.ACTIVE }
   });
-  const updatedReadyMembers = activeSession.auctionMode === "IN_PRESENCE" ? allMembers.map((m) => m.id) : [...rubataReadyMembers, member.id];
-  const allReady = allMembers.every((m) => updatedReadyMembers.includes(m.id));
-  triggerRubataReadyChanged(activeSession.id, {
-    sessionId: activeSession.id,
-    memberId: member.id,
-    memberUsername: memberWithUser?.user.username || "Unknown",
-    isReady: true,
-    readyCount: updatedReadyMembers.length,
-    totalMembers: allMembers.length,
-    timestamp: (/* @__PURE__ */ new Date()).toISOString()
-  }).catch(() => {
-  });
-  if (activeSession.rubataState === "AUCTION_READY_CHECK" && allReady) {
-    await prisma.marketSession.update({
-      where: { id: activeSession.id },
-      data: {
-        rubataReadyMembers: [],
-        rubataAuctionReadyInfo: Prisma4.DbNull,
-        rubataState: "AUCTION",
-        rubataTimerStartedAt: /* @__PURE__ */ new Date()
+  const MAX_READY_ATTEMPTS = 6;
+  for (let attempt = 0; attempt < MAX_READY_ATTEMPTS; attempt++) {
+    try {
+      const result = await prisma.$transaction(async (tx) => {
+        const fresh = await tx.marketSession.findUnique({ where: { id: activeSession.id } });
+        if (!fresh || !allowedReadyStates.includes(fresh.rubataState || "")) {
+          return { success: false, message: "Non \xE8 il momento di dichiararsi pronti" };
+        }
+        const rubataReadyMembers = fresh.rubataReadyMembers || [];
+        if (rubataReadyMembers.includes(member.id)) {
+          return { success: true, message: "Gi\xE0 pronto" };
+        }
+        const updatedReadyMembers = fresh.auctionMode === "IN_PRESENCE" ? allMembers.map((m) => m.id) : [...rubataReadyMembers, member.id];
+        const allReady = allMembers.every((m) => updatedReadyMembers.includes(m.id));
+        if (fresh.rubataState === "READY_CHECK" && allReady) {
+          await tx.marketSession.update({
+            where: { id: activeSession.id },
+            data: {
+              rubataReadyMembers: [],
+              rubataState: "OFFERING",
+              rubataTimerStartedAt: /* @__PURE__ */ new Date()
+            }
+          });
+          return { success: true, message: "Tutti pronti! Rubata avviata.", data: { allReady: true }, _justBecameReady: true };
+        }
+        if (fresh.rubataState === "AUCTION_READY_CHECK" && allReady) {
+          await tx.marketSession.update({
+            where: { id: activeSession.id },
+            data: {
+              rubataReadyMembers: [],
+              rubataAuctionReadyInfo: Prisma3.DbNull,
+              rubataState: "AUCTION",
+              rubataTimerStartedAt: /* @__PURE__ */ new Date()
+            }
+          });
+          return { success: true, message: "Tutti pronti! Asta avviata.", data: { allReady: true, auctionStarted: true }, _justBecameReady: true };
+        }
+        if (fresh.rubataState === "PENDING_ACK" && allReady) {
+          await tx.marketSession.update({
+            where: { id: activeSession.id },
+            data: {
+              rubataReadyMembers: [],
+              rubataPendingAck: Prisma3.DbNull,
+              rubataState: "OFFERING",
+              rubataTimerStartedAt: /* @__PURE__ */ new Date()
+            }
+          });
+          return { success: true, message: "Tutti pronti! Si riparte.", data: { allReady: true }, _justBecameReady: true };
+        }
+        if (fresh.rubataState === "PAUSED" && allReady) {
+          const resumeState = fresh.rubataPausedFromState || "OFFERING";
+          const remainingSeconds = fresh.rubataPausedRemainingSeconds || 0;
+          const totalSeconds = resumeState === "AUCTION" ? fresh.rubataAuctionTimerSeconds : fresh.rubataOfferTimerSeconds;
+          const offsetSeconds = totalSeconds - remainingSeconds;
+          const adjustedStartTime = new Date(Date.now() - offsetSeconds * 1e3);
+          await tx.marketSession.update({
+            where: { id: activeSession.id },
+            data: {
+              rubataReadyMembers: [],
+              rubataState: resumeState,
+              rubataTimerStartedAt: adjustedStartTime,
+              rubataPausedFromState: null,
+              rubataPausedRemainingSeconds: null
+            }
+          });
+          return {
+            success: true,
+            message: `Tutti pronti! Rubata ripresa (${remainingSeconds} secondi rimanenti).`,
+            data: { allReady: true, resumed: true, remainingSeconds },
+            _justBecameReady: true
+          };
+        }
+        await tx.marketSession.update({
+          where: { id: activeSession.id },
+          data: { rubataReadyMembers: updatedReadyMembers }
+        });
+        return {
+          success: true,
+          message: "Pronto!",
+          data: { allReady, readyCount: updatedReadyMembers.length, totalMembers: allMembers.length },
+          _justBecameReady: true
+        };
+      }, { isolationLevel: Prisma3.TransactionIsolationLevel.Serializable });
+      if (result._justBecameReady) {
+        const readyData = result.data;
+        triggerRubataReadyChanged(activeSession.id, {
+          sessionId: activeSession.id,
+          memberId: member.id,
+          memberUsername: memberWithUser?.user.username || "Unknown",
+          isReady: true,
+          readyCount: readyData?.readyCount ?? allMembers.length,
+          totalMembers: readyData?.totalMembers ?? allMembers.length,
+          timestamp: (/* @__PURE__ */ new Date()).toISOString()
+        }).catch(() => {
+        });
       }
-    });
-    return {
-      success: true,
-      message: "Tutti pronti! Asta avviata.",
-      data: { allReady: true, auctionStarted: true }
-    };
-  }
-  if (activeSession.rubataState === "PENDING_ACK" && allReady) {
-    await prisma.marketSession.update({
-      where: { id: activeSession.id },
-      data: {
-        rubataReadyMembers: [],
-        rubataPendingAck: Prisma4.DbNull,
-        rubataState: "OFFERING",
-        rubataTimerStartedAt: /* @__PURE__ */ new Date()
+      const { _justBecameReady: _unused, ...serviceResult } = result;
+      return serviceResult;
+    } catch (e) {
+      const isSerializationConflict = e instanceof Prisma3.PrismaClientKnownRequestError && e.code === "P2034";
+      if (isSerializationConflict && attempt < MAX_READY_ATTEMPTS - 1) {
+        continue;
       }
-    });
-    return {
-      success: true,
-      message: "Tutti pronti! Si riparte.",
-      data: { allReady: true }
-    };
-  }
-  if (activeSession.rubataState === "PAUSED" && allReady) {
-    const resumeState = activeSession.rubataPausedFromState || "OFFERING";
-    const remainingSeconds = activeSession.rubataPausedRemainingSeconds || 0;
-    const totalSeconds = resumeState === "AUCTION" ? activeSession.rubataAuctionTimerSeconds : activeSession.rubataOfferTimerSeconds;
-    const offsetSeconds = totalSeconds - remainingSeconds;
-    const adjustedStartTime = new Date(Date.now() - offsetSeconds * 1e3);
-    await prisma.marketSession.update({
-      where: { id: activeSession.id },
-      data: {
-        rubataReadyMembers: [],
-        rubataState: resumeState,
-        rubataTimerStartedAt: adjustedStartTime,
-        rubataPausedFromState: null,
-        rubataPausedRemainingSeconds: null
-      }
-    });
-    return {
-      success: true,
-      message: `Tutti pronti! Rubata ripresa (${remainingSeconds} secondi rimanenti).`,
-      data: { allReady: true, resumed: true, remainingSeconds }
-    };
-  }
-  await prisma.marketSession.update({
-    where: { id: activeSession.id },
-    data: { rubataReadyMembers: updatedReadyMembers }
-  });
-  return {
-    success: true,
-    message: "Pronto!",
-    data: {
-      allReady,
-      readyCount: updatedReadyMembers.length,
-      totalMembers: allMembers.length
+      throw e;
     }
-  };
+  }
+  return { success: false, message: "Troppi tentativi concorrenti, riprova." };
 }
 async function forceAllRubataReady(leagueId, adminUserId) {
   const adminMember = await prisma.leagueMember.findFirst({
@@ -299983,7 +300131,7 @@ async function forceAllRubataReady(leagueId, adminUserId) {
       where: { id: activeSession.id },
       data: {
         rubataReadyMembers: [],
-        rubataAuctionReadyInfo: Prisma4.DbNull,
+        rubataAuctionReadyInfo: Prisma3.DbNull,
         rubataState: "AUCTION",
         rubataTimerStartedAt: /* @__PURE__ */ new Date()
       }
@@ -299998,7 +300146,7 @@ async function forceAllRubataReady(leagueId, adminUserId) {
       where: { id: activeSession.id },
       data: {
         rubataReadyMembers: [],
-        rubataPendingAck: Prisma4.DbNull,
+        rubataPendingAck: Prisma3.DbNull,
         rubataState: "OFFERING",
         rubataTimerStartedAt: /* @__PURE__ */ new Date()
       }
@@ -300179,15 +300327,40 @@ async function acknowledgeRubataTransaction(leagueId, userId, prophecy) {
     content: prophecy.trim(),
     createdAt: (/* @__PURE__ */ new Date()).toISOString()
   }] : existingProphecies;
-  const updatedAck = {
-    ...pendingAck,
-    acknowledgedMembers: [...pendingAck.acknowledgedMembers, member.id],
-    prophecies: newProphecies
-  };
+  if (prophecy?.trim() && pendingAck.winnerId) {
+    const movement = await prisma.playerMovement.findFirst({
+      where: { auctionId: pendingAck.auctionId }
+    });
+    if (movement) {
+      const isBuyer = movement.toMemberId === member.id;
+      const isSeller = movement.fromMemberId === member.id;
+      if (isBuyer || isSeller) {
+        const existingProphecy = await prisma.prophecy.findUnique({
+          where: {
+            movementId_authorId: {
+              movementId: movement.id,
+              authorId: member.id
+            }
+          }
+        });
+        if (!existingProphecy) {
+          await prisma.prophecy.create({
+            data: {
+              leagueId,
+              playerId: pendingAck.playerId,
+              authorId: member.id,
+              movementId: movement.id,
+              authorRole: isBuyer ? "BUYER" : "SELLER",
+              content: prophecy.trim()
+            }
+          });
+        }
+      }
+    }
+  }
   const allMembers = await prisma.leagueMember.findMany({
     where: { leagueId, status: MemberStatus10.ACTIVE }
   });
-  const allAcknowledged = allMembers.every((m) => updatedAck.acknowledgedMembers.includes(m.id));
   let winnerContractInfo = null;
   if (pendingAck.winnerId === member.id) {
     const roster = await prisma.playerRoster.findFirst({
@@ -300213,63 +300386,84 @@ async function acknowledgeRubataTransaction(leagueId, userId, prophecy) {
       };
     }
   }
-  if (allAcknowledged) {
-    const board = activeSession.rubataBoard;
-    const currentIndex = activeSession.rubataBoardIndex ?? 0;
-    const isLastPlayer = board ? currentIndex + 1 >= board.length : false;
-    if (isLastPlayer) {
-      await prisma.marketSession.update({
-        where: { id: activeSession.id },
-        data: {
-          rubataPendingAck: Prisma4.DbNull,
-          rubataReadyMembers: [],
-          rubataState: "COMPLETED",
-          rubataTimerStartedAt: null
+  const MAX_ACK_ATTEMPTS = 6;
+  for (let attempt = 0; attempt < MAX_ACK_ATTEMPTS; attempt++) {
+    try {
+      return await prisma.$transaction(async (tx) => {
+        const fresh = await tx.marketSession.findUnique({ where: { id: activeSession.id } });
+        if (!fresh || fresh.rubataState !== "PENDING_ACK" || !fresh.rubataPendingAck) {
+          return { success: false, message: "Nessuna transazione da confermare" };
         }
-      });
-      return {
-        success: true,
-        message: "Ultimo giocatore confermato! Rubata completata!",
-        data: {
-          allAcknowledged: true,
-          completed: true,
-          winnerContractInfo
+        const freshPendingAck = fresh.rubataPendingAck;
+        if (freshPendingAck.acknowledgedMembers.includes(member.id)) {
+          return { success: true, message: "Gi\xE0 confermato" };
         }
-      };
+        const updatedAck = {
+          ...freshPendingAck,
+          acknowledgedMembers: [...freshPendingAck.acknowledgedMembers, member.id],
+          prophecies: newProphecies
+        };
+        const allAcknowledged = allMembers.every((m) => updatedAck.acknowledgedMembers.includes(m.id));
+        if (allAcknowledged) {
+          const board = fresh.rubataBoard;
+          const currentIndex = fresh.rubataBoardIndex ?? 0;
+          const isLastPlayer = board ? currentIndex >= board.length : false;
+          if (isLastPlayer) {
+            await tx.marketSession.update({
+              where: { id: activeSession.id },
+              data: {
+                rubataPendingAck: Prisma3.DbNull,
+                rubataReadyMembers: [],
+                rubataState: "COMPLETED",
+                rubataTimerStartedAt: null
+              }
+            });
+            return {
+              success: true,
+              message: "Ultimo giocatore confermato! Rubata completata!",
+              data: { allAcknowledged: true, completed: true, winnerContractInfo }
+            };
+          }
+          const nextPlayerForAck = board?.[currentIndex];
+          const autoPassIdsForAck = nextPlayerForAck ? await getAutoPassMemberIds(activeSession.id, nextPlayerForAck.playerId) : [];
+          await tx.marketSession.update({
+            where: { id: activeSession.id },
+            data: {
+              rubataPendingAck: Prisma3.DbNull,
+              rubataReadyMembers: autoPassIdsForAck,
+              rubataState: "READY_CHECK"
+            }
+          });
+          return {
+            success: true,
+            message: "Tutti hanno confermato! Dichiararsi pronti per il prossimo giocatore.",
+            data: { allAcknowledged: true, winnerContractInfo }
+          };
+        }
+        await tx.marketSession.update({
+          where: { id: activeSession.id },
+          data: { rubataPendingAck: updatedAck }
+        });
+        return {
+          success: true,
+          message: "Confermato!",
+          data: {
+            allAcknowledged: false,
+            acknowledgedCount: updatedAck.acknowledgedMembers.length,
+            totalMembers: allMembers.length,
+            winnerContractInfo
+          }
+        };
+      }, { isolationLevel: Prisma3.TransactionIsolationLevel.Serializable });
+    } catch (e) {
+      const isSerializationConflict = e instanceof Prisma3.PrismaClientKnownRequestError && e.code === "P2034";
+      if (isSerializationConflict && attempt < MAX_ACK_ATTEMPTS - 1) {
+        continue;
+      }
+      throw e;
     }
-    await prisma.marketSession.update({
-      where: { id: activeSession.id },
-      data: {
-        rubataPendingAck: Prisma4.DbNull,
-        rubataReadyMembers: [],
-        rubataState: "READY_CHECK"
-      }
-    });
-    return {
-      success: true,
-      message: "Tutti hanno confermato! Dichiararsi pronti per il prossimo giocatore.",
-      data: {
-        allAcknowledged: true,
-        winnerContractInfo
-        // For contract modification modal
-      }
-    };
   }
-  await prisma.marketSession.update({
-    where: { id: activeSession.id },
-    data: { rubataPendingAck: updatedAck }
-  });
-  return {
-    success: true,
-    message: "Confermato!",
-    data: {
-      allAcknowledged: false,
-      acknowledgedCount: updatedAck.acknowledgedMembers.length,
-      totalMembers: allMembers.length,
-      winnerContractInfo
-      // For contract modification modal
-    }
-  };
+  return { success: false, message: "Troppi tentativi concorrenti, riprova." };
 }
 async function forceAllRubataAcknowledge(leagueId, adminUserId) {
   const adminMember = await prisma.leagueMember.findFirst({
@@ -300293,11 +300487,32 @@ async function forceAllRubataAcknowledge(leagueId, adminUserId) {
   if (!activeSession || activeSession.rubataState !== "PENDING_ACK") {
     return { success: false, message: "Nessuna transazione pendente" };
   }
+  const boardForForceAck = activeSession.rubataBoard;
+  const currentIndexForForceAck = activeSession.rubataBoardIndex ?? 0;
+  const isLastPlayerForForceAck = boardForForceAck ? currentIndexForForceAck >= boardForForceAck.length : false;
+  if (isLastPlayerForForceAck) {
+    await prisma.marketSession.update({
+      where: { id: activeSession.id },
+      data: {
+        rubataPendingAck: Prisma3.DbNull,
+        rubataReadyMembers: [],
+        rubataState: "COMPLETED",
+        rubataTimerStartedAt: null
+      }
+    });
+    return {
+      success: true,
+      message: "Conferme forzate! Ultimo giocatore confermato, rubata completata.",
+      data: { completed: true }
+    };
+  }
+  const nextPlayerForForceAck = boardForForceAck?.[currentIndexForForceAck];
+  const autoPassIdsForForceAck = nextPlayerForForceAck ? await getAutoPassMemberIds(activeSession.id, nextPlayerForForceAck.playerId) : [];
   await prisma.marketSession.update({
     where: { id: activeSession.id },
     data: {
-      rubataPendingAck: Prisma4.DbNull,
-      rubataReadyMembers: [],
+      rubataPendingAck: Prisma3.DbNull,
+      rubataReadyMembers: autoPassIdsForForceAck,
       rubataState: "READY_CHECK"
     }
   });
@@ -300572,53 +300787,62 @@ async function completeRubataWithTransactions(leagueId, adminUserId, stealProbab
           include: { contract: true }
         });
         if (rosterEntry) {
-          const auction = await prisma.auction.create({
-            data: {
-              leagueId,
-              playerId: player.playerId,
-              marketSessionId: activeSession.id,
-              type: "RUBATA",
-              status: "COMPLETED",
-              basePrice: player.rubataPrice,
-              currentPrice: bidAmount,
-              sellerId: player.memberId,
-              winnerId: buyer.id,
-              endsAt: /* @__PURE__ */ new Date()
-            }
-          });
-          await prisma.auctionBid.create({
-            data: {
-              auctionId: auction.id,
-              bidderId: buyer.id,
-              userId: buyer.userId,
-              amount: bidAmount,
-              isWinning: true
-            }
-          });
           const contractSalary = rosterEntry.contract?.salary ?? 0;
           const sellerPayment = bidAmount - contractSalary;
-          await prisma.leagueMember.update({
-            where: { id: buyer.id },
-            data: { currentBudget: { decrement: bidAmount } }
-          });
-          await prisma.leagueMember.update({
-            where: { id: player.memberId },
-            data: { currentBudget: { increment: sellerPayment } }
-          });
-          await prisma.playerRoster.update({
-            where: { id: rosterEntry.id },
-            data: {
-              leagueMemberId: buyer.id,
-              acquisitionType: "RUBATA",
-              acquisitionPrice: bidAmount
-            }
-          });
-          if (rosterEntry.contract) {
-            await prisma.playerContract.update({
-              where: { id: rosterEntry.contract.id },
-              data: { leagueMemberId: buyer.id }
+          const auction = await prisma.$transaction(async (tx) => {
+            const auction2 = await tx.auction.create({
+              data: {
+                leagueId,
+                playerId: player.playerId,
+                marketSessionId: activeSession.id,
+                type: "RUBATA",
+                status: "COMPLETED",
+                basePrice: player.rubataPrice,
+                currentPrice: bidAmount,
+                sellerId: player.memberId,
+                winnerId: buyer.id,
+                endsAt: /* @__PURE__ */ new Date()
+              }
             });
-          }
+            await tx.auctionBid.create({
+              data: {
+                auctionId: auction2.id,
+                bidderId: buyer.id,
+                userId: buyer.userId,
+                amount: bidAmount,
+                isWinning: true
+              }
+            });
+            await tx.leagueMember.update({
+              where: { id: buyer.id },
+              data: {
+                currentBudget: { decrement: bidAmount },
+                totalSalaries: { increment: contractSalary }
+              }
+            });
+            await tx.leagueMember.update({
+              where: { id: player.memberId },
+              data: {
+                currentBudget: { increment: sellerPayment },
+                totalSalaries: { decrement: contractSalary }
+              }
+            });
+            await tx.playerRoster.update({
+              where: { id: rosterEntry.id },
+              data: {
+                leagueMemberId: buyer.id,
+                acquisitionType: "RUBATA",
+                acquisitionPrice: bidAmount
+              }
+            });
+            if (rosterEntry.contract) {
+              await tx.playerContract.update({
+                where: { id: rosterEntry.contract.id },
+                data: { leagueMemberId: buyer.id }
+              });
+            }
+            return auction2;
+          });
           await recordMovement({
             leagueId,
             playerId: player.playerId,
@@ -300653,7 +300877,7 @@ async function completeRubataWithTransactions(leagueId, adminUserId, stealProbab
       rubataBoardIndex: board.length,
       rubataState: "COMPLETED",
       rubataTimerStartedAt: null,
-      rubataPendingAck: Prisma4.DbNull,
+      rubataPendingAck: Prisma3.DbNull,
       rubataReadyMembers: []
     }
   });
@@ -300667,6 +300891,13 @@ async function completeRubataWithTransactions(leagueId, adminUserId, stealProbab
       skips: remainingPlayers - steals
     }
   };
+}
+async function getAutoPassMemberIds(sessionId, playerId) {
+  const prefs = await prisma.rubataPreference.findMany({
+    where: { sessionId, playerId, isAutoPass: true },
+    select: { memberId: true }
+  });
+  return prefs.map((p) => p.memberId);
 }
 async function getRubataPreferences(leagueId, userId) {
   const member = await prisma.leagueMember.findFirst({
@@ -301790,11 +302021,11 @@ var import_express9 = __toESM(require_express2(), 1);
 
 // src/services/svincolati.service.ts
 init_prisma();
-import { MemberStatus as MemberStatus12, AuctionStatus as AuctionStatus4, Prisma as Prisma6, RosterStatus as RosterStatus7 } from "@prisma/client";
+import { MemberStatus as MemberStatus12, AuctionStatus as AuctionStatus4, Prisma as Prisma5, RosterStatus as RosterStatus7 } from "@prisma/client";
 
 // src/services/admin.service.ts
 init_prisma();
-import { MemberStatus as MemberStatus11, ProphecyRole as ProphecyRole2, Prisma as Prisma5 } from "@prisma/client";
+import { MemberStatus as MemberStatus11, ProphecyRole as ProphecyRole2, Prisma as Prisma4 } from "@prisma/client";
 import bcrypt3 from "bcryptjs";
 async function exportAllRosters(leagueId, adminUserId) {
   const adminMember = await prisma.leagueMember.findFirst({
@@ -301992,71 +302223,74 @@ async function resetFirstMarket(leagueId, adminUserId) {
   if (!session) {
     return { success: false, message: "Nessuna sessione PRIMO MERCATO trovata" };
   }
-  await prisma.auctionAppeal.deleteMany({
-    where: {
-      auction: {
+  await prisma.$transaction([
+    prisma.auctionAppeal.deleteMany({
+      where: {
+        auction: {
+          marketSessionId: session.id
+        }
+      }
+    }),
+    prisma.auctionAcknowledgment.deleteMany({
+      where: {
+        auction: {
+          marketSessionId: session.id
+        }
+      }
+    }),
+    prisma.auctionBid.deleteMany({
+      where: {
+        auction: {
+          marketSessionId: session.id
+        }
+      }
+    }),
+    prisma.auction.deleteMany({
+      where: {
         marketSessionId: session.id
       }
-    }
-  });
-  await prisma.auctionAcknowledgment.deleteMany({
-    where: {
-      auction: {
-        marketSessionId: session.id
+    }),
+    prisma.prophecy.deleteMany({
+      where: { leagueId }
+    }),
+    prisma.playerMovement.deleteMany({
+      where: { leagueId }
+    }),
+    prisma.playerContract.deleteMany({
+      where: {
+        roster: {
+          leagueMember: { leagueId }
+        }
       }
-    }
-  });
-  await prisma.auctionBid.deleteMany({
-    where: {
-      auction: {
-        marketSessionId: session.id
-      }
-    }
-  });
-  await prisma.auction.deleteMany({
-    where: {
-      marketSessionId: session.id
-    }
-  });
-  await prisma.prophecy.deleteMany({
-    where: { leagueId }
-  });
-  await prisma.playerMovement.deleteMany({
-    where: { leagueId }
-  });
-  await prisma.playerContract.deleteMany({
-    where: {
-      roster: {
+    }),
+    prisma.playerRoster.deleteMany({
+      where: {
         leagueMember: { leagueId }
       }
-    }
-  });
-  await prisma.playerRoster.deleteMany({
-    where: {
-      leagueMember: { leagueId }
-    }
-  });
-  await prisma.leagueMember.updateMany({
-    where: {
-      leagueId,
-      status: MemberStatus11.ACTIVE
-    },
-    data: {
-      currentBudget: league.initialBudget
-    }
-  });
-  await prisma.marketSession.update({
-    where: { id: session.id },
-    data: {
-      currentTurnIndex: 0,
-      currentRole: "P",
-      pendingNominationPlayerId: null,
-      pendingNominatorId: null,
-      nominatorConfirmed: false,
-      readyMembers: Prisma5.JsonNull,
-      status: "ACTIVE"
-    }
-  });
+    }),
+    prisma.leagueMember.updateMany({
+      where: {
+        leagueId,
+        status: MemberStatus11.ACTIVE
+      },
+      data: {
+        currentBudget: league.initialBudget,
+        totalSalaries: 0
+      }
+    }),
+    prisma.marketSession.update({
+      where: { id: session.id },
+      data: {
+        currentTurnIndex: 0,
+        currentRole: "P",
+        pendingNominationPlayerId: null,
+        pendingNominatorId: null,
+        nominatorConfirmed: false,
+        readyMembers: Prisma4.JsonNull,
+        status: "ACTIVE"
+      }
+    })
+  ]);
   return {
     success: true,
     message: "Primo Mercato resettato. Pronto per ricominciare.",
@@ -302370,6 +302604,9 @@ async function completeLeagueWithTestUsers(leagueId, adminUserId) {
 }
 
 // src/services/svincolati.service.ts
+var ConcurrentBidError3 = class extends Error {
+};
+var MAX_BID_ATTEMPTS3 = 5;
 var svincolatiHeartbeats = /* @__PURE__ */ new Map();
 var SVINCOLATI_HEARTBEAT_TIMEOUT = 45e3;
 function registerSvincolatiHeartbeat(leagueId, memberId) {
@@ -302492,9 +302729,6 @@ async function bidOnFreeAgent(auctionId, userId, amount) {
       return { success: false, message: "Hai rinunciato al turno. Non puoi pi\xF9 fare offerte." };
     }
   }
-  if (amount <= auction.currentPrice) {
-    return { success: false, message: `L'offerta deve essere maggiore di ${auction.currentPrice}` };
-  }
   const monteIngaggiBid = await prisma.playerContract.aggregate({
     where: { leagueMemberId: bidder.id },
     _sum: { salary: true }
@@ -302531,30 +302765,55 @@ async function bidOnFreeAgent(auctionId, userId, amount) {
     }
   }
   const timerSeconds = auction.marketSession?.svincolatiTimerSeconds ?? auction.marketSession?.auctionTimerSeconds ?? 30;
-  const newTimerExpires = new Date(Date.now() + timerSeconds * 1e3);
-  await prisma.$transaction(async (tx) => {
-    await tx.auctionBid.updateMany({
-      where: { auctionId },
-      data: { isWinning: false }
-    });
-    await tx.auctionBid.create({
-      data: {
-        auctionId,
-        bidderId: bidder.id,
-        userId,
-        amount,
-        isWinning: true
+  let currentPrice = auction.currentPrice;
+  let newTimerExpires = new Date(Date.now() + timerSeconds * 1e3);
+  let attempt = 0;
+  for (; attempt < MAX_BID_ATTEMPTS3; attempt++) {
+    if (attempt > 0) {
+      const fresh = await prisma.auction.findUnique({ where: { id: auctionId } });
+      if (!fresh || fresh.status !== "ACTIVE") {
+        return { success: false, message: "Asta non attiva" };
       }
-    });
-    await tx.auction.update({
-      where: { id: auctionId },
-      data: {
-        currentPrice: amount,
-        timerExpiresAt: newTimerExpires,
-        timerSeconds
+      currentPrice = fresh.currentPrice;
+    }
+    if (amount <= currentPrice) {
+      return { success: false, message: `L'offerta deve essere maggiore di ${currentPrice}` };
+    }
+    newTimerExpires = new Date(Date.now() + timerSeconds * 1e3);
+    try {
+      await prisma.$transaction(async (tx) => {
+        const claim = await tx.auction.updateMany({
+          where: { id: auctionId, currentPrice },
+          data: { currentPrice: amount, timerExpiresAt: newTimerExpires, timerSeconds }
+        });
+        if (claim.count === 0) {
+          throw new ConcurrentBidError3();
+        }
+        await tx.auctionBid.updateMany({
+          where: { auctionId },
+          data: { isWinning: false }
+        });
+        await tx.auctionBid.create({
+          data: {
+            auctionId,
+            bidderId: bidder.id,
+            userId,
+            amount,
+            isWinning: true
+          }
+        });
+      });
+      break;
+    } catch (e) {
+      if (e instanceof ConcurrentBidError3) {
+        continue;
       }
-    });
-  });
+      throw e;
+    }
+  }
+  if (attempt >= MAX_BID_ATTEMPTS3) {
+    return { success: false, message: "Troppi rilanci concorrenti in questo istante, riprova." };
+  }
   const bidderWithUser = await prisma.leagueMember.findUnique({
     where: { id: bidder.id },
     include: { user: { select: { username: true } } }
@@ -302675,7 +302934,7 @@ async function setSvincolatiTurnOrder(leagueId, adminUserId, memberIds) {
       svincolatiPendingPlayerId: null,
       svincolatiPendingNominatorId: null,
       svincolatiNominatorConfirmed: false,
-      svincolatiPendingAck: Prisma6.DbNull
+      svincolatiPendingAck: Prisma5.DbNull
     }
   });
   return {
@@ -302787,12 +303046,15 @@ async function getSvincolatiBoard(leagueId, userId) {
   }
   const pendingAck = activeSession.svincolatiPendingAck;
   const connectionStatus = getSvincolatiConnectionStatus(leagueId);
+  const sessionRubataOrder = activeSession.rubataOrder || null;
+  const defaultTurnOrder = sessionRubataOrder && sessionRubataOrder.length > 0 ? [...sessionRubataOrder].reverse() : null;
   return {
     success: true,
     data: {
       sessionId: activeSession.id,
       isActive: true,
       state: activeSession.svincolatiState || "SETUP",
+      defaultTurnOrder,
       turnOrder: orderedMembers.map((m) => ({
         id: m.id,
         username: m.user.username,
@@ -303021,45 +303283,70 @@ async function markReadyForSvincolati(leagueId, userId) {
   if (!activeSession) {
     return { success: false, message: "Nessuna sessione attiva" };
   }
-  if (activeSession.svincolatiState !== "NOMINATION") {
-    return { success: false, message: "Non \xE8 il momento di dichiararsi pronti" };
-  }
-  if (!activeSession.svincolatiNominatorConfirmed) {
-    return { success: false, message: "Il nominatore non ha ancora confermato" };
-  }
-  const readyMembers = activeSession.svincolatiReadyMembers || [];
-  if (readyMembers.includes(member.id)) {
-    return { success: false, message: "Sei gi\xE0 pronto" };
-  }
-  const turnOrder = activeSession.svincolatiTurnOrder || [];
-  const newReadyMembers = activeSession.auctionMode === "IN_PRESENCE" ? [...turnOrder] : [...readyMembers, member.id];
-  const allReady = turnOrder.every((id) => newReadyMembers.includes(id));
-  if (allReady) {
-    return await startSvincolatiAuction(activeSession.id, newReadyMembers);
-  }
-  await prisma.marketSession.update({
-    where: { id: activeSession.id },
-    data: { svincolatiReadyMembers: newReadyMembers }
-  });
   const readyMemberWithUser = await prisma.leagueMember.findUnique({
     where: { id: member.id },
     include: { user: { select: { username: true } } }
   });
-  triggerSvincolatiReadyChanged(activeSession.id, {
-    sessionId: activeSession.id,
-    memberId: member.id,
-    memberUsername: readyMemberWithUser?.user.username || "Unknown",
-    isReady: true,
-    readyCount: newReadyMembers.length,
-    totalMembers: turnOrder.length,
-    timestamp: (/* @__PURE__ */ new Date()).toISOString()
-  }).catch(() => {
-  });
-  return {
-    success: true,
-    message: "Pronto!",
-    data: { readyCount: newReadyMembers.length, totalCount: turnOrder.length }
-  };
+  const MAX_READY_ATTEMPTS = 6;
+  for (let attempt = 0; attempt < MAX_READY_ATTEMPTS; attempt++) {
+    try {
+      const result = await prisma.$transaction(async (tx) => {
+        const fresh = await tx.marketSession.findUnique({ where: { id: activeSession.id } });
+        if (!fresh || fresh.svincolatiState !== "NOMINATION") {
+          return { success: false, message: "Non \xE8 il momento di dichiararsi pronti" };
+        }
+        if (!fresh.svincolatiNominatorConfirmed) {
+          return { success: false, message: "Il nominatore non ha ancora confermato" };
+        }
+        const readyMembers = fresh.svincolatiReadyMembers || [];
+        if (readyMembers.includes(member.id)) {
+          return { success: false, message: "Sei gi\xE0 pronto" };
+        }
+        const turnOrder = fresh.svincolatiTurnOrder || [];
+        const newReadyMembers = fresh.auctionMode === "IN_PRESENCE" ? [...turnOrder] : [...readyMembers, member.id];
+        const allReady = turnOrder.every((id) => newReadyMembers.includes(id));
+        if (allReady) {
+          return { success: true, _startAuction: newReadyMembers };
+        }
+        await tx.marketSession.update({
+          where: { id: activeSession.id },
+          data: { svincolatiReadyMembers: newReadyMembers }
+        });
+        return {
+          success: true,
+          message: "Pronto!",
+          data: { readyCount: newReadyMembers.length, totalCount: turnOrder.length },
+          _justBecameReady: true,
+          _readyCount: newReadyMembers.length,
+          _totalMembers: turnOrder.length
+        };
+      }, { isolationLevel: Prisma5.TransactionIsolationLevel.Serializable });
+      if (result._startAuction) {
+        return await startSvincolatiAuction(activeSession.id, result._startAuction);
+      }
+      if (result._justBecameReady) {
+        triggerSvincolatiReadyChanged(activeSession.id, {
+          sessionId: activeSession.id,
+          memberId: member.id,
+          memberUsername: readyMemberWithUser?.user.username || "Unknown",
+          isReady: true,
+          readyCount: result._readyCount ?? 0,
+          totalMembers: result._totalMembers ?? 0,
+          timestamp: (/* @__PURE__ */ new Date()).toISOString()
+        }).catch(() => {
+        });
+      }
+      const { _startAuction: _unused1, _justBecameReady: _unused2, _readyCount: _unused3, _totalMembers: _unused4, ...serviceResult } = result;
+      return serviceResult;
+    } catch (e) {
+      const isSerializationConflict = e instanceof Prisma5.PrismaClientKnownRequestError && e.code === "P2034";
+      if (isSerializationConflict && attempt < MAX_READY_ATTEMPTS - 1) {
+        continue;
+      }
+      throw e;
+    }
+  }
+  return { success: false, message: "Troppi tentativi concorrenti, riprova." };
 }
 async function startSvincolatiAuction(sessionId, readyMembers) {
   const session = await prisma.marketSession.findUnique({
@@ -303286,14 +303573,15 @@ async function closeSvincolatiAuction(auctionId, adminUserId) {
   const winningBid = auction.bids[0];
   const turnOrder = auction.marketSession?.svincolatiTurnOrder || [];
   if (!winningBid) {
-    await prisma.$transaction(async (tx) => {
-      await tx.auction.update({
-        where: { id: auctionId },
+    const claimed2 = await prisma.$transaction(async (tx) => {
+      const claim = await tx.auction.updateMany({
+        where: { id: auctionId, status: AuctionStatus4.ACTIVE },
         data: {
           status: AuctionStatus4.NO_BIDS,
           endsAt: /* @__PURE__ */ new Date()
         }
       });
+      if (claim.count === 0) return false;
       await tx.marketSession.update({
         where: { id: auction.marketSessionId },
         data: {
@@ -303311,7 +303599,11 @@ async function closeSvincolatiAuction(auctionId, adminUserId) {
           }
         }
       });
+      return true;
     });
+    if (!claimed2) {
+      return { success: false, message: "Asta gi\xE0 chiusa (da un'altra richiesta concorrente)" };
+    }
     triggerSvincolatiAuctionClosed(auction.marketSessionId ?? auctionId, {
       sessionId: auction.marketSessionId ?? auctionId,
       auctionId,
@@ -303330,7 +303622,16 @@ async function closeSvincolatiAuction(auctionId, adminUserId) {
       data: { noBids: true }
     };
   }
-  await prisma.$transaction(async (tx) => {
+  const claimed = await prisma.$transaction(async (tx) => {
+    const claim = await tx.auction.updateMany({
+      where: { id: auctionId, status: AuctionStatus4.ACTIVE },
+      data: {
+        status: AuctionStatus4.COMPLETED,
+        winnerId: winningBid.bidderId,
+        endsAt: /* @__PURE__ */ new Date()
+      }
+    });
+    if (claim.count === 0) return false;
     await tx.leagueMember.update({
       where: { id: winningBid.bidderId },
       data: { currentBudget: { decrement: auction.currentPrice } }
@@ -303345,7 +303646,7 @@ async function closeSvincolatiAuction(auctionId, adminUserId) {
       }
     });
     const salary = calculateDefaultSalary(auction.currentPrice);
-    const duration3 = 3;
+    const duration3 = DEFAULT_CONTRACT_DURATION;
     const rescissionClause = calculateRescissionClause(salary, duration3);
     await tx.playerContract.create({
       data: {
@@ -303358,13 +303659,9 @@ async function closeSvincolatiAuction(auctionId, adminUserId) {
         rescissionClause
       }
     });
-    await tx.auction.update({
-      where: { id: auctionId },
-      data: {
-        status: AuctionStatus4.COMPLETED,
-        winnerId: winningBid.bidderId,
-        endsAt: /* @__PURE__ */ new Date()
-      }
+    await tx.leagueMember.update({
+      where: { id: winningBid.bidderId },
+      data: { totalSalaries: { increment: salary } }
     });
     await tx.marketSession.update({
       where: { id: auction.marketSessionId },
@@ -303383,7 +303680,11 @@ async function closeSvincolatiAuction(auctionId, adminUserId) {
         }
       }
     });
+    return true;
   });
+  if (!claimed) {
+    return { success: false, message: "Asta gi\xE0 chiusa (da un'altra richiesta concorrente)" };
+  }
   const movementSalary2 = calculateDefaultSalary(auction.currentPrice);
   const movementDuration2 = 3;
   const movementClause2 = calculateRescissionClause(movementSalary2, movementDuration2);
@@ -303453,8 +303754,6 @@ async function acknowledgeSvincolatiAuction(leagueId, userId) {
   if (pendingAck.acknowledgedMembers.includes(member.id)) {
     return { success: false, message: "Hai gi\xE0 confermato" };
   }
-  const newAcknowledged = [...pendingAck.acknowledgedMembers, member.id];
-  const newPending = pendingAck.pendingMembers.filter((id) => id !== member.id);
   let winnerContractInfo = null;
   if (pendingAck.winnerId === member.id && !pendingAck.noBids) {
     const roster = await prisma.playerRoster.findFirst({
@@ -303480,36 +303779,63 @@ async function acknowledgeSvincolatiAuction(leagueId, userId) {
       };
     }
   }
-  if (newPending.length === 0) {
-    const result = await advanceSvincolatiToNextTurn(activeSession.id);
-    return {
-      ...result,
-      data: {
-        ...result.data || {},
-        winnerContractInfo
+  const MAX_ACK_ATTEMPTS = 6;
+  for (let attempt = 0; attempt < MAX_ACK_ATTEMPTS; attempt++) {
+    try {
+      const result = await prisma.$transaction(async (tx) => {
+        const fresh = await tx.marketSession.findUnique({ where: { id: activeSession.id } });
+        if (!fresh || fresh.svincolatiState !== "PENDING_ACK" || !fresh.svincolatiPendingAck) {
+          return { success: false, message: "Nessuna transazione da confermare" };
+        }
+        const freshPendingAck = fresh.svincolatiPendingAck;
+        if (freshPendingAck.acknowledgedMembers.includes(member.id)) {
+          return { success: false, message: "Hai gi\xE0 confermato" };
+        }
+        const newAcknowledged = [...freshPendingAck.acknowledgedMembers, member.id];
+        const newPending = freshPendingAck.pendingMembers.filter((id) => id !== member.id);
+        if (newPending.length === 0) {
+          return { success: true, _advance: true };
+        }
+        await tx.marketSession.update({
+          where: { id: activeSession.id },
+          data: {
+            svincolatiPendingAck: {
+              ...freshPendingAck,
+              acknowledgedMembers: newAcknowledged,
+              pendingMembers: newPending
+            }
+          }
+        });
+        return {
+          success: true,
+          message: "Conferma registrata",
+          data: {
+            acknowledgedCount: newAcknowledged.length,
+            pendingCount: newPending.length,
+            winnerContractInfo
+          }
+        };
+      }, { isolationLevel: Prisma5.TransactionIsolationLevel.Serializable });
+      if (result._advance) {
+        const advanceResult = await advanceSvincolatiToNextTurn(activeSession.id);
+        return {
+          ...advanceResult,
+          data: {
+            ...advanceResult.data || {},
+            winnerContractInfo
+          }
+        };
       }
-    };
+      return result;
+    } catch (e) {
+      const isSerializationConflict = e instanceof Prisma5.PrismaClientKnownRequestError && e.code === "P2034";
+      if (isSerializationConflict && attempt < MAX_ACK_ATTEMPTS - 1) {
+        continue;
+      }
+      throw e;
+    }
   }
-  await prisma.marketSession.update({
-    where: { id: activeSession.id },
-    data: {
-      svincolatiPendingAck: {
-        ...pendingAck,
-        acknowledgedMembers: newAcknowledged,
-        pendingMembers: newPending
-      }
-    }
-  });
-  return {
-    success: true,
-    message: "Conferma registrata",
-    data: {
-      acknowledgedCount: newAcknowledged.length,
-      pendingCount: newPending.length,
-      winnerContractInfo
-      // For contract modification modal
-    }
-  };
+  return { success: false, message: "Troppi tentativi concorrenti, riprova." };
 }
 async function forceAllSvincolatiAck(leagueId, adminUserId) {
   const adminMember = await prisma.leagueMember.findFirst({
@@ -303568,7 +303894,7 @@ async function advanceSvincolatiToNextTurn(sessionId) {
         svincolatiPendingPlayerId: null,
         svincolatiPendingNominatorId: null,
         svincolatiNominatorConfirmed: false,
-        svincolatiPendingAck: Prisma6.DbNull,
+        svincolatiPendingAck: Prisma5.DbNull,
         svincolatiReadyMembers: []
       }
     });
@@ -303610,7 +303936,7 @@ async function advanceSvincolatiToNextTurn(sessionId) {
         svincolatiPendingPlayerId: null,
         svincolatiPendingNominatorId: null,
         svincolatiNominatorConfirmed: false,
-        svincolatiPendingAck: Prisma6.DbNull,
+        svincolatiPendingAck: Prisma5.DbNull,
         svincolatiReadyMembers: []
       }
     });
@@ -303666,7 +303992,7 @@ async function advanceSvincolatiToNextTurn(sessionId) {
         svincolatiPendingPlayerId: null,
         svincolatiPendingNominatorId: null,
         svincolatiNominatorConfirmed: false,
-        svincolatiPendingAck: Prisma6.DbNull,
+        svincolatiPendingAck: Prisma5.DbNull,
         svincolatiReadyMembers: []
       }
     });
@@ -303684,7 +304010,7 @@ async function advanceSvincolatiToNextTurn(sessionId) {
       svincolatiPendingPlayerId: null,
       svincolatiPendingNominatorId: null,
       svincolatiNominatorConfirmed: false,
-      svincolatiPendingAck: Prisma6.DbNull,
+      svincolatiPendingAck: Prisma5.DbNull,
       svincolatiReadyMembers: [],
       svincolatiPassedMembers: newPassedMembers
     }
@@ -305460,6 +305786,34 @@ var import_express14 = __toESM(require_express2(), 1);
 // src/services/prize-phase.service.ts
 init_prisma();
 import { MemberStatus as MemberStatus13 } from "@prisma/client";
+var BASE_REINCREMENT_CATEGORY_NAME = "Re-incremento Base";
+function isCreditedCategory(category) {
+  return !category.isSystemPrize || category.name === BASE_REINCREMENT_CATEGORY_NAME;
+}
+async function ensureBaseReincrementCategory(sessionId, leagueId, defaultAmount, configCreatedAt) {
+  const existing = await prisma.prizeCategory.findFirst({
+    where: { marketSessionId: sessionId, name: BASE_REINCREMENT_CATEGORY_NAME }
+  });
+  if (existing) return;
+  const members = await prisma.leagueMember.findMany({
+    where: { leagueId, status: MemberStatus13.ACTIVE },
+    select: { id: true }
+  });
+  if (members.length === 0) return;
+  await prisma.$transaction(async (tx) => {
+    const category = await tx.prizeCategory.create({
+      data: {
+        marketSessionId: sessionId,
+        name: BASE_REINCREMENT_CATEGORY_NAME,
+        isSystemPrize: true,
+        createdAt: new Date(configCreatedAt.getTime() - 1e3)
+      }
+    });
+    await tx.sessionPrize.createMany({
+      data: members.map((m) => ({ prizeCategoryId: category.id, leagueMemberId: m.id, amount: defaultAmount }))
+    });
+  });
+}
 async function initializePrizePhase(sessionId, adminUserId) {
   const session = await prisma.marketSession.findUnique({
     where: { id: sessionId },
@@ -305497,6 +305851,20 @@ async function initializePrizePhase(sessionId, adminUserId) {
         marketSessionId: sessionId,
         baseReincrement: 100
       }
+    });
+    const baseCategory = await tx.prizeCategory.create({
+      data: {
+        marketSessionId: sessionId,
+        name: BASE_REINCREMENT_CATEGORY_NAME,
+        isSystemPrize: true
+      }
+    });
+    await tx.sessionPrize.createMany({
+      data: members.map((m) => ({
+        prizeCategoryId: baseCategory.id,
+        leagueMemberId: m.id,
+        amount: 100
+      }))
     });
     const indennizzoCategory2 = await tx.prizeCategory.create({
       data: {
@@ -305544,6 +305912,7 @@ async function getPrizePhaseData(sessionId, userId) {
   if (!config2) {
     return { success: false, message: "Fase premi non inizializzata" };
   }
+  await ensureBaseReincrementCategory(sessionId, session.leagueId, config2.baseReincrement, config2.createdAt);
   const members = await prisma.leagueMember.findMany({
     where: {
       leagueId: session.leagueId,
@@ -305582,10 +305951,16 @@ async function getPrizePhaseData(sessionId, userId) {
     },
     orderBy: { createdAt: "asc" }
   });
+  const baseCategory = categories.find((cat) => cat.name === BASE_REINCREMENT_CATEGORY_NAME);
+  const baseReincrementByMember = {};
+  for (const m of members) {
+    baseReincrementByMember[m.id] = baseCategory?.managerPrizes.find((p) => p.leagueMemberId === m.id)?.amount ?? config2.baseReincrement;
+  }
   const memberTotals = {};
   for (const m of members) {
-    memberTotals[m.id] = config2.baseReincrement;
+    memberTotals[m.id] = 0;
     for (const cat of categories) {
+      if (!isCreditedCategory(cat)) continue;
       const prize = cat.managerPrizes.find((p) => p.leagueMemberId === m.id);
       if (prize) {
         memberTotals[m.id] = (memberTotals[m.id] ?? 0) + prize.amount;
@@ -305675,6 +306050,10 @@ async function getPrizePhaseData(sessionId, userId) {
       teamName: m.teamName,
       username: m.user.username,
       currentBudget: m.currentBudget,
+      totalSalaries: m.totalSalaries,
+      // Visibile a TUTTI (anche manager, che non ricevono `categories`): è "garantito",
+      // uguale per default ma può essere stato assegnato individualmente dall'admin.
+      baseReincrement: baseReincrementByMember[m.id],
       // Se la fase è finalizzata o l'utente è admin, mostra i totali
       // Altrimenti mostra solo il base reincrement
       totalPrize: config2.isFinalized || isAdmin ? memberTotals[m.id] : null,
@@ -305699,6 +306078,18 @@ async function getPrizePhaseData(sessionId, userId) {
       ESTERO: playersWithIndemnity.filter((p) => p.player.exitReason === "ESTERO").length
     }
   };
+  const myCategoryPrizes = {};
+  let myIndemnityTotal = 0;
+  for (const cat of categories) {
+    if (cat.name === BASE_REINCREMENT_CATEGORY_NAME) continue;
+    const prize = cat.managerPrizes.find((p) => p.leagueMemberId === member.id);
+    if (!prize || prize.amount <= 0) continue;
+    if (cat.name.startsWith("Indennizzo - ")) {
+      myIndemnityTotal += prize.amount;
+    } else if (cat.name !== "Indennizzo Partenza Estero") {
+      myCategoryPrizes[cat.name] = prize.amount;
+    }
+  }
   return {
     success: true,
     data: {
@@ -305713,48 +306104,10 @@ async function getPrizePhaseData(sessionId, userId) {
       categories: isAdmin ? formattedCategories : [],
       members: formattedMembers,
       isAdmin,
-      indemnityStats
+      indemnityStats,
+      myCategoryPrizes,
+      myIndemnityTotal
     }
-  };
-}
-async function updateBaseReincrement(sessionId, adminUserId, amount) {
-  const session = await prisma.marketSession.findUnique({
-    where: { id: sessionId }
-  });
-  if (!session) {
-    return { success: false, message: "Sessione non trovata" };
-  }
-  const adminMember = await prisma.leagueMember.findFirst({
-    where: {
-      leagueId: session.leagueId,
-      userId: adminUserId,
-      role: "ADMIN",
-      status: MemberStatus13.ACTIVE
-    }
-  });
-  if (!adminMember) {
-    return { success: false, message: "Non autorizzato" };
-  }
-  const config2 = await prisma.prizePhaseConfig.findUnique({
-    where: { marketSessionId: sessionId }
-  });
-  if (!config2) {
-    return { success: false, message: "Fase premi non inizializzata" };
-  }
-  if (config2.isFinalized) {
-    return { success: false, message: "La fase premi \xE8 gi\xE0 stata finalizzata" };
-  }
-  if (!Number.isInteger(amount) || amount < 0) {
-    return { success: false, message: "L'importo deve essere un numero intero >= 0" };
-  }
-  await prisma.prizePhaseConfig.update({
-    where: { id: config2.id },
-    data: { baseReincrement: amount }
-  });
-  return {
-    success: true,
-    message: `Re-incremento base aggiornato a ${amount}M`,
-    data: { baseReincrement: amount }
   };
 }
 async function createPrizeCategory(sessionId, adminUserId, name) {
@@ -305804,6 +306157,56 @@ async function createPrizeCategory(sessionId, adminUserId, name) {
     success: true,
     message: `Categoria "${name.trim()}" creata`,
     data: { id: category.id, name: category.name }
+  };
+}
+async function renamePrizeCategory(categoryId, adminUserId, newName) {
+  const category = await prisma.prizeCategory.findUnique({
+    where: { id: categoryId },
+    include: { marketSession: true }
+  });
+  if (!category) {
+    return { success: false, message: "Categoria non trovata" };
+  }
+  const adminMember = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId: category.marketSession.leagueId,
+      userId: adminUserId,
+      role: "ADMIN",
+      status: MemberStatus13.ACTIVE
+    }
+  });
+  if (!adminMember) {
+    return { success: false, message: "Non autorizzato" };
+  }
+  if (category.isSystemPrize) {
+    return { success: false, message: "Non puoi rinominare le categorie di sistema" };
+  }
+  const config2 = await prisma.prizePhaseConfig.findUnique({
+    where: { marketSessionId: category.marketSessionId }
+  });
+  if (config2?.isFinalized) {
+    return { success: false, message: "La fase premi \xE8 gi\xE0 stata finalizzata" };
+  }
+  const trimmedName = newName?.trim();
+  if (!trimmedName) {
+    return { success: false, message: "Il nome della categoria \xE8 obbligatorio" };
+  }
+  if (trimmedName !== category.name) {
+    const existing = await prisma.prizeCategory.findFirst({
+      where: { marketSessionId: category.marketSessionId, name: trimmedName }
+    });
+    if (existing) {
+      return { success: false, message: "Esiste gi\xE0 una categoria con questo nome" };
+    }
+  }
+  await prisma.prizeCategory.update({
+    where: { id: categoryId },
+    data: { name: trimmedName }
+  });
+  return {
+    success: true,
+    message: `Categoria rinominata in "${trimmedName}"`,
+    data: { id: categoryId, name: trimmedName }
   };
 }
 async function deletePrizeCategory(categoryId, adminUserId) {
@@ -305956,7 +306359,7 @@ async function adminCorrectMemberPrize(leagueId, adminUserId, input) {
   });
   const oldAmount = existingPrize?.amount ?? 0;
   const delta = newAmount - oldAmount;
-  const shouldAdjustBudget = config2.isFinalized && !category.isSystemPrize && delta !== 0;
+  const shouldAdjustBudget = config2.isFinalized && isCreditedCategory(category) && delta !== 0;
   await prisma.$transaction(async (tx) => {
     await tx.sessionPrize.upsert({
       where: {
@@ -306036,6 +306439,7 @@ async function finalizePrizePhase(sessionId, adminUserId) {
   if (config2.isFinalized) {
     return { success: false, message: "La fase premi \xE8 gi\xE0 stata finalizzata" };
   }
+  await ensureBaseReincrementCategory(sessionId, session.leagueId, config2.baseReincrement, config2.createdAt);
   const members = await prisma.leagueMember.findMany({
     where: {
       leagueId: session.leagueId,
@@ -306047,18 +306451,16 @@ async function finalizePrizePhase(sessionId, adminUserId) {
       prizeCategory: { marketSessionId: sessionId }
     },
     include: {
-      prizeCategory: { select: { isSystemPrize: true } }
+      prizeCategory: { select: { isSystemPrize: true, name: true } }
     }
   });
   const memberTotals = {};
   for (const m of members) {
-    memberTotals[m.id] = config2.baseReincrement;
+    memberTotals[m.id] = 0;
   }
   for (const prize of prizes) {
-    if (memberTotals[prize.leagueMemberId] !== void 0) {
-      if (!prize.prizeCategory.isSystemPrize) {
-        memberTotals[prize.leagueMemberId] = (memberTotals[prize.leagueMemberId] ?? 0) + prize.amount;
-      }
+    if (memberTotals[prize.leagueMemberId] !== void 0 && isCreditedCategory(prize.prizeCategory)) {
+      memberTotals[prize.leagueMemberId] = (memberTotals[prize.leagueMemberId] ?? 0) + prize.amount;
     }
   }
   await prisma.$transaction([
@@ -306122,9 +306524,6 @@ async function setCustomIndemnity(sessionId, playerId, adminUserId, amount) {
   });
   if (!config2) {
     return { success: false, message: "Fase premi non inizializzata" };
-  }
-  if (config2.isFinalized) {
-    return { success: false, message: "La fase premi \xE8 gi\xE0 stata finalizzata" };
   }
   const player = await prisma.serieAPlayer.findUnique({
     where: { id: playerId }
@@ -306264,9 +306663,6 @@ async function consolidateIndemnities(sessionId, adminUserId) {
   if (!config2) {
     return { success: false, message: "Fase premi non inizializzata" };
   }
-  if (config2.isFinalized) {
-    return { success: false, message: "La fase premi \xE8 gi\xE0 stata finalizzata" };
-  }
   if (config2.indemnityConsolidated) {
     return { success: false, message: "Gli indennizzi sono gi\xE0 stati consolidati" };
   }
@@ -306384,21 +306780,33 @@ async function getPrizeHistory2(leagueId, userId) {
     orderBy: { createdAt: "desc" }
   });
   const history = sessions.map((session) => {
+    const flatBaseFallback = session.prizePhaseConfig?.baseReincrement ?? 0;
+    const baseCategory = session.prizeCategories.find((c) => c.name === BASE_REINCREMENT_CATEGORY_NAME);
     const memberTotals = {};
+    const ensureMember = (leagueMemberId, teamName, username) => {
+      let entry = memberTotals[leagueMemberId];
+      if (!entry) {
+        const base = baseCategory ? baseCategory.managerPrizes.find((p) => p.leagueMemberId === leagueMemberId)?.amount ?? flatBaseFallback : flatBaseFallback;
+        entry = {
+          memberId: leagueMemberId,
+          teamName,
+          username,
+          baseReincrement: base,
+          categoryPrizes: {},
+          total: base
+        };
+        memberTotals[leagueMemberId] = entry;
+      }
+      return entry;
+    };
     for (const cat of session.prizeCategories) {
       for (const prize of cat.managerPrizes) {
-        if (!memberTotals[prize.leagueMemberId]) {
-          memberTotals[prize.leagueMemberId] = {
-            memberId: prize.leagueMemberId,
-            teamName: prize.leagueMember.teamName,
-            username: prize.leagueMember.user.username,
-            baseReincrement: session.prizePhaseConfig?.baseReincrement ?? 0,
-            categoryPrizes: {},
-            total: session.prizePhaseConfig?.baseReincrement ?? 0
-          };
+        const entry = ensureMember(prize.leagueMemberId, prize.leagueMember.teamName, prize.leagueMember.user.username);
+        if (cat.id === baseCategory?.id) continue;
+        entry.categoryPrizes[cat.name] = prize.amount;
+        if (isCreditedCategory(cat)) {
+          entry.total += prize.amount;
         }
-        memberTotals[prize.leagueMemberId].categoryPrizes[cat.name] = prize.amount;
-        memberTotals[prize.leagueMemberId].total += prize.amount;
       }
     }
     return {
@@ -306407,8 +306815,8 @@ async function getPrizeHistory2(leagueId, userId) {
       season: session.season,
       semester: session.semester,
       finalizedAt: session.prizePhaseConfig?.finalizedAt,
-      baseReincrement: session.prizePhaseConfig?.baseReincrement ?? 0,
-      categories: session.prizeCategories.map((cat) => ({
+      baseReincrement: flatBaseFallback,
+      categories: session.prizeCategories.filter((cat) => cat.id !== baseCategory?.id).map((cat) => ({
         name: cat.name,
         isSystemPrize: cat.isSystemPrize
       })),
@@ -306453,25 +306861,6 @@ router14.get("/sessions/:sessionId/prizes", authMiddleware, async (req, res) => 
     res.status(500).json({ success: false, message: "Errore interno del server" });
   }
 });
-router14.patch("/sessions/:sessionId/prizes/base-reincrement", authMiddleware, async (req, res) => {
-  try {
-    const sessionId = req.params.sessionId;
-    const { amount } = req.body;
-    if (amount === void 0) {
-      res.status(400).json({ success: false, message: "amount \xE8 obbligatorio" });
-      return;
-    }
-    const result = await updateBaseReincrement(sessionId, req.user.userId, amount);
-    if (!result.success) {
-      res.status(result.message === "Non autorizzato" ? 403 : 400).json(result);
-      return;
-    }
-    res.json(result);
-  } catch (error46) {
-    console.error("Update base reincrement error:", error46);
-    res.status(500).json({ success: false, message: "Errore interno del server" });
-  }
-});
 router14.post("/sessions/:sessionId/prizes/categories", authMiddleware, async (req, res) => {
   try {
     const sessionId = req.params.sessionId;
@@ -306488,6 +306877,25 @@ router14.post("/sessions/:sessionId/prizes/categories", authMiddleware, async (r
     res.json(result);
   } catch (error46) {
     console.error("Create prize category error:", error46);
+    res.status(500).json({ success: false, message: "Errore interno del server" });
+  }
+});
+router14.patch("/prizes/categories/:categoryId", authMiddleware, async (req, res) => {
+  try {
+    const categoryId = req.params.categoryId;
+    const { name } = req.body;
+    if (!name) {
+      res.status(400).json({ success: false, message: "name \xE8 obbligatorio" });
+      return;
+    }
+    const result = await renamePrizeCategory(categoryId, req.user.userId, name);
+    if (!result.success) {
+      res.status(result.message === "Non autorizzato" ? 403 : 400).json(result);
+      return;
+    }
+    res.json(result);
+  } catch (error46) {
+    console.error("Rename prize category error:", error46);
     res.status(500).json({ success: false, message: "Errore interno del server" });
   }
 });
@@ -306850,7 +307258,9 @@ async function getFirstMarketHistory(leagueId, sessionId, userId) {
       position: a.player.position,
       team: a.player.team,
       quotation: a.player.quotation,
-      apiFootballId: a.player.apiFootballId
+      apiFootballId: a.player.apiFootballId,
+      listStatus: a.player.listStatus,
+      exitReason: a.player.exitReason
     },
     basePrice: a.basePrice,
     finalPrice: a.currentPrice,
@@ -307024,6 +307434,9 @@ async function getSessionTrades(leagueId, sessionId, userId, options) {
           name: r.player.name,
           position: r.player.position,
           team: r.player.team,
+          apiFootballId: r.player.apiFootballId,
+          listStatus: r.player.listStatus,
+          exitReason: r.player.exitReason,
           contract: r.contract ? {
             salary: r.contract.salary,
             duration: r.contract.duration,
@@ -307035,6 +307448,9 @@ async function getSessionTrades(leagueId, sessionId, userId, options) {
           name: r.player.name,
           position: r.player.position,
           team: r.player.team,
+          apiFootballId: r.player.apiFootballId,
+          listStatus: r.player.listStatus,
+          exitReason: r.player.exitReason,
           contract: r.contract ? {
             salary: r.contract.salary,
             duration: r.contract.duration,
@@ -307061,6 +307477,10 @@ async function getSessionTrades(leagueId, sessionId, userId, options) {
       }
     }
   };
+}
+var BASE_REINCREMENT_CATEGORY_NAME2 = "Re-incremento Base";
+function isCreditedCategory2(category) {
+  return !category.isSystemPrize || category.name === BASE_REINCREMENT_CATEGORY_NAME2;
 }
 async function getSessionPrizes(leagueId, sessionId, userId) {
   const member = await prisma.leagueMember.findFirst({
@@ -307150,6 +307570,7 @@ async function getSessionPrizes(leagueId, sessionId, userId) {
       position: mov.player.position,
       team: mov.player.team,
       quotation: mov.player.quotation,
+      apiFootballId: mov.player.apiFootballId,
       exitReason: "ESTERO",
       indemnityAmount: mov.price ?? 50,
       contract: null
@@ -307171,6 +307592,7 @@ async function getSessionPrizes(leagueId, sessionId, userId) {
           position: roster.player.position,
           team: roster.player.team,
           quotation: roster.player.quotation,
+          apiFootballId: roster.player.apiFootballId,
           exitReason: roster.player.exitReason,
           indemnityAmount: 50,
           // Default indemnity amount for ESTERO
@@ -307179,13 +307601,19 @@ async function getSessionPrizes(leagueId, sessionId, userId) {
       }
     }
   }
+  const baseCategory = categories.find((c) => c.name === BASE_REINCREMENT_CATEGORY_NAME2);
+  const flatBaseFallback = session.prizePhaseConfig?.baseReincrement ?? 0;
+  const memberBaseAmount = (memberId) => baseCategory ? baseCategory.managerPrizes.find((p) => p.leagueMemberId === memberId)?.amount ?? flatBaseFallback : flatBaseFallback;
+  const displayCategories = categories.filter((cat) => cat.id !== baseCategory?.id && isCreditedCategory2(cat));
   const memberTotals = {};
+  const memberBaseReincrement = {};
   const memberIndemnityTotals = {};
-  const baseReincrement = session.prizePhaseConfig?.baseReincrement ?? 0;
   for (const m of members) {
-    memberTotals[m.id] = baseReincrement;
+    const base = memberBaseAmount(m.id);
+    memberBaseReincrement[m.id] = base;
+    memberTotals[m.id] = base;
     memberIndemnityTotals[m.id] = 0;
-    for (const cat of categories) {
+    for (const cat of displayCategories) {
       const prize = cat.managerPrizes.find((p) => p.leagueMemberId === m.id);
       if (prize) {
         memberTotals[m.id] = (memberTotals[m.id] ?? 0) + prize.amount;
@@ -307210,11 +307638,11 @@ async function getSessionPrizes(leagueId, sessionId, userId) {
     success: true,
     data: {
       config: {
-        baseReincrement,
+        baseReincrement: flatBaseFallback,
         isFinalized: session.prizePhaseConfig?.isFinalized ?? false,
         finalizedAt: session.prizePhaseConfig?.finalizedAt
       },
-      categories: categories.map((cat) => ({
+      categories: displayCategories.map((cat) => ({
         id: cat.id,
         name: cat.name,
         isSystemPrize: cat.isSystemPrize,
@@ -307229,6 +307657,7 @@ async function getSessionPrizes(leagueId, sessionId, userId) {
         id: m.id,
         username: m.user.username,
         teamName: m.teamName,
+        baseReincrement: memberBaseReincrement[m.id],
         totalPrize: memberTotals[m.id],
         totalIndemnity: memberIndemnityTotals[m.id],
         indemnityPlayers: indemnityByMember[m.id] || []
@@ -307280,7 +307709,9 @@ async function getSessionRubataHistory(leagueId, sessionId, userId) {
       position: a.player.position,
       team: a.player.team,
       quotation: a.player.quotation,
-      apiFootballId: a.player.apiFootballId
+      apiFootballId: a.player.apiFootballId,
+      listStatus: a.player.listStatus,
+      exitReason: a.player.exitReason
     },
     basePrice: a.basePrice,
     finalPrice: a.currentPrice,
@@ -307379,7 +307810,9 @@ async function getSessionSvincolatiHistory(leagueId, sessionId, userId) {
       position: a.player.position,
       team: a.player.team,
       quotation: a.player.quotation,
-      apiFootballId: a.player.apiFootballId
+      apiFootballId: a.player.apiFootballId,
+      listStatus: a.player.listStatus,
+      exitReason: a.player.exitReason
     },
     basePrice: a.basePrice,
     finalPrice: a.currentPrice,
@@ -307516,6 +307949,11 @@ async function getTimelineEvents(leagueId, userId, options) {
     }
   };
 }
+function formatSessionLabel(type, season) {
+  const sessionName = type === "PRIMO_MERCATO" ? "Primo Mercato" : "Mercato Ricorrente";
+  const baseYear = 24 + season;
+  return `${sessionName} ${baseYear}/${baseYear + 1}`;
+}
 async function getPlayerCareer(leagueId, playerId, userId) {
   const member = await prisma.leagueMember.findFirst({
     where: {
@@ -307605,7 +308043,7 @@ async function getPlayerCareer(leagueId, playerId, userId) {
         price: m.price,
         oldContract: m.oldSalary ? { salary: m.oldSalary, duration: m.oldDuration, clause: m.oldClause } : null,
         newContract: m.newSalary ? { salary: m.newSalary, duration: m.newDuration, clause: m.newClause } : null,
-        session: m.marketSession ? `${m.marketSession.type} S${m.marketSession.season}` : null
+        session: m.marketSession ? formatSessionLabel(m.marketSession.type, m.marketSession.season) : null
       })),
       stats: {
         totalMovements: movements.length,
@@ -308399,6 +308837,7 @@ async function submitFeedback(userId, data) {
       category: data.category || FeedbackCategory.BUG,
       leagueId: data.leagueId || null,
       pageContext: data.pageContext || null,
+      metadata: data.metadata,
       status: FeedbackStatus.APERTA
     },
     include: {
@@ -308497,6 +308936,34 @@ async function getFeedbackById(feedbackId, userId) {
       readAt: /* @__PURE__ */ new Date()
     }
   });
+  let relatedLogs = [];
+  if (user?.isSuperAdmin) {
+    const since = new Date(feedback.createdAt.getTime() - 15 * 60 * 1e3);
+    const logs = await prisma.appLog.findMany({
+      where: {
+        userId: feedback.userId,
+        timestamp: { gte: since },
+        OR: [
+          { severity: { in: ["ERROR", "CRITICAL"] } },
+          { category: "ERROR" }
+        ]
+      },
+      orderBy: { timestamp: "desc" },
+      take: 10
+    });
+    relatedLogs = logs.map((l) => ({
+      id: l.id,
+      severity: l.severity,
+      category: l.category,
+      message: l.message,
+      timestamp: l.timestamp,
+      source: l.source,
+      method: l.method,
+      path: l.path,
+      statusCode: l.statusCode,
+      metadata: l.metadata ?? void 0
+    }));
+  }
   return {
     success: true,
     data: {
@@ -308506,11 +308973,13 @@ async function getFeedbackById(feedbackId, userId) {
       category: feedback.category,
       status: feedback.status,
       pageContext: feedback.pageContext,
+      metadata: feedback.metadata ?? void 0,
       githubIssueId: feedback.githubIssueId,
       githubIssueUrl: feedback.githubIssueUrl,
       createdAt: feedback.createdAt,
       updatedAt: feedback.updatedAt,
       resolvedAt: feedback.resolvedAt,
+      relatedLogs: relatedLogs.length > 0 ? relatedLogs : void 0,
       user: {
         id: feedback.user.id,
         username: feedback.user.username
@@ -308646,6 +309115,141 @@ async function updateFeedbackStatus(feedbackId, adminUserId, newStatus) {
       status: updatedFeedback.status,
       resolvedAt: updatedFeedback.resolvedAt
     }
+  };
+}
+async function confirmFeedbackFix(feedbackId, userId) {
+  const feedback = await prisma.userFeedback.findUnique({
+    where: { id: feedbackId }
+  });
+  if (!feedback) {
+    return { success: false, message: "Segnalazione non trovata" };
+  }
+  if (feedback.userId !== userId) {
+    return { success: false, message: "Non autorizzato" };
+  }
+  if (feedback.status !== FeedbackStatus.RISOLTA) {
+    return { success: false, message: "Puoi confermare il fix solo su segnalazioni risolte" };
+  }
+  const updated = await prisma.userFeedback.update({
+    where: { id: feedbackId },
+    data: { status: FeedbackStatus.CHIUSA }
+  });
+  return {
+    success: true,
+    message: "Fix confermato. Grazie per il riscontro!",
+    data: { id: updated.id, status: updated.status, resolvedAt: updated.resolvedAt }
+  };
+}
+async function reopenFeedback(feedbackId, userId) {
+  const feedback = await prisma.userFeedback.findUnique({
+    where: { id: feedbackId }
+  });
+  if (!feedback) {
+    return { success: false, message: "Segnalazione non trovata" };
+  }
+  if (feedback.userId !== userId) {
+    return { success: false, message: "Non autorizzato" };
+  }
+  if (feedback.status !== FeedbackStatus.RISOLTA && feedback.status !== FeedbackStatus.CHIUSA) {
+    return { success: false, message: "Puoi riaprire solo una segnalazione risolta o chiusa" };
+  }
+  const updated = await prisma.userFeedback.update({
+    where: { id: feedbackId },
+    data: {
+      status: FeedbackStatus.APERTA,
+      resolvedAt: null
+    }
+  });
+  return {
+    success: true,
+    message: "Segnalazione riaperta",
+    data: { id: updated.id, status: updated.status, resolvedAt: updated.resolvedAt }
+  };
+}
+var GITHUB_REPO_OWNER = "pietro1412";
+var GITHUB_REPO_NAME = "FANTACONTRATTI-MULTIAGENT";
+async function createGitHubIssue(feedbackId, adminUserId) {
+  const admin = await prisma.user.findUnique({
+    where: { id: adminUserId },
+    select: { isSuperAdmin: true }
+  });
+  if (!admin?.isSuperAdmin) {
+    return { success: false, message: "Non autorizzato" };
+  }
+  const token = process.env.GH_PAT;
+  if (!token) {
+    return { success: false, message: "GH_PAT non configurato sul server" };
+  }
+  const feedback = await prisma.userFeedback.findUnique({
+    where: { id: feedbackId },
+    include: {
+      user: { select: { username: true, email: true } },
+      league: { select: { name: true } }
+    }
+  });
+  if (!feedback) {
+    return { success: false, message: "Segnalazione non trovata" };
+  }
+  if (feedback.githubIssueId) {
+    return {
+      success: true,
+      message: "Issue gia' creata",
+      data: { githubIssueId: feedback.githubIssueId, githubIssueUrl: feedback.githubIssueUrl }
+    };
+  }
+  const categoryLabel = {
+    BUG: "\u{1F41E} Bug",
+    SUGGERIMENTO: "\u{1F4A1} Suggerimento",
+    DOMANDA: "\u2753 Domanda",
+    ALTRO: "\u{1F4E6} Altro"
+  };
+  const label = categoryLabel[feedback.category] ?? feedback.category;
+  const body = [
+    `**Tipo:** ${label}`,
+    `**Stato:** ${feedback.status}`,
+    `**Da:** ${feedback.user.username}${feedback.user.email ? ` (${feedback.user.email})` : ""}`,
+    feedback.league ? `**Lega:** ${feedback.league.name}` : "**Lega:** \u2014",
+    feedback.pageContext ? `**Pagina:** ${feedback.pageContext}` : "",
+    "",
+    "---",
+    "",
+    feedback.description,
+    "",
+    "---",
+    "",
+    "_Creata automaticamente dal Feedback Hub._"
+  ].filter((line) => line !== "").join("\n");
+  const response = await fetch(
+    `https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/issues`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github+json",
+        "Content-Type": "application/json",
+        "X-GitHub-Api-Version": "2022-11-28"
+      },
+      body: JSON.stringify({
+        title: `[${label}] ${feedback.title}`,
+        body
+      })
+    }
+  );
+  if (!response.ok) {
+    return { success: false, message: `Errore GitHub (${response.status})` };
+  }
+  const created = await response.json();
+  const updated = await prisma.userFeedback.update({
+    where: { id: feedbackId },
+    data: {
+      githubIssueId: created.number,
+      githubIssueUrl: created.html_url
+    }
+  });
+  return {
+    success: true,
+    message: "Issue GitHub creata",
+    data: { githubIssueId: updated.githubIssueId, githubIssueUrl: updated.githubIssueUrl }
   };
 }
 async function addResponse(feedbackId, adminUserId, content, statusChange) {
@@ -308839,13 +309443,14 @@ async function getFeedbackStats(adminUserId) {
 var router18 = (0, import_express18.Router)();
 router18.post("/", authMiddleware, async (req, res) => {
   try {
-    const { title, description, category, leagueId, pageContext } = req.body;
+    const { title, description, category, leagueId, pageContext, metadata } = req.body;
     const result = await submitFeedback(req.user.userId, {
       title,
       description,
       category,
       leagueId,
-      pageContext
+      pageContext,
+      metadata
     });
     if (!result.success) {
       res.status(400).json(result);
@@ -308960,6 +309565,51 @@ router18.post("/:id/response", authMiddleware, async (req, res) => {
     res.status(201).json(result);
   } catch (error46) {
     console.error("Add feedback response error:", error46);
+    res.status(500).json({ success: false, message: "Errore interno del server" });
+  }
+});
+router18.post("/:id/confirm", authMiddleware, async (req, res) => {
+  try {
+    const feedbackId = req.params.id;
+    const result = await confirmFeedbackFix(feedbackId, req.user.userId);
+    if (!result.success) {
+      const statusCode = result.message === "Non autorizzato" ? 403 : result.message === "Segnalazione non trovata" ? 404 : 400;
+      res.status(statusCode).json(result);
+      return;
+    }
+    res.json(result);
+  } catch (error46) {
+    console.error("Confirm feedback fix error:", error46);
+    res.status(500).json({ success: false, message: "Errore interno del server" });
+  }
+});
+router18.post("/:id/reopen", authMiddleware, async (req, res) => {
+  try {
+    const feedbackId = req.params.id;
+    const result = await reopenFeedback(feedbackId, req.user.userId);
+    if (!result.success) {
+      const statusCode = result.message === "Non autorizzato" ? 403 : result.message === "Segnalazione non trovata" ? 404 : 400;
+      res.status(statusCode).json(result);
+      return;
+    }
+    res.json(result);
+  } catch (error46) {
+    console.error("Reopen feedback error:", error46);
+    res.status(500).json({ success: false, message: "Errore interno del server" });
+  }
+});
+router18.post("/:id/github", authMiddleware, async (req, res) => {
+  try {
+    const feedbackId = req.params.id;
+    const result = await createGitHubIssue(feedbackId, req.user.userId);
+    if (!result.success) {
+      const statusCode = result.message === "Non autorizzato" ? 403 : result.message === "Segnalazione non trovata" ? 404 : 400;
+      res.status(statusCode).json(result);
+      return;
+    }
+    res.status(201).json(result);
+  } catch (error46) {
+    console.error("Create GitHub issue error:", error46);
     res.status(500).json({ success: false, message: "Errore interno del server" });
   }
 });

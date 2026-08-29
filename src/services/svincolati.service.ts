@@ -933,60 +933,92 @@ export async function markReadyForSvincolati(
     return { success: false, message: 'Nessuna sessione attiva' }
   }
 
-  if (activeSession.svincolatiState !== 'NOMINATION') {
-    return { success: false, message: 'Non è il momento di dichiararsi pronti' }
-  }
-
-  if (!activeSession.svincolatiNominatorConfirmed) {
-    return { success: false, message: 'Il nominatore non ha ancora confermato' }
-  }
-
-  const readyMembers = (activeSession.svincolatiReadyMembers as string[] | null) || []
-  if (readyMembers.includes(member.id)) {
-    return { success: false, message: 'Sei già pronto' }
-  }
-
-  // Check if all members are ready
-  const turnOrder = (activeSession.svincolatiTurnOrder as string[] | null) || []
-
-  // In IN_PRESENCE mode, auto-mark all members as ready (skip ready-check)
-  const newReadyMembers = activeSession.auctionMode === 'IN_PRESENCE'
-    ? [...turnOrder]
-    : [...readyMembers, member.id]
-
-  const allReady = turnOrder.every(id => newReadyMembers.includes(id))
-
-  if (allReady) {
-    // Start auction
-    return await startSvincolatiAuction(activeSession.id, newReadyMembers)
-  }
-
-  // Update ready members
-  await prisma.marketSession.update({
-    where: { id: activeSession.id },
-    data: { svincolatiReadyMembers: newReadyMembers },
-  })
-
-  // Trigger Pusher event for ready status change (non-blocking)
   const readyMemberWithUser = await prisma.leagueMember.findUnique({
     where: { id: member.id },
     include: { user: { select: { username: true } } },
   })
-  triggerSvincolatiReadyChanged(activeSession.id, {
-    sessionId: activeSession.id,
-    memberId: member.id,
-    memberUsername: readyMemberWithUser?.user.username || 'Unknown',
-    isReady: true,
-    readyCount: newReadyMembers.length,
-    totalMembers: turnOrder.length,
-    timestamp: new Date().toISOString(),
-  }).catch(() => { /* Error intentionally silenced */ })
 
-  return {
-    success: true,
-    message: 'Pronto!',
-    data: { readyCount: newReadyMembers.length, totalCount: turnOrder.length },
+  // Fix race condition su conferme concorrenti (stessa classe del bug ready-check/bid
+  // gia' corretto in Rubata, commit 80202d0): svincolatiReadyMembers e' un array JSON
+  // letto-e-riscritto senza guardia atomica. Con piu' manager che si dichiarano pronti
+  // quasi in contemporanea, due scritture concorrenti si sovrascrivono a vicenda e un
+  // "pronto" va perso silenziosamente — transazione Serializable con retry sul
+  // conflitto di scrittura Postgres (P2034), che rilegge lo stato fresco ad ogni
+  // tentativo. L'avvio dell'asta (startSvincolatiAuction, side-effect pesante con una
+  // propria transazione interna) resta fuori dal blocco di retry, invocato una sola
+  // volta dopo il commit, solo quando questa chiamata ha davvero fatto scattare
+  // "tutti pronti".
+  const MAX_READY_ATTEMPTS = 6
+  for (let attempt = 0; attempt < MAX_READY_ATTEMPTS; attempt++) {
+    try {
+      const result = await prisma.$transaction(async (tx) => {
+        const fresh = await tx.marketSession.findUnique({ where: { id: activeSession.id } })
+        if (!fresh || fresh.svincolatiState !== 'NOMINATION') {
+          return { success: false, message: 'Non è il momento di dichiararsi pronti' }
+        }
+        if (!fresh.svincolatiNominatorConfirmed) {
+          return { success: false, message: 'Il nominatore non ha ancora confermato' }
+        }
+
+        const readyMembers = (fresh.svincolatiReadyMembers as string[] | null) || []
+        if (readyMembers.includes(member.id)) {
+          return { success: false, message: 'Sei già pronto' }
+        }
+
+        const turnOrder = (fresh.svincolatiTurnOrder as string[] | null) || []
+        const newReadyMembers = fresh.auctionMode === 'IN_PRESENCE'
+          ? [...turnOrder]
+          : [...readyMembers, member.id]
+
+        const allReady = turnOrder.every(id => newReadyMembers.includes(id))
+
+        if (allReady) {
+          return { success: true, _startAuction: newReadyMembers }
+        }
+
+        await tx.marketSession.update({
+          where: { id: activeSession.id },
+          data: { svincolatiReadyMembers: newReadyMembers },
+        })
+
+        return {
+          success: true,
+          message: 'Pronto!',
+          data: { readyCount: newReadyMembers.length, totalCount: turnOrder.length },
+          _justBecameReady: true,
+          _readyCount: newReadyMembers.length,
+          _totalMembers: turnOrder.length,
+        }
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
+
+      if (result._startAuction) {
+        return await startSvincolatiAuction(activeSession.id, result._startAuction)
+      }
+
+      if (result._justBecameReady) {
+        triggerSvincolatiReadyChanged(activeSession.id, {
+          sessionId: activeSession.id,
+          memberId: member.id,
+          memberUsername: readyMemberWithUser?.user.username || 'Unknown',
+          isReady: true,
+          readyCount: result._readyCount ?? 0,
+          totalMembers: result._totalMembers ?? 0,
+          timestamp: new Date().toISOString(),
+        }).catch(() => { /* Error intentionally silenced */ })
+      }
+
+      const { _startAuction: _unused1, _justBecameReady: _unused2, _readyCount: _unused3, _totalMembers: _unused4, ...serviceResult } = result
+      return serviceResult
+    } catch (e) {
+      const isSerializationConflict = e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2034'
+      if (isSerializationConflict && attempt < MAX_READY_ATTEMPTS - 1) {
+        continue
+      }
+      throw e
+    }
   }
+
+  return { success: false, message: 'Troppi tentativi concorrenti, riprova.' }
 }
 
 // ==================== START SVINCOLATI AUCTION (INTERNAL) ====================
@@ -1526,10 +1558,9 @@ export async function acknowledgeSvincolatiAuction(
     return { success: false, message: 'Hai già confermato' }
   }
 
-  const newAcknowledged = [...pendingAck.acknowledgedMembers, member.id]
-  const newPending = pendingAck.pendingMembers.filter(id => id !== member.id)
-
-  // Get contract info for winner (for post-acquisition modification)
+  // Get contract info for winner (for post-acquisition modification) — sola
+  // lettura, non tocca il JSON conteso (winnerId/playerId non cambiano una volta
+  // creato il pendingAck), sicura fuori dalla transazione di retry sotto.
   let winnerContractInfo = null
   if (pendingAck.winnerId === member.id && !pendingAck.noBids) {
     const roster = await prisma.playerRoster.findFirst({
@@ -1556,41 +1587,79 @@ export async function acknowledgeSvincolatiAuction(
     }
   }
 
-  // Check if all acknowledged
-  if (newPending.length === 0) {
-    // All acknowledged - advance to next turn
-    const result = await advanceSvincolatiToNextTurn(activeSession.id)
-    // Include winner contract info in the result
-    return {
-      ...result,
-      data: {
-        ...(result.data as object || {}),
-        winnerContractInfo,
-      },
+  // Fix race condition su conferme concorrenti (stessa classe del bug ready-check/bid
+  // gia' corretto in Rubata, commit 80202d0): svincolatiPendingAck.acknowledgedMembers
+  // e' un array JSON letto-e-riscritto senza guardia atomica. Con piu' manager che
+  // confermano quasi in contemporanea, due scritture concorrenti perdono silenziosamente
+  // le conferme altrui — transazione Serializable con retry sul conflitto Postgres
+  // (P2034), che rilegge lo stato fresco ad ogni tentativo. advanceSvincolatiToNextTurn
+  // e' una funzione pesante multi-step su prisma top-level (non un tx): resta fuori dal
+  // blocco di retry, invocata una sola volta dopo il commit, solo quando questa chiamata
+  // ha davvero fatto scattare l'ultima conferma mancante.
+  const MAX_ACK_ATTEMPTS = 6
+  for (let attempt = 0; attempt < MAX_ACK_ATTEMPTS; attempt++) {
+    try {
+      const result = await prisma.$transaction(async (tx) => {
+        const fresh = await tx.marketSession.findUnique({ where: { id: activeSession.id } })
+        if (!fresh || fresh.svincolatiState !== 'PENDING_ACK' || !fresh.svincolatiPendingAck) {
+          return { success: false, message: 'Nessuna transazione da confermare' }
+        }
+        const freshPendingAck = fresh.svincolatiPendingAck as typeof pendingAck
+        if (freshPendingAck.acknowledgedMembers.includes(member.id)) {
+          return { success: false, message: 'Hai già confermato' }
+        }
+
+        const newAcknowledged = [...freshPendingAck.acknowledgedMembers, member.id]
+        const newPending = freshPendingAck.pendingMembers.filter(id => id !== member.id)
+
+        if (newPending.length === 0) {
+          return { success: true, _advance: true }
+        }
+
+        await tx.marketSession.update({
+          where: { id: activeSession.id },
+          data: {
+            svincolatiPendingAck: {
+              ...freshPendingAck,
+              acknowledgedMembers: newAcknowledged,
+              pendingMembers: newPending,
+            },
+          },
+        })
+
+        return {
+          success: true,
+          message: 'Conferma registrata',
+          data: {
+            acknowledgedCount: newAcknowledged.length,
+            pendingCount: newPending.length,
+            winnerContractInfo,
+          },
+        }
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
+
+      if (result._advance) {
+        const advanceResult = await advanceSvincolatiToNextTurn(activeSession.id)
+        return {
+          ...advanceResult,
+          data: {
+            ...(advanceResult.data as object || {}),
+            winnerContractInfo,
+          },
+        }
+      }
+
+      return result
+    } catch (e) {
+      const isSerializationConflict = e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2034'
+      if (isSerializationConflict && attempt < MAX_ACK_ATTEMPTS - 1) {
+        continue
+      }
+      throw e
     }
   }
 
-  // Update pending ack
-  await prisma.marketSession.update({
-    where: { id: activeSession.id },
-    data: {
-      svincolatiPendingAck: {
-        ...pendingAck,
-        acknowledgedMembers: newAcknowledged,
-        pendingMembers: newPending,
-      },
-    },
-  })
-
-  return {
-    success: true,
-    message: 'Conferma registrata',
-    data: {
-      acknowledgedCount: newAcknowledged.length,
-      pendingCount: newPending.length,
-      winnerContractInfo, // For contract modification modal
-    },
-  }
+  return { success: false, message: 'Troppi tentativi concorrenti, riprova.' }
 }
 
 // ==================== FORCE ALL ACK (ADMIN) ====================

@@ -33,6 +33,7 @@ export interface Player {
   position: string
   quotation: number
   age?: number | null
+  apiFootballId?: number | null
 }
 
 export interface TurnMember {
