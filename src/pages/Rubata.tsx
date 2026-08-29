@@ -1269,7 +1269,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
         {isRubataPhase && isOrderSet && currentPlayer && (
           <button
             onClick={scrollToCurrentPlayer}
-            className={`fixed bottom-20 md:bottom-4 left-4 z-50 flex items-center gap-2 px-4 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-full shadow-lg transition-all ${
+            className={`fixed bottom-20 md:bottom-4 left-4 lg:left-auto lg:right-4 z-50 flex items-center gap-2 px-4 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-full shadow-lg transition-all ${
               isCurrentPlayerVisible ? '' : 'animate-pulse hover:animate-none'
             }`}
             title="Torna al giocatore di turno"
