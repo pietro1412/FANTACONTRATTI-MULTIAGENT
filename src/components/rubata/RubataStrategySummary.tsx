@@ -1,4 +1,7 @@
 import { useState, useMemo } from 'react'
+import { PlayerPhoto } from '@/components/players/PlayerPhoto'
+import { TeamLogo } from './TeamLogo'
+import { Monogram } from '@/components/ui/Monogram'
 import type { BoardPlayer, RubataPreference } from '../../types/rubata.types'
 
 interface ExportedStrategy {
@@ -289,32 +292,45 @@ export function RubataStrategySummary({
             </p>
           ) : (
             <div className="space-y-1.5 max-h-40 md:max-h-60 overflow-y-auto">
-              {items.map(({ player, pref, isPassed }) => (
-                <button
-                  key={player.playerId}
-                  type="button"
-                  onClick={() => { if (canEditPreferences) onOpenPrefsModal({ ...player, preference: pref || null }); }}
-                  disabled={!canEditPreferences}
-                  className={`w-full text-left px-2.5 py-2 rounded-lg text-xs transition-all flex items-center gap-2 ${
-                    isPassed ? 'opacity-40 bg-surface-50/5' : 'bg-surface-300/50 hover:bg-surface-300'
-                  } ${canEditPreferences ? 'cursor-pointer' : 'cursor-default'}`}
-                >
-                  <span className="font-medium text-gray-300 truncate flex-1 min-w-0">
-                    {player.playerName}
-                  </span>
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    {pref?.isWatchlist && <span className="text-[10px] font-mono font-bold text-primary-400" title="Watchlist">WL</span>}
-                    {pref?.isAutoPass && <span className="text-[10px] font-mono font-bold text-gray-500" title="Auto-skip">SKIP</span>}
-                    {pref?.priority && (
-                      <span className="text-accent-400">{'★'.repeat(pref.priority)}</span>
-                    )}
-                    {pref?.maxBid && (
-                      <span className="text-primary-400 font-mono">{pref.maxBid}M</span>
-                    )}
-                    {pref?.notes && <span className="text-[10px] text-gray-500" title={pref.notes}>Note</span>}
-                  </div>
-                </button>
-              ))}
+              {items.map(({ player, pref, isPassed }) => {
+                const ownerName = player.ownerTeamName ?? player.ownerUsername
+                return (
+                  <button
+                    key={player.playerId}
+                    type="button"
+                    onClick={() => { if (canEditPreferences) onOpenPrefsModal({ ...player, preference: pref || null }); }}
+                    disabled={!canEditPreferences}
+                    className={`w-full text-left px-2.5 py-2 rounded-lg text-xs transition-all flex items-center gap-2 ${
+                      isPassed ? 'opacity-40 bg-surface-50/5' : 'bg-surface-300/50 hover:bg-surface-300'
+                    } ${canEditPreferences ? 'cursor-pointer' : 'cursor-default'}`}
+                  >
+                    <PlayerPhoto apiFootballId={player.playerApiFootballId} name={player.playerName} position={player.playerPosition} size="xs" showRoleBadge />
+                    <span className="hidden sm:block w-4 h-4 bg-white rounded p-px flex-shrink-0">
+                      <TeamLogo team={player.playerTeam} />
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <span className="font-medium text-gray-300 truncate block">
+                        {player.playerName}
+                      </span>
+                      <span className="flex items-center gap-1 text-[10px] text-gray-500 truncate">
+                        <Monogram name={ownerName} size="xs" />
+                        <span className="truncate">{ownerName}</span>
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      {pref?.isWatchlist && <span className="text-[10px] font-mono font-bold text-primary-400" title="Watchlist">WL</span>}
+                      {pref?.isAutoPass && <span className="text-[10px] font-mono font-bold text-gray-500" title="Auto-skip">SKIP</span>}
+                      {pref?.priority && (
+                        <span className="text-accent-400">{'★'.repeat(pref.priority)}</span>
+                      )}
+                      {pref?.maxBid && (
+                        <span className="text-primary-400 font-mono">{pref.maxBid}M</span>
+                      )}
+                      {pref?.notes && <span className="text-[10px] text-gray-500" title={pref.notes}>Note</span>}
+                    </div>
+                  </button>
+                )
+              })}
             </div>
           )}
 
