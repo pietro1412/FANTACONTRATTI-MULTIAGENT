@@ -237,9 +237,11 @@ export function PlayerStatsModal({ isOpen, onClose, player, leagueId, leaguePlay
       .finally(() => { setHistoryLoading(false); })
   }, [activeTab, player?.apiFootballId])
 
-  // Fetch league career on first access to the "carriera" tab
+  // Fetch league career as soon as the modal has enough context — not gated by the
+  // "carriera" tab, since the current league team is shown always-visible (see below),
+  // not just inside that tab.
   useEffect(() => {
-    if (activeTab !== 'carriera' || !leagueId || !effectiveLeaguePlayerId || career) return
+    if (!leagueId || !effectiveLeaguePlayerId || career) return
     setCareerLoading(true)
     setCareerError(null)
     historyApi.getPlayerCareer(leagueId, effectiveLeaguePlayerId)
@@ -252,7 +254,7 @@ export function PlayerStatsModal({ isOpen, onClose, player, leagueId, leaguePlay
       })
       .catch(() => { setCareerError('Errore di connessione'); })
       .finally(() => { setCareerLoading(false); })
-  }, [activeTab, leagueId, effectiveLeaguePlayerId, career])
+  }, [leagueId, effectiveLeaguePlayerId, career])
 
   if (!player) return null
 
@@ -339,18 +341,40 @@ export function PlayerStatsModal({ isOpen, onClose, player, leagueId, leaguePlay
       </ModalHeader>
 
       <ModalBody className="max-h-[70vh]">
-        {/* Axioms 6 + 9: contract block always visible, above the tabs */}
-        {player.contract && (
-          <div className="mb-4 bg-surface-100/50 rounded-xl p-4">
-            <div className="micro-label text-gray-500 mb-2">Contratto</div>
-            <ContractInline
-              salary={player.contract.salary}
-              duration={player.contract.duration}
-              clause={player.contract.clause}
-              rubataPrice={player.contract.clause != null ? player.contract.clause + player.contract.salary : null}
-              variant="full"
-              className="text-base"
-            />
+        {/* Squadra in lega + contratto: sempre visibili sopra le tab, non solo dentro
+            "Carriera Lega" — la squadra attuale della lega è tra le info più importanti
+            del giocatore (Assioma 6) e non deve richiedere un click per essere vista. */}
+        {(careerEnabled || player.contract) && (
+          <div className="mb-4 bg-surface-100/50 rounded-xl p-4 space-y-3">
+            {careerEnabled && (
+              <div>
+                <div className="micro-label text-gray-500 mb-1">Squadra in Lega</div>
+                <div className="font-display font-bold text-white">
+                  {career ? (
+                    career.currentOwner
+                      ? (career.currentOwner.teamName || career.currentOwner.username)
+                      : 'Svincolato'
+                  ) : careerError ? (
+                    <span className="text-danger-400 font-normal text-sm">{careerError}</span>
+                  ) : (
+                    <span className="text-gray-500 font-normal">Caricamento…</span>
+                  )}
+                </div>
+              </div>
+            )}
+            {player.contract && (
+              <div className={careerEnabled ? 'pt-3 border-t border-surface-50/10' : ''}>
+                <div className="micro-label text-gray-500 mb-2">Contratto</div>
+                <ContractInline
+                  salary={player.contract.salary}
+                  duration={player.contract.duration}
+                  clause={player.contract.clause}
+                  rubataPrice={player.contract.clause != null ? player.contract.clause + player.contract.salary : null}
+                  variant="full"
+                  className="text-base"
+                />
+              </div>
+            )}
           </div>
         )}
 
@@ -441,36 +465,14 @@ export function PlayerStatsModal({ isOpen, onClose, player, leagueId, leaguePlay
             </div>
           ) : (
             <div className="space-y-4">
-              {/* Current owner highlight */}
-              <div className="bg-surface-100/50 rounded-xl p-4 flex items-center justify-between gap-3">
-                <div>
-                  <div className="micro-label text-gray-500 mb-1">Proprietario attuale</div>
-                  <div className="font-display font-bold text-white">
-                    {career.currentOwner
-                      ? (career.currentOwner.teamName || career.currentOwner.username)
-                      : 'Svincolato'}
-                  </div>
-                </div>
-                {career.currentOwner?.contract && (
-                  <div className="text-right">
-                    <div className="micro-label text-gray-500 mb-1">Contratto</div>
-                    <ContractInline
-                      salary={career.currentOwner.contract.salary}
-                      duration={career.currentOwner.contract.duration}
-                      clause={career.currentOwner.contract.rescissionClause}
-                      variant="compact"
-                      className="justify-end text-primary-400"
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* Movements table */}
+              {/* Movements table. "Proprietario attuale" e' gia' sempre visibile sopra le
+                  tab (vedi "Squadra in Lega"), e le squadre passate si leggono gia' dalle
+                  colonne Da/A qui sotto — niente riepiloghi duplicati. */}
               <div className="bg-surface-100/50 rounded-xl overflow-hidden">
                 <div className="grid grid-cols-[1.4fr_1.4fr_1fr_auto] gap-2 px-3 py-2 border-b border-surface-50/20">
-                  <span className="micro-label text-gray-500">Da</span>
-                  <span className="micro-label text-gray-500">A</span>
-                  <span className="micro-label text-gray-500">Movimento</span>
+                  <span className="micro-label text-gray-500 text-center">Da</span>
+                  <span className="micro-label text-gray-500 text-center">A</span>
+                  <span className="micro-label text-gray-500 text-center">Movimento</span>
                   <span className="micro-label text-gray-500 text-right">Prezzo</span>
                 </div>
                 <div className="divide-y divide-surface-50/10">
@@ -479,13 +481,13 @@ export function PlayerStatsModal({ isOpen, onClose, player, leagueId, leaguePlay
                       key={event.id}
                       className="grid grid-cols-[1.4fr_1.4fr_1fr_auto] gap-2 px-3 py-2.5 items-center text-sm hover:bg-surface-300/40"
                     >
-                      <span className="text-gray-300 truncate">
+                      <span className="text-gray-300 truncate text-center">
                         {event.from ? (event.from.teamName || event.from.username) : '—'}
                       </span>
-                      <span className="text-white truncate">
+                      <span className="text-white truncate text-center">
                         {event.to ? (event.to.teamName || event.to.username) : '—'}
                       </span>
-                      <span className="text-gray-400 min-w-0">
+                      <span className="text-gray-400 min-w-0 text-center">
                         <span className="block truncate">
                           {getMovementLabel(event.type, event.price)}
                         </span>
@@ -500,21 +502,6 @@ export function PlayerStatsModal({ isOpen, onClose, player, leagueId, leaguePlay
                   ))}
                 </div>
               </div>
-
-              {/* Teams owned summary */}
-              {career.stats.teams.length > 0 && (
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="micro-label text-gray-500">Squadre</span>
-                  {career.stats.teams.map(team => (
-                    <span
-                      key={team}
-                      className="px-2.5 py-1 rounded-full bg-surface-300 text-xs text-white font-display"
-                    >
-                      {team}
-                    </span>
-                  ))}
-                </div>
-              )}
             </div>
           )
         )}

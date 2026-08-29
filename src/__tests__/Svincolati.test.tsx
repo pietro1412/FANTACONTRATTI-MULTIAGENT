@@ -118,6 +118,11 @@ vi.mock('../services/api', () => ({
   contractApi: {
     modify: vi.fn().mockResolvedValue({ success: true }),
   },
+  historyApi: {
+    // PlayerStatsModal (opened via the clickable player name) fetches league
+    // career data eagerly whenever it has a leagueId + leaguePlayerId.
+    getPlayerCareer: vi.fn().mockResolvedValue({ success: true, data: null }),
+  },
 }))
 
 // The central hook mock
