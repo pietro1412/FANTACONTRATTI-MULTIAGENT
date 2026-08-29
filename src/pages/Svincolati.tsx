@@ -9,6 +9,7 @@ import { getTeamLogo } from '../utils/teamLogos'
 import { ContractModifierModal } from '../components/ContractModifier'
 import { ManagerDetailModal } from '../components/auction-room/AuctionRoomModals'
 import { SvincolatiCockpit } from '../components/svincolati/SvincolatiCockpit'
+import { FreeAgentTableRow } from '../components/svincolati/FreeAgentTableRow'
 import { useSvincolatiState } from '../hooks/useSvincolatiState'
 import { POSITION_COLORS, SERIE_A_TEAMS } from '../types/svincolati.types'
 import type { SvincolatiProps, TurnMember } from '../types/svincolati.types'
@@ -340,56 +341,40 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
             })}
           </div>
 
-          {/* Free Agents Table */}
+          {/* Free Agents Table — stesso componente riga arricchito del cockpit
+              (Assioma 4), qui sola lettura: nessun turno attivo da cui
+              chiamare, nessuna sessione da cui appendere preferenze. */}
           <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
             <div className="p-4 border-b border-surface-50/20">
               <h2 className="font-bold text-white">Giocatori Liberi ({freeAgents.length})</h2>
             </div>
-            <div className="overflow-x-auto max-h-[60vh] overflow-y-auto">
-              <table className="w-full text-sm">
-                <thead className="sticky top-0 bg-surface-300">
-                  <tr className="border-b border-surface-50/30 text-gray-400 text-xs uppercase">
-                    <th className="text-left py-3 px-4 w-12">R</th>
-                    <th className="text-left py-3 px-4">Giocatore</th>
-                    <th className="text-left py-3 px-4 hidden sm:table-cell">Squadra</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {freeAgents.length === 0 ? (
-                    <tr>
-                      <td colSpan={3} className="text-center py-8 text-gray-500">
-                        Nessun giocatore trovato con i filtri selezionati
-                      </td>
-                    </tr>
-                  ) : (
-                    freeAgents.map(player => (
-                      <tr key={player.id} className="border-b border-surface-50/10 hover:bg-surface-300/30">
-                        <td className="py-2 px-4">
-                          <span className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position] ?? ''} flex items-center justify-center text-xs font-bold text-white`}>
-                            {player.position}
-                          </span>
-                        </td>
-                        <td className="py-2 px-4">
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 bg-white/90 rounded flex items-center justify-center p-0.5 sm:hidden">
-                              <img src={getTeamLogo(player.team)} alt={player.team} className="w-5 h-5 object-contain" />
-                            </div>
-                            <span className="font-medium text-white">{player.name}</span>
-                          </div>
-                        </td>
-                        <td className="py-2 px-4 hidden sm:table-cell">
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 bg-white/90 rounded flex items-center justify-center p-0.5">
-                              <img src={getTeamLogo(player.team)} alt={player.team} className="w-5 h-5 object-contain" />
-                            </div>
-                            <span className="text-gray-400">{player.team}</span>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+            <div className="hidden lg:grid svincolati-pool-grid px-3 py-2 border-b border-surface-50/20 bg-surface-300/40">
+              <span className="micro-label">Giocatore</span>
+              <span className="micro-label text-center">Età</span>
+              <span className="micro-label text-center">Quot.</span>
+              <span className="micro-label text-center">Pres.</span>
+              <span className="micro-label text-center">Media</span>
+              <span className="micro-label text-center">Gol</span>
+              <span className="micro-label text-center">Ass.</span>
+              <span className="micro-label text-center">Azione</span>
+            </div>
+            <div className="max-h-[60vh] overflow-y-auto">
+              {freeAgents.length === 0 ? (
+                <p className="text-center py-8 text-gray-500 text-sm">Nessun giocatore trovato con i filtri selezionati</p>
+              ) : (
+                freeAgents.map(player => (
+                  <FreeAgentTableRow
+                    key={player.id}
+                    player={player}
+                    leagueId={leagueId}
+                    nominable={false}
+                    onNominate={() => {}}
+                    preference={undefined}
+                    canEditPreferences={false}
+                    onOpenPrefsModal={() => {}}
+                  />
+                ))
+              )}
             </div>
           </div>
         </main>

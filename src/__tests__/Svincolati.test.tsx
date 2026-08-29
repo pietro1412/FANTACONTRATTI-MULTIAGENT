@@ -270,8 +270,9 @@ describe('Svincolati', () => {
 
     expect(screen.getByText('Giocatori Svincolati')).toBeInTheDocument()
     expect(screen.getByText('Giocatori attualmente non in rosa')).toBeInTheDocument()
-    expect(screen.getByText('Mario Rossi')).toBeInTheDocument()
-    expect(screen.getByText('Luigi Bianchi')).toBeInTheDocument()
+    // Riga desktop + mobile di FreeAgentTableRow, entrambe nel DOM di test.
+    expect(screen.getAllByText('Mario Rossi').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('Luigi Bianchi').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText('Giocatori Liberi (2)')).toBeInTheDocument()
   })
 
