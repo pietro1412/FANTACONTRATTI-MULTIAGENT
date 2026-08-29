@@ -382,6 +382,31 @@
     }
   }
 
+  /* Svincolati pool grid (9 colonne: Giocatore, Eta, Quotazione, Presenze,
+     Media voto, Gol, Assist, Azione). A differenza del tabellone Rubata i
+     liberi non hanno owner/ingaggio/clausola/prezzo rubata (nessun contratto
+     ancora), al loro posto le statistiche stagionali che servono a valutare
+     chi chiamare — stesso principio di colonne proporzionate al contenuto. */
+  .svincolati-pool-grid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  @media (min-width: 1024px) {
+    .svincolati-pool-grid {
+      grid-template-columns:
+        minmax(180px, 2.4fr)
+        minmax(44px, 0.3fr)
+        minmax(64px, 0.4fr)
+        minmax(60px, 0.4fr)
+        minmax(64px, 0.4fr)
+        minmax(48px, 0.3fr)
+        minmax(48px, 0.3fr)
+        minmax(88px, 0.55fr);
+      gap: 0.5rem;
+    }
+  }
+
   /* Live indicator dot with glow (use bg-* token for color) */
   .dot-live {
     display: inline-block;

@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { CockpitShell } from '@/components/cockpit/CockpitShell'
 import { TimerDisplay } from '@/components/ui/TimerDisplay'
 import { BidControlsShared } from '@/components/ui/BidControlsShared'
@@ -6,8 +7,10 @@ import { BidChips } from '@/components/ui/BidChips'
 import { ManagerListRow } from '@/components/ui/ManagerListRow'
 import { Monogram } from '@/components/ui/Monogram'
 import { PlayerName } from '@/components/players/PlayerName'
+import { PanelTabs } from '@/components/ui/PanelTabs'
 import { AdminTestFab } from '../auction/AdminTestFab'
 import { SvincolatiCockpitAdminBar, SvincolatiTestPanel } from './SvincolatiCockpitAdminBar'
+import { FreeAgentTableRow } from './FreeAgentTableRow'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { getTeamLogo } from '../../utils/teamLogos'
@@ -24,6 +27,8 @@ const ROLE_BADGE: Record<string, string> = {
   A: 'bg-danger-500/[0.14] text-danger-400 border border-danger-500/40',
 }
 const POS_NAMES: Record<string, string> = { P: 'Portiere', D: 'Difensore', C: 'Centrocampista', A: 'Attaccante' }
+
+type SortKey = 'age' | 'quotation' | 'appearances' | 'avgRating' | 'totalGoals' | 'totalAssists'
 
 export interface SvincolatiCockpitProps {
   board: BoardState
@@ -42,6 +47,10 @@ export interface SvincolatiCockpitProps {
   setSelectedPosition: (v: string) => void
   selectedTeam: string
   setSelectedTeam: (v: string) => void
+  minQuotation: string
+  setMinQuotation: (v: string) => void
+  maxQuotation: string
+  setMaxQuotation: (v: string) => void
   // offerta
   bidAmount: string
   setBidAmount: (v: string) => void
@@ -71,11 +80,12 @@ export interface SvincolatiCockpitProps {
 }
 
 /**
- * Sala asta svincolati a cockpit (mockup 06-svincolati): viewport bloccata su
- * desktop — testata + barra turni/admin + arena sempre visibili, scroll solo
- * dentro le colonne. Tre colonne: [Direttori Generali | arena | giocatori
- * liberi]. Peculiarità: asta a giro, "Ho finito", "Passo", lista liberi
- * cliccabile quando è il tuo turno. Mobile a colonna singola.
+ * Sala asta svincolati a cockpit, allineata a Rubata: colonna sinistra 2fr
+ * (arena + tab Bilanci/Attività/Strategie sotto — solo Bilanci per ora),
+ * colonna destra 3fr = catalogo giocatori liberi (non un tabellone
+ * sequenziale come Rubata: qui il turno può chiamare QUALSIASI giocatore
+ * libero di qualsiasi ruolo, quindi la colonna destra è cercabile/ordinabile
+ * invece che scorsa in sequenza). Mobile a colonna singola, invariato.
  */
 export function SvincolatiCockpit(props: SvincolatiCockpitProps) {
   const { board, freeAgents } = props
@@ -105,6 +115,50 @@ export function SvincolatiCockpit(props: SvincolatiCockpitProps) {
   // solo durante NOMINATION dopo la conferma del nominatore.
   const readyRelevant = state === 'NOMINATION' && board.nominatorConfirmed
 
+  // Ordinamento colonna (client-side sull'array gia' caricato — capacita' nuova,
+  // non presente nemmeno in Rubata, sensata qui perche' il pool e' un catalogo
+  // da esplorare e non un tabellone a ordine fisso).
+  const [sortKey, setSortKey] = useState<SortKey | null>(null)
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
+
+  const sortedFreeAgents = useMemo(() => {
+    if (!sortKey) return freeAgents
+    const dir = sortDir === 'asc' ? 1 : -1
+    const getValue = (p: Player): number => {
+      if (sortKey === 'age') return p.age ?? -Infinity
+      if (sortKey === 'quotation') return p.quotation
+      const stats = p.computedStats
+      if (sortKey === 'appearances') return stats?.appearances ?? -Infinity
+      if (sortKey === 'avgRating') return stats?.avgRating ?? -Infinity
+      if (sortKey === 'totalGoals') return stats?.totalGoals ?? -Infinity
+      return stats?.totalAssists ?? -Infinity
+    }
+    return [...freeAgents].sort((a, b) => (getValue(a) - getValue(b)) * dir)
+  }, [freeAgents, sortKey, sortDir])
+
+  const handleSort = (key: SortKey) => {
+    setSortKey(prevKey => {
+      if (prevKey === key) {
+        setSortDir(prevDir => prevDir === 'asc' ? 'desc' : 'asc')
+        return key
+      }
+      setSortDir('desc')
+      return key
+    })
+  }
+
+  // Virtualizzazione sopra i 50 elementi — stessa soglia/config del tabellone Rubata.
+  const listScrollRef = useRef<HTMLDivElement>(null)
+  const rowCount = sortedFreeAgents.length
+  const useVirtual = rowCount > 50
+  const virtualizer = useVirtualizer({
+    count: rowCount,
+    getScrollElement: () => listScrollRef.current,
+    estimateSize: () => 52,
+    overscan: 8,
+    enabled: useVirtual,
+  })
+
   return (
     <CockpitShell
       header={<SvincolatiHeader {...props} />}
@@ -128,89 +182,16 @@ export function SvincolatiCockpit(props: SvincolatiCockpitProps) {
           cresce oltre h-full quando una colonna ha contenuto alto (es. rosa piena),
           e l'overflow-hidden di un antenato taglia il fondo di tutte le colonne
           invece di far scrollare solo quella interna (stesso bug di AuctionRoomLayout). */}
-      <div className="mt-3 lg:mt-0 lg:pt-2 lg:h-full lg:min-h-0 lg:grid lg:grid-cols-[300px_minmax(0,1fr)_360px] lg:grid-rows-[minmax(0,1fr)] lg:gap-3 lg:overflow-hidden">
+      <div className="mt-3 lg:mt-0 lg:pt-2 lg:h-full lg:min-h-0 lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:grid-rows-[minmax(0,1fr)] lg:gap-3 lg:overflow-hidden">
 
-        {/* ===== Sinistra: Direttori Generali ===== */}
-        <div className={`mb-3 lg:mb-0 lg:min-h-0 ${auction ? 'hidden lg:flex lg:flex-col' : 'flex flex-col'}`}>
-          <div className="bg-surface-200 border border-surface-50 rounded-xl overflow-hidden flex flex-col h-full min-h-0">
-            <div className="px-3.5 py-2.5 border-b border-surface-50 flex-shrink-0">
-              <h3 className="micro-label">Direttori Generali · turno e budget</h3>
-            </div>
-            <div className="panel-scroll flex-1 min-h-0">
-              {board.turnOrder.map((member, index) => {
-                const isCurrent = board.currentTurnMemberId === member.id
-                const isMe = member.id === board.myMemberId
-                const hasFinished = board.finishedMembers.includes(member.id)
-                const dim = member.hasPassed || hasFinished
-                const badge = (
-                  <span className={`w-8 h-8 rounded-full flex items-center justify-center font-mono text-xs font-bold ${
-                    isCurrent ? 'bg-accent-400 text-dark-300' : dim ? 'bg-surface-300 text-gray-500' : 'bg-surface-100 text-gray-400'
-                  }`}>
-                    {index + 1}
-                  </span>
-                )
-                const readyDot = readyRelevant ? board.readyMembers.includes(member.id) : undefined
-                return (
-                  <ManagerListRow
-                    key={member.id}
-                    name={member.username}
-                    isMe={isMe}
-                    isHolding={isCurrent}
-                    dim={dim}
-                    leadingBadge={badge}
-                    readyDot={readyDot}
-                    connectedDot={readyDot == null ? (member.isConnected ?? null) : null}
-                    statusLine={
-                      isCurrent ? (
-                        <span className="text-accent-400 font-semibold">Sta chiamando…</span>
-                      ) : member.hasPassed ? (
-                        <span className="text-accent-400 font-mono text-[9px] font-bold border border-accent-500/50 rounded px-1.5 py-px tracking-[0.05em]">PASS</span>
-                      ) : hasFinished ? (
-                        <span className="text-gray-400 font-mono text-[9px] font-bold border border-surface-50 rounded px-1.5 py-px tracking-[0.05em]">FINITO</span>
-                      ) : readyDot != null ? (
-                        readyDot ? <span className="text-secondary-400">Pronto</span> : <span className="text-gray-400">In attesa</span>
-                      ) : 'In gara'
-                    }
-                    bigValue={`${member.budget}M`}
-                    bigValueGold={isMe || isCurrent}
-                    onClick={() => { props.onViewManagerRoster(member); }}
-                    title="Clicca per vedere la rosa"
-                  />
-                )
-              })}
-            </div>
-            {/* "Ho finito" + progresso */}
-            <div className="px-3.5 py-2.5 border-t border-surface-50 flex-shrink-0">
-              {board.isFinished ? (
-                <p className="text-center text-xs text-gray-400">Hai dichiarato di aver finito · non fai più offerte</p>
-              ) : (
-                <button
-                  type="button"
-                  onClick={props.onDeclareFinished}
-                  disabled={props.isSubmitting}
-                  className="w-full text-xs font-semibold text-danger-400 border border-danger-500/40 bg-danger-500/[0.06] rounded-[9px] py-2 hover:bg-danger-500/15 transition-colors disabled:opacity-40"
-                >
-                  Ho finito — non faccio più offerte
-                </button>
-              )}
-              <div className="mt-2 flex items-center gap-2">
-                <div className="flex-1 h-1 rounded-full bg-surface-50 overflow-hidden">
-                  <div className="h-full progress-gradient" style={{ width: `${totalMembers > 0 ? (finishedCount / totalMembers) * 100 : 0}%` }} />
-                </div>
-                <span className="font-mono text-[10px] text-gray-500">{finishedCount}/{totalMembers} finiti</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ===== Centro: Arena ===== */}
+        {/* ===== Sinistra: Arena + tab Bilanci ===== */}
         <div className="space-y-3 min-w-0 lg:space-y-0 lg:flex lg:flex-col lg:gap-3 lg:min-h-0">
-          {/* READY_CHECK — tocca a te: scegli dalla lista a destra */}
+          {/* READY_CHECK — tocca a te: scegli dalla tabella a destra */}
           {canNominate && (
             <div className="bg-surface-200 arena-gold rounded-xl p-5 text-center">
               <p className="micro-label text-accent-400 mb-2">È il tuo turno</p>
               <p className="font-display text-2xl font-bold text-white">Scegli chi chiamare</p>
-              <p className="text-sm text-gray-400 mt-1">Seleziona un giocatore dalla lista <b className="text-secondary-400">Giocatori liberi</b> a destra.</p>
+              <p className="text-sm text-gray-400 mt-1">Seleziona un giocatore dalla tabella <b className="text-secondary-400">Giocatori liberi</b>.</p>
               <button
                 type="button"
                 onClick={props.onPassTurn}
@@ -381,9 +362,68 @@ export function SvincolatiCockpit(props: SvincolatiCockpitProps) {
               <p className="text-sm text-gray-400 mt-1">Tutti i manager hanno terminato le chiamate.</p>
             </div>
           )}
+
+          {/* Direttori Generali (tab Bilanci su desktop, card diretta su mobile — nascosto
+              su mobile durante un'asta attiva per lasciare spazio all'arena, stesso
+              comportamento di prima) + footer "Ho finito", sempre visibile indipendentemente
+              dalla tab attiva. */}
+          <div className={`min-w-0 lg:min-h-0 lg:flex-1 lg:flex lg:flex-col lg:gap-2 ${auction ? 'hidden lg:flex lg:flex-col' : 'flex flex-col gap-3'}`}>
+            <div className="hidden lg:flex lg:flex-col lg:flex-1 lg:min-h-0">
+              <PanelTabs
+                className="flex-1 min-h-0"
+                scrollContent
+                tabs={[
+                  {
+                    key: 'bilanci',
+                    label: 'Bilanci',
+                    content: (
+                      <DirettoriGeneraliList
+                        board={board}
+                        readyRelevant={readyRelevant}
+                        onViewManagerRoster={props.onViewManagerRoster}
+                      />
+                    ),
+                  },
+                ]}
+              />
+            </div>
+            <div className="lg:hidden bg-surface-200 border border-surface-50 rounded-xl overflow-hidden flex flex-col">
+              <div className="px-3.5 py-2.5 border-b border-surface-50 flex-shrink-0">
+                <h3 className="micro-label">Direttori Generali · turno e budget</h3>
+              </div>
+              <div className="panel-scroll">
+                <DirettoriGeneraliList
+                  board={board}
+                  readyRelevant={readyRelevant}
+                  onViewManagerRoster={props.onViewManagerRoster}
+                />
+              </div>
+            </div>
+
+            <div className="bg-surface-200 border border-surface-50 rounded-xl px-3.5 py-2.5 flex-shrink-0">
+              {board.isFinished ? (
+                <p className="text-center text-xs text-gray-400">Hai dichiarato di aver finito · non fai più offerte</p>
+              ) : (
+                <button
+                  type="button"
+                  onClick={props.onDeclareFinished}
+                  disabled={props.isSubmitting}
+                  className="w-full text-xs font-semibold text-danger-400 border border-danger-500/40 bg-danger-500/[0.06] rounded-[9px] py-2 hover:bg-danger-500/15 transition-colors disabled:opacity-40"
+                >
+                  Ho finito — non faccio più offerte
+                </button>
+              )}
+              <div className="mt-2 flex items-center gap-2">
+                <div className="flex-1 h-1 rounded-full bg-surface-50 overflow-hidden">
+                  <div className="h-full progress-gradient" style={{ width: `${totalMembers > 0 ? (finishedCount / totalMembers) * 100 : 0}%` }} />
+                </div>
+                <span className="font-mono text-[10px] text-gray-500">{finishedCount}/{totalMembers} finiti</span>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* ===== Destra: Giocatori liberi ===== */}
+        {/* ===== Destra: catalogo giocatori liberi ===== */}
         <div className={`mt-3 lg:mt-0 lg:min-h-0 ${auction ? 'hidden lg:flex lg:flex-col' : 'flex flex-col'}`}>
           <div className="bg-surface-200 border border-surface-50 rounded-xl overflow-hidden flex flex-col h-full min-h-0">
             <div className="px-3.5 py-2.5 border-b border-surface-50 flex flex-col gap-2 flex-shrink-0">
@@ -447,6 +487,26 @@ export function SvincolatiCockpit(props: SvincolatiCockpitProps) {
                   )}
                 </div>
               </div>
+              <div className="flex items-center gap-1.5">
+                <span className="micro-label text-gray-500 flex-shrink-0">Quot.</span>
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  placeholder="Min"
+                  value={props.minQuotation}
+                  onChange={e => { props.setMinQuotation(e.target.value); }}
+                  className="bg-surface-300 border-surface-50/30 text-white text-xs py-1.5"
+                />
+                <span className="text-gray-600" aria-hidden="true">–</span>
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  placeholder="Max"
+                  value={props.maxQuotation}
+                  onChange={e => { props.setMaxQuotation(e.target.value); }}
+                  className="bg-surface-300 border-surface-50/30 text-white text-xs py-1.5"
+                />
+              </div>
             </div>
 
             {canNominate && (
@@ -455,48 +515,53 @@ export function SvincolatiCockpit(props: SvincolatiCockpitProps) {
               </div>
             )}
 
-            <div className="panel-scroll flex-1 min-h-0">
-              {freeAgents.length === 0 ? (
+            {/* Header colonne ordinabile (solo desktop, fuori dallo scroll cosi' resta fisso) */}
+            <div className="hidden lg:grid svincolati-pool-grid px-3 py-2 border-b border-surface-50/20 bg-surface-300/40 flex-shrink-0">
+              <span className="micro-label">Giocatore</span>
+              <SortableHeader label="Età" sortKey="age" activeKey={sortKey} dir={sortDir} onSort={handleSort} />
+              <SortableHeader label="Quot." sortKey="quotation" activeKey={sortKey} dir={sortDir} onSort={handleSort} />
+              <SortableHeader label="Pres." sortKey="appearances" activeKey={sortKey} dir={sortDir} onSort={handleSort} />
+              <SortableHeader label="Media" sortKey="avgRating" activeKey={sortKey} dir={sortDir} onSort={handleSort} />
+              <SortableHeader label="Gol" sortKey="totalGoals" activeKey={sortKey} dir={sortDir} onSort={handleSort} />
+              <SortableHeader label="Ass." sortKey="totalAssists" activeKey={sortKey} dir={sortDir} onSort={handleSort} />
+              <span className="micro-label text-center">Azione</span>
+            </div>
+
+            <div ref={listScrollRef} className="panel-scroll flex-1 min-h-0">
+              {sortedFreeAgents.length === 0 ? (
                 <p className="text-gray-500 text-center text-sm py-6">Nessun giocatore trovato</p>
+              ) : useVirtual ? (
+                <div style={{ height: `${virtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }}>
+                  {virtualizer.getVirtualItems().map(virtualRow => {
+                    const player = sortedFreeAgents[virtualRow.index]
+                    if (!player) return null
+                    return (
+                      <div
+                        key={player.id}
+                        ref={virtualizer.measureElement}
+                        data-index={virtualRow.index}
+                        style={{ position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${virtualRow.start}px)` }}
+                      >
+                        <FreeAgentTableRow
+                          player={player}
+                          leagueId={props.leagueId}
+                          nominable={canNominate && !props.isSubmitting}
+                          onNominate={props.onNominate}
+                        />
+                      </div>
+                    )
+                  })}
+                </div>
               ) : (
-                freeAgents.slice(0, 80).map(player => {
-                  const nominable = canNominate && !props.isSubmitting
-                  return (
-                  <div
+                sortedFreeAgents.map(player => (
+                  <FreeAgentTableRow
                     key={player.id}
-                    role={nominable ? 'button' : undefined}
-                    tabIndex={nominable ? 0 : undefined}
-                    onClick={nominable ? () => { props.onNominate(player.id); } : undefined}
-                    onKeyDown={nominable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); props.onNominate(player.id); } } : undefined}
-                    className={`w-full flex items-center gap-3 px-3.5 py-2 border-b border-surface-50/40 text-left transition-colors ${
-                      nominable ? 'hover:bg-hover cursor-pointer' : 'cursor-default'
-                    }`}
-                  >
-                    <span className={`w-[30px] h-[30px] rounded-lg flex items-center justify-center font-display font-extrabold text-[13px] flex-shrink-0 ${ROLE_BADGE[player.position] ?? ''}`}>
-                      {player.position}
-                    </span>
-                    <span className="flex-1 min-w-0">
-                      <PlayerName
-                        player={{ name: player.name, team: player.team, position: player.position, quotation: player.quotation, age: player.age }}
-                        leagueId={props.leagueId}
-                        leaguePlayerId={player.id}
-                        truncate
-                        className="block text-[13.5px]"
-                      />
-                      <span className="block text-[11px] text-gray-500 truncate">
-                        {player.team}
-                        <span className="text-gray-600" aria-hidden="true"> · </span>
-                        <span className={`font-mono ${getAgeColor(player.age)}`}>{player.age != null ? `${player.age} anni` : NOT_DISPONIBILE}</span>
-                      </span>
-                    </span>
-                    {canNominate && (
-                      <span className="font-mono text-[9.5px] font-bold text-secondary-400 border border-secondary-500/40 bg-secondary-500/[0.08] rounded-md px-2 py-1 flex-shrink-0">
-                        Chiama
-                      </span>
-                    )}
-                  </div>
-                  )
-                })
+                    player={player}
+                    leagueId={props.leagueId}
+                    nominable={canNominate && !props.isSubmitting}
+                    onNominate={props.onNominate}
+                  />
+                ))
               )}
             </div>
           </div>
@@ -520,6 +585,81 @@ export function SvincolatiCockpit(props: SvincolatiCockpitProps) {
         />
       </AdminTestFab>
     </CockpitShell>
+  )
+}
+
+/* ── Etichetta colonna cliccabile per ordinare la tabella liberi ── */
+function SortableHeader({ label, sortKey, activeKey, dir, onSort }: {
+  label: string
+  sortKey: SortKey
+  activeKey: SortKey | null
+  dir: 'asc' | 'desc'
+  onSort: (key: SortKey) => void
+}) {
+  const isActive = activeKey === sortKey
+  return (
+    <button
+      type="button"
+      onClick={() => { onSort(sortKey); }}
+      className={`micro-label text-center flex items-center justify-center gap-0.5 hover:text-white transition-colors ${isActive ? 'text-primary-400' : ''}`}
+    >
+      {label}
+      {isActive && <span aria-hidden="true">{dir === 'asc' ? '▲' : '▼'}</span>}
+    </button>
+  )
+}
+
+/* ── Lista Direttori Generali (turno/budget/pronti) — riusata sia nella tab
+   Bilanci desktop sia nella card diretta mobile, stesso markup di prima. ── */
+function DirettoriGeneraliList({ board, readyRelevant, onViewManagerRoster }: {
+  board: BoardState
+  readyRelevant: boolean
+  onViewManagerRoster: (member: BoardState['turnOrder'][number]) => void
+}) {
+  return (
+    <>
+      {board.turnOrder.map((member, index) => {
+        const isCurrent = board.currentTurnMemberId === member.id
+        const isMe = member.id === board.myMemberId
+        const hasFinished = board.finishedMembers.includes(member.id)
+        const dim = member.hasPassed || hasFinished
+        const badge = (
+          <span className={`w-8 h-8 rounded-full flex items-center justify-center font-mono text-xs font-bold ${
+            isCurrent ? 'bg-accent-400 text-dark-300' : dim ? 'bg-surface-300 text-gray-500' : 'bg-surface-100 text-gray-400'
+          }`}>
+            {index + 1}
+          </span>
+        )
+        const readyDot = readyRelevant ? board.readyMembers.includes(member.id) : undefined
+        return (
+          <ManagerListRow
+            key={member.id}
+            name={member.username}
+            isMe={isMe}
+            isHolding={isCurrent}
+            dim={dim}
+            leadingBadge={badge}
+            readyDot={readyDot}
+            connectedDot={readyDot == null ? (member.isConnected ?? null) : null}
+            statusLine={
+              isCurrent ? (
+                <span className="text-accent-400 font-semibold">Sta chiamando…</span>
+              ) : member.hasPassed ? (
+                <span className="text-accent-400 font-mono text-[9px] font-bold border border-accent-500/50 rounded px-1.5 py-px tracking-[0.05em]">PASS</span>
+              ) : hasFinished ? (
+                <span className="text-gray-400 font-mono text-[9px] font-bold border border-surface-50 rounded px-1.5 py-px tracking-[0.05em]">FINITO</span>
+              ) : readyDot != null ? (
+                readyDot ? <span className="text-secondary-400">Pronto</span> : <span className="text-gray-400">In attesa</span>
+              ) : 'In gara'
+            }
+            bigValue={`${member.budget}M`}
+            bigValueGold={isMe || isCurrent}
+            onClick={() => { onViewManagerRoster(member); }}
+            title="Clicca per vedere la rosa"
+          />
+        )
+      })}
+    </>
   )
 }
 

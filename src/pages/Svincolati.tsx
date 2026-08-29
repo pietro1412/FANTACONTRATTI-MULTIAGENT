@@ -65,6 +65,8 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
     searchQuery, setSearchQuery,
     selectedPosition, setSelectedPosition,
     selectedTeam, setSelectedTeam,
+    minQuotation, setMinQuotation,
+    maxQuotation, setMaxQuotation,
     teamDropdownOpen, setTeamDropdownOpen,
     teamDropdownRef,
     turnOrderDraft,
@@ -419,6 +421,10 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
           setSelectedPosition={setSelectedPosition}
           selectedTeam={selectedTeam}
           setSelectedTeam={setSelectedTeam}
+          minQuotation={minQuotation}
+          setMinQuotation={setMinQuotation}
+          maxQuotation={maxQuotation}
+          setMaxQuotation={setMaxQuotation}
           bidAmount={bidAmount}
           setBidAmount={setBidAmount}
           timerInput={timerInput}

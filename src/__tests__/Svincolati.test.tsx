@@ -386,7 +386,9 @@ describe('Svincolati', () => {
 
     // "il tuo turno" appears in both the turn banner and the arena prompt
     expect(screen.getAllByText(/il tuo turno/i).length).toBeGreaterThanOrEqual(1)
-    expect(screen.getByText('Mario Rossi')).toBeInTheDocument()
+    // La riga del pool liberi ora ha una resa desktop (griglia) + una mobile
+    // (card), entrambe presenti nel DOM di test — stesso pattern di BoardRow.
+    expect(screen.getAllByText('Mario Rossi').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText(/Passo — non chiamo più/)).toBeInTheDocument()
   })
 
@@ -918,14 +920,15 @@ describe('Svincolati', () => {
 
     render(<Svincolati leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    expect(screen.getByText(/Direttori Generali/)).toBeInTheDocument()
-    // "TestUser" appears in the DG list; "OtherUser" appears in both turn banner and DG list
+    // La lista Direttori Generali ora ha una resa desktop (dentro la tab
+    // Bilanci) + una mobile (card diretta), entrambe presenti nel DOM di test.
+    expect(screen.getAllByText(/Direttori Generali/).length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText('TestUser').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getByText('TU')).toBeInTheDocument()
+    expect(screen.getAllByText('TU').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText(/OtherUser/).length).toBeGreaterThanOrEqual(1)
-    expect(screen.getByText(/Sta chiamando/)).toBeInTheDocument()
-    expect(screen.getByText('PASS')).toBeInTheDocument()
-    expect(screen.getByText('FINITO')).toBeInTheDocument()
+    expect(screen.getAllByText(/Sta chiamando/).length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('PASS').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('FINITO').length).toBeGreaterThanOrEqual(1)
   })
 
   // ---- DG list: "Ho Finito" button (user not finished) ----
@@ -1409,8 +1412,9 @@ describe('Svincolati', () => {
 
     // Axiom 7: the player NAME is a button that opens the stats modal (it must
     // NOT trigger nomination). The nomination is triggered by clicking elsewhere
-    // on the row (e.g. the "Chiama" call-to-action).
-    await user.click(screen.getByText('Chiama'))
+    // on the row (e.g. the "Chiama" call-to-action). The row now has a desktop
+    // and a mobile rendering (both in the test DOM) — pick the first "Chiama".
+    await user.click(screen.getAllByText('Chiama')[0]!)
     expect(mockHandleNominate).toHaveBeenCalledWith('p1')
   })
 
@@ -1431,8 +1435,9 @@ describe('Svincolati', () => {
 
     render(<Svincolati leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    const nameButton = screen.getByRole('button', { name: 'Mario Rossi' })
-    await user.click(nameButton)
+    // Due rese (desktop+mobile) del nome cliccabile nel DOM di test — click sulla prima basta.
+    const nameButtons = screen.getAllByRole('button', { name: 'Mario Rossi' })
+    await user.click(nameButtons[0]!)
     expect(mockHandleNominate).not.toHaveBeenCalled()
   })
 
