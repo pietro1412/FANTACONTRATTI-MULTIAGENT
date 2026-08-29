@@ -2937,10 +2937,15 @@ export async function acknowledgeRubataTransaction(
   }
 
   if (allAcknowledged) {
-    // M-9: Check if this was the last player on the board
+    // M-9: Check if there is a next player left on the board.
+    // rubataBoardIndex was already advanced to the upcoming player when the
+    // auction closed (see closeCurrentRubataAuction) — it does NOT need another
+    // +1 here. Adding one more (as before) fired "last player" one turn early,
+    // skipping the true last player on the board whenever the upcoming index
+    // was already the final valid one.
     const board = activeSession.rubataBoard as Array<unknown> | null
     const currentIndex = activeSession.rubataBoardIndex ?? 0
-    const isLastPlayer = board ? (currentIndex + 1) >= board.length : false
+    const isLastPlayer = board ? currentIndex >= board.length : false
 
     if (isLastPlayer) {
       // Last player acknowledged — complete rubata phase
@@ -3038,11 +3043,36 @@ export async function forceAllRubataAcknowledge(
     return { success: false, message: 'Nessuna transazione pendente' }
   }
 
-  // Clear pending ack and move to ready check.
-  // rubataBoardIndex already points at the upcoming player — pre-seed members
-  // with a binding auto-pass on them as ready.
+  // rubataBoardIndex already points at the upcoming player (advanced when the
+  // auction closed) — if it's past the end of the board, this was the last
+  // player and the rubata is done, mirroring acknowledgeRubataTransaction.
   const boardForForceAck = activeSession.rubataBoard as unknown as RubataBoardItem[] | null
-  const nextPlayerForForceAck = boardForForceAck?.[activeSession.rubataBoardIndex ?? 0]
+  const currentIndexForForceAck = activeSession.rubataBoardIndex ?? 0
+  const isLastPlayerForForceAck = boardForForceAck
+    ? currentIndexForForceAck >= boardForForceAck.length
+    : false
+
+  if (isLastPlayerForForceAck) {
+    await prisma.marketSession.update({
+      where: { id: activeSession.id },
+      data: {
+        rubataPendingAck: Prisma.DbNull,
+        rubataReadyMembers: [],
+        rubataState: 'COMPLETED',
+        rubataTimerStartedAt: null,
+      },
+    })
+
+    return {
+      success: true,
+      message: 'Conferme forzate! Ultimo giocatore confermato, rubata completata.',
+      data: { completed: true },
+    }
+  }
+
+  // Clear pending ack and move to ready check for the next player, pre-seeding
+  // members with a binding auto-pass on them as ready.
+  const nextPlayerForForceAck = boardForForceAck?.[currentIndexForForceAck]
   const autoPassIdsForForceAck = nextPlayerForForceAck
     ? await getAutoPassMemberIds(activeSession.id, nextPlayerForForceAck.playerId)
     : []

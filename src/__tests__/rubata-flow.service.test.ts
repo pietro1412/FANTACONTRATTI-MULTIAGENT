@@ -883,7 +883,8 @@ describe('acknowledgeRubataTransaction', () => {
       acknowledgedMembers: ['member-2'],
       prophecies: [],
     }
-    // board has 2 players, index is 1 → last player (1+1 >= 2)
+    // board has 2 players; rubataBoardIndex is already 2 (past the end) because
+    // it was advanced when player p2's own auction closed — nothing left to offer
     const board = [
       { playerId: 'p1' },
       { playerId: 'p2' },
@@ -894,7 +895,7 @@ describe('acknowledgeRubataTransaction', () => {
         rubataState: 'PENDING_ACK',
         rubataPendingAck: pendingAck,
         rubataBoard: board,
-        rubataBoardIndex: 1,
+        rubataBoardIndex: 2,
       })
     )
     mockPrisma.leagueMember.findUnique.mockResolvedValueOnce(member)
@@ -917,6 +918,62 @@ describe('acknowledgeRubataTransaction', () => {
         data: expect.objectContaining({
           rubataState: 'COMPLETED',
         }),
+      })
+    )
+  })
+
+  it('regression: should NOT complete rubata when the upcoming player is still valid (off-by-one)', async () => {
+    // Bug: rubataBoardIndex is already advanced to the upcoming player when an
+    // auction closes. A stale extra +1 here used to mark the rubata COMPLETED
+    // one turn early — skipping the true last player (p2, index 1) whenever the
+    // second-to-last player's (p1) auction was the one just acknowledged.
+    const member = makeMember()
+    const pendingAck = {
+      auctionId: 'auction-1',
+      playerId: 'p1',
+      playerName: 'p1',
+      winnerId: 'member-2',
+      finalPrice: 50,
+      acknowledgedMembers: ['member-2'],
+      prophecies: [],
+    }
+    const board = [
+      { playerId: 'p1' },
+      { playerId: 'p2' },
+    ]
+    mockPrisma.leagueMember.findFirst.mockResolvedValueOnce(member)
+    mockPrisma.marketSession.findFirst.mockResolvedValueOnce(
+      makeSession({
+        rubataState: 'PENDING_ACK',
+        rubataPendingAck: pendingAck,
+        rubataBoard: board,
+        rubataBoardIndex: 1, // upcoming player is p2, still a valid board entry
+      })
+    )
+    mockPrisma.leagueMember.findUnique.mockResolvedValueOnce(member)
+    mockPrisma.leagueMember.findMany.mockResolvedValueOnce([
+      member,
+      makeMember({ id: 'member-2' }),
+    ])
+    mockPrisma.marketSession.update.mockResolvedValueOnce({})
+
+    const result = await acknowledgeRubataTransaction(LEAGUE_ID, USER_ID)
+    expect(result.success).toBe(true)
+
+    const data2 = result.data as { allAcknowledged: boolean; completed?: boolean }
+    expect(data2.completed).toBeUndefined()
+    expect(result.message).toContain('prossimo giocatore')
+
+    expect(mockPrisma.marketSession.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          rubataState: 'READY_CHECK',
+        }),
+      })
+    )
+    expect(mockPrisma.marketSession.update).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ rubataState: 'COMPLETED' }),
       })
     )
   })
@@ -988,6 +1045,28 @@ describe('forceAllRubataAcknowledge', () => {
         data: expect.objectContaining({
           rubataState: 'READY_CHECK',
           rubataReadyMembers: ['member-4'],
+        }),
+      })
+    )
+  })
+
+  it('should complete rubata when forcing ack past the last player', async () => {
+    const board = [{ playerId: 'p1' }, { playerId: 'p2' }]
+    mockPrisma.leagueMember.findFirst.mockResolvedValueOnce(makeAdminMember())
+    mockPrisma.marketSession.findFirst.mockResolvedValueOnce(
+      // rubataBoardIndex already past the end — p2's own auction just closed
+      makeSession({ rubataState: 'PENDING_ACK', rubataBoard: board, rubataBoardIndex: 2 })
+    )
+    mockPrisma.marketSession.update.mockResolvedValueOnce({})
+
+    const result = await forceAllRubataAcknowledge(LEAGUE_ID, ADMIN_USER_ID)
+    expect(result.success).toBe(true)
+    expect(result.message).toContain('completata')
+
+    expect(mockPrisma.marketSession.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          rubataState: 'COMPLETED',
         }),
       })
     )
