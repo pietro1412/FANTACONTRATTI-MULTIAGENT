@@ -299,10 +299,12 @@ export function ContractModifier({
           )}
         </div>
 
-        {/* Input allineati sulle stesse 3 colonne del riepilogo sopra. La clausola non è
-            editabile (derivata da ingaggio e durata), quindi resta un valore di sola
-            lettura nella terza colonna invece di uno stepper. */}
-        <div className="grid grid-cols-3 gap-3 items-start">
+        {/* Riga flessibile (non grid-cols-3): ogni NumberStepper "sm" occupa ~152px
+            (due bottoni da 44px min-width per touch target + valore), più dei ~130px
+            che una colonna equa a 3 avrebbe offerto in questo modale max-w-md — causava
+            la sovrapposizione tra il "+" di Ingaggio e il "−" di Durata (2026-08-29).
+            flex-wrap fa andare a capo singolarmente invece di forzare l'overlap. */}
+        <div className="flex flex-wrap items-start justify-center gap-x-4 gap-y-3">
           <NumberStepper
             label="Ingaggio (M)"
             value={newSalary}
