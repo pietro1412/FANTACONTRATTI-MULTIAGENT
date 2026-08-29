@@ -136,17 +136,35 @@ export function ContractModifier({
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Calculate minimum duration based on mode
-  const minDuration = isSvincolatiMode ? 3 : increaseOnly ? contract.duration : 1
-  // Minimum salary based on mode (no decrease allowed in svincolati/increaseOnly modes)
-  const minSalary = (isSvincolatiMode || increaseOnly) ? contract.salary : 1
-
   // Reset when contract changes
   useEffect(() => {
     setNewSalary(contract.salary)
     setNewDuration(contract.duration)
     setError(null)
   }, [contract.salary, contract.duration])
+
+  // Check if spalma is available (only in the "normal" renewal mode, when the current
+  // contract has 1 semester left)
+  const canSpalma = !isSvincolatiMode && !increaseOnly && contract.duration === 1
+
+  // Bounds computed so that invalid combinations are unreachable via the steppers
+  // themselves, instead of being allowed and flagged after the fact:
+  // - svincolati / increaseOnly: salary/duration can never decrease below current.
+  // - increaseOnly additionally: duration can't be pushed above current until salary
+  //   has already been raised (and can't be brought back down while duration is still
+  //   raised) — the classic "aumenta la durata senza aumentare l'ingaggio" case.
+  // The one rule left to the after-the-fact check in `preview` below is spalma's
+  // multiplicative constraint (ingaggio × durata ≥ ingaggio iniziale), which can't be
+  // expressed as two independent per-field bounds.
+  const minSalary = isSvincolatiMode || increaseOnly
+    ? (increaseOnly && newDuration > contract.duration ? contract.salary + 1 : contract.salary)
+    : canSpalma ? 1 : contract.salary
+  const minDuration = isSvincolatiMode
+    ? 3
+    : increaseOnly
+      ? contract.duration
+      : canSpalma ? 1 : contract.duration
+  const maxDuration = increaseOnly && newSalary <= contract.salary ? contract.duration : 4
 
   // Calculate preview values
   const preview = useMemo(() => {
@@ -174,10 +192,7 @@ export function ContractModifier({
       validationError: validation.reason,
       hasChanges,
     }
-  }, [newSalary, newDuration, contract, isSvincolatiMode])
-
-  // Check if spalma is available (not in svincolati mode, not in increase-only mode)
-  const canSpalma = !isSvincolatiMode && !increaseOnly && contract.duration === 1
+  }, [newSalary, newDuration, contract, isSvincolatiMode, increaseOnly])
 
   async function handleConfirm() {
     if (!preview.isValid) return
@@ -191,6 +206,16 @@ export function ContractModifier({
       setError(err instanceof Error ? err.message : 'Errore durante la modifica')
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  // Azione unica: senza modifiche mantiene il contratto attuale, altrimenti conferma
+  // i nuovi valori — niente più due bottoni ridondanti quando non si è toccato nulla.
+  function handlePrimaryAction() {
+    if (preview.hasChanges) {
+      void handleConfirm()
+    } else {
+      onSkip()
     }
   }
 
@@ -221,22 +246,6 @@ export function ContractModifier({
           </div>
         </div>
 
-        {/* Current Contract */}
-        <div className="grid grid-cols-3 gap-3 p-3 bg-surface-300/20 rounded-lg">
-          <div className="text-center">
-            <div className="text-xs text-gray-500 mb-1">Ingaggio attuale</div>
-            <div className="text-lg font-bold text-white">{contract.salary}M</div>
-          </div>
-          <div className="text-center">
-            <div className="text-xs text-gray-500 mb-1">Durata attuale</div>
-            <div className="text-lg font-bold text-white">{contract.duration}s</div>
-          </div>
-          <div className="text-center">
-            <div className="text-xs text-gray-500 mb-1">Clausola attuale</div>
-            <div className="text-lg font-bold text-primary-400">{contract.rescissionClause}M</div>
-          </div>
-        </div>
-
         {/* Spalma Info */}
         {canSpalma && (
           <div className="bg-warning-500/10 border border-warning-500/30 rounded-lg p-3 text-sm">
@@ -244,73 +253,85 @@ export function ContractModifier({
               <span>Spalma disponibile</span>
             </div>
             <p className="text-gray-400">
-              Puoi ridurre l'ingaggio allungando la durata. Regola: Nuovo Ingaggio × Nuova Durata ≥ {contract.initialSalary}
+              Puoi ridurre l'ingaggio allungando la durata. Regola: Ingaggio × Durata ≥ {contract.initialSalary}
             </p>
           </div>
         )}
 
-        {/* Modification Inputs */}
-        <div className="grid grid-cols-2 gap-4">
+        {/* Riepilogo contratto — sempre visibile (mostra il valore attuale finché non
+            si modifica, la transizione attuale → nuovo appena si tocca uno stepper).
+            Stesse 3 colonne degli input sotto, per restare sempre allineati. */}
+        <div className={`rounded-lg border p-3 ${
+          !preview.hasChanges
+            ? 'bg-surface-300/20 border-surface-50/10'
+            : preview.isValid
+              ? 'bg-secondary-500/10 border-secondary-500/30'
+              : 'bg-danger-500/10 border-danger-500/30'
+        }`}>
+          <div className="grid grid-cols-3 gap-3 text-center">
+            <div>
+              <div className="text-xs text-gray-500 mb-1">Ingaggio</div>
+              <div className="text-lg font-bold text-white">
+                {preview.hasChanges ? (
+                  <>{contract.salary}M → <span className={preview.isValid ? 'text-secondary-400' : 'text-danger-400'}>{preview.salary}M</span></>
+                ) : `${contract.salary}M`}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-gray-500 mb-1">Durata</div>
+              <div className="text-lg font-bold text-white">
+                {preview.hasChanges ? (
+                  <>{contract.duration}s → <span className={preview.isValid ? 'text-secondary-400' : 'text-danger-400'}>{preview.duration}s</span></>
+                ) : `${contract.duration}s`}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-gray-500 mb-1">Clausola</div>
+              <div className="text-lg font-bold text-primary-400">
+                {preview.hasChanges ? (
+                  <>{contract.rescissionClause}M → <span className="text-primary-400">{preview.rescissionClause}M</span></>
+                ) : `${contract.rescissionClause}M`}
+              </div>
+            </div>
+          </div>
+          {preview.hasChanges && !preview.isValid && (
+            <p className="mt-2 text-sm text-danger-400 text-center">{preview.validationError}</p>
+          )}
+        </div>
+
+        {/* Input allineati sulle stesse 3 colonne del riepilogo sopra. La clausola non è
+            editabile (derivata da ingaggio e durata), quindi resta un valore di sola
+            lettura nella terza colonna invece di uno stepper. */}
+        <div className="grid grid-cols-3 gap-3 items-start">
           <NumberStepper
-            label="Nuovo Ingaggio (M)"
+            label="Ingaggio (M)"
             value={newSalary}
             onChange={setNewSalary}
             min={minSalary}
             max={Infinity}
             unit="M"
+            size="sm"
             disabled={isLoading || isSubmitting}
           />
           <NumberStepper
-            label="Nuova Durata (semestri)"
+            label="Durata (sem.)"
             value={newDuration}
             onChange={setNewDuration}
             min={minDuration}
-            max={4}
+            max={maxDuration}
             unit="s"
+            size="sm"
             disabled={isLoading || isSubmitting}
           />
-        </div>
-
-        {/* Preview */}
-        {preview.hasChanges && (
-          <div className={`rounded-lg p-3 border ${
-            preview.isValid
-              ? 'bg-secondary-500/10 border-secondary-500/30'
-              : 'bg-danger-500/10 border-danger-500/30'
-          }`}>
-            <div className="text-sm font-medium mb-2 flex items-center gap-2">
-              {preview.isValid ? (
-                <span className="text-secondary-400">Anteprima nuovo contratto</span>
-              ) : (
-                <span className="text-danger-400">Modifica non valida</span>
-              )}
+          <div className="text-center">
+            <label className="block text-sm font-semibold text-gray-300 mb-2 uppercase tracking-wide">
+              Clausola
+            </label>
+            <div className="flex items-center justify-center min-h-[44px] text-xl font-bold text-primary-400 tabular-nums">
+              {preview.rescissionClause}M
             </div>
-            {preview.isValid ? (
-              <div className="grid grid-cols-3 gap-3 text-center">
-                <div>
-                  <div className="text-xs text-gray-500">Ingaggio</div>
-                  <div className="font-bold text-white">
-                    {contract.salary}M → <span className="text-secondary-400">{preview.salary}M</span>
-                  </div>
-                </div>
-                <div>
-                  <div className="text-xs text-gray-500">Durata</div>
-                  <div className="font-bold text-white">
-                    {contract.duration}s → <span className="text-secondary-400">{preview.duration}s</span>
-                  </div>
-                </div>
-                <div>
-                  <div className="text-xs text-gray-500">Clausola</div>
-                  <div className="font-bold text-white">
-                    {contract.rescissionClause}M → <span className="text-primary-400">{preview.rescissionClause}M</span>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm text-danger-400">{preview.validationError}</p>
-            )}
           </div>
-        )}
+        </div>
 
         {/* Error message */}
         {error && (
@@ -324,25 +345,16 @@ export function ContractModifier({
           La modifica non impatta il budget attuale. Il nuovo ingaggio sarà conteggiato nel monte ingaggi durante la fase Contratti.
         </div>
 
-        {/* Actions */}
-        <div className="flex gap-3 pt-2">
-          <Button
-            variant="ghost"
-            onClick={onSkip}
-            disabled={isLoading || isSubmitting}
-            className="flex-1"
-          >
-            Mantieni contratto
-          </Button>
-          <Button
-            onClick={() => void handleConfirm()}
-            disabled={!preview.isValid || isLoading || isSubmitting}
-            isLoading={isSubmitting}
-            className="flex-1"
-          >
-            Conferma modifica
-          </Button>
-        </div>
+        {/* Azione unica: "Mantieni contratto" senza modifiche, "Conferma modifica"
+            appena si tocca ingaggio/durata — mai due bottoni insieme. */}
+        <Button
+          onClick={handlePrimaryAction}
+          disabled={isLoading || isSubmitting || (preview.hasChanges && !preview.isValid)}
+          isLoading={isSubmitting}
+          className="w-full"
+        >
+          {preview.hasChanges ? 'Conferma modifica' : 'Mantieni contratto'}
+        </Button>
       </div>
     </div>
   )
