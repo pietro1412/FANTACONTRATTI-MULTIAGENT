@@ -5,6 +5,7 @@ import { useConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { rubataApi, leagueApi, auctionApi, contractApi } from '../services/api'
 import { usePusherAuction } from '../services/pusher.client'
 import haptic from '../utils/haptics'
+import sounds from '../utils/sounds'
 import type {
   LeagueMember,
   BoardData,
@@ -103,8 +104,8 @@ export function useRubataState(leagueId: string) {
         setTimerDisplay(prev => {
           if (prev === null || prev <= 0) return 0
           const next = prev - 1
-          if (next === 5) haptic.light()
-          if (next === 3) haptic.warning()
+          if (next === 5) { haptic.light(); sounds.warning() }
+          if (next === 3) { haptic.warning(); sounds.warning() }
           return next
         })
       }, 1000)
@@ -1192,6 +1193,15 @@ export function useRubataState(leagueId: string) {
     rubataState === 'READY_CHECK' ||
     rubataState === 'PAUSED' ||
     rubataState === 'AUCTION_READY_CHECK'
+
+  // Chiude forzatamente l'editor ordine se la rubata avanza mentre e' aperto
+  // (es. un altro admin la avvia da un'altra scheda): una volta partita, non
+  // deve piu' essere possibile modificare l'ordine dei manager.
+  useEffect(() => {
+    if (isEditingOrder && rubataState !== 'READY_CHECK' && rubataState !== 'PREVIEW' && rubataState !== 'WAITING') {
+      setIsEditingOrder(false)
+    }
+  }, [isEditingOrder, rubataState])
 
   // ========== D4: Watchlist alert when watchlisted player is "sul piatto" ==========
   const [watchlistAlert, setWatchlistAlert] = useState<string | null>(null)

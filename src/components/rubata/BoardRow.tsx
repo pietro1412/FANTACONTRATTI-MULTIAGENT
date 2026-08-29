@@ -182,9 +182,9 @@ export const BoardRow = memo(function BoardRow({
           </>
         )}
 
-        <span className="inline-flex items-center gap-1.5 text-[11px] text-gray-500 min-w-0">
+        <span className="inline-flex items-center gap-1.5 min-w-0">
           <Monogram name={ownerName} size="xs" className={isMyPlayer ? 'border-primary-500/60 text-primary-400' : ''} />
-          <span className={`truncate ${isPassed && wasStolen ? 'line-through' : ''}`}>{ownerName}</span>
+          <span className={`truncate text-[13px] font-semibold ${isMyPlayer ? 'text-primary-400' : 'text-gray-200'} ${isPassed && wasStolen ? 'line-through' : ''}`}>{ownerName}</span>
         </span>
 
         <div className="flex items-center justify-center gap-1 flex-wrap">

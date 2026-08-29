@@ -1203,7 +1203,7 @@ describe('Rubata', () => {
   })
 
   // ---- Scroll to current player button ----
-  it('renders scroll-to-current-player button when current player is not visible', () => {
+  it('renders the scroll-to-current-player button with a generic label when current player is not visible', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
@@ -1215,11 +1215,12 @@ describe('Rubata', () => {
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    // Should show button with player's last name
-    expect(screen.getByText(/Torna a Chiesa/)).toBeInTheDocument()
+    // Generic label — does not name the current-turn player
+    expect(screen.getByText('Torna al giocatore di turno')).toBeInTheDocument()
+    expect(screen.queryByText(/Chiesa/)).not.toBeInTheDocument()
   })
 
-  it('does NOT render scroll button when current player IS visible', () => {
+  it('keeps the scroll-to-current-player button available even when current player IS visible (no longer auto-hides)', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
@@ -1231,7 +1232,7 @@ describe('Rubata', () => {
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    expect(screen.queryByText(/Torna a Chiesa/)).not.toBeInTheDocument()
+    expect(screen.getByText('Torna al giocatore di turno')).toBeInTheDocument()
   })
 
   it('calls scrollToCurrentPlayer when scroll button is clicked', async () => {
@@ -1249,7 +1250,7 @@ describe('Rubata', () => {
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    await user.click(screen.getByText(/Torna a Chiesa/))
+    await user.click(screen.getByText('Torna al giocatore di turno'))
     expect(mockScroll).toHaveBeenCalled()
   })
 

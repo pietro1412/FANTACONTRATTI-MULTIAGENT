@@ -1,10 +1,8 @@
 import { memo } from 'react'
-import { TimerDisplay } from '@/components/ui/TimerDisplay'
 import type { RubataStateType, ProgressStats } from '../../types/rubata.types'
 
 export interface RubataStateBarProps {
   rubataState: RubataStateType
-  timerDisplay: number | null
   isPusherConnected: boolean
   progressStats: ProgressStats | null
 }
@@ -37,12 +35,10 @@ function getStateConfig(state: RubataStateType): StateConfig {
  */
 export const RubataStateBar = memo(function RubataStateBar({
   rubataState,
-  timerDisplay,
   isPusherConnected,
   progressStats,
 }: RubataStateBarProps) {
   const config = getStateConfig(rubataState)
-  const timerLabel = rubataState === 'AUCTION' ? 'per rilanciare' : 'per decidere'
   const isLive = rubataState === 'OFFERING' || rubataState === 'AUCTION'
 
   const progressPct = progressStats && progressStats.totalPlayers > 0
@@ -72,14 +68,6 @@ export const RubataStateBar = memo(function RubataStateBar({
           </span>
         )}
       </div>
-
-      {/* Timer di fase — pillola piatta condivisa (P1, 40px) */}
-      {timerDisplay !== null && (
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <TimerDisplay seconds={timerDisplay} size={40} variant="flat" />
-          <span className="hidden sm:block text-[10px] text-gray-500 uppercase tracking-wider max-w-[64px] leading-snug">{timerLabel}</span>
-        </div>
-      )}
 
       {/* Board progress + live */}
       <div className="flex flex-col items-end gap-1 flex-shrink-0 min-w-[88px]">

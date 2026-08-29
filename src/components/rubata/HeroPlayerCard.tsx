@@ -1,5 +1,6 @@
 import { memo } from 'react'
 import { Settings } from 'lucide-react'
+import { TimerDisplay } from '@/components/ui/TimerDisplay'
 import { TeamLogo } from './TeamLogo'
 import { Monogram } from '@/components/ui/Monogram'
 import { POSITION_COLORS } from '../../types/rubata.types'
@@ -36,6 +37,10 @@ export interface HeroPlayerCardProps {
   myResiduo?: number | null
   preference: RubataPreference | undefined
   activeAuction: ActiveAuction | null
+  /** Secondi rimanenti per la decisione (null = nessun timer attivo). */
+  timerSeconds?: number | null
+  /** Durata totale del timer corrente (offerTimer o auctionTimer), per l'anello di avanzamento. */
+  timerTotalSeconds?: number
   onMakeOffer: () => void
   onPlayerStatsClick: (info: PlayerStatsInfo) => void
   onOpenPrefsModal: (player: BoardPlayerWithPreference) => void
@@ -66,6 +71,8 @@ export const HeroPlayerCard = memo(function HeroPlayerCard({
   myResiduo,
   preference: pref,
   activeAuction,
+  timerSeconds,
+  timerTotalSeconds,
   onMakeOffer,
   onPlayerStatsClick,
   onOpenPrefsModal,
@@ -184,6 +191,9 @@ export const HeroPlayerCard = memo(function HeroPlayerCard({
                   <div className="text-[10px] text-gray-500">ingaggio · {semestriLabel(player.contractDuration)}</div>
                 </div>
               </div>
+              {timerSeconds != null && (
+                <TimerDisplay seconds={timerSeconds} totalSeconds={timerTotalSeconds} size={44} className="ml-auto" />
+              )}
             </div>
 
             {/* Watchlist chip — stessa tassonomia di StrategieRubata */}

@@ -584,7 +584,6 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
             header={
               <RubataStateBar
                 rubataState={rubataState ?? 'WAITING'}
-                timerDisplay={timerDisplay}
                 isPusherConnected={isPusherConnected}
                 progressStats={progressStats}
               />
@@ -642,6 +641,8 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                     myResiduo={myResiduo}
                     preference={preferencesMap.get(currentPlayer.playerId)}
                     activeAuction={activeAuction ?? null}
+                    timerSeconds={timerDisplay}
+                    timerTotalSeconds={offerTimer}
                     onMakeOffer={() => void handleMakeOffer()}
                     onPlayerStatsClick={handlePlayerStatsClick}
                     onOpenPrefsModal={openPrefsModal}
@@ -686,6 +687,8 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                     myResiduo={myResiduo}
                     preference={preferencesMap.get(currentPlayer.playerId)}
                     activeAuction={activeAuction ?? null}
+                    timerSeconds={timerDisplay}
+                    timerTotalSeconds={auctionTimer}
                     onMakeOffer={() => void handleMakeOffer()}
                     onPlayerStatsClick={handlePlayerStatsClick}
                     onOpenPrefsModal={openPrefsModal}
@@ -922,11 +925,9 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                               key={mb.memberId}
                               name={mb.teamName || mb.username}
                               isMe={mb.memberId === myMemberId}
-                              statusLine={`monte ingaggi ${mb.totalSalaries}M`}
                               bigValue={mb.residuo < 0
                                 ? <span className="text-danger-400">{mb.residuo}M</span>
                                 : `${mb.residuo}M`}
-                              smallValue={`budget ${mb.currentBudget}M`}
                             />
                           ))}
                         </div>
@@ -1252,21 +1253,26 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
           />
         )}
 
-        {/* Floating "Scroll to Current Player" Button - Bottom Left */}
-        {isRubataPhase && isOrderSet && !isCurrentPlayerVisible && currentPlayer && (
+        {/* Floating "Scroll to Current Player" Button - sempre disponibile durante la rubata,
+            non solo quando il giocatore in turno esce dallo scroll (era il comportamento
+            precedente: appariva e spariva, poco affidabile). Etichetta generica: non
+            nomina il giocatore di turno. */}
+        {isRubataPhase && isOrderSet && currentPlayer && (
           <button
             onClick={scrollToCurrentPlayer}
-            className="fixed bottom-20 md:bottom-4 left-4 z-50 flex items-center gap-2 px-4 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-full shadow-lg transition-all animate-pulse hover:animate-none"
-            title={`Torna a ${currentPlayer.playerName}`}
+            className={`fixed bottom-20 md:bottom-4 left-4 z-50 flex items-center gap-2 px-4 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-full shadow-lg transition-all ${
+              isCurrentPlayerVisible ? '' : 'animate-pulse hover:animate-none'
+            }`}
+            title="Torna al giocatore di turno"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
             </svg>
             <span className="text-sm font-medium hidden sm:inline">
-              Torna a {currentPlayer.playerName.split(' ').pop()}
+              Torna al giocatore di turno
             </span>
             <span className="text-sm font-medium sm:hidden">
-              ↑ Player
+              ↑ Turno
             </span>
           </button>
         )}
