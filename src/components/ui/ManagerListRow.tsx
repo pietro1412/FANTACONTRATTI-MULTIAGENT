@@ -23,6 +23,8 @@ export interface ManagerListRowProps {
   smallValue?: React.ReactNode
   /** Pallino di connessione sull'avatar (true verde, false rosso, undefined nascosto) */
   connectedDot?: boolean | null
+  /** Indicatore "pronto" sull'avatar (true check verde, false pallino ambra pulsante, undefined nascosto). Non usare insieme a connectedDot. */
+  readyDot?: boolean | null
   /** Sostituisce il monogramma con un badge custom (es. numero di turno) */
   leadingBadge?: React.ReactNode
   onClick?: () => void
@@ -46,6 +48,7 @@ export const ManagerListRow = memo(function ManagerListRow({
   bigValueGold = false,
   smallValue,
   connectedDot,
+  readyDot,
   leadingBadge,
   onClick,
   title,
@@ -76,6 +79,15 @@ export const ManagerListRow = memo(function ManagerListRow({
             }`}
             aria-hidden="true"
           />
+        )}
+        {readyDot != null && (
+          readyDot ? (
+            <span className="absolute -bottom-[3px] -right-[3px] w-[13px] h-[13px] rounded-full bg-secondary-500 text-dark-300 text-[8px] font-extrabold flex items-center justify-center border-2 border-surface-200" aria-hidden="true">
+              ✓
+            </span>
+          ) : (
+            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-accent-500 border-2 border-surface-200 animate-pulse" aria-hidden="true" />
+          )
         )}
       </span>
 

@@ -28,7 +28,6 @@ import { RubataCockpitAdminBar } from '../components/rubata/RubataCockpitAdminBa
 import { CockpitShell } from '@/components/cockpit/CockpitShell'
 import { PanelTabs } from '@/components/ui/PanelTabs'
 import { ManagerListRow } from '@/components/ui/ManagerListRow'
-import { MemberReadyChips } from '@/components/ui/MemberReadyChips'
 import { BidControlsShared } from '@/components/ui/BidControlsShared'
 import { BidChips } from '@/components/ui/BidChips'
 import { RubataReadyBanner } from '../components/rubata/RubataReadyBanner'
@@ -303,6 +302,24 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
   const myResiduo = useMemo(() => {
     return boardData?.memberBudgets?.find(mb => mb.memberId === myMemberId)?.residuo ?? null
   }, [boardData?.memberBudgets, myMemberId])
+
+  // Costo da coprire e proprietario del giocatore sul piatto (OFFERING) o dell'asta
+  // in corso (AUCTION): mostrato per riga nel tab Bilanci — sostituisce lo strip
+  // separato "chi altro può rubarlo/rilanciare" sul desktop.
+  const rubataAffordCheck = useMemo(() => {
+    if (rubataState === 'OFFERING' && currentPlayer) {
+      return { cost: currentPlayer.rubataPrice, ownerMemberId: currentPlayer.memberId }
+    }
+    if (rubataState === 'AUCTION' && activeAuction) {
+      return { cost: activeAuction.currentPrice + 1, ownerMemberId: activeAuction.sellerId }
+    }
+    return null
+  }, [rubataState, currentPlayer, activeAuction])
+
+  // Stati in cui dichiararsi pronti ha senso: mostrato per riga nel tab Bilanci —
+  // sostituisce la striscia PRONTI separata sul desktop.
+  const readyRelevant = rubataState === 'READY_CHECK' || rubataState === 'PENDING_ACK' ||
+    rubataState === 'AUCTION_READY_CHECK' || rubataState === 'PAUSED'
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -649,28 +666,17 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                     canEditPreferences={canEditPreferences}
                     heroRef={currentPlayerRef as React.RefObject<HTMLDivElement>}
                   />
+                  {/* Desktop: "chi altro può rubarlo" vive nella tabella Bilanci sotto, non qui */}
                   {boardData?.memberBudgets && boardData.memberBudgets.length > 0 && (
-                    <>
-                      <div className="lg:hidden">
-                        <RubataRivalsStrip
-                          memberBudgets={boardData.memberBudgets}
-                          cost={currentPlayer.rubataPrice}
-                          ownerMemberId={currentPlayer.memberId}
-                          myMemberId={myMemberId}
-                          title="Chi altro può rubarlo"
-                        />
-                      </div>
-                      <div className="hidden lg:block">
-                        <RubataRivalsStrip
-                          memberBudgets={boardData.memberBudgets}
-                          cost={currentPlayer.rubataPrice}
-                          ownerMemberId={currentPlayer.memberId}
-                          myMemberId={myMemberId}
-                          title="Chi altro può rubarlo"
-                          variant="strip"
-                        />
-                      </div>
-                    </>
+                    <div className="lg:hidden">
+                      <RubataRivalsStrip
+                        memberBudgets={boardData.memberBudgets}
+                        cost={currentPlayer.rubataPrice}
+                        ownerMemberId={currentPlayer.memberId}
+                        myMemberId={myMemberId}
+                        title="Chi altro può rubarlo"
+                      />
+                    </div>
                   )}
                 </>
               )}
@@ -742,28 +748,17 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                       </>
                     )}
                   </HeroPlayerCard>
+                  {/* Desktop: "chi può ancora rilanciare" vive nella tabella Bilanci sotto, non qui */}
                   {activeAuction && boardData?.memberBudgets && boardData.memberBudgets.length > 0 && (
-                    <>
-                      <div className="lg:hidden">
-                        <RubataRivalsStrip
-                          memberBudgets={boardData.memberBudgets}
-                          cost={activeAuction.currentPrice + 1}
-                          ownerMemberId={activeAuction.sellerId}
-                          myMemberId={myMemberId}
-                          title="Chi può ancora rilanciare"
-                        />
-                      </div>
-                      <div className="hidden lg:block">
-                        <RubataRivalsStrip
-                          memberBudgets={boardData.memberBudgets}
-                          cost={activeAuction.currentPrice + 1}
-                          ownerMemberId={activeAuction.sellerId}
-                          myMemberId={myMemberId}
-                          title="Chi può ancora rilanciare"
-                          variant="strip"
-                        />
-                      </div>
-                    </>
+                    <div className="lg:hidden">
+                      <RubataRivalsStrip
+                        memberBudgets={boardData.memberBudgets}
+                        cost={activeAuction.currentPrice + 1}
+                        ownerMemberId={activeAuction.sellerId}
+                        myMemberId={myMemberId}
+                        title="Chi può ancora rilanciare"
+                      />
+                    </div>
                   )}
                 </>
               )}
@@ -896,27 +891,10 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                 return null
               })()}
 
-              {/* Striscia PRONTI sottile — desktop (P6). Solo negli stati dove
-                  dichiararsi pronti ha senso (setRubataReady lo accetta solo
-                  li'); altrove (OFFERING/AUCTION) era mostrata comunque,
-                  rumore senza significato durante la decisione/il rilancio. */}
-              {readyStatus && readyStatus.totalMembers > 0 && (
-                rubataState === 'READY_CHECK' ||
-                rubataState === 'PENDING_ACK' ||
-                rubataState === 'AUCTION_READY_CHECK' ||
-                rubataState === 'PAUSED'
-              ) && (
-                <div className="hidden lg:block">
-                  <MemberReadyChips
-                    done={readyStatus.readyMembers}
-                    pending={readyStatus.pendingMembers}
-                    doneLabel="pronto"
-                    variant="strip"
-                  />
-                </div>
-              )}
-
-              {/* Desktop: pannello a tab Bilanci | Attività | Strategie (scroll interno) */}
+              {/* Desktop: pannello a tab Bilanci | Attività | Strategie (scroll interno).
+                  Chi può permettersi il giocatore sul piatto e chi è pronto (quando
+                  richiesto) si vedono direttamente nella riga di ciascun manager nel
+                  tab Bilanci, non in strisce separate sopra il tabellone. */}
               <div className="hidden lg:flex lg:flex-col lg:flex-1 lg:min-h-0">
                 <PanelTabs
                   className="flex-1 min-h-0"
@@ -928,16 +906,39 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                       label: 'Bilanci',
                       content: boardData?.memberBudgets && boardData.memberBudgets.length > 0 ? (
                         <div>
-                          {boardData.memberBudgets.map(mb => (
-                            <ManagerListRow
-                              key={mb.memberId}
-                              name={mb.teamName || mb.username}
-                              isMe={mb.memberId === myMemberId}
-                              bigValue={mb.residuo < 0
-                                ? <span className="text-danger-400">{mb.residuo}M</span>
-                                : `${mb.residuo}M`}
-                            />
-                          ))}
+                          {boardData.memberBudgets.map(mb => {
+                            const isOwner = rubataAffordCheck?.ownerMemberId === mb.memberId
+                            const canAfford = !!rubataAffordCheck && !isOwner && mb.residuo >= rubataAffordCheck.cost
+                            const insufficient = !!rubataAffordCheck && !isOwner && !canAfford
+                            const readyDot = readyRelevant && readyStatus
+                              ? readyStatus.readyMembers.some(m => m.id === mb.memberId)
+                                ? true
+                                : readyStatus.pendingMembers.some(m => m.id === mb.memberId) ? false : undefined
+                              : undefined
+                            return (
+                              <ManagerListRow
+                                key={mb.memberId}
+                                name={mb.teamName || mb.username}
+                                isMe={mb.memberId === myMemberId}
+                                dim={isOwner || insufficient}
+                                readyDot={readyDot}
+                                statusLine={
+                                  rubataAffordCheck
+                                    ? isOwner
+                                      ? 'Proprietario'
+                                      : canAfford
+                                        ? 'Può permetterselo'
+                                        : 'Budget insufficiente'
+                                    : readyRelevant
+                                      ? (readyDot ? 'Pronto' : readyDot === false ? 'In attesa' : undefined)
+                                      : undefined
+                                }
+                                bigValue={mb.residuo < 0 || insufficient
+                                  ? <span className="text-danger-400">{mb.residuo}M</span>
+                                  : `${mb.residuo}M`}
+                              />
+                            )
+                          })}
                         </div>
                       ) : (
                         <p className="p-4 text-sm text-gray-500">Nessun dato bilanci disponibile</p>

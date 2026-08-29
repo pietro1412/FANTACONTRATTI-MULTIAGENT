@@ -61,8 +61,9 @@ export const TimerDisplay = memo(function TimerDisplay({
     )
   }
 
-  // Ring: diametro proporzionato al numerone (mockup: 44px → 92px)
-  const diameter = size === 44 ? 92 : 84
+  // Ring: diametro abbastanza grande da contenere "M:SS" (4 cifre + due punti)
+  // al peso/letter-spacing di .timer-sport senza sforare il cerchio
+  const diameter = size === 44 ? 126 : 114
   const radius = (diameter - 2) / 2
   const circumference = 2 * Math.PI * radius
   const progress = totalSeconds && totalSeconds > 0
