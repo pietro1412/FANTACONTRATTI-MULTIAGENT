@@ -144,6 +144,9 @@ function makeSession(overrides: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  // Default: no binding auto-pass preferences on the upcoming player, unless a
+  // test overrides this to verify the auto-pass ready-check seeding behavior.
+  mockPrisma.rubataPreference.findMany.mockResolvedValue([])
 })
 
 // ==================== getRubataReadyStatus ====================
@@ -817,6 +820,58 @@ describe('acknowledgeRubataTransaction', () => {
     )
   })
 
+  it('should pre-seed rubataReadyMembers with auto-pass members on the next player', async () => {
+    const member = makeMember()
+    const pendingAck = {
+      auctionId: 'auction-1',
+      playerId: 'player-1',
+      playerName: 'Leao',
+      winnerId: 'member-2',
+      finalPrice: 50,
+      acknowledgedMembers: ['member-2'],
+      prophecies: [],
+    }
+    // board has 3 players, rubataBoardIndex is already 0 (the upcoming player, p1) → not last
+    const board = [
+      { playerId: 'p1' },
+      { playerId: 'p2' },
+      { playerId: 'p3' },
+    ]
+    mockPrisma.leagueMember.findFirst.mockResolvedValueOnce(member)
+    mockPrisma.marketSession.findFirst.mockResolvedValueOnce(
+      makeSession({
+        rubataState: 'PENDING_ACK',
+        rubataPendingAck: pendingAck,
+        rubataBoard: board,
+        rubataBoardIndex: 0,
+      })
+    )
+    mockPrisma.leagueMember.findUnique.mockResolvedValueOnce(member)
+    mockPrisma.leagueMember.findMany.mockResolvedValueOnce([
+      member,
+      makeMember({ id: 'member-2' }),
+    ])
+    mockPrisma.marketSession.update.mockResolvedValueOnce({})
+    // member-3 declared auto-pass on the upcoming player (p1)
+    mockPrisma.rubataPreference.findMany.mockResolvedValueOnce([{ memberId: 'member-3' }])
+
+    await acknowledgeRubataTransaction(LEAGUE_ID, USER_ID)
+
+    expect(mockPrisma.rubataPreference.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ playerId: 'p1', isAutoPass: true }),
+      })
+    )
+    expect(mockPrisma.marketSession.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          rubataState: 'READY_CHECK',
+          rubataReadyMembers: ['member-3'],
+        }),
+      })
+    )
+  })
+
   it('should complete rubata when all acknowledged and last player', async () => {
     const member = makeMember()
     const pendingAck = {
@@ -906,6 +961,33 @@ describe('forceAllRubataAcknowledge', () => {
           rubataState: 'READY_CHECK',
           rubataPendingAck: Prisma.DbNull,
           rubataReadyMembers: [],
+        }),
+      })
+    )
+  })
+
+  it('should pre-seed rubataReadyMembers with auto-pass members on the upcoming player', async () => {
+    const board = [{ playerId: 'p1' }, { playerId: 'p2' }]
+    mockPrisma.leagueMember.findFirst.mockResolvedValueOnce(makeAdminMember())
+    mockPrisma.marketSession.findFirst.mockResolvedValueOnce(
+      makeSession({ rubataState: 'PENDING_ACK', rubataBoard: board, rubataBoardIndex: 1 })
+    )
+    mockPrisma.marketSession.update.mockResolvedValueOnce({})
+    // member-4 declared auto-pass on the upcoming player (p2, index 1)
+    mockPrisma.rubataPreference.findMany.mockResolvedValueOnce([{ memberId: 'member-4' }])
+
+    await forceAllRubataAcknowledge(LEAGUE_ID, ADMIN_USER_ID)
+
+    expect(mockPrisma.rubataPreference.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ playerId: 'p2', isAutoPass: true }),
+      })
+    )
+    expect(mockPrisma.marketSession.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          rubataState: 'READY_CHECK',
+          rubataReadyMembers: ['member-4'],
         }),
       })
     )

@@ -3,6 +3,7 @@
 > File di passaggio per prendere in carico lo sviluppo. Generato: 2026-07-27.
 > Aggiornato: 2026-08-21 — pulizia repository + consolidamento documentale (Fase 1.0). Questo è ora l'**unico documento di stato corrente** (sostituisce `PROJECT-STATUS.md` e `COMPLETAMENTO-BACKLOG.md`, archiviati in `docs/archive/`).
 > Aggiornato: 2026-08-24 — `REVIEW_PRE_BETA` (38 commit di rework grafico) mergiato in `develop` e deployato su preview Vercel per la verifica pre-lancio beta 8 manager. `main`/prod invariato. Dettagli: `docs/reviews/verifica-pre-lancio-8-manager-2026-08-24.md`.
+> Aggiornato: 2026-08-26 — sessione dedicata alla fase Scambi: piccoli fix UI (età sempre visibile, destinatario modificabile) + scoperta e fix di un bug di dominio (Monte Ingaggi calcolato live invece che fissato al consolidamento Fase 3 Contratti, come da Bibbie). Nuovo campo `LeagueMember.totalSalaries`, backfillato su tutte le leghe reali PRIMA del deploy codice. Deployato in `main`/prod (commit `d97ff6a`). **Checklist di verifica per Pietro**: `docs/reviews/verifica-pre-lancio-8-manager-2026-08-24.md` sezione "Sessione Scambi + fix Monte Ingaggi (2026-08-26)".
 > Aggiornato solo su conferma dello stato effettivo — non lasciare sezioni storiche mescolate a quelle vive: se una parte diventa superata, spostarla in `docs/archive/` invece di lasciarla qui contraddittoria.
 
 ---
@@ -111,7 +112,7 @@ I 5 service più grandi del progetto sono anche i 5 dichiarati critici — compl
 | Check | Stato |
 |-------|-------|
 | Typecheck (`tsc --noEmit`) | ✅ 0 errori |
-| Test (`npm run test:all`) | ✅ **1757 test, 81 file, tutti verdi** (~64s) |
+| Test (`npm run test:all`) | ✅ **1776 test, 83 file, tutti verdi** (verificato 2026-08-26) |
 | Build (`npm run build`) | ✅ OK (bundle PWA generato, 70 entry precache) |
 | Lint | ✅ 0 errori, 1232 warning pre-esistenti (`no-non-null-assertion`, nessuna nuova regressione) |
 | `: any` / `as any` in `src/` | 1 sola occorrenza (`src/api/routes/contracts.ts`) — tipizzazione molto disciplinata |

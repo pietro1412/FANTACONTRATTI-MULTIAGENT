@@ -898,13 +898,19 @@ export async function generateRubataBoard(
   }
 
   // Save the board to the session and start ready check
+  // Members with a binding auto-pass preference on the first player don't need
+  // to declare readiness for a player they've already said they're not interested in
+  const initialAutoPassIds = board[0]
+    ? await getAutoPassMemberIds(activeSession.id, board[0].playerId)
+    : []
+
   await prisma.marketSession.update({
     where: { id: activeSession.id },
     data: {
       rubataBoard: board as unknown as Prisma.InputJsonValue,
       rubataBoardIndex: 0,
       rubataState: 'READY_CHECK',
-      rubataReadyMembers: [],
+      rubataReadyMembers: initialAutoPassIds,
     },
   })
 
@@ -970,6 +976,11 @@ export async function getRubataBoard(
         const board = activeSession.rubataBoard as Array<unknown>
         const currentIndex = activeSession.rubataBoardIndex ?? 0
         const nextIndex = currentIndex + 1
+        // Auto-pass members on the next player are pre-seeded as ready in READY_CHECK below
+        const nextPlayer = (board as unknown as RubataBoardItem[])[nextIndex]
+        const autoPassIds = nextPlayer
+          ? await getAutoPassMemberIds(activeSession.id, nextPlayer.playerId)
+          : []
 
         if (nextIndex >= board.length) {
           // Rubata completed
@@ -989,7 +1000,7 @@ export async function getRubataBoard(
               rubataBoardIndex: nextIndex,
               rubataState: 'READY_CHECK',
               rubataTimerStartedAt: null,
-              rubataReadyMembers: [],
+              rubataReadyMembers: autoPassIds,
             },
           })
         }
@@ -2954,12 +2965,19 @@ export async function acknowledgeRubataTransaction(
       }
     }
 
-    // Clear pending ack and move to ready check for next player
+    // Clear pending ack and move to ready check for next player.
+    // rubataBoardIndex already points at the upcoming player (advanced when the
+    // auction closed) — pre-seed members with a binding auto-pass on them as ready.
+    const nextPlayerForAck = (board as unknown as RubataBoardItem[] | null)?.[currentIndex]
+    const autoPassIdsForAck = nextPlayerForAck
+      ? await getAutoPassMemberIds(activeSession.id, nextPlayerForAck.playerId)
+      : []
+
     await prisma.marketSession.update({
       where: { id: activeSession.id },
       data: {
         rubataPendingAck: Prisma.DbNull,
-        rubataReadyMembers: [],
+        rubataReadyMembers: autoPassIdsForAck,
         rubataState: 'READY_CHECK',
       },
     })
@@ -3020,12 +3038,20 @@ export async function forceAllRubataAcknowledge(
     return { success: false, message: 'Nessuna transazione pendente' }
   }
 
-  // Clear pending ack and move to ready check
+  // Clear pending ack and move to ready check.
+  // rubataBoardIndex already points at the upcoming player — pre-seed members
+  // with a binding auto-pass on them as ready.
+  const boardForForceAck = activeSession.rubataBoard as unknown as RubataBoardItem[] | null
+  const nextPlayerForForceAck = boardForForceAck?.[activeSession.rubataBoardIndex ?? 0]
+  const autoPassIdsForForceAck = nextPlayerForForceAck
+    ? await getAutoPassMemberIds(activeSession.id, nextPlayerForForceAck.playerId)
+    : []
+
   await prisma.marketSession.update({
     where: { id: activeSession.id },
     data: {
       rubataPendingAck: Prisma.DbNull,
-      rubataReadyMembers: [],
+      rubataReadyMembers: autoPassIdsForForceAck,
       rubataState: 'READY_CHECK',
     },
   })
@@ -3526,6 +3552,17 @@ export async function completeRubataWithTransactions(
 }
 
 // ==================== RUBATA PREFERENCES ====================
+
+// Members with a binding auto-pass preference on a player don't need to declare
+// readiness at that player's READY_CHECK — they've already said they're not interested.
+// This never affects OFFERING/AUCTION: they can still bid if they change their mind.
+async function getAutoPassMemberIds(sessionId: string, playerId: string): Promise<string[]> {
+  const prefs = await prisma.rubataPreference.findMany({
+    where: { sessionId, playerId, isAutoPass: true },
+    select: { memberId: true },
+  })
+  return prefs.map(p => p.memberId)
+}
 
 export async function getRubataPreferences(
   leagueId: string,

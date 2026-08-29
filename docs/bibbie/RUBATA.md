@@ -75,7 +75,7 @@ La fase RUBATA si attiva quando:
 | Stato | Descrizione | Timer |
 |-------|-------------|-------|
 | `WAITING` | Stato iniziale, in attesa dell'admin | No |
-| `READY_CHECK` | Manager si dichiarano pronti per il prossimo giocatore | No |
+| `READY_CHECK` | Manager si dichiarano pronti per il prossimo giocatore (chi ha `isAutoPass` su quel giocatore, §11.1, è incluso automaticamente senza dover confermare) | No |
 | `OFFERING` | Timer offerta attivo, chiunque può dichiarare rubata | Si (default 30s) |
 | `AUCTION_READY_CHECK` | Rubata dichiarata, attesa pronti per l'asta | No |
 | `AUCTION` | Asta al rialzo in corso | Si (default 15s, reset a ogni bid) |
@@ -751,10 +751,12 @@ Prima della rubata, ogni manager può impostare preferenze sui giocatori:
 | Campo | Tipo | Descrizione |
 |-------|------|-------------|
 | `isWatchlist` | boolean | Giocatore nella watchlist (interesse) |
-| `isAutoPass` | boolean | Auto-passa (non fare offerte) |
-| `maxBid` | number? | Bid massimo automatico |
+| `isAutoPass` | boolean | Auto-skip vincolante sulla ready-check (vedi sotto) |
+| `maxBid` | number? | Non ancora implementato lato logica di gioco (solo dato salvato) |
 | `priority` | number? | Priorità (ordinamento preferenze) |
 | `notes` | string? | Note personali |
+
+**`isAutoPass` — effetto vincolante**: il manager dichiara di non avere interesse per quel giocatore. Quando arriva il turno del giocatore, il sistema **non richiede a quel manager di dichiararsi pronto** nel READY_CHECK (§2) — viene incluso automaticamente tra i "pronti" senza bisogno di cliccare. Questo vale **solo** per il READY_CHECK del giocatore: se nonostante l'auto-pass si apre comunque un'asta (perché altri manager sono interessati), il manager resta **completamente libero** di fare offerte/rilanci in OFFERING/AUCTION — l'auto-pass non blocca mai la partecipazione, è solo un default di "non richiedere la mia conferma per un giocatore che ho già detto di non volere".
 
 ### 11.2 Modello Prisma
 
