@@ -171,7 +171,7 @@ export function BidControlsShared({
           >
             −
           </button>
-          <div className="flex flex-col items-center justify-center min-w-[84px] px-2 py-1">
+          <div className="flex flex-col items-center justify-center min-w-[64px] px-1.5 py-1">
             <input
               type="number"
               inputMode="numeric"
@@ -182,7 +182,7 @@ export function BidControlsShared({
               aria-label="Importo offerta"
               className="w-full bg-transparent text-center stat-number text-2xl text-accent-300 leading-none focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
-            <span className="text-[9px] text-gray-500 uppercase tracking-[0.09em] mt-0.5">tua offerta</span>
+            <span className="text-[8px] text-gray-500 uppercase tracking-[0.02em] mt-0.5 whitespace-nowrap">tua offerta</span>
           </div>
           <button
             type="button"
