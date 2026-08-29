@@ -2129,6 +2129,7 @@ export async function getConsolidationReceiptData(
     managerEmail: string
     teamName: string
     leagueName: string
+    sessionName: string
     consolidationDate: Date
     transactionId: string
     renewals: Array<{
@@ -2174,13 +2175,21 @@ export async function getConsolidationReceiptData(
   const consolidation = await prisma.contractConsolidation.findFirst({
     where: { memberId },
     orderBy: { consolidatedAt: 'desc' },
+    include: {
+      session: { select: { season: true, semester: true } },
+    },
   })
 
   if (!consolidation) {
     return { success: false, message: 'Nessun consolidamento trovato' }
   }
 
-  // Get all contracts with their renewal history
+  const sessionName = `Stagione ${consolidation.session.season} - ${consolidation.session.semester === 1 ? 'Estate' : 'Inverno'}`
+
+  // Get all contracts with their renewal history.
+  // orderBy speculare a getContracts() (ruolo P->D->C->A, ordine enum Postgres):
+  // la ricevuta deve rispecchiare l'ordine visto in tabella durante il rinnovo,
+  // non un ordine casuale (bug segnalato 2026-08-29).
   const contracts = await prisma.playerContract.findMany({
     where: {
       leagueMemberId: memberId,
@@ -2189,6 +2198,13 @@ export async function getConsolidationReceiptData(
       roster: {
         include: {
           player: true,
+        },
+      },
+    },
+    orderBy: {
+      roster: {
+        player: {
+          position: 'asc',
         },
       },
     },
@@ -2239,6 +2255,7 @@ export async function getConsolidationReceiptData(
       managerEmail: member.user.email,
       teamName: member.teamName || member.user.username,
       leagueName: member.league.name,
+      sessionName,
       consolidationDate: consolidation.consolidatedAt,
       transactionId: consolidation.id,
       renewals,

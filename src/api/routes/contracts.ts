@@ -326,6 +326,7 @@ async function generateAndSendReceipt(leagueId: string, memberId: string): Promi
       managerName: data.managerName,
       teamName: data.teamName,
       leagueName: data.leagueName,
+      sessionName: data.sessionName,
       consolidationDate: data.consolidationDate,
       transactionId: data.transactionId,
       renewals: data.renewals,
@@ -351,6 +352,9 @@ async function generateAndSendReceipt(leagueId: string, memberId: string): Promi
             player: true,
             contract: true,
           },
+          // Speculare all'ordine di getContracts() (ruolo P->D->C->A): stesso motivo
+          // del fix sull'ordine dei rinnovi nel PDF (2026-08-29).
+          orderBy: { player: { position: 'asc' } },
         },
       },
     })
@@ -359,6 +363,7 @@ async function generateAndSendReceipt(leagueId: string, memberId: string): Promi
       const excelData: ContractExportData = {
         teamName: data.teamName,
         leagueName: data.leagueName,
+        sessionName: data.sessionName,
         exportDate: new Date(),
         contracts: member.roster
           .filter(r => r.contract)
@@ -489,12 +494,21 @@ router.get('/leagues/:leagueId/contracts/export-excel', authMiddleware, async (r
       return
     }
 
+    const activeSession = await prisma.marketSession.findFirst({
+      where: { leagueId, status: 'ACTIVE', currentPhase: 'CONTRATTI' },
+      select: { season: true, semester: true },
+    })
+    const sessionName = activeSession
+      ? `Stagione ${activeSession.season} - ${activeSession.semester === 1 ? 'Estate' : 'Inverno'}`
+      : 'N.D.'
+
     // Transform data for Excel export
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const data = result.data as { contracts: any[]; pendingContracts: any[]; memberBudget: number }
     const excelData: ContractExportData = {
       teamName: member.teamName || member.user.username,
       leagueName: member.league.name,
+      sessionName,
       exportDate: new Date(),
       contracts: data.contracts.map((c: {
         roster: { player: { name: string; position: string; team: string } }

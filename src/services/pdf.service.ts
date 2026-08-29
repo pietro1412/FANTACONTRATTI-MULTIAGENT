@@ -12,7 +12,7 @@ export interface RenewalReceiptData {
 
   // Session info
   consolidationDate: Date
-  sessionName?: string
+  sessionName: string
   transactionId: string
 
   // Renewals
@@ -184,7 +184,19 @@ function drawManagerInfo(doc: PDFKit.PDFDocument, data: RenewalReceiptData): voi
     .font('Helvetica-Bold')
     .text(formatDate(data.consolidationDate), rightCol, startY + 49)
 
-  doc.y = startY + 80
+  // Sessione di mercato (terza riga, larghezza intera)
+  doc
+    .fontSize(10)
+    .fillColor('#6b7280')
+    .font('Helvetica')
+    .text('Sessione:', leftCol, startY + 70)
+  doc
+    .fontSize(12)
+    .fillColor('#1a1c20')
+    .font('Helvetica-Bold')
+    .text(data.sessionName, leftCol, startY + 84)
+
+  doc.y = startY + 115
 
   // Divider
   doc

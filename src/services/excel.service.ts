@@ -7,6 +7,7 @@ import * as XLSX from 'xlsx'
 export interface ContractExportData {
   teamName: string
   leagueName: string
+  sessionName: string
   exportDate: Date
   contracts: Array<{
     playerName: string
@@ -132,6 +133,7 @@ export function generateContractsExcel(data: ContractExportData): Buffer {
   const summaryData = [
     { 'Voce': 'Squadra', 'Valore': data.teamName },
     { 'Voce': 'Lega', 'Valore': data.leagueName },
+    { 'Voce': 'Sessione', 'Valore': data.sessionName },
     { 'Voce': 'Data Export', 'Valore': formatDate(data.exportDate) },
     { 'Voce': '', 'Valore': '' },
     { 'Voce': 'Contratti Attivi', 'Valore': data.contracts.length },
