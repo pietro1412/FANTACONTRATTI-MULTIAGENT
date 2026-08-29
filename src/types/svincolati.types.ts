@@ -1,4 +1,5 @@
 import { POSITION_GRADIENTS, POSITION_FILTER_COLORS } from '../components/ui/PositionBadge'
+import type { ComputedSeasonStats } from '../components/PlayerStatsModal'
 
 export interface AppealStatus {
   auctionId: string
@@ -34,6 +35,7 @@ export interface Player {
   quotation: number
   age?: number | null
   apiFootballId?: number | null
+  computedStats?: ComputedSeasonStats | null
 }
 
 export interface TurnMember {

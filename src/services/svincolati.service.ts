@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { recordMovement } from './movement.service'
 import { calculateDefaultSalary, calculateRescissionClause, DEFAULT_CONTRACT_DURATION } from './contract.service'
 import { logAction } from './admin.service'
+import { computeSeasonStatsBatch } from './player-stats.service'
 import {
   triggerSvincolatiNomination,
   triggerSvincolatiBidPlaced,
@@ -125,9 +126,14 @@ export async function getFreeAgents(
     orderBy: [{ position: 'asc' }, { quotation: 'desc' }, { name: 'asc' }],
   })
 
+  // Statistiche stagionali (Presenze/Media voto/Gol/Assist) per la tabella
+  // arricchita in stile Rubata — stesso pattern di rubata.service.ts (batch
+  // singolo, non N+1) invece di calcolarle lazy solo al click sulla modale.
+  const statsMap = await computeSeasonStatsBatch(freeAgents.map(p => p.id))
+
   return {
     success: true,
-    data: freeAgents,
+    data: freeAgents.map(p => ({ ...p, computedStats: statsMap.get(p.id) ?? null })),
   }
 }
 
