@@ -357,6 +357,31 @@
     }
   }
 
+  /* Rubata board row grid (8 columns: #, Giocatore, Eta, Ingaggio, Clausola,
+     Rubata, Proprietario, Azione). Solo desktop: il tabellone mobile resta
+     la vista a 2 righe esistente (invariata). Colonne economiche vengono
+     compresse in un'unica cella con colspan-3 per gli stati speciali
+     (passato/rubato/mia rosa), stesso pattern di .contracts-grid. */
+  .rubata-board-grid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  @media (min-width: 1024px) {
+    .rubata-board-grid {
+      grid-template-columns:
+        minmax(28px, 0.15fr)
+        minmax(180px, 2.2fr)
+        minmax(44px, 0.3fr)
+        minmax(64px, 0.4fr)
+        minmax(64px, 0.4fr)
+        minmax(72px, 0.45fr)
+        minmax(100px, 0.65fr)
+        minmax(56px, 0.35fr);
+      gap: 0.5rem;
+    }
+  }
+
   /* Live indicator dot with glow (use bg-* token for color) */
   .dot-live {
     display: inline-block;

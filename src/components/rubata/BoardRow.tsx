@@ -1,6 +1,8 @@
 import { memo } from 'react'
 import { Settings } from 'lucide-react'
 import { Monogram } from '@/components/ui/Monogram'
+import { PlayerPhoto } from '@/components/players/PlayerPhoto'
+import { TeamLogo } from './TeamLogo'
 import { POSITION_COLORS } from '../../types/rubata.types'
 import { getWatchlistCategory } from '@/types/watchlist.types'
 import type { BoardPlayer, RubataPreference } from '../../types/rubata.types'
@@ -99,6 +101,12 @@ export const BoardRow = memo(function BoardRow({
     ? 'bg-primary-500/5'
     : ''
 
+  const passedOrStolenNote = wasStolen
+    ? <span className="text-danger-400 font-semibold truncate">Rubato da {player.stolenByUsername} per {player.stolenPrice ?? player.rubataPrice}M</span>
+    : isPassed
+    ? <span className="text-gray-500 truncate">Passato — resta a {ownerName}</span>
+    : null
+
   return (
     <div
       ref={isCurrent ? currentPlayerRef as React.RefObject<HTMLDivElement> : null}
@@ -106,8 +114,102 @@ export const BoardRow = memo(function BoardRow({
       role="listitem"
       aria-label={`${player.playerName}, ${player.playerPosition}, ${player.playerTeam}${isCurrent ? ', sul piatto' : ''}${wasStolen ? `, rubato da ${player.stolenByUsername ?? ''}` : ''}`}
       onKeyDown={handleKeyDown}
-      className={`px-2.5 py-2 md:px-3 border-b border-surface-50/10 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400/70 ${rowStateClass}`}
+      className={`border-b border-surface-50/10 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400/70 ${rowStateClass}`}
     >
+      {/* ===== Desktop: riga singola a griglia (stile Rose) ===== */}
+      <div className="hidden lg:grid rubata-board-grid items-center px-3 py-2">
+        <span className="text-[10px] font-mono text-gray-500 text-center">#{globalIndex + 1}</span>
+
+        <div className="flex items-center gap-2 min-w-0">
+          {compareMode && !isPassed && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onToggleCompare?.() }}
+              className={`w-4 h-4 rounded border-2 flex-shrink-0 flex items-center justify-center transition-all ${
+                isCompareSelected ? 'bg-primary-500 border-primary-500 text-white' : 'border-gray-500 hover:border-primary-400'
+              }`}
+              aria-label={isCompareSelected ? 'Rimuovi dal confronto' : 'Aggiungi al confronto'}
+            >
+              {isCompareSelected && (
+                <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </button>
+          )}
+          <PlayerPhoto apiFootballId={player.playerApiFootballId} name={player.playerName} position={player.playerPosition} size="xs" showRoleBadge />
+          <span className="hidden xl:block w-4 h-4 bg-white rounded p-px flex-shrink-0">
+            <TeamLogo team={player.playerTeam} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <button
+              type="button"
+              onClick={handleStatsClick}
+              className={`font-display font-bold text-sm truncate block text-left max-w-full ${isPassed ? 'text-gray-500' : 'text-white hover:text-primary-300'}`}
+              title="Clicca per statistiche"
+            >
+              {player.playerName}
+            </button>
+            <div className="flex items-center gap-1.5 text-[10.5px] text-gray-500 truncate">
+              <span className="truncate">{player.playerTeam}</span>
+              {isCurrent && (
+                <span className="text-[9px] font-mono font-bold text-dark-300 bg-accent-400 rounded px-1.5 py-px tracking-wider flex-shrink-0">SUL PIATTO</span>
+              )}
+              {wlCategory && !isMyPlayer && !isPassed && (
+                <span className={`text-[9px] font-mono font-bold rounded border px-1.5 py-px flex-shrink-0 ${wlCategory.color}`} title={`Watchlist: ${wlCategory.label}`}>
+                  {wlCategory.label.toUpperCase()}
+                </span>
+              )}
+              {!wlCategory && isWatchlisted && (
+                <span className="text-[9px] font-mono font-bold rounded border px-1.5 py-px flex-shrink-0 bg-primary-500/15 text-primary-400 border-primary-500/40" title="In watchlist">WATCH</span>
+              )}
+              {isAutoSkip && <span className="flex-shrink-0">auto-skip</span>}
+            </div>
+          </div>
+        </div>
+
+        <span className="stat-number text-sm text-gray-300 text-center">{player.playerAge ?? '—'}</span>
+
+        {passedOrStolenNote ? (
+          <div className="col-span-3 text-xs px-2">{passedOrStolenNote}</div>
+        ) : (
+          <>
+            <span className="stat-number text-sm text-white text-center">{player.contractSalary}M</span>
+            <span className="stat-number text-sm text-white text-center">{player.contractClause}M</span>
+            <span className={`stat-number text-base text-center ${isCurrent ? 'text-accent-300' : isMyPlayer ? 'text-gray-400' : 'text-accent-400'}`}>
+              {player.rubataPrice}M
+            </span>
+          </>
+        )}
+
+        <span className="inline-flex items-center gap-1.5 text-[11px] text-gray-500 min-w-0">
+          <Monogram name={ownerName} size="xs" className={isMyPlayer ? 'border-primary-500/60 text-primary-400' : ''} />
+          <span className={`truncate ${isPassed && wasStolen ? 'line-through' : ''}`}>{ownerName}</span>
+        </span>
+
+        <div className="flex items-center justify-center gap-1 flex-wrap">
+          {isMyPlayer && !isPassed ? (
+            <span className="text-primary-400 text-[9.5px] font-medium text-center">tua rosa</span>
+          ) : (
+            <>
+              {!isMyPlayer && !isPassed && !isCurrent && canEditPreferences && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onOpenPrefsModal({ ...player, preference: pref || null }) }}
+                  className="p-1 rounded text-primary-400/80 hover:text-primary-300 hover:bg-primary-500/15 flex-shrink-0 transition-colors"
+                  title={pref ? 'Modifica strategia' : 'Imposta strategia'}
+                >
+                  <Settings size={12} aria-hidden="true" />
+                </button>
+              )}
+              {!isMyPlayer && pref?.priority ? <span className="text-accent-400 text-[10px]" title={`Priorità ${pref.priority}`}>{'★'.repeat(pref.priority)}</span> : null}
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* ===== Mobile: 2 righe compatte (invariato) ===== */}
+      <div className="lg:hidden px-2.5 py-2 md:px-3">
       {/* Riga 1: identità */}
       <div className="flex items-center gap-2 min-w-0">
         {compareMode && !isPassed && (
@@ -216,6 +318,7 @@ export const BoardRow = memo(function BoardRow({
             )}
           </>
         )}
+      </div>
       </div>
     </div>
   )

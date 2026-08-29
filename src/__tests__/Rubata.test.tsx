@@ -1041,7 +1041,7 @@ describe('Rubata', () => {
     expect(screen.getAllByText(/Thief99/).length).toBeGreaterThanOrEqual(1)
   })
 
-  // ---- Board: player with no apiFootballId renders fallback position badge ----
+  // ---- Board: player with no apiFootballId still shows an identifying role badge ----
   it('renders position badge fallback when player has no apiFootballId', () => {
     hookOverrides = {
       isRubataPhase: true,
@@ -1052,9 +1052,14 @@ describe('Rubata', () => {
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    // No <img> element should exist for this player
-    const images = document.querySelectorAll('img')
-    expect(images.length).toBe(0)
+    // PlayerPhoto overlays a role-letter badge regardless of photo
+    // availability (this test's global getPlayerPhotoUrl mock always
+    // returns a truthy URL, so the photo <img> itself isn't a useful
+    // signal here) — the role badge is what actually identifies the
+    // player position when no real photo exists in production.
+    expect(screen.getAllByText('Paolo Verdi').length).toBeGreaterThanOrEqual(1)
+    const roleBadges = document.querySelectorAll('span[aria-hidden="true"]')
+    expect(Array.from(roleBadges).some(el => el.textContent === 'D')).toBe(true)
   })
 
   // ---- Board: "tua rosa" label for own player ----

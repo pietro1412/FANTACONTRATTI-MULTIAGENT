@@ -1101,6 +1101,18 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                   </div>
                 </div>
 
+                {/* Header colonne (solo desktop, fuori dallo scroll cosi' resta fisso) */}
+                <div className="hidden lg:grid rubata-board-grid px-3 py-2 border-b border-surface-50/20 bg-surface-300/40 flex-shrink-0">
+                  <span className="micro-label text-center">#</span>
+                  <span className="micro-label">Giocatore</span>
+                  <span className="micro-label text-center">Età</span>
+                  <span className="micro-label text-center">Ingaggio</span>
+                  <span className="micro-label text-center">Clausola</span>
+                  <span className="micro-label text-center">Rubata</span>
+                  <span className="micro-label">Proprietario</span>
+                  <span className="micro-label text-center">Azione</span>
+                </div>
+
                 {/* Board rows — scroll interno con fade (cockpit) */}
                 <div ref={boardScrollRef} className="p-2 md:p-4 pb-16 md:pb-4 panel-scroll flex-1 min-h-0" role="list" aria-label="Tabellone rubata">
                   {filteredBoard?.length === 0 && isFiltered && (
@@ -1118,6 +1130,8 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                         return (
                           <div
                             key={player.rosterId}
+                            ref={virtualizer.measureElement}
+                            data-index={virtualRow.index}
                             style={{ position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${virtualRow.start}px)` }}
                             className="md:pb-3"
                           >
