@@ -2566,6 +2566,27 @@ export async function setRubataReady(
 
         const allReady = allMembers.every(m => updatedReadyMembers.includes(m.id))
 
+        // If in plain READY_CHECK state (tra un giocatore e il successivo) and all
+        // ready, start the OFFERING phase. Bug pre-esistente (non introdotto da
+        // questo fix): questo branch non c'era mai stato — setRubataReady gestiva
+        // esplicitamente solo AUCTION_READY_CHECK/PENDING_ACK/PAUSED, lasciando
+        // READY_CHECK "puro" a cadere nel path generico che aggiorna l'array senza
+        // mai cambiare rubataState. L'UNICA via reale per uscirne era l'admin
+        // bypass forceAllRubataReady — con azioni utente vere (8 manager che si
+        // dichiarano pronti sul serio) la rubata restava bloccata per sempre a
+        // ogni cambio giocatore. Scoperto continuando dal vivo Playthrough Beta.
+        if (fresh.rubataState === 'READY_CHECK' && allReady) {
+          await tx.marketSession.update({
+            where: { id: activeSession.id },
+            data: {
+              rubataReadyMembers: [],
+              rubataState: 'OFFERING',
+              rubataTimerStartedAt: new Date(),
+            },
+          })
+          return { success: true, message: 'Tutti pronti! Rubata avviata.', data: { allReady: true }, _justBecameReady: true }
+        }
+
         // If in AUCTION_READY_CHECK state and all ready, start the auction
         if (fresh.rubataState === 'AUCTION_READY_CHECK' && allReady) {
           await tx.marketSession.update({

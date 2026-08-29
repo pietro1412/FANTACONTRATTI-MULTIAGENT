@@ -300,9 +300,15 @@ describe('setRubataReady', () => {
     expect(data.totalMembers).toBe(2)
   })
 
-  it('should transition from READY_CHECK to OFFERING when all ready (via default path)', async () => {
-    // In READY_CHECK state, when all are ready but the state is READY_CHECK,
-    // the code falls through to the general update (no special branch for READY_CHECK→OFFERING)
+  // Regression per il bug 2026-08-29 (scoperto continuando dal vivo Playthrough
+  // Beta con azioni utente reali): setRubataReady non aveva MAI un branch per
+  // READY_CHECK "puro" (tra un giocatore e il successivo, distinto da
+  // AUCTION_READY_CHECK/PENDING_ACK/PAUSED, gli unici gestiti). Con tutti pronti,
+  // il codice cadeva nel path generico che aggiorna solo l'array senza mai
+  // cambiare rubataState: l'unica via reale per uscire da READY_CHECK era il
+  // bypass admin forceAllRubataReady. Con soli utenti veri la rubata restava
+  // bloccata per sempre a ogni cambio giocatore.
+  it('should transition from READY_CHECK to OFFERING when all ready', async () => {
     const member = makeMember()
     const member2 = makeMember({ id: 'member-2', userId: 'user-2' })
     mockPrisma.leagueMember.findFirst.mockResolvedValueOnce(member)
@@ -318,10 +324,19 @@ describe('setRubataReady', () => {
 
     const result = await setRubataReady(LEAGUE_ID, USER_ID)
     expect(result.success).toBe(true)
-    // In READY_CHECK with all ready, no special branch handles it,
-    // so it goes to the general path which just updates ready members
+    expect(result.message).toBe('Tutti pronti! Rubata avviata.')
+
     const data = result.data as { allReady: boolean }
     expect(data.allReady).toBe(true)
+
+    expect(mockPrisma.marketSession.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          rubataState: 'OFFERING',
+          rubataReadyMembers: [],
+        }),
+      })
+    )
   })
 
   it('should transition from AUCTION_READY_CHECK to AUCTION when all ready', async () => {
