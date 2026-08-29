@@ -4,6 +4,9 @@ import { Modal, ModalHeader, ModalBody, ModalFooter } from '@/components/ui/Moda
 import { Textarea } from '@/components/ui/Textarea'
 import { Button } from '../ui/Button'
 import { getTeamLogo } from '../../utils/teamLogos'
+import { PlayerPhoto } from '@/components/players/PlayerPhoto'
+import { getPositionLabel } from '@/components/ui/PositionBadge'
+import { getAgeColor, NOT_DISPONIBILE } from '@/utils/stat-format'
 
 function TeamLogo({ team }: { team: string }) {
   return (
@@ -32,6 +35,9 @@ interface BoardPlayerBase {
   rosterId: string
   playerName: string
   playerTeam: string
+  playerPosition: 'P' | 'D' | 'C' | 'A'
+  playerAge?: number | null
+  playerApiFootballId?: number | null
   rubataPrice: number
   preference?: RubataPreference | null
 }
@@ -67,12 +73,32 @@ export function PreferenceModal({ player, onClose, onSave, onDelete, isSubmittin
     <Modal isOpen={true} onClose={onClose} size="md" showCloseButton={false} className="border-primary-500/50">
       <ModalHeader>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-white rounded p-1">
-            <TeamLogo team={player.playerTeam} />
-          </div>
-          <div>
-            <h3 className="font-bold text-white">{player.playerName}</h3>
-            <p className="text-sm text-gray-400">{player.playerTeam} • {player.rubataPrice}M</p>
+          <PlayerPhoto
+            apiFootballId={player.playerApiFootballId}
+            name={player.playerName}
+            position={player.playerPosition}
+            size="md"
+            showRoleBadge
+          />
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-bold text-white truncate">{player.playerName}</h3>
+              <span className="px-2 py-0.5 rounded text-xs font-medium bg-primary-500/20 text-primary-400 flex-shrink-0">
+                {getPositionLabel(player.playerPosition)}
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 text-sm text-gray-400 mt-0.5 flex-wrap">
+              <span className="w-4 h-4 bg-white rounded p-px flex-shrink-0">
+                <TeamLogo team={player.playerTeam} />
+              </span>
+              <span>{player.playerTeam}</span>
+              <span className={getAgeColor(player.playerAge)}>
+                • {player.playerAge != null ? `${player.playerAge} anni` : NOT_DISPONIBILE}
+              </span>
+              <span className="ml-1 px-2 py-0.5 rounded bg-primary-500/20 text-primary-400 font-medium text-xs flex-shrink-0">
+                {player.rubataPrice}M
+              </span>
+            </div>
           </div>
         </div>
       </ModalHeader>
