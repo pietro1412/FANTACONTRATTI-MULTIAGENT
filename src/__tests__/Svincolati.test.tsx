@@ -1330,9 +1330,12 @@ describe('Svincolati', () => {
     // "OtherUser" appears in both the turn banner and the roster modal
     expect(screen.getAllByText(/OtherUser/).length).toBeGreaterThanOrEqual(2)
     expect(screen.getByText('Team Beta')).toBeInTheDocument()
-    expect(screen.getByText('Gigi Buffon')).toBeInTheDocument()
-    expect(screen.getByText('Paolo Maldini')).toBeInTheDocument()
-    expect(screen.getByText('Andrea Pirlo')).toBeInTheDocument()
+    // Ogni giocatore è reso sia nella variante desktop (grid) sia in quella
+    // mobile (card) tramite classi responsive hidden/lg:hidden — entrambe
+    // nel DOM, una sola visibile — stesso pattern di RosterTableRow/Card.
+    expect(screen.getAllByText('Gigi Buffon').length).toBe(2)
+    expect(screen.getAllByText('Paolo Maldini').length).toBe(2)
+    expect(screen.getAllByText('Andrea Pirlo').length).toBe(2)
     // count mode (svincolati): conteggio rosa, niente slot per ruolo né "slot liberi"
     expect(screen.getByText(/giocatori/)).toBeInTheDocument()
     expect(screen.queryByText('3/25')).not.toBeInTheDocument()

@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '../ui/Button'
 import { Textarea } from '../ui/Textarea'
-import { ContractInline } from '../ui/ContractInline'
 import { POSITION_NAMES } from '../ui/PositionBadge'
 import { getTeamLogo } from '../../utils/teamLogos'
 import { getPlayerPhotoUrl } from '../../utils/player-images'
@@ -99,6 +98,95 @@ const MODAL_POS_STYLES: Record<string, { bg: string; border: string; text: strin
   A: { bg: 'bg-red-500/15', border: 'border-red-500/40', text: 'text-red-400' },
 }
 
+/** Colonne dati del roster (Ingaggio/Durata/Clausola/Rubata/Acquisto) — usate
+ * sia dall'header desktop sia, per etichettare le celle, dalla card mobile. */
+const ROSTER_COLS = ['Ing', 'Dur', 'Cls', 'Rub', 'Acq'] as const
+
+function rosterColValues(p: ManagerDetailData['roster'][number]) {
+  const c = p.contract
+  const rubata = c ? c.rescissionClause + c.salary : null
+  return [
+    c ? `${c.salary}M` : '-',
+    c ? `${c.duration}s` : '-',
+    c ? `${c.rescissionClause}M` : '-',
+    rubata !== null ? `${rubata}M` : '-',
+    `${p.acquisitionPrice}M`,
+  ]
+}
+
+/**
+ * Riga giocatore del roster manager. Doppia resa responsive nello stesso
+ * componente (assioma 2 + eccezione assioma 9, CLAUDE.md §Assiomi UI/UX):
+ * - desktop (`lg:`): grid a colonne fisse, nome su tutta la colonna, mai
+ *   troncato via ellissi solo in casi estremi — le etichette Ing/Dur/Cls/Rub/Acq
+ *   stanno SOLO nell'header persistente sopra la lista, non per riga.
+ * - mobile: il nome sale su una riga propria a piena larghezza e va a capo
+ *   (mai troncato); i valori scendono su una griglia con etichetta per cella,
+ *   perché qui non c'è un header persistente sopra uno stack scrollabile.
+ * Stesso pattern di RosterTableRow/RosterPlayerCard (Rose).
+ */
+function ManagerRosterRow({ player, pos, style }: {
+  player: ManagerDetailData['roster'][number]
+  pos: 'P' | 'D' | 'C' | 'A'
+  style: { bg: string; border: string; text: string }
+}) {
+  const photoUrl = getPlayerPhotoUrl(player.apiFootballId)
+  const values = rosterColValues(player)
+
+  const identity = (
+    <>
+      {photoUrl ? (
+        <img
+          src={photoUrl}
+          alt={player.playerName}
+          className="w-6 h-6 rounded-full object-cover bg-surface-100 flex-shrink-0"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement
+            target.style.display = 'none'
+            target.nextElementSibling?.classList.remove('hidden')
+          }}
+        />
+      ) : null}
+      <span className={`w-6 h-6 rounded-full bg-gradient-to-br ${POSITION_COLORS[pos] ?? ''} flex items-center justify-center text-white text-sm font-bold flex-shrink-0 ${photoUrl ? 'hidden' : ''}`}>{pos}</span>
+      <span className="w-4 h-4 bg-white/80 rounded flex items-center justify-center flex-shrink-0">
+        <img src={getTeamLogo(player.playerTeam)} alt={player.playerTeam} className="w-3 h-3 object-contain" />
+      </span>
+    </>
+  )
+
+  return (
+    <div className={`${style.bg} border ${style.border} rounded-lg`}>
+      {/* Desktop: griglia a colonne, nome + valori sulla stessa riga */}
+      <div className="hidden lg:grid grid-cols-[minmax(0,1fr)_60px_56px_64px_72px_64px] gap-3 items-center px-2.5 py-2">
+        <div className="flex items-center gap-2 min-w-0">
+          {identity}
+          <span className="text-sm text-gray-200 font-semibold truncate min-w-0">{player.playerName}</span>
+        </div>
+        {values.slice(0, 4).map((v, i) => (
+          <span key={ROSTER_COLS[i]} className="text-right text-sm font-mono font-semibold text-gray-300">{v}</span>
+        ))}
+        <span className={`text-right text-sm font-mono font-bold ${style.text}`} title={`Acquistato a ${player.acquisitionPrice}M`}>{values[4]}</span>
+      </div>
+
+      {/* Mobile: nome su riga propria (va a capo, mai troncato) + griglia valori etichettati */}
+      <div className="lg:hidden px-2.5 py-2">
+        <div className="flex items-center gap-2 mb-1.5">
+          {identity}
+          <span className="flex-1 min-w-0 text-sm text-gray-200 font-semibold break-words">{player.playerName}</span>
+        </div>
+        <div className="grid grid-cols-5 gap-1.5">
+          {ROSTER_COLS.map((label, i) => (
+            <div key={label} className="bg-black/20 rounded-md py-1 text-center">
+              <div className="text-[8px] uppercase tracking-wide text-gray-500 font-bold leading-none">{label}</div>
+              <div className={`text-xs font-mono font-bold mt-0.5 ${label === 'Rub' ? style.text : 'text-gray-200'}`}>{values[i]}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function ManagerDetailModal({ selectedManager, onClose, rosterMode = 'slots' }: ManagerDetailModalProps) {
   if (!selectedManager) return null
 
@@ -106,8 +194,8 @@ export function ManagerDetailModal({ selectedManager, onClose, rosterMode = 'slo
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-surface-200 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-surface-50" onClick={e => { e.stopPropagation(); }}>
-        <div className="p-5">
+      <div className="bg-surface-200 rounded-xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden border border-surface-50" onClick={e => { e.stopPropagation(); }}>
+        <div className="p-5 pb-0 flex-shrink-0">
           {/* Header: monogram + identity */}
           <div className="flex justify-between items-start mb-4">
             <div className="flex items-center gap-3">
@@ -123,7 +211,7 @@ export function ManagerDetailModal({ selectedManager, onClose, rosterMode = 'slo
           </div>
 
           {/* Stat boxes */}
-          <div className="flex gap-3 mb-5">
+          <div className="flex gap-3 mb-4">
             <div className="bg-surface-300 border border-surface-50 rounded-lg px-4 py-2.5 flex-1 text-center">
               <p className="text-sm text-gray-500 uppercase tracking-wider font-semibold">Budget</p>
               <p className="budget-display text-2xl font-black text-accent-400">
@@ -139,84 +227,56 @@ export function ManagerDetailModal({ selectedManager, onClose, rosterMode = 'slo
               </p>
             </div>
           </div>
+        </div>
 
-          {/* Roster rows — same language as "La mia rosa". Colonna singola: ogni riga
-              (foto + nome + contratto inline + prezzo) non entra in 2 colonne senza
-              accavallarsi — la modale piu' larga (max-w-2xl) basta a dare respiro. */}
-          <div className="space-y-4">
-            {(['P', 'D', 'C', 'A'] as const).map(pos => {
-              const slot = selectedManager.slotsByPosition[pos]
-              const posPlayers = selectedManager.roster.filter(r => r.position === pos)
-              const style = MODAL_POS_STYLES[pos] ?? { bg: 'bg-gray-500/15', border: 'border-gray-500/40', text: 'text-gray-400' }
-              const freeSlots = Math.max(0, slot.total - slot.filled)
-              return (
-                <div key={pos}>
-                  {/* Position header */}
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className="flex items-center gap-1.5">
-                      <span className={`w-5 h-5 rounded-full bg-gradient-to-br ${POSITION_COLORS[pos] ?? ''} flex items-center justify-center text-sm font-bold text-white flex-shrink-0`}>{pos}</span>
-                      <span className="text-sm font-bold text-gray-300 uppercase">{POSITION_NAMES[pos]}</span>
-                    </div>
-                    <span className={`text-sm font-mono font-bold ${countOnly ? 'text-gray-400' : slot.filled >= slot.total ? 'text-green-400' : 'text-gray-500'}`}>
-                      {countOnly ? slot.filled : `${slot.filled}/${slot.total}`}
-                    </span>
-                  </div>
+        {/* Header colonne — solo desktop, persistente sopra le righe scrollabili
+            (eccezione assioma 9): le label Ing/Dur/Cls/Rub/Acq stanno qui, non
+            si ripetono per riga. Su mobile non c'è, quindi le card sotto
+            mantengono l'etichetta per cella (assioma 9 pieno). */}
+        <div className="hidden lg:grid grid-cols-[minmax(0,1fr)_60px_56px_64px_72px_64px] gap-3 px-5 pt-3 pb-2 mt-1 border-b border-surface-50 flex-shrink-0">
+          <span className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Giocatore</span>
+          {ROSTER_COLS.map(label => (
+            <span key={label} className="text-[10px] uppercase tracking-wider text-gray-500 font-bold text-right">{label}</span>
+          ))}
+        </div>
 
-                  {/* Player rows */}
-                  <div className="space-y-1">
-                    {posPlayers.map(p => {
-                      const photoUrl = getPlayerPhotoUrl(p.apiFootballId)
-                      return (
-                      <div
-                        key={p.id}
-                        className={`flex items-center gap-2 ${style.bg} border ${style.border} rounded-lg px-2 py-1.5`}
-                      >
-                        {photoUrl ? (
-                          <img
-                            src={photoUrl}
-                            alt={p.playerName}
-                            className="w-6 h-6 rounded-full object-cover bg-surface-100 flex-shrink-0"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement
-                              target.style.display = 'none'
-                              target.nextElementSibling?.classList.remove('hidden')
-                            }}
-                          />
-                        ) : null}
-                        <span className={`w-6 h-6 rounded-full bg-gradient-to-br ${POSITION_COLORS[pos] ?? ''} flex items-center justify-center text-white text-sm font-bold flex-shrink-0 ${photoUrl ? 'hidden' : ''}`}>{pos}</span>
-                        <span className="w-4 h-4 bg-white/80 rounded flex items-center justify-center flex-shrink-0">
-                          <img src={getTeamLogo(p.playerTeam)} alt={p.playerTeam} className="w-3 h-3 object-contain" />
-                        </span>
-                        <span className="flex-1 min-w-0 text-sm text-gray-200 font-semibold truncate">{p.playerName}</span>
-                        {p.contract && (
-                          <ContractInline
-                            variant="compact"
-                            salary={p.contract.salary}
-                            duration={p.contract.duration}
-                            clause={p.contract.rescissionClause}
-                            rubataPrice={p.contract.rescissionClause != null ? p.contract.rescissionClause + p.contract.salary : null}
-                            className="flex-shrink-0 text-xs"
-                          />
-                        )}
-                        <span className={`text-sms font-mono font-bold flex-shrink-0 ${style.text}`} title={`Acquistato a ${p.acquisitionPrice}M`}>
-                          <span className="text-[9px] text-gray-500 mr-0.5">Acq</span>{p.acquisitionPrice}M
-                        </span>
-                      </div>
-                      )
-                    })}
-                    {!countOnly && freeSlots > 0 && (
-                      <div className={`flex items-center justify-center rounded-lg px-2 py-1.5 border border-dashed ${style.border} opacity-40`}>
-                        <span className="text-sm text-gray-400">{freeSlots} slot liber{freeSlots === 1 ? 'o' : 'i'}</span>
-                      </div>
-                    )}
-                    {countOnly && posPlayers.length === 0 && (
-                      <p className="text-sm text-gray-600 italic px-2 py-1">Nessuno</p>
-                    )}
+        {/* Roster rows — raggruppate per ruolo, area scrollabile sotto la testata fissa */}
+        <div className="p-5 pt-3 overflow-y-auto flex-1 min-h-0 space-y-4">
+          {(['P', 'D', 'C', 'A'] as const).map(pos => {
+            const slot = selectedManager.slotsByPosition[pos]
+            const posPlayers = selectedManager.roster.filter(r => r.position === pos)
+            const style = MODAL_POS_STYLES[pos] ?? { bg: 'bg-gray-500/15', border: 'border-gray-500/40', text: 'text-gray-400' }
+            const freeSlots = Math.max(0, slot.total - slot.filled)
+            return (
+              <div key={pos}>
+                {/* Position header */}
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className={`w-5 h-5 rounded-full bg-gradient-to-br ${POSITION_COLORS[pos] ?? ''} flex items-center justify-center text-sm font-bold text-white flex-shrink-0`}>{pos}</span>
+                    <span className="text-sm font-bold text-gray-300 uppercase">{POSITION_NAMES[pos]}</span>
                   </div>
+                  <span className={`text-sm font-mono font-bold ${countOnly ? 'text-gray-400' : slot.filled >= slot.total ? 'text-green-400' : 'text-gray-500'}`}>
+                    {countOnly ? slot.filled : `${slot.filled}/${slot.total}`}
+                  </span>
                 </div>
-              )
-            })}
-          </div>
+
+                {/* Player rows */}
+                <div className="space-y-1">
+                  {posPlayers.map(p => (
+                    <ManagerRosterRow key={p.id} player={p} pos={pos} style={style} />
+                  ))}
+                  {!countOnly && freeSlots > 0 && (
+                    <div className={`flex items-center justify-center rounded-lg px-2 py-1.5 border border-dashed ${style.border} opacity-40`}>
+                      <span className="text-sm text-gray-400">{freeSlots} slot liber{freeSlots === 1 ? 'o' : 'i'}</span>
+                    </div>
+                  )}
+                  {countOnly && posPlayers.length === 0 && (
+                    <p className="text-sm text-gray-600 italic px-2 py-1">Nessuno</p>
+                  )}
+                </div>
+              </div>
+            )
+          })}
         </div>
       </div>
     </div>
