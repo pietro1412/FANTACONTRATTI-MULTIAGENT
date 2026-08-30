@@ -2079,22 +2079,34 @@ export async function modifyContractPostAcquisition(
   // Get existing renewal history or initialize empty array
   const renewalHistory = (contract.renewalHistory as Record<string, unknown>[] || [])
 
-  // Update contract
-  const updatedContract = await prisma.playerContract.update({
-    where: { id: contractId },
-    data: {
-      salary: newSalary,
-      duration: newDuration,
-      rescissionClause: newRescissionClause,
-      renewalHistory: [...renewalHistory, oldValues] as unknown as Prisma.InputJsonValue,
-    },
-    include: {
-      roster: {
-        include: {
-          player: true,
+  // Update contract + monte ingaggi del proprietario nella stessa transazione:
+  // l'ingaggio puo' solo aumentare qui (increase-only, vedi i controlli sopra),
+  // quindi il delta su totalSalaries e' sempre >= 0. Senza questo aggiornamento
+  // il campo totalSalaries resta disallineato dalla somma reale dei contratti
+  // (bug trovato durante la verifica economics della fase Svincolati).
+  const salaryDelta = newSalary - contract.salary
+  const updatedContract = await prisma.$transaction(async (tx) => {
+    const updated = await tx.playerContract.update({
+      where: { id: contractId },
+      data: {
+        salary: newSalary,
+        duration: newDuration,
+        rescissionClause: newRescissionClause,
+        renewalHistory: [...renewalHistory, oldValues] as unknown as Prisma.InputJsonValue,
+      },
+      include: {
+        roster: {
+          include: {
+            player: true,
+          },
         },
       },
-    },
+    })
+    await tx.leagueMember.update({
+      where: { id: contract.leagueMemberId },
+      data: { totalSalaries: { increment: salaryDelta } },
+    })
+    return updated
   })
 
   const contractWithRoster = updatedContract as typeof updatedContract & {

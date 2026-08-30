@@ -1084,6 +1084,7 @@ describe('Contract Service', () => {
     it('should update contract successfully with salary and duration increase', async () => {
       mockPrisma.playerContract.findUnique.mockResolvedValue({
         id: 'contract-1',
+        leagueMemberId: 'member-1',
         salary: 10,
         duration: 2,
         initialSalary: 10,
@@ -1112,6 +1113,14 @@ describe('Contract Service', () => {
       expect(result.success).toBe(true)
       expect(result.message).toContain('Leao')
       expect(result.message).toContain('modificato con successo')
+      // Regressione: la modifica post-acquisto deve aggiornare anche il monte
+      // ingaggi (totalSalaries) del proprietario per il delta esatto, non solo
+      // il contratto — bug trovato durante la verifica economics Svincolati
+      // (il campo restava disallineato dalla somma reale dei contratti).
+      expect(mockPrisma.leagueMember.update).toHaveBeenCalledWith({
+        where: { id: 'member-1' },
+        data: { totalSalaries: { increment: 5 } },
+      })
     })
   })
 })
