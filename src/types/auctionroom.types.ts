@@ -161,6 +161,7 @@ export interface ManagerRosterPlayer {
   playerTeam: string
   position: string
   acquisitionPrice: number
+  age?: number | null
   quotation?: number
   apiFootballId?: number | null
   contract?: {

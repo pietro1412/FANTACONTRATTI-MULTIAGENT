@@ -4,6 +4,7 @@ import { Textarea } from '../ui/Textarea'
 import { POSITION_NAMES } from '../ui/PositionBadge'
 import { getTeamLogo } from '../../utils/teamLogos'
 import { getPlayerPhotoUrl } from '../../utils/player-images'
+import { NOT_DISPONIBILE } from '../../utils/stat-format'
 import { POSITION_COLORS } from '../../types/auctionroom.types'
 import type { PendingAcknowledgment, AppealStatus } from '../../types/auctionroom.types'
 import { celebrateWin, celebrateBigWin } from '../../utils/confetti'
@@ -23,7 +24,7 @@ export interface ManagerDetailData {
     position: string
     playerName: string
     playerTeam: string
-    acquisitionPrice: number
+    age?: number | null
     apiFootballId?: number | null
     contract?: { salary: number; duration: number; rescissionClause: number } | null
   }>
@@ -98,19 +99,20 @@ const MODAL_POS_STYLES: Record<string, { bg: string; border: string; text: strin
   A: { bg: 'bg-red-500/15', border: 'border-red-500/40', text: 'text-red-400' },
 }
 
-/** Colonne dati del roster (Ingaggio/Durata/Clausola/Rubata/Acquisto) — usate
- * sia dall'header desktop sia, per etichettare le celle, dalla card mobile. */
-const ROSTER_COLS = ['Ing', 'Dur', 'Cls', 'Rub', 'Acq'] as const
+/** Colonne dati del roster (Età/Ingaggio/Durata/Clausola/Rubata, ordine da
+ * assioma 6) — usate sia dall'header desktop sia, per etichettare le celle,
+ * dalla card mobile. */
+const ROSTER_COLS = ['Età', 'Ing', 'Dur', 'Cls', 'Rub'] as const
 
-function rosterColValues(p: ManagerDetailData['roster'][number]) {
+function rosterColValues(p: ManagerDetailData['roster'][number]): [string, string, string, string, string] {
   const c = p.contract
   const rubata = c ? c.rescissionClause + c.salary : null
   return [
+    p.age != null ? `${p.age}` : NOT_DISPONIBILE,
     c ? `${c.salary}M` : '-',
     c ? `${c.duration}s` : '-',
     c ? `${c.rescissionClause}M` : '-',
     rubata !== null ? `${rubata}M` : '-',
-    `${p.acquisitionPrice}M`,
   ]
 }
 
@@ -165,7 +167,7 @@ function ManagerRosterRow({ player, pos, style }: {
         {values.slice(0, 4).map((v, i) => (
           <span key={ROSTER_COLS[i]} className="text-right text-sm font-mono font-semibold text-gray-300">{v}</span>
         ))}
-        <span className={`text-right text-sm font-mono font-bold ${style.text}`} title={`Acquistato a ${player.acquisitionPrice}M`}>{values[4]}</span>
+        <span className="text-right text-sm font-mono font-bold text-accent-400" title={values[4] !== '-' ? `Prezzo rubata ${values[4]}` : 'Nessun prezzo rubata'}>{values[4]}</span>
       </div>
 
       {/* Mobile: nome su riga propria (va a capo, mai troncato) + griglia valori etichettati */}
@@ -178,7 +180,7 @@ function ManagerRosterRow({ player, pos, style }: {
           {ROSTER_COLS.map((label, i) => (
             <div key={label} className="bg-black/20 rounded-md py-1 text-center">
               <div className="text-[8px] uppercase tracking-wide text-gray-500 font-bold leading-none">{label}</div>
-              <div className={`text-xs font-mono font-bold mt-0.5 ${label === 'Rub' ? style.text : 'text-gray-200'}`}>{values[i]}</div>
+              <div className={`text-xs font-mono font-bold mt-0.5 ${label === 'Rub' ? 'text-accent-400' : 'text-gray-200'}`}>{values[i]}</div>
             </div>
           ))}
         </div>

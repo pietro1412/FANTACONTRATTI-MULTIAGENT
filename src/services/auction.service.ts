@@ -4571,6 +4571,7 @@ export async function getManagersStatus(
         playerTeam: r.player.team,
         position: r.player.position,
         acquisitionPrice: r.acquisitionPrice,
+        age: r.player.age ?? null,
         quotation: r.player.quotation,
         apiFootballId: r.player.apiFootballId ?? null,
         contract: r.contract ? {
