@@ -66,26 +66,27 @@ export function setSoundsVolume(volume: number): void {
 }
 
 /**
- * Play a sound effect
+ * Play a sound effect. Riusa un solo elemento audio per tipo: se lo stesso
+ * suono è già in riproduzione (es. warning ritriggerato ogni secondo negli
+ * ultimi secondi) lo riavvia da capo invece di sovrapporre un nuovo clone,
+ * altrimenti i cloni si accumulano e restano udibili ben oltre il trigger.
  */
 export function playSound(type: SoundType): void {
   if (!areSoundsEnabled()) return
 
   try {
-    // Try to use cached audio
     let audio = audioCache.get(type)
 
     if (!audio) {
-      // Create new audio element if not cached
       audio = new Audio(SOUND_PATHS[type])
       audioCache.set(type, audio)
     }
 
-    // Clone the audio to allow multiple simultaneous plays
-    const clone = audio.cloneNode() as HTMLAudioElement
-    clone.volume = getSoundsVolume()
+    audio.pause()
+    audio.currentTime = 0
+    audio.volume = getSoundsVolume()
 
-    clone.play().catch(() => {
+    audio.play().catch(() => {
       // Silently fail - user interaction may be required first
     })
   } catch {

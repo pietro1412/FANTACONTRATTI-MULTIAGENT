@@ -348,20 +348,18 @@ export function useSvincolatiState(leagueId: string) {
     }
   }, [board?.activeAuction?.timerExpiresAt, board?.activeAuction?.id, board?.isAdmin, loadBoard])
 
-  // Sound on transazione completata — stesso suono per tutti quando appare una
-  // nuova voce con vincitore in cima al feed attività (ordinato piu' recente prima)
-  const prevTopActivityIdRef = useRef<string | null>(null)
-  const hasLoadedActivityOnceRef = useRef(false)
+  // Sound on transazione completata — stesso suono per tutti quando un turno
+  // si chiude con un'aggiudicazione, sincronizzato con la comparsa della
+  // popup (entrambi derivano dallo stesso board.pendingAck)
+  const prevSvincolatiAckIdRef = useRef<string | null>(null)
   useEffect(() => {
-    const topEntry = activityFeed[0]
-    if (!topEntry) return
-    const isFirstLoad = !hasLoadedActivityOnceRef.current
-    hasLoadedActivityOnceRef.current = true
-    if (!isFirstLoad && topEntry.id !== prevTopActivityIdRef.current && topEntry.winner) {
+    if (!board?.pendingAck) return
+    if (prevSvincolatiAckIdRef.current === board.pendingAck.auctionId) return
+    prevSvincolatiAckIdRef.current = board.pendingAck.auctionId
+    if (board.pendingAck.winnerId && !board.pendingAck.noBids) {
       sounds.saleComplete()
     }
-    prevTopActivityIdRef.current = topEntry.id
-  }, [activityFeed])
+  }, [board?.pendingAck])
 
   // Auto-update bid amount when currentPrice changes
   useEffect(() => {
