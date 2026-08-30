@@ -1,7 +1,7 @@
 # BIBBIA: Finanze e Bilancio
 
 > Fonte di verita per il modello finanziario della piattaforma.
-> Ultima revisione: 2026-02-08
+> Ultima revisione: 2026-08-30
 
 ---
 
@@ -34,6 +34,26 @@ Bilancio = Budget - Monte Ingaggi
 - Calcolato on-the-fly (NON salvato nel DB)
 - Puo essere negativo (ingaggi superano il budget)
 - Durante le fasi di mercato (rubata, svincolati), il bilancio traccia i delta incrementalmente a partire dal bilancio post-consolidamento
+
+### 1.4 Live vs Fissato: due usi diversi dello stesso campo
+
+`LeagueMember.totalSalaries` (Monte Ingaggi) non si comporta allo stesso modo ovunque. E' importante distinguere:
+
+- **Aggiornamento live** (il campo riflette subito ogni transazione): usato per verificare se un manager ha bilancio sufficiente PRIMA di un'offerta (asta, rubata, svincolati) — questi controlli **non si fidano mai del campo salvato**, ricalcolano sempre la somma vera dei contratti al momento (`prisma.playerContract.aggregate`). Per questo un manager non puo mai spendere piu di quanto ha davvero, indipendentemente da eventuali ritardi nel campo mostrato in UI.
+- **Aggiornamento fissato** (il campo resta al valore dell'ultimo evento che lo ha scritto, anche se i contratti reali sono gia cambiati): usato deliberatamente dagli **Scambi** (§13, `trade.service.ts`) per validare il bilancio disponibile sul valore "congelato" all'ultimo consolidamento, non su quello live — e dallo **svincolo pre-consolidamento** di un giocatore (taglio), che lascia il Monte Ingaggi invariato fino al prossimo consolidamento completo.
+
+| Fase / Evento | Il campo `totalSalaries` si aggiorna |
+|---|---|
+| Primo Mercato — ogni asta vinta | **Subito** (live, per transazione) |
+| Rubata — ogni trasferimento | **Subito** (live, per transazione, atomico con lo scambio di budget) |
+| Svincolati — ogni acquisto | **Subito** (live, per transazione) |
+| Modifica contratto post-acquisto (increase-only, qualsiasi fase) | **Subito** (live, per il delta) |
+| Contratti — rinnovo pre-consolidamento | **Fissato** — il rinnovo scrive il contratto, il campo resta indietro fino al consolidamento |
+| Contratti — taglio/svincolo pre-consolidamento | **Fissato** — il contratto viene cancellato ma il campo non decrementa |
+| Scambi | **Fissato** — il contratto trasferito non viene sommato subito |
+| Consolidamento | **Ricalcolato da zero**: somma di TUTTI i contratti attivi del manager in quel momento — è il punto in cui tutto torna sincronizzato, qualunque cosa sia successo prima |
+
+Il Consolidamento è quindi anche una **rete di sicurezza**: qualunque disallineamento accumulato nelle fasi "fissato" viene azzerato ad ogni ciclo.
 
 ---
 
@@ -486,10 +506,36 @@ SUM(tradeBudgetIn) == SUM(tradeBudgetOut)  (per l'intera lega)
 
 ---
 
+## 14. GAP NOTI E DEBITO TECNICO
+
+### 14.1 Bug storici corretti (2026-08-30)
+
+Durante un playthrough reale della fase Svincolati (azioni utente vere su produzione, non simulate) sono stati trovati e corretti due bug, entrambi relativi al Monte Ingaggi:
+
+- **Modifica contratto post-acquisto non aggiornava `totalSalaries`** (qualsiasi fase: Primo Mercato, Rubata, Svincolati). Il contratto veniva aggiornato correttamente, il campo Monte Ingaggi restava indietro per la differenza. Impatto reale: gli **Scambi** (§1.4, §13), che si fidano del campo fissato, potevano mostrare un bilancio disponibile piu alto del vero. Asta/Rubata/Svincolati non erano a rischio (ricalcolano sempre live). Contratti/`modifyContractPostAcquisition` ora aggiorna il delta atomicamente nella stessa transazione.
+- **Primo Mercato non aggiornava `totalSalaries` per singola asta**, a differenza di Rubata/Svincolati: il campo restava a 0 (o al valore precedente) per tutta la fase e veniva fissato in blocco solo alla chiusura dell'intera fase (`closeAuctionSession`). Nessun rischio finanziario reale (stesso motivo sopra), ma il numero mostrato in UI durante la fase poteva essere sbagliato. Allineato al pattern live di Rubata/Svincolati.
+
+Entrambi coperti da test di regressione (`contract.service.test.ts`, `auction.service.test.ts`).
+
+### 14.2 Osservazione architetturale (non urgente, da valutare in un refactor futuro)
+
+`LeagueMember.totalSalaries` fa strutturalmente due lavori diversi (vedi §1.4): "verita corrente" in tre fasi, "istantanea congelata all'ultimo consolidamento" in altre due. Questa doppia semantica sullo stesso campo e il motivo per cui i bug in §14.1 sono nati — chi tocca codice nuovo assume ragionevolmente che il campo debba essere sempre accurato.
+
+Miglioramento possibile, non implementato per scelta (refactor di logica di business critica, rimandato):
+1. Rinominare il campo (richiede migrazione Prisma) per rendere esplicito che e "l'istantanea all'ultimo consolidamento", non una verita live.
+2. Estrarre in un'unica funzione condivisa il calcolo `bilancio live = currentBudget - somma reale contratti`, oggi duplicato in ~10 punti quasi identici tra `auction.service.ts`, `rubata.service.ts`, `svincolati.service.ts` — la duplicazione e essa stessa un rischio (stesso pattern gia visto con `getAgeColor` duplicata 7 volte, vedi memoria `feedback-metodo-verifica-bug-finanziari`).
+
+### 14.3 Profezie assenti in Svincolati
+
+A differenza di Primo Mercato e Rubata, la fase Svincolati non ha alcuna funzionalita "profezia" (ne in UI ne nel backend — `handleAcknowledge` non ha nemmeno il parametro). Non e un bug del modello finanziario, ma un gap di prodotto trovato durante la stessa verifica del 2026-08-30, non ancora implementato.
+
+---
+
 ## CHANGELOG
 
 | Data | Modifica |
 |------|----------|
+| 2026-08-30 | Verifica end-to-end (playthrough reale Svincolati) + sezione 1.4 (live vs fissato) + sezione 14 (gap noti): 2 bug corretti (modifica contratto non aggiornava monte ingaggi; Primo Mercato non live), 1 osservazione architetturale, 1 gap di prodotto (profezie assenti in Svincolati) |
 | 2026-02-08 | Aggiunta sezione Scambi nel Tabellone Finanze (13): tradeBudgetIn/Out, colonna Scambi, card riepilogo |
 | 2026-02-07 | Aggiunta sezione Costo Acquisti (11) e storicita fasi (12) per OSS-6 |
 | 2026-02-06 | Creazione documento con modello finanziario completo, scomposizione rubata offerta+ingaggio |
