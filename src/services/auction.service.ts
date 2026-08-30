@@ -1155,10 +1155,14 @@ export async function getCurrentAuction(sessionId: string, userId: string): Prom
           },
         })
 
+        // Monte ingaggi live anche durante il Primo Mercato (non solo alla chiusura
+        // fase, dove veniva ricalcolato in blocco): stesso pattern gia' usato da
+        // Rubata/Svincolati, cosi' il numero mostrato durante l'asta e' sempre esatto.
         await tx.leagueMember.update({
           where: { id: winningBid.bidderId },
           data: {
             currentBudget: { decrement: winningBid.amount },
+            totalSalaries: { increment: salary },
           },
         })
 
@@ -1740,11 +1744,17 @@ export async function closeAuction(
       },
     })
 
+    // Monte ingaggi live anche durante il Primo Mercato (non solo alla chiusura
+    // fase, dove veniva ricalcolato in blocco): stesso pattern gia' usato da
+    // Rubata/Svincolati, cosi' il numero mostrato durante l'asta e' sempre esatto.
     await tx.leagueMember.update({
       where: { id: winner.id },
       data: {
         currentBudget: {
           decrement: winningBid.amount,
+        },
+        totalSalaries: {
+          increment: salary,
         },
       },
     })

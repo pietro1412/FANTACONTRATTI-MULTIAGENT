@@ -103,9 +103,11 @@ describe('auction.service — closeAuction', () => {
     )
 
     // Budget scalato per l'ESATTO importo della vincita, non un valore diverso.
+    // Monte ingaggi incrementato live per l'ingaggio di default (10% del prezzo,
+    // min 1): 50 -> 5.
     expect(txMemberUpdate).toHaveBeenCalledWith({
       where: { id: WINNER_MEMBER_ID },
-      data: { currentBudget: { decrement: WINNING_BID_AMOUNT } },
+      data: { currentBudget: { decrement: WINNING_BID_AMOUNT }, totalSalaries: { increment: 5 } },
     })
 
     expect(txRosterCreate).toHaveBeenCalledWith(
