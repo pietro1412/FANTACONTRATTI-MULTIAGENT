@@ -60,10 +60,6 @@ export interface SvincolatiCockpitProps {
   setSelectedPosition: (v: string) => void
   selectedTeam: string
   setSelectedTeam: (v: string) => void
-  minQuotation: string
-  setMinQuotation: (v: string) => void
-  maxQuotation: string
-  setMaxQuotation: (v: string) => void
   // offerta
   bidAmount: string
   setBidAmount: (v: string) => void
@@ -565,26 +561,6 @@ export function SvincolatiCockpit(props: SvincolatiCockpitProps) {
                     </div>
                   )}
                 </div>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="micro-label text-gray-500 flex-shrink-0">Quot.</span>
-                <Input
-                  type="number"
-                  inputMode="numeric"
-                  placeholder="Min"
-                  value={props.minQuotation}
-                  onChange={e => { props.setMinQuotation(e.target.value); }}
-                  className="bg-surface-300 border-surface-50/30 text-white text-xs py-1.5"
-                />
-                <span className="text-gray-600" aria-hidden="true">–</span>
-                <Input
-                  type="number"
-                  inputMode="numeric"
-                  placeholder="Max"
-                  value={props.maxQuotation}
-                  onChange={e => { props.setMaxQuotation(e.target.value); }}
-                  className="bg-surface-300 border-surface-50/30 text-white text-xs py-1.5"
-                />
               </div>
             </div>
 

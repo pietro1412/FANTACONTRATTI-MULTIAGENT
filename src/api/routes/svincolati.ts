@@ -48,20 +48,16 @@ const router = Router()
 router.get('/leagues/:leagueId/svincolati', authMiddleware, async (req: Request, res: Response) => {
   try {
     const leagueId = req.params.leagueId as string
-    const { position, team, search, minQuotation, maxQuotation } = req.query as {
+    const { position, team, search } = req.query as {
       position?: string
       team?: string
       search?: string
-      minQuotation?: string
-      maxQuotation?: string
     }
 
     const filters = {
       position: position as 'P' | 'D' | 'C' | 'A' | undefined,
       team,
       search,
-      minQuotation: minQuotation ? parseInt(minQuotation) : undefined,
-      maxQuotation: maxQuotation ? parseInt(maxQuotation) : undefined,
     }
 
     const result = await getFreeAgents(leagueId, req.user!.userId, filters)
@@ -571,7 +567,7 @@ router.post('/leagues/:leagueId/svincolati/heartbeat', authMiddleware, (req: Req
 
 // ==================== ADMIN: PAUSE / RESUME ====================
 
-router.post('/:leagueId/svincolati/pause', authMiddleware, async (req: Request, res: Response) => {
+router.post('/leagues/:leagueId/svincolati/pause', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { leagueId } = req.params
     const result = await pauseSvincolati(leagueId!, req.user!.userId)
@@ -588,7 +584,7 @@ router.post('/:leagueId/svincolati/pause', authMiddleware, async (req: Request, 
   }
 })
 
-router.post('/:leagueId/svincolati/resume', authMiddleware, async (req: Request, res: Response) => {
+router.post('/leagues/:leagueId/svincolati/resume', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { leagueId } = req.params
     const result = await resumeSvincolati(leagueId!, req.user!.userId)

@@ -1209,15 +1209,11 @@ export const svincolatiApi = {
     position?: string
     team?: string
     search?: string
-    minQuotation?: number
-    maxQuotation?: number
   }) => {
     const params = new URLSearchParams()
     if (filters?.position) params.append('position', filters.position)
     if (filters?.team) params.append('team', filters.team)
     if (filters?.search) params.append('search', filters.search)
-    if (filters?.minQuotation) params.append('minQuotation', filters.minQuotation.toString())
-    if (filters?.maxQuotation) params.append('maxQuotation', filters.maxQuotation.toString())
     const query = params.toString()
     return request(`/api/leagues/${leagueId}/svincolati${query ? `?${query}` : ''}`)
   },

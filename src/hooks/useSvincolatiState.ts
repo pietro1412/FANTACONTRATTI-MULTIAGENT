@@ -37,8 +37,6 @@ export function useSvincolatiState(leagueId: string) {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedPosition, setSelectedPosition] = useState('')
   const [selectedTeam, setSelectedTeam] = useState('')
-  const [minQuotation, setMinQuotation] = useState('')
-  const [maxQuotation, setMaxQuotation] = useState('')
   const [teamDropdownOpen, setTeamDropdownOpen] = useState(false)
   const teamDropdownRef = useRef<HTMLDivElement>(null)
 
@@ -105,15 +103,13 @@ export function useSvincolatiState(leagueId: string) {
       position: selectedPosition || undefined,
       team: selectedTeam || undefined,
       search: searchQuery || undefined,
-      minQuotation: minQuotation ? parseInt(minQuotation, 10) : undefined,
-      maxQuotation: maxQuotation ? parseInt(maxQuotation, 10) : undefined,
     }
 
     const res = await svincolatiApi.getAll(leagueId, filters)
     if (res.success && res.data) {
       setFreeAgents(res.data as Player[])
     }
-  }, [leagueId, selectedPosition, selectedTeam, searchQuery, minQuotation, maxQuotation])
+  }, [leagueId, selectedPosition, selectedTeam, searchQuery])
 
   const loadActivityFeed = useCallback(async () => {
     const res = await svincolatiApi.getHistory(leagueId)
@@ -1028,10 +1024,6 @@ export function useSvincolatiState(leagueId: string) {
     setSelectedPosition,
     selectedTeam,
     setSelectedTeam,
-    minQuotation,
-    setMinQuotation,
-    maxQuotation,
-    setMaxQuotation,
     teamDropdownOpen,
     setTeamDropdownOpen,
     teamDropdownRef,

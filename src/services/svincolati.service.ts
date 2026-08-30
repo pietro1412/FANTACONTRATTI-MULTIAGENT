@@ -58,8 +58,6 @@ interface FreeAgentFilters {
   position?: Position
   team?: string
   search?: string
-  minQuotation?: number
-  maxQuotation?: number
 }
 
 export async function getFreeAgents(
@@ -108,16 +106,6 @@ export async function getFreeAgents(
 
   if (filters?.search) {
     whereConditions.name = { contains: filters.search, mode: 'insensitive' }
-  }
-
-  if (filters?.minQuotation !== undefined || filters?.maxQuotation !== undefined) {
-    whereConditions.quotation = {}
-    if (filters?.minQuotation !== undefined) {
-      whereConditions.quotation.gte = filters.minQuotation
-    }
-    if (filters?.maxQuotation !== undefined) {
-      whereConditions.quotation.lte = filters.maxQuotation
-    }
   }
 
   // Get free agents (players not in any roster in this league)
