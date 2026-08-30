@@ -3,16 +3,17 @@
  * Uses Web Audio API with preloaded audio for low latency
  */
 
-type SoundType = 'bid' | 'outbid' | 'warning' | 'win' | 'lose' | 'notification'
+type SoundType = 'bid' | 'outbid' | 'warning' | 'notification' | 'timerStart' | 'timerExpired' | 'saleComplete'
 
 // Sound file paths (to be added to public/sounds/)
 const SOUND_PATHS: Record<SoundType, string> = {
   bid: '/sounds/bid.mp3',
   outbid: '/sounds/outbid.mp3',
   warning: '/sounds/warning.mp3',
-  win: '/sounds/win.mp3',
-  lose: '/sounds/lose.mp3',
   notification: '/sounds/notification.mp3',
+  timerStart: '/sounds/timer-start.mp3',
+  timerExpired: '/sounds/timer-expired.mp3',
+  saleComplete: '/sounds/sale-complete.mp3',
 }
 
 // Preloaded audio elements cache
@@ -97,9 +98,10 @@ export const sounds = {
   bid: () => { playSound('bid'); },
   outbid: () => { playSound('outbid'); },
   warning: () => { playSound('warning'); },
-  win: () => { playSound('win'); },
-  lose: () => { playSound('lose'); },
   notification: () => { playSound('notification'); },
+  timerStart: () => { playSound('timerStart'); },
+  timerExpired: () => { playSound('timerExpired'); },
+  saleComplete: () => { playSound('saleComplete'); },
 }
 
 export default sounds

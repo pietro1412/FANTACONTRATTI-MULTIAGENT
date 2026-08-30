@@ -94,10 +94,16 @@ export function useRubataState(leagueId: string) {
   const pendingWinnerContractRef = useRef<ContractForModification | null>(null)
 
   // ========== Timer countdown effect ==========
+  // Traccia il cambio di fase per far suonare "avvio timer" una sola volta
+  // per turno, non ad ogni resync di remainingSeconds durante il polling.
+  const prevRubataPhaseRef = useRef<string | null>(null)
   useEffect(() => {
     if (!boardData) return
 
     if (boardData.rubataState === 'OFFERING' || boardData.rubataState === 'AUCTION') {
+      if (prevRubataPhaseRef.current !== boardData.rubataState) {
+        sounds.timerStart()
+      }
       setTimerDisplay(boardData.remainingSeconds)
 
       const interval = setInterval(() => {
@@ -106,15 +112,30 @@ export function useRubataState(leagueId: string) {
           const next = prev - 1
           if (next === 5) { haptic.light(); sounds.warning() }
           if (next === 3) { haptic.warning(); sounds.warning() }
+          if (next === 0) { sounds.timerExpired() }
           return next
         })
       }, 1000)
 
+      prevRubataPhaseRef.current = boardData.rubataState
       return () => { clearInterval(interval); }
     } else {
       setTimerDisplay(null)
+      prevRubataPhaseRef.current = boardData.rubataState
     }
   }, [boardData?.rubataState, boardData?.remainingSeconds])
+
+  // ========== Sound on transazione completata ==========
+  // Stesso suono per tutti quando un turno si chiude con un'aggiudicazione.
+  const prevRubataAckIdRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!pendingAck) return
+    if (prevRubataAckIdRef.current === pendingAck.auctionId) return
+    prevRubataAckIdRef.current = pendingAck.auctionId
+    if (pendingAck.winner) {
+      sounds.saleComplete()
+    }
+  }, [pendingAck])
 
   // ========== Scroll to current player when it changes ==========
   useEffect(() => {

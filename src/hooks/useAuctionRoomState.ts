@@ -403,6 +403,18 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     }
   }, [])
 
+  // Sound on new auction starting (avvio timer) — keyed on auction id, not
+  // timerExpiresAt, perché ogni rilancio resetta timerExpiresAt (anti-snipe)
+  // e non deve far ripartire il suono di avvio.
+  const prevAuctionIdRef = useRef<string | null>(null)
+  useEffect(() => {
+    const currentId = auction?.id ?? null
+    if (currentId && currentId !== prevAuctionIdRef.current) {
+      sounds.timerStart()
+    }
+    prevAuctionIdRef.current = currentId
+  }, [auction?.id])
+
   // Timer countdown - when hits 0, immediately refresh data
   useEffect(() => {
     if (!auction?.timerExpiresAt) {
@@ -429,6 +441,7 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
       // When timer hits 0, IMMEDIATELY show the acknowledgment modal with current data
       if (remaining === 0 && !hasTriggeredZero) {
         hasTriggeredZero = true
+        sounds.timerExpired()
 
         // Create immediate pendingAck from current auction data - NO API WAIT!
         const currentAuction = auction // capture current state
@@ -1085,7 +1098,8 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     prevLeadBidderRef.current = topBidder
   }, [auction?.bids?.[0]?.bidder?.user?.username, managersStatus])
 
-  // T-020: Sound on win/lose — detect when pendingAck appears with result
+  // T-020: Sound on transazione completata — stesso suono per tutti quando un
+  // turno si chiude con un'aggiudicazione (nessuna distinzione vincitore/altri)
   const prevPendingAckIdRef = useRef<string | null>(null)
   useEffect(() => {
     if (!pendingAck || !membership) return
@@ -1093,14 +1107,9 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     if (prevPendingAckIdRef.current === ackId) return
     prevPendingAckIdRef.current = ackId
     if (pendingAck.winner) {
-      const myUsername = managersStatus?.managers.find(m => m.id === managersStatus?.myId)?.username
-      if (pendingAck.winner.username === myUsername) {
-        sounds.win()
-      } else {
-        sounds.lose()
-      }
+      sounds.saleComplete()
     }
-  }, [pendingAck?.id, pendingAck?.winner, membership, managersStatus])
+  }, [pendingAck?.id, pendingAck?.winner, membership])
 
   const isMyTurn = firstMarketStatus?.isUserTurn || false
   const currentTurnManager = firstMarketStatus?.currentNominator

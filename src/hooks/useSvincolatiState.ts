@@ -4,6 +4,7 @@ import type { DragEndEvent } from '@dnd-kit/core'
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { svincolatiApi, leagueApi, auctionApi, contractApi } from '../services/api'
 import { usePusherAuction } from '../services/pusher.client'
+import sounds from '../utils/sounds'
 import type {
   AppealStatus,
   Player,
@@ -303,16 +304,31 @@ export function useSvincolatiState(leagueId: string) {
   }, [leagueId, board?.myMemberId])
 
   // Timer countdown
+  const prevActiveAuctionIdRef = useRef<string | null>(null)
+  const hasPlayedExpiredSoundRef = useRef(false)
   useEffect(() => {
     if (board?.activeAuction?.timerExpiresAt) {
       // Reset the closing flag when a new auction starts
       isClosingAuction.current = false
+
+      // Suono avvio timer — una volta per nuova asta, non ad ogni resync del
+      // timerExpiresAt (i rilanci lo resettano per l'anti-snipe)
+      if (board.activeAuction.id !== prevActiveAuctionIdRef.current) {
+        prevActiveAuctionIdRef.current = board.activeAuction.id
+        hasPlayedExpiredSoundRef.current = false
+        sounds.timerStart()
+      }
 
       const updateTimer = async () => {
         const expires = new Date(board.activeAuction!.timerExpiresAt!).getTime()
         const now = Date.now()
         const remaining = Math.max(0, Math.floor((expires - now) / 1000))
         setTimerRemaining(remaining)
+
+        if (remaining === 0 && !hasPlayedExpiredSoundRef.current) {
+          hasPlayedExpiredSoundRef.current = true
+          sounds.timerExpired()
+        }
 
         // Auto-close when timer hits 0 (only admin, only once)
         if (remaining === 0 && board.isAdmin && !isClosingAuction.current) {
@@ -335,6 +351,21 @@ export function useSvincolatiState(leagueId: string) {
       setTimerRemaining(null)
     }
   }, [board?.activeAuction?.timerExpiresAt, board?.activeAuction?.id, board?.isAdmin, loadBoard])
+
+  // Sound on transazione completata — stesso suono per tutti quando appare una
+  // nuova voce con vincitore in cima al feed attività (ordinato piu' recente prima)
+  const prevTopActivityIdRef = useRef<string | null>(null)
+  const hasLoadedActivityOnceRef = useRef(false)
+  useEffect(() => {
+    const topEntry = activityFeed[0]
+    if (!topEntry) return
+    const isFirstLoad = !hasLoadedActivityOnceRef.current
+    hasLoadedActivityOnceRef.current = true
+    if (!isFirstLoad && topEntry.id !== prevTopActivityIdRef.current && topEntry.winner) {
+      sounds.saleComplete()
+    }
+    prevTopActivityIdRef.current = topEntry.id
+  }, [activityFeed])
 
   // Auto-update bid amount when currentPrice changes
   useEffect(() => {
