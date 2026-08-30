@@ -15,6 +15,11 @@ export interface SvincolatiCockpitAdminBarProps {
   onPause: () => void
   onResume: () => void
   onCompletePhase: () => void
+  /** Asta svincolato attiva — mostra "Chiudi asta manualmente" (spostato qui
+   * dall'arena per non appesantirla verticalmente, stesso principio di Rubata
+   * che tiene i controlli admin dell'asta nella barra in alto, non nell'arena). */
+  hasActiveAuction?: boolean
+  onCloseAuction?: () => void
 }
 
 const ABTN = 'text-[11.5px] font-semibold rounded-[7px] border px-2.5 py-1 transition-colors disabled:opacity-40 disabled:cursor-not-allowed'
@@ -35,6 +40,8 @@ export function SvincolatiCockpitAdminBar({
   onPause,
   onResume,
   onCompletePhase,
+  hasActiveAuction,
+  onCloseAuction,
 }: SvincolatiCockpitAdminBarProps) {
   const canPause = state === 'AUCTION' || state === 'NOMINATION' || state === 'READY_CHECK'
   const isPaused = state === 'PAUSED'
@@ -68,6 +75,16 @@ export function SvincolatiCockpitAdminBar({
 
       <span className="w-px h-4 bg-surface-50" aria-hidden="true" />
 
+      {hasActiveAuction && onCloseAuction && (
+        <button
+          type="button"
+          onClick={onCloseAuction}
+          disabled={isSubmitting}
+          className={`${ABTN} text-gray-300 border-surface-50 bg-surface-200 hover:bg-surface-100`}
+        >
+          Chiudi asta manualmente
+        </button>
+      )}
       {canPause && (
         <button
           type="button"

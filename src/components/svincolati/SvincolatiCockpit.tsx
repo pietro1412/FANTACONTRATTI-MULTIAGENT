@@ -203,6 +203,8 @@ export function SvincolatiCockpit(props: SvincolatiCockpitProps) {
             onPause={props.onPause}
             onResume={props.onResume}
             onCompletePhase={props.onCompletePhase}
+            hasActiveAuction={state === 'AUCTION' && !!auction}
+            onCloseAuction={props.onCloseAuction}
           />
         </div>
       ) : undefined}
@@ -352,15 +354,6 @@ export function SvincolatiCockpit(props: SvincolatiCockpitProps) {
                           actionLabel="Offri"
                         />
                       </div>
-                      {isAdmin && (
-                        <button
-                          type="button"
-                          onClick={props.onCloseAuction}
-                          className="text-xs font-semibold text-gray-300 border border-surface-50 bg-surface-300 rounded-[9px] py-1.5 hover:bg-surface-100 transition-colors"
-                        >
-                          Chiudi asta manualmente
-                        </button>
-                      )}
                     </>
                   )}
 
@@ -814,7 +807,7 @@ function SvincolatiHeader({ board, isPusherConnected }: SvincolatiCockpitProps) 
    squadra (+ chip nominatore) — stesso pattern di HeroPlayerCard in Rubata ── */
 function PlayerHead({ player, nominator, leagueId }: { player: Player; nominator?: string | null; leagueId: string }) {
   return (
-    <div className="flex items-center gap-3.5 flex-wrap">
+    <div className="flex items-center gap-3.5">
       {player.apiFootballId ? (
         <img
           src={getPlayerPhotoUrl(player.apiFootballId)}
@@ -827,6 +820,9 @@ function PlayerHead({ player, nominator, leagueId }: { player: Player; nominator
           {player.position}
         </span>
       )}
+      {/* min-w-0 indispensabile: senza, un flex item con testo lungo si rifiuta di
+          restringersi sotto la sua larghezza intrinseca e spinge fuori i fratelli
+          invece di truncare — qui vogliamo l'opposto (il nome tronca se serve). */}
       <div className="min-w-0 flex-1">
         <PlayerName
           player={{ name: player.name, team: player.team, position: player.position, quotation: player.quotation, age: player.age }}
@@ -835,6 +831,12 @@ function PlayerHead({ player, nominator, leagueId }: { player: Player; nominator
           truncate
           className="font-display text-2xl lg:text-[26px] font-bold text-white leading-tight block text-left"
         />
+        {/* Chip "chiamato da" spostato QUI (riga sottotitolo, che già va a capo da
+            sola) invece che fratello diretto del nome: da fratello con flex-shrink-0
+            "rubava" spazio al nome (flex-1) nella stessa riga prima che flex-wrap
+            decidesse di mandarlo a capo, troncando il nome anche per chip larghi
+            (es. "chiamato da Marcolino"). Stesso pattern di HeroPlayerCard in Rubata,
+            che tiene l'equivalente chip "dalla rosa di" nella riga squadra/età. */}
         <p className="text-sm text-gray-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
           {POS_NAMES[player.position] || player.position}
           <span className="text-gray-600" aria-hidden="true">·</span>
@@ -844,14 +846,14 @@ function PlayerHead({ player, nominator, leagueId }: { player: Player; nominator
           <b className="text-gray-200 font-semibold">{player.team}</b>
           <span className="text-gray-600" aria-hidden="true">·</span>
           <span className={`font-mono ${getAgeColor(player.age)}`}>{player.age != null ? `${player.age} anni` : NOT_DISPONIBILE}</span>
+          {nominator && (
+            <span className="inline-flex items-center gap-1.5 pl-1 pr-3 py-1 rounded-full bg-surface-300 border border-surface-50 text-xs text-gray-400 flex-shrink-0">
+              <Monogram name={nominator} size="sm" />
+              chiamato da <b className="text-gray-200 font-semibold">{nominator}</b>
+            </span>
+          )}
         </p>
       </div>
-      {nominator && (
-        <span className="inline-flex items-center gap-1.5 pl-1 pr-3 py-1 rounded-full bg-surface-300 border border-surface-50 text-xs text-gray-400 flex-shrink-0">
-          <Monogram name={nominator} size="sm" />
-          chiamato da <b className="text-gray-200 font-semibold">{nominator}</b>
-        </span>
-      )}
     </div>
   )
 }
