@@ -283,88 +283,101 @@ export function SvincolatiCockpit(props: SvincolatiCockpitProps) {
             </div>
           )}
 
-          {/* AUCTION — arena bidding */}
+          {/* AUCTION — arena bidding, stessa arena orizzontale di HeroPlayerCard
+              (Rubata): identità a sinistra, prezzo/timer/azione a destra su
+              desktop, invece di impilare tutto in un'unica colonna — a parità
+              di contenuto occupa meno della metà dell'altezza verticale. */}
           {state === 'AUCTION' && auction && (
-            <div className="bg-surface-200 arena-gold rounded-xl p-4 lg:flex-1 lg:min-h-0 lg:flex lg:flex-col lg:gap-3 panel-scroll">
-              <div className="flex items-center justify-between gap-2">
+            <div className="bg-surface-200 arena-gold rounded-xl p-4">
+              <div className="flex items-center justify-between gap-2 mb-3">
                 <p className="micro-label text-accent-400">Asta svincolato · in corso</p>
                 {props.isUserWinning && (
                   <span className="text-xs font-bold text-secondary-400">Stai vincendo</span>
                 )}
               </div>
 
-              <PlayerHead player={auction.player} nominator={board.nominatorUsername} leagueId={props.leagueId} />
+              <div className="lg:grid lg:grid-cols-[1fr_1.05fr]">
+                {/* ===== Colonna sinistra: identità ===== */}
+                <div className="lg:pr-4 lg:min-w-0">
+                  <PlayerHead player={auction.player} nominator={board.nominatorUsername} leagueId={props.leagueId} />
+                </div>
 
-              {/* Box prezzo + timer (P1) */}
-              <div className="flex items-center gap-5 bg-surface-300 border border-accent-500/40 rounded-xl px-4 py-3">
-                <div className="flex flex-col min-w-0">
-                  <span className="font-mono text-[10px] font-bold tracking-[0.14em] uppercase text-accent-400 mb-1">Offerta attuale</span>
-                  <span className="stat-number text-5xl leading-none text-accent-300" aria-live="polite">{auction.currentPrice}M</span>
-                  {auction.bids[0] ? (
-                    <span className="mt-1.5 inline-flex items-center gap-1.5 text-[12.5px] text-gray-400">
-                      <Monogram name={auction.bids[0].bidder} size="sm" />
-                      {auction.bids[0].bidder === props.currentUsername
-                        ? <b className="text-secondary-400 font-semibold">offerta tua — stai vincendo</b>
-                        : <>di <b className="text-white font-semibold">{auction.bids[0].bidder}</b></>}
-                    </span>
+                {/* ===== Colonna destra: prezzo/timer + controlli ===== */}
+                <div className="lg:border-l lg:border-surface-50 lg:pl-4 lg:min-w-0 lg:flex lg:flex-col lg:gap-2.5">
+                  {/* Box prezzo + timer sulla stessa riga (P1) */}
+                  <div className="mt-3 lg:mt-0 flex items-center gap-5 bg-surface-300 border border-accent-500/40 rounded-xl px-4 py-3">
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-mono text-[10px] font-bold tracking-[0.14em] uppercase text-accent-400 mb-1">Offerta attuale</span>
+                      <span className="stat-number text-5xl lg:text-4xl leading-none text-accent-300" aria-live="polite">{auction.currentPrice}M</span>
+                      {auction.bids[0] ? (
+                        <span className="mt-1.5 inline-flex items-center gap-1.5 text-[12.5px] text-gray-400">
+                          <Monogram name={auction.bids[0].bidder} size="sm" />
+                          {auction.bids[0].bidder === props.currentUsername
+                            ? <b className="text-secondary-400 font-semibold">offerta tua — stai vincendo</b>
+                            : <>di <b className="text-white font-semibold">{auction.bids[0].bidder}</b></>}
+                        </span>
+                      ) : (
+                        <span className="mt-1.5 text-[12.5px] text-gray-400">Base d&apos;asta: <b className="text-white font-mono font-semibold">{auction.basePrice}M</b></span>
+                      )}
+                    </div>
+                    {auction.timerExpiresAt && (
+                      <TimerDisplay
+                        seconds={props.timerRemaining}
+                        totalSeconds={auction.timerSeconds ?? props.timerInput}
+                        size={44}
+                        className="ml-auto"
+                      />
+                    )}
+                  </div>
+
+                  {/* Controlli offerta (P3) */}
+                  {board.isFinished ? (
+                    <div className="mt-3 lg:mt-0 rounded-xl p-3 bg-warning-500/10 border border-warning-500/30 text-center">
+                      <p className="text-warning-400 text-sm font-medium">Hai dichiarato di aver finito. Non puoi più fare offerte.</p>
+                    </div>
                   ) : (
-                    <span className="mt-1.5 text-[12.5px] text-gray-400">Base d&apos;asta: <b className="text-white font-mono font-semibold">{auction.basePrice}M</b></span>
+                    <>
+                      <div className="mt-3 lg:mt-0">
+                        <BidControlsShared
+                          bidAmount={parseInt(props.bidAmount || '0') || 0}
+                          setBidAmount={n => { props.setBidAmount(String(n)); }}
+                          onPlaceBid={props.onBid}
+                          currentPrice={auction.currentPrice}
+                          budget={board.myBudget}
+                          budgetLabel="budget"
+                          isSubmitting={props.isSubmitting}
+                          isDisabled={props.isTimerExpired}
+                          disabledLabel="Scaduto"
+                          isConnected={props.isPusherConnected}
+                          actionLabel="Offri"
+                        />
+                      </div>
+                      {isAdmin && (
+                        <button
+                          type="button"
+                          onClick={props.onCloseAuction}
+                          className="text-xs font-semibold text-gray-300 border border-surface-50 bg-surface-300 rounded-[9px] py-1.5 hover:bg-surface-100 transition-colors"
+                        >
+                          Chiudi asta manualmente
+                        </button>
+                      )}
+                    </>
+                  )}
+
+                  {/* Ultime offerte a chip (P4) */}
+                  {auction.bids.length > 0 && (
+                    <BidChips
+                      label="Ultime offerte"
+                      bids={auction.bids.slice(0, 10).map((b, i) => ({
+                        id: `${b.bidderId}-${b.amount}-${i}`,
+                        name: b.bidder,
+                        amount: b.amount,
+                        isMine: b.bidder === props.currentUsername,
+                      }))}
+                    />
                   )}
                 </div>
-                {auction.timerExpiresAt && (
-                  <TimerDisplay
-                    seconds={props.timerRemaining}
-                    totalSeconds={auction.timerSeconds ?? props.timerInput}
-                    size={44}
-                    className="ml-auto"
-                  />
-                )}
               </div>
-
-              {/* Controlli offerta (P3) */}
-              {board.isFinished ? (
-                <div className="rounded-xl p-3 bg-warning-500/10 border border-warning-500/30 text-center">
-                  <p className="text-warning-400 text-sm font-medium">Hai dichiarato di aver finito. Non puoi più fare offerte.</p>
-                </div>
-              ) : (
-                <>
-                  <BidControlsShared
-                    bidAmount={parseInt(props.bidAmount || '0') || 0}
-                    setBidAmount={n => { props.setBidAmount(String(n)); }}
-                    onPlaceBid={props.onBid}
-                    currentPrice={auction.currentPrice}
-                    budget={board.myBudget}
-                    budgetLabel="budget"
-                    isSubmitting={props.isSubmitting}
-                    isDisabled={props.isTimerExpired}
-                    disabledLabel="Scaduto"
-                    isConnected={props.isPusherConnected}
-                    actionLabel="Offri"
-                  />
-                  {isAdmin && (
-                    <button
-                      type="button"
-                      onClick={props.onCloseAuction}
-                      className="text-xs font-semibold text-gray-300 border border-surface-50 bg-surface-300 rounded-[9px] py-1.5 hover:bg-surface-100 transition-colors"
-                    >
-                      Chiudi asta manualmente
-                    </button>
-                  )}
-                </>
-              )}
-
-              {/* Ultime offerte a chip (P4) */}
-              {auction.bids.length > 0 && (
-                <BidChips
-                  label="Ultime offerte"
-                  bids={auction.bids.slice(0, 10).map((b, i) => ({
-                    id: `${b.bidderId}-${b.amount}-${i}`,
-                    name: b.bidder,
-                    amount: b.amount,
-                    isMine: b.bidder === props.currentUsername,
-                  }))}
-                />
-              )}
             </div>
           )}
 
