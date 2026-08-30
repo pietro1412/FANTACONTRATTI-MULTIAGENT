@@ -1286,6 +1286,12 @@ export async function forceAllReadyForSvincolati(
 
   const turnOrder = (activeSession.svincolatiTurnOrder as string[] | null) || []
 
+  // Audit log — bypass admin del ready-check reale, va distinto nel log da un
+  // ready-check completato con azioni utente vere.
+  logAction(adminUserId, leagueId, 'SVINCOLATI_FORCE_ALL_READY', 'MarketSession', activeSession.id, undefined, {
+    turnOrder,
+  }).catch(() => {})
+
   // Start auction with all members ready
   return await startSvincolatiAuction(activeSession.id, turnOrder)
 }
@@ -1714,6 +1720,11 @@ export async function forceAllSvincolatiAck(
     return { success: false, message: 'Non ci sono aste da confermare' }
   }
 
+  // Audit log — bypass admin delle conferme reali.
+  logAction(adminUserId, leagueId, 'SVINCOLATI_FORCE_ALL_ACK', 'MarketSession', activeSession.id, undefined, {
+    pendingAck: activeSession.svincolatiPendingAck,
+  }).catch(() => {})
+
   // Advance to next turn
   return await advanceSvincolatiToNextTurn(activeSession.id)
 }
@@ -2008,6 +2019,13 @@ export async function completeSvincolatiPhase(
       svincolatiState: 'COMPLETED',
     },
   })
+
+  // Audit log (mancava — trovato dopo un incidente in produzione 2026-08-30:
+  // fase chiusa senza che nessun manager avesse davvero finito, impossibile
+  // ricostruire chi/quando senza questa voce).
+  logAction(adminUserId, leagueId, 'SVINCOLATI_COMPLETE_PHASE', 'MarketSession', activeSession.id, undefined, {
+    finishedMembersAtCompletion: (activeSession.svincolatiFinishedMembers as string[] | null) || [],
+  }).catch(() => {})
 
   return {
     success: true,
@@ -2531,6 +2549,14 @@ export async function forceAllSvincolatiFinished(
       svincolatiFinishedMembers: allMemberIds,
     },
   })
+
+  // Audit log (mancava — questo e' l'UNICO punto del codice che puo' marcare
+  // TUTTI i membri finiti in un colpo solo; senza questa voce un incidente
+  // come quello del 2026-08-30 (fase chiusa senza dichiarazioni individuali,
+  // nessuna traccia di chi/quando) e' impossibile da ricostruire a posteriori).
+  logAction(adminUserId, leagueId, 'SVINCOLATI_FORCE_ALL_FINISHED', 'MarketSession', activeSession.id, undefined, {
+    memberIds: allMemberIds,
+  }).catch(() => {})
 
   return {
     success: true,
