@@ -34,7 +34,6 @@ export function BottomNavBar({ onMenuOpen, leaguePhase, activeSessionId }: Botto
   // pagina unica /rose: bare = Rosa, ?view=players = Giocatori, ?view=stats = Statistiche)
   const pathAfterLeague = leagueMatch ? location.pathname.slice(leagueMatch[0].length) : ''
   const viewParam = new URLSearchParams(location.search).get('view')
-  const currentTab = getActiveTab(pathAfterLeague, viewParam)
 
   // Scroll hide/show
   const handleScroll = useCallback(() => {
@@ -60,13 +59,25 @@ export function BottomNavBar({ onMenuOpen, leaguePhase, activeSessionId }: Botto
   // Only show inside league context
   if (!leagueId) return null
 
-  // Voce centrale derivata dalla fase (stessa sorgente di Navigation)
+  // Voce centrale derivata dalla fase (stessa sorgente di Navigation). Quando
+  // nessuna fase ha una sezione dedicata (es. PREMI), ricade su "Rosa" (/rose)
+  // — la STESSA pagina di "Giocatori" (/rose?view=players), solo con una tab
+  // interna diversa preselezionata: mostrarle entrambe sarebbe ridondante, la
+  // pagina Rosa ha già la sua tab interna "Tutti i giocatori". Nelle fasi con
+  // voce dedicata (Asta/Scambi/Contratti/Rubata/Svincolati) "Giocatori" resta
+  // invece l'unico accesso da bottom-nav alla pagina Rose/Giocatori.
   const phaseTab = getPhaseTab(leaguePhase, leagueId, activeSessionId)
+  const showGiocatoriTab = phaseTab.key !== 'rosa'
+  // Quando il tab "Giocatori" non è mostrato (fallback "Rosa"), ?view=players
+  // deve comunque evidenziare il tab "Rosa" — è la stessa pagina.
+  const currentTab = getActiveTab(pathAfterLeague, viewParam, showGiocatoriTab)
 
   const tabs: TabDef[] = [
     { key: 'home', label: 'Home', icon: Home, path: `/leagues/${leagueId}` },
     phaseTab,
-    { key: 'giocatori', label: 'Giocatori', icon: UserPlus, path: `/leagues/${leagueId}/rose?view=players` },
+    ...(showGiocatoriTab
+      ? [{ key: 'giocatori', label: 'Giocatori', icon: UserPlus, path: `/leagues/${leagueId}/rose?view=players` }]
+      : []),
     { key: 'finanze', label: 'Finanze', icon: CircleDollarSign, path: `/leagues/${leagueId}/financials` },
     { key: 'menu', label: 'Menu', icon: Menu, path: '' },
   ]
@@ -177,8 +188,11 @@ function getPhaseTab(
  * Map URL path segment (+ query ?view=) to active tab key. La pagina unica
  * /rose ha 3 tab: bare = Rosa, ?view=players = Giocatori, ?view=stats resta
  * "Giocatori" (nessuna tab dedicata in bottom-nav per le Statistiche).
+ * Quando il tab "Giocatori" non è renderizzato (giocatoriTabVisible=false,
+ * fallback "Rosa" — vedi showGiocatoriTab), ?view=players ricade su 'rosa':
+ * è la stessa pagina, e non c'è nessun tab 'giocatori' da evidenziare.
  */
-function getActiveTab(pathAfterLeague: string, viewParam: string | null): string {
+function getActiveTab(pathAfterLeague: string, viewParam: string | null, giocatoriTabVisible: boolean): string {
   if (!pathAfterLeague || pathAfterLeague === '/') return 'home'
   if (
     pathAfterLeague.startsWith('/auction') ||
@@ -188,9 +202,10 @@ function getActiveTab(pathAfterLeague: string, viewParam: string | null): string
     pathAfterLeague.startsWith('/contracts')
   ) return 'phase'
   if (pathAfterLeague.startsWith('/rose')) {
-    return viewParam === 'players' || viewParam === 'stats' ? 'giocatori' : 'rosa'
+    const isPlayersView = viewParam === 'players' || viewParam === 'stats'
+    return isPlayersView && giocatoriTabVisible ? 'giocatori' : 'rosa'
   }
-  if (pathAfterLeague.startsWith('/strategie-rubata')) return 'giocatori'
+  if (pathAfterLeague.startsWith('/strategie-rubata')) return giocatoriTabVisible ? 'giocatori' : 'rosa'
   if (
     pathAfterLeague.startsWith('/financials') ||
     pathAfterLeague.startsWith('/history')
