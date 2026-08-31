@@ -71,9 +71,14 @@ export async function getPlayerById(playerId: string) {
 }
 
 export async function getTeams() {
+  // Solo squadre effettivamente in Serie A quest'anno (listStatus IN_LIST) —
+  // altrimenti il dropdown mostra anche squadre retrocesse/storiche che sono
+  // rimaste nel catalogo solo per i giocatori ancora in una rosa (vedi
+  // gestione usciti Serie A / RETROCESSO).
   const teams = await prisma.serieAPlayer.groupBy({
     by: ['team'],
     _count: true,
+    where: { isActive: true, listStatus: 'IN_LIST' },
     orderBy: {
       team: 'asc',
     },
