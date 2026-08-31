@@ -1,0 +1,34 @@
+name: DB Backup (Snapshot Lega)
+
+on:
+  schedule:
+    - cron: '0 3 * * *'  # Ogni giorno alle 03:00 UTC
+  workflow_dispatch: {}   # Permette un run manuale da GitHub
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Esegui dump tabelle dati di lega
+        run: node scripts/backup-critical-data.cjs
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Carica backup come artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ github.run_id }}
+          path: scripts/backups/pre-deploy/
+          retention-days: 90
+          if-no-files-found: error

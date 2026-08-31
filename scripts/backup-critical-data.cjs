@@ -1,15 +1,14 @@
 /**
  * Backup Critical Data Script
  *
- * Esporta le tabelle critiche in file JSON prima di operazioni rischiose.
- * Da eseguire come pre-deploy hook o manualmente.
+ * Esporta le tabelle di dati di lega in file JSON, per disaster recovery.
+ * Da eseguire come pre-deploy hook, manualmente, o su schedule (GitHub Actions).
  *
- * Tabelle salvate:
- * - PlayerMatchRating (statistiche partita per partita)
- * - PlayerRoster (rose dei manager)
- * - PlayerContract (contratti attivi)
- * - LeagueMember (membri delle leghe)
- * - SerieAPlayer (giocatori Serie A)
+ * Copre tutte le tabelle di stato di gioco (lega, rose, contratti, mercato,
+ * aste, scambi, premi, storico). Escluse di proposito: cache/log API-Football
+ * (rigenerabili dalla sync), AppLog/AuditLog (log tecnici), ChatMessage e
+ * UserFeedback* (non critici per il ripristino). Per User viene esclusa la
+ * password hash e il token di reset — non finiscono mai nel backup.
  */
 
 const { PrismaClient } = require('@prisma/client');
@@ -72,35 +71,10 @@ async function main() {
     tables: []
   };
 
-  console.log('1. Esecuzione backup tabelle critiche...\n');
+  console.log('1. Esecuzione backup tabelle dati di lega...\n');
 
-  // Backup PlayerMatchRating (statistiche - la più importante!)
-  backupInfo.tables.push(
-    await backupTable('PlayerMatchRating', () =>
-      prisma.playerMatchRating.findMany()
-    )
-  );
-
-  // Backup PlayerRoster (rose)
-  backupInfo.tables.push(
-    await backupTable('PlayerRoster', () =>
-      prisma.playerRoster.findMany({
-        include: {
-          player: { select: { id: true, name: true, team: true } },
-          leagueMember: { select: { id: true, teamName: true } }
-        }
-      })
-    )
-  );
-
-  // Backup PlayerContract (contratti)
-  backupInfo.tables.push(
-    await backupTable('PlayerContract', () =>
-      prisma.playerContract.findMany()
-    )
-  );
-
-  // Backup LeagueMember (membri leghe)
+  // --- Lega e membri ---
+  backupInfo.tables.push(await backupTable('League', () => prisma.league.findMany()));
   backupInfo.tables.push(
     await backupTable('LeagueMember', () =>
       prisma.leagueMember.findMany({
@@ -111,8 +85,32 @@ async function main() {
       })
     )
   );
+  backupInfo.tables.push(
+    await backupTable('LeagueInvite', () =>
+      prisma.leagueInvite.findMany({
+        select: {
+          id: true, leagueId: true, email: true, invitedBy: true,
+          status: true, expiresAt: true, acceptedAt: true, createdAt: true
+        }
+      })
+    )
+  );
 
-  // Backup SerieAPlayer (giocatori)
+  // --- Rose e contratti ---
+  backupInfo.tables.push(
+    await backupTable('PlayerRoster', () =>
+      prisma.playerRoster.findMany({
+        include: {
+          player: { select: { id: true, name: true, team: true } },
+          leagueMember: { select: { id: true, teamName: true } }
+        }
+      })
+    )
+  );
+  backupInfo.tables.push(await backupTable('PlayerContract', () => prisma.playerContract.findMany()));
+  backupInfo.tables.push(await backupTable('DraftContract', () => prisma.draftContract.findMany()));
+
+  // --- Giocatori Serie A e statistiche ---
   backupInfo.tables.push(
     await backupTable('SerieAPlayer', () =>
       prisma.serieAPlayer.findMany({
@@ -126,7 +124,48 @@ async function main() {
           age: true,
           isActive: true,
           listStatus: true,
+          exitReason: true,
+          exitDate: true,
           apiFootballId: true
+        }
+      })
+    )
+  );
+  backupInfo.tables.push(await backupTable('PlayerMatchRating', () => prisma.playerMatchRating.findMany()));
+
+  // --- Mercato e sessioni ---
+  backupInfo.tables.push(await backupTable('MarketSession', () => prisma.marketSession.findMany()));
+  backupInfo.tables.push(await backupTable('ContractConsolidation', () => prisma.contractConsolidation.findMany()));
+  backupInfo.tables.push(await backupTable('IndemnityDecision', () => prisma.indemnityDecision.findMany()));
+
+  // --- Aste (primo mercato, rubata, svincolati) ---
+  backupInfo.tables.push(await backupTable('Auction', () => prisma.auction.findMany()));
+  backupInfo.tables.push(await backupTable('AuctionBid', () => prisma.auctionBid.findMany()));
+  backupInfo.tables.push(await backupTable('AuctionObjective', () => prisma.auctionObjective.findMany()));
+  backupInfo.tables.push(await backupTable('AuctionAppeal', () => prisma.auctionAppeal.findMany()));
+
+  // --- Scambi e movimenti ---
+  backupInfo.tables.push(await backupTable('TradeOffer', () => prisma.tradeOffer.findMany()));
+  backupInfo.tables.push(await backupTable('PlayerMovement', () => prisma.playerMovement.findMany()));
+  backupInfo.tables.push(await backupTable('Prophecy', () => prisma.prophecy.findMany()));
+
+  // --- Premi ---
+  backupInfo.tables.push(await backupTable('Prize', () => prisma.prize.findMany()));
+  backupInfo.tables.push(await backupTable('PrizePhaseConfig', () => prisma.prizePhaseConfig.findMany()));
+  backupInfo.tables.push(await backupTable('PrizeCategory', () => prisma.prizeCategory.findMany()));
+  backupInfo.tables.push(await backupTable('SessionPrize', () => prisma.sessionPrize.findMany()));
+
+  // --- Storico contratti ---
+  backupInfo.tables.push(await backupTable('ContractHistory', () => prisma.contractHistory.findMany()));
+  backupInfo.tables.push(await backupTable('ManagerSessionSnapshot', () => prisma.managerSessionSnapshot.findMany()));
+
+  // --- Utenti (senza credenziali) ---
+  backupInfo.tables.push(
+    await backupTable('User', () =>
+      prisma.user.findMany({
+        select: {
+          id: true, email: true, username: true, emailVerified: true,
+          isSuperAdmin: true, createdAt: true, updatedAt: true
         }
       })
     )
