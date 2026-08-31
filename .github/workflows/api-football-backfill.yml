@@ -1,8 +1,11 @@
 name: API-Football Backfill (Statistiche Storiche)
 
 on:
-  schedule:
-    - cron: '0 5 * * *'  # Ogni giorno alle 05:00 UTC (prima del cron incrementale Vercel delle 6:00 — consuma la quota giornaliera per il backfill, l'incrementale trova quota gia' esaurita finche' il backfill non e' completo, nessun conflitto)
+  # schedule disabilitato il 2026-08-31: il piano free API-Football non copre più
+  # la stagione corrente 2025-2026 (solo 2022-2024), il run fallirebbe ogni giorno.
+  # Riattivare (rimuovere il commento sotto) solo dopo aver risolto lato piano API-Football.
+  # schedule:
+  #   - cron: '0 5 * * *'  # Ogni giorno alle 05:00 UTC
   workflow_dispatch: {}   # Permette un run manuale da GitHub
 
 jobs:
