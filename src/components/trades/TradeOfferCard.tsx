@@ -1,5 +1,6 @@
 import { Monogram } from '@/components/ui/Monogram'
 import { PlayerName } from '@/components/players/PlayerName'
+import { PlayerPhoto } from '@/components/players/PlayerPhoto'
 import { getTimeRemaining, getAgeColor } from './utils'
 import { NOT_DISPONIBILE } from '@/utils/stat-format'
 import type { Player, TradeOffer } from './types'
@@ -22,13 +23,6 @@ interface TradeOfferCardProps {
   onCancel?: (id: string) => void
 }
 
-const ROLE_BADGE: Record<string, string> = {
-  P: 'bg-accent-500/[0.14] text-accent-400',
-  D: 'bg-primary-500/[0.14] text-primary-400',
-  C: 'bg-secondary-500/[0.14] text-secondary-400',
-  A: 'bg-danger-500/[0.14] text-danger-400',
-}
-
 /** Etichetta + stile per ogni stato di un'offerta di scambio — condivisa fra la card
  * offerte (tab Concluse) e lo Storico di lega (SessionCard), stesso linguaggio ovunque. */
 export const HISTORY_STATUS: Record<string, { label: string; cls: string }> = {
@@ -47,12 +41,9 @@ function PlayerChips({ players, budget, accent, leagueId }: { players: Player[];
   return (
     <div className="flex flex-wrap gap-1.5">
       {players.map(p => {
-        const role = ROLE_BADGE[p.position] ?? 'bg-surface-100 text-gray-400'
         return (
           <span key={p.id} className="inline-flex items-center gap-1.5 bg-surface-300 border border-surface-50 rounded-full pl-1 pr-2.5 py-1 text-sm font-semibold text-white">
-            <span className={`w-5 h-5 rounded-[5px] flex items-center justify-center font-display font-extrabold text-[10px] ${role}`}>
-              {p.position}
-            </span>
+            <PlayerPhoto apiFootballId={p.apiFootballId} name={p.name} position={p.position} size="xs" showRoleBadge />
             <PlayerName
               player={{
                 name: p.name, team: p.team, position: p.position, quotation: p.quotation, age: p.age, apiFootballId: p.apiFootballId,
