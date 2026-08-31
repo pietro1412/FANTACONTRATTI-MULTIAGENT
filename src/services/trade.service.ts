@@ -285,6 +285,9 @@ export async function getReceivedOffers(leagueId: string, userId: string): Promi
           name: r.player.name,
           team: r.player.team,
           position: r.player.position,
+          age: r.player.age,
+          quotation: r.player.quotation,
+          apiFootballId: r.player.apiFootballId,
           contract: r.contract ? {
             salary: r.contract.salary,
             duration: r.contract.duration,
@@ -296,6 +299,9 @@ export async function getReceivedOffers(leagueId: string, userId: string): Promi
           name: r.player.name,
           team: r.player.team,
           position: r.player.position,
+          age: r.player.age,
+          quotation: r.player.quotation,
+          apiFootballId: r.player.apiFootballId,
           contract: r.contract ? {
             salary: r.contract.salary,
             duration: r.contract.duration,
@@ -385,6 +391,9 @@ export async function getSentOffers(leagueId: string, userId: string): Promise<S
           name: r.player.name,
           team: r.player.team,
           position: r.player.position,
+          age: r.player.age,
+          quotation: r.player.quotation,
+          apiFootballId: r.player.apiFootballId,
           contract: r.contract ? {
             salary: r.contract.salary,
             duration: r.contract.duration,
@@ -396,6 +405,9 @@ export async function getSentOffers(leagueId: string, userId: string): Promise<S
           name: r.player.name,
           team: r.player.team,
           position: r.player.position,
+          age: r.player.age,
+          quotation: r.player.quotation,
+          apiFootballId: r.player.apiFootballId,
           contract: r.contract ? {
             salary: r.contract.salary,
             duration: r.contract.duration,
@@ -913,6 +925,9 @@ export async function getTradeHistory(leagueId: string, userId: string): Promise
           name: r.player.name,
           team: r.player.team,
           position: r.player.position,
+          age: r.player.age,
+          quotation: r.player.quotation,
+          apiFootballId: r.player.apiFootballId,
           contract: r.contract ? {
             salary: r.contract.salary,
             duration: r.contract.duration,
@@ -924,6 +939,9 @@ export async function getTradeHistory(leagueId: string, userId: string): Promise
           name: r.player.name,
           team: r.player.team,
           position: r.player.position,
+          age: r.player.age,
+          quotation: r.player.quotation,
+          apiFootballId: r.player.apiFootballId,
           contract: r.contract ? {
             salary: r.contract.salary,
             duration: r.contract.duration,
