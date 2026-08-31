@@ -534,6 +534,8 @@ export const playerApi = {
     sortOrder?: 'asc' | 'desc'
     page?: number
     limit?: number
+    leagueId?: string
+    status?: 'all' | 'free' | 'rostered' | 'exited'
   }) => {
     const params = new URLSearchParams()
     if (filters?.position) params.append('position', filters.position)
@@ -543,6 +545,8 @@ export const playerApi = {
     if (filters?.sortOrder) params.append('sortOrder', filters.sortOrder)
     if (filters?.page) params.append('page', String(filters.page))
     if (filters?.limit) params.append('limit', String(filters.limit))
+    if (filters?.leagueId) params.append('leagueId', filters.leagueId)
+    if (filters?.status) params.append('status', filters.status)
     const query = params.toString()
     return request<{
       players: Array<{
@@ -553,6 +557,8 @@ export const playerApi = {
         quotation: number
         apiFootballId: number | null
         statsSyncedAt: string | null
+        listStatus?: string
+        exitReason?: string | null
         stats: {
           appearances: number
           minutes: number

@@ -88,7 +88,7 @@ router.get('/teams', authMiddleware, async (_req: Request, res: Response) => {
 // GET /api/players/stats - Get players with Serie A statistics
 router.get('/stats', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { position, team, search, sortBy, sortOrder, page, limit } = req.query
+    const { position, team, search, sortBy, sortOrder, page, limit, leagueId, status } = req.query
 
     // Build where clause
     const where: Prisma.SerieAPlayerWhereInput = {
@@ -105,6 +105,31 @@ router.get('/stats', authMiddleware, async (req: Request, res: Response) => {
 
     if (search) {
       where.name = { contains: search as string, mode: 'insensitive' }
+    }
+
+    // Un giocatore uscito da Serie A (ESTERO/RETROCESSO/RITIRATO) non è
+    // realmente disponibile a meno che non sia ancora in una rosa di questa
+    // lega (indennizzo non ancora accettato, o tenuto dal manager) — stessa
+    // regola già applicata a "Tutti i giocatori" (vedi RoseGiocatori.tsx).
+    const rosteredIds = leagueId
+      ? (await prisma.playerRoster.findMany({
+          where: { leagueMember: { leagueId: leagueId as string }, status: 'ACTIVE' },
+          select: { playerId: true },
+        })).map(r => r.playerId)
+      : null
+
+    if (status === 'free') {
+      where.exitReason = null
+      if (rosteredIds) where.id = { notIn: rosteredIds }
+    } else if (status === 'rostered') {
+      where.id = { in: rosteredIds ?? [] }
+    } else if (status === 'exited') {
+      where.id = { in: rosteredIds ?? [] }
+      where.exitReason = { not: null }
+    } else {
+      where.OR = rosteredIds
+        ? [{ exitReason: null }, { id: { in: rosteredIds } }]
+        : [{ exitReason: null }]
     }
 
     // Pagination
@@ -127,6 +152,8 @@ router.get('/stats', authMiddleware, async (req: Request, res: Response) => {
         apiFootballId: true,
         apiFootballStats: true,
         statsSyncedAt: true,
+        listStatus: true,
+        exitReason: true,
       },
       // Keep the user-selected criterion; add role+name as coherent tiebreaker
       orderBy: sortBy === 'quotation'
@@ -164,6 +191,8 @@ router.get('/stats', authMiddleware, async (req: Request, res: Response) => {
         quotation: p.quotation,
         apiFootballId: p.apiFootballId,
         statsSyncedAt: p.statsSyncedAt,
+        listStatus: p.listStatus,
+        exitReason: p.exitReason,
         computedStats: statsMap.get(p.id) || null,
         stats: stats ? {
           appearances: stats.games?.appearences ?? 0,

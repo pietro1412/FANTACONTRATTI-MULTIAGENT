@@ -23,7 +23,8 @@ import { RosterFilters } from '@/components/players/RosterFilters'
 import { RosterTableRow, ROSTER_ROW_GRID_BASE, ROSTER_ROW_GRID_EXTRA, ROSTER_ROW_GAP } from '@/components/players/RosterTableRow'
 import { RosterPlayerCard } from '@/components/players/RosterPlayerCard'
 import { RosterSidebar, type CompositionRankingRow } from '@/components/players/RosterSidebar'
-import type { RosterEntry, RosterRowStatus } from '@/components/players/types'
+import { getExitReasonTag, type RosterEntry, type RosterRowStatus } from '@/components/players/types'
+import { Tag } from '@/components/contracts/shared'
 import { Tabs, type TabItem } from '@/components/ui/Tabs'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import { GLOSSARY } from '@/components/help/Glossary'
@@ -178,6 +179,9 @@ type PlayerWithStats = {
   apiFootballId: number | null
   computedStats?: ComputedSeasonStats | null
   statsSyncedAt: string | null
+  /** Motivo di uscita dalla Serie A (RITIRATO/RETROCESSO/ESTERO), se noto. */
+  listStatus?: string
+  exitReason?: string | null
   stats: {
     appearances: number
     minutes: number
@@ -575,7 +579,7 @@ export function RoseGiocatori({ onNavigate, initialView = 'rose', initialTeamFil
   const [plLoading, setPlLoading] = useState(true)
   const [plRosterMap, setPlRosterMap] = useState<Map<string, RosterInfo>>(new Map())
   const [plAvailableTeams, setPlAvailableTeams] = useState<string[]>([])
-  const [plStatusFilter, setPlStatusFilter] = useState<'all' | 'free' | 'rostered'>(initialTeamFilter ? 'rostered' : 'all')
+  const [plStatusFilter, setPlStatusFilter] = useState<'all' | 'free' | 'rostered' | 'exited'>(initialTeamFilter ? 'rostered' : 'all')
   const [plTeamFilter, setPlTeamFilter] = useState<string>(initialTeamFilter || '')
   const [plSerieATeam, setPlSerieATeam] = useState('')
 
@@ -635,6 +639,7 @@ export function RoseGiocatori({ onNavigate, initialView = 'rose', initialTeamFil
         if (!p.rosterInfo && p.exitReason) return false
         if (plStatusFilter === 'free' && p.rosterInfo) return false
         if (plStatusFilter === 'rostered' && !p.rosterInfo) return false
+        if (plStatusFilter === 'exited' && !p.exitReason) return false
         if (plTeamFilter && p.rosterInfo?.teamName !== plTeamFilter) return false
         if (plSerieATeam && p.team !== plSerieATeam) return false
         return true
@@ -664,6 +669,7 @@ export function RoseGiocatori({ onNavigate, initialView = 'rose', initialTeamFil
   const [statsLoading, setStatsLoading] = useState(true)
   const [statsError, setStatsError] = useState<string | null>(null)
   const [statsTeamFilter, setStatsTeamFilter] = useState('')
+  const [statsStatusFilter, setStatsStatusFilter] = useState<'all' | 'free' | 'rostered' | 'exited'>('all')
   const [statsSortBy, setStatsSortBy] = useState<string>('position')
   const [statsSortOrder, setStatsSortOrder] = useState<'asc' | 'desc'>('asc')
   const [statsPage, setStatsPage] = useState(1)
@@ -703,6 +709,8 @@ export function RoseGiocatori({ onNavigate, initialView = 'rose', initialTeamFil
         sortOrder: statsSortOrder,
         page: statsPage,
         limit: 50,
+        leagueId: leagueId || undefined,
+        status: statsStatusFilter,
       })
       if (res.success && res.data) {
         setStatsPlayers(res.data.players as PlayerWithStats[])
@@ -714,7 +722,7 @@ export function RoseGiocatori({ onNavigate, initialView = 'rose', initialTeamFil
     } finally {
       setStatsLoading(false)
     }
-  }, [plPositionFilter, statsTeamFilter, plSearchQuery, statsSortBy, statsSortOrder, statsPage])
+  }, [plPositionFilter, statsTeamFilter, statsStatusFilter, plSearchQuery, statsSortBy, statsSortOrder, statsPage, leagueId])
 
   useEffect(() => {
     void plLoadTeams()
@@ -722,7 +730,7 @@ export function RoseGiocatori({ onNavigate, initialView = 'rose', initialTeamFil
 
   useEffect(() => {
     setStatsPage(1)
-  }, [plPositionFilter, plSearchQuery])
+  }, [plPositionFilter, plSearchQuery, statsStatusFilter])
 
   useEffect(() => {
     if (tab === 'stats') void statsLoadPlayers()
@@ -1117,6 +1125,7 @@ export function RoseGiocatori({ onNavigate, initialView = 'rose', initialTeamFil
           { key: 'all', label: 'Tutti' },
           { key: 'free', label: 'Liberi' },
           { key: 'rostered', label: 'In rosa' },
+          { key: 'exited', label: 'Fuori Serie A' },
         ] as const).map(opt => {
           const active = plStatusFilter === opt.key
           return (
@@ -1132,7 +1141,9 @@ export function RoseGiocatori({ onNavigate, initialView = 'rose', initialTeamFil
                 active
                   ? opt.key === 'free'
                     ? 'bg-secondary-500/20 text-secondary-400 border-secondary-500/40'
-                    : 'bg-accent-400 text-dark-300 border-accent-400'
+                    : opt.key === 'exited'
+                      ? 'bg-warning-500/20 text-warning-400 border-warning-500/40'
+                      : 'bg-accent-400 text-dark-300 border-accent-400'
                   : 'border-surface-50 text-gray-500 hover:text-gray-300'
               }`}
             >
@@ -1285,6 +1296,36 @@ export function RoseGiocatori({ onNavigate, initialView = 'rose', initialTeamFil
     <div className="flex items-center gap-2.5 flex-wrap">
       <PlayerRoleFilter value={plPositionFilter} onChange={setPlPositionFilter} />
       <div className="hidden sm:block w-px h-5 bg-surface-50" />
+      <div className="hidden md:inline-flex items-center gap-1.5">
+        {([
+          { key: 'all', label: 'Tutti' },
+          { key: 'free', label: 'Liberi' },
+          { key: 'rostered', label: 'In rosa' },
+          { key: 'exited', label: 'Fuori Serie A' },
+        ] as const).map(opt => {
+          const active = statsStatusFilter === opt.key
+          return (
+            <button
+              key={opt.key}
+              type="button"
+              onClick={() => { setStatsStatusFilter(opt.key); }}
+              aria-pressed={active}
+              className={`font-mono text-[9.5px] font-bold tracking-[0.08em] uppercase rounded-full px-2.5 py-1 border transition-colors ${
+                active
+                  ? opt.key === 'free'
+                    ? 'bg-secondary-500/20 text-secondary-400 border-secondary-500/40'
+                    : opt.key === 'exited'
+                      ? 'bg-warning-500/20 text-warning-400 border-warning-500/40'
+                      : 'bg-accent-400 text-dark-300 border-accent-400'
+                  : 'border-surface-50 text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              {opt.label}
+            </button>
+          )
+        })}
+      </div>
+      <div className="hidden sm:block w-px h-5 bg-surface-50" />
       {plTeams.length > 0 && (
         <select
           value={statsTeamFilter}
@@ -1423,6 +1464,10 @@ export function RoseGiocatori({ onNavigate, initialView = 'rose', initialTeamFil
                         >
                           {player.name}
                         </button>
+                        {(() => {
+                          const exitTag = getExitReasonTag(player.exitReason)
+                          return exitTag ? <Tag tone={exitTag.tone}>{exitTag.label}</Tag> : null
+                        })()}
                       </div>
                     </td>
                     <td className="text-right px-2.5 py-2 border-b border-surface-50/10 stat-number text-sm text-white">
@@ -1481,6 +1526,10 @@ export function RoseGiocatori({ onNavigate, initialView = 'rose', initialTeamFil
                     >
                       {player.name}
                     </button>
+                    {(() => {
+                      const exitTag = getExitReasonTag(player.exitReason)
+                      return exitTag ? <div className="mt-1"><Tag tone={exitTag.tone}>{exitTag.label}</Tag></div> : null
+                    })()}
                   </div>
                   <div className="text-right flex-shrink-0">
                     <span className="micro-label text-[8px] text-gray-500 block">Quot</span>
@@ -1673,11 +1722,12 @@ export function RoseGiocatori({ onNavigate, initialView = 'rose', initialTeamFil
             <>
               <div>
                 <label className="block micro-label mb-2">Stato</label>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   {([
                     { key: 'all', label: 'Tutti' },
                     { key: 'free', label: 'Liberi' },
                     { key: 'rostered', label: 'In rosa' },
+                    { key: 'exited', label: 'Fuori Serie A' },
                   ] as const).map(opt => (
                     <button
                       key={opt.key}
@@ -1686,7 +1736,7 @@ export function RoseGiocatori({ onNavigate, initialView = 'rose', initialTeamFil
                         setPlStatusFilter(opt.key)
                         if (opt.key !== 'rostered') setPlTeamFilter('')
                       }}
-                      className={`flex-1 px-3 py-2.5 text-sm font-medium rounded-lg border transition-colors ${
+                      className={`flex-1 min-w-[calc(50%-4px)] px-3 py-2.5 text-sm font-medium rounded-lg border transition-colors ${
                         plStatusFilter === opt.key
                           ? 'bg-accent-400 text-dark-300 border-accent-400'
                           : 'bg-surface-300 text-gray-500 border-surface-50'
@@ -1731,6 +1781,30 @@ export function RoseGiocatori({ onNavigate, initialView = 'rose', initialTeamFil
 
           {tab === 'stats' && (
             <>
+              <div>
+                <label className="block micro-label mb-2">Stato</label>
+                <div className="flex gap-2 flex-wrap">
+                  {([
+                    { key: 'all', label: 'Tutti' },
+                    { key: 'free', label: 'Liberi' },
+                    { key: 'rostered', label: 'In rosa' },
+                    { key: 'exited', label: 'Fuori Serie A' },
+                  ] as const).map(opt => (
+                    <button
+                      key={opt.key}
+                      type="button"
+                      onClick={() => { setStatsStatusFilter(opt.key); }}
+                      className={`flex-1 min-w-[calc(50%-4px)] px-3 py-2.5 text-sm font-medium rounded-lg border transition-colors ${
+                        statsStatusFilter === opt.key
+                          ? 'bg-accent-400 text-dark-300 border-accent-400'
+                          : 'bg-surface-300 text-gray-500 border-surface-50'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <div>
                 <label className="block micro-label mb-2">Preset colonne</label>
                 <div className="grid grid-cols-3 gap-2">
