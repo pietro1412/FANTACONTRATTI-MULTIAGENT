@@ -1,0 +1,26 @@
+name: API-Football Backfill (Statistiche Storiche)
+
+on:
+  schedule:
+    - cron: '0 5 * * *'  # Ogni giorno alle 05:00 UTC (prima del cron incrementale Vercel delle 6:00 — consuma la quota giornaliera per il backfill, l'incrementale trova quota gia' esaurita finche' il backfill non e' completo, nessun conflitto)
+  workflow_dispatch: {}   # Permette un run manuale da GitHub
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Backfill statistiche partite mancanti (stagione 2025-2026)
+        run: npx tsx scripts/sync-api-football.ts --backfill
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
