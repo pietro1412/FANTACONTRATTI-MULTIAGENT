@@ -107,6 +107,17 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
     void loadData()
   }, [leagueId])
 
+  // Segue highlightOfferId anche quando la pagina Scambi è già montata (es. si clicca
+  // la notifica dal bell mentre si è già su questa pagina): la navigazione aggiorna solo
+  // lo state della stessa route, senza remount, quindi l'inizializzatore di useState da
+  // solo non basta.
+  useEffect(() => {
+    if (highlightOfferId) {
+      setActiveTab('received')
+      setHighlightedOfferId(highlightOfferId)
+    }
+  }, [highlightOfferId])
+
   // Scroll to highlighted offer and clear highlight after a few seconds
   useEffect(() => {
     if (highlightedOfferId && !isLoading) {
