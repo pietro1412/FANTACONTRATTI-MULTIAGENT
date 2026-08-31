@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { recordMovement } from './movement.service'
 import { notifyTradeOffer, notifyTradeInvalidated } from './notification.service'
 import { triggerTradeOfferReceived, triggerTradeUpdated } from './pusher.service'
+import { computeSeasonStatsBatch } from './player-stats.service'
 import type { ServiceResult } from '@/shared/types/service-result'
 
 // ==================== PHASE CHECK ====================
@@ -269,6 +270,9 @@ export async function getReceivedOffers(leagueId: string, userId: string): Promi
         where: { id: { in: requestedPlayerIds } },
         include: { player: true, contract: true },
       })
+      const statsMap = await computeSeasonStatsBatch(
+        [...offeredPlayers, ...requestedPlayers].map(r => r.player.id)
+      )
       return {
         id: offer.id,
         senderId: offer.senderId,
@@ -288,6 +292,7 @@ export async function getReceivedOffers(leagueId: string, userId: string): Promi
           age: r.player.age,
           quotation: r.player.quotation,
           apiFootballId: r.player.apiFootballId,
+          computedStats: statsMap.get(r.player.id) || null,
           contract: r.contract ? {
             salary: r.contract.salary,
             duration: r.contract.duration,
@@ -302,6 +307,7 @@ export async function getReceivedOffers(leagueId: string, userId: string): Promi
           age: r.player.age,
           quotation: r.player.quotation,
           apiFootballId: r.player.apiFootballId,
+          computedStats: statsMap.get(r.player.id) || null,
           contract: r.contract ? {
             salary: r.contract.salary,
             duration: r.contract.duration,
@@ -375,6 +381,9 @@ export async function getSentOffers(leagueId: string, userId: string): Promise<S
         where: { id: { in: requestedPlayerIds } },
         include: { player: true, contract: true },
       })
+      const statsMap = await computeSeasonStatsBatch(
+        [...offeredPlayers, ...requestedPlayers].map(r => r.player.id)
+      )
       return {
         id: offer.id,
         senderId: offer.senderId,
@@ -394,6 +403,7 @@ export async function getSentOffers(leagueId: string, userId: string): Promise<S
           age: r.player.age,
           quotation: r.player.quotation,
           apiFootballId: r.player.apiFootballId,
+          computedStats: statsMap.get(r.player.id) || null,
           contract: r.contract ? {
             salary: r.contract.salary,
             duration: r.contract.duration,
@@ -408,6 +418,7 @@ export async function getSentOffers(leagueId: string, userId: string): Promise<S
           age: r.player.age,
           quotation: r.player.quotation,
           apiFootballId: r.player.apiFootballId,
+          computedStats: statsMap.get(r.player.id) || null,
           contract: r.contract ? {
             salary: r.contract.salary,
             duration: r.contract.duration,
@@ -907,6 +918,9 @@ export async function getTradeHistory(leagueId: string, userId: string): Promise
         where: { id: { in: requestedPlayerIds } },
         include: { player: true, contract: true },
       })
+      const statsMap = await computeSeasonStatsBatch(
+        [...offeredPlayers, ...requestedPlayers].map(r => r.player.id)
+      )
 
       return {
         id: trade.id,
@@ -928,6 +942,7 @@ export async function getTradeHistory(leagueId: string, userId: string): Promise
           age: r.player.age,
           quotation: r.player.quotation,
           apiFootballId: r.player.apiFootballId,
+          computedStats: statsMap.get(r.player.id) || null,
           contract: r.contract ? {
             salary: r.contract.salary,
             duration: r.contract.duration,
@@ -942,6 +957,7 @@ export async function getTradeHistory(leagueId: string, userId: string): Promise
           age: r.player.age,
           quotation: r.player.quotation,
           apiFootballId: r.player.apiFootballId,
+          computedStats: statsMap.get(r.player.id) || null,
           contract: r.contract ? {
             salary: r.contract.salary,
             duration: r.contract.duration,
