@@ -148,6 +148,8 @@ function toRosterEntry(p: ListPlayerWithRoster): RosterEntry {
       apiFootballId: p.apiFootballId,
       computedStats: p.computedStats ?? null,
       statsSyncedAt: p.statsSyncedAt ?? null,
+      listStatus: p.listStatus,
+      exitReason: p.exitReason,
     },
     contract: p.rosterInfo?.contract
       ? {
@@ -625,6 +627,12 @@ export function RoseGiocatori({ onNavigate, initialView = 'rose', initialTeamFil
     const filtered = plPlayers
       .map(p => ({ ...p, rosterInfo: plRosterMap.get(p.id) }))
       .filter(p => {
+        // Un giocatore libero e uscito dalla Serie A (ESTERO/RETROCESSO/RITIRATO)
+        // non è realmente disponibile per il mercato: non va mostrato come
+        // "LIBERO". Se invece è ancora in una rosa (indennizzo non ancora
+        // accettato, o il manager lo tiene) resta visibile con l'owner e
+        // l'indicatore "Fuori Serie A" (vedi toRosterEntry).
+        if (!p.rosterInfo && p.exitReason) return false
         if (plStatusFilter === 'free' && p.rosterInfo) return false
         if (plStatusFilter === 'rostered' && !p.rosterInfo) return false
         if (plTeamFilter && p.rosterInfo?.teamName !== plTeamFilter) return false
@@ -635,7 +643,7 @@ export function RoseGiocatori({ onNavigate, initialView = 'rose', initialTeamFil
   }, [plPlayers, plRosterMap, plStatusFilter, plTeamFilter, plSerieATeam])
 
   const plFreeCount = useMemo(
-    () => plPlayers.filter(p => !plRosterMap.has(p.id)).length,
+    () => plPlayers.filter(p => !plRosterMap.has(p.id) && !p.exitReason).length,
     [plPlayers, plRosterMap],
   )
 
