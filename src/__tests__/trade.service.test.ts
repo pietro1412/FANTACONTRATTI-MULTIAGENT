@@ -33,6 +33,12 @@ const { mockPrisma, MockPrismaClient } = vi.hoisted(() => {
       updateMany: vi.fn(),
       aggregate: vi.fn(),
     },
+    playerMatchRating: {
+      findMany: vi.fn(),
+    },
+    serieAPlayer: {
+      findMany: vi.fn(),
+    },
     marketSession: {
       findFirst: vi.fn(),
       findUnique: vi.fn(),
@@ -73,6 +79,9 @@ vi.mock('@prisma/client', () => ({
     CANCELLED: 'CANCELLED',
     INVALIDATED: 'INVALIDATED',
     EXPIRED: 'EXPIRED',
+  },
+  Prisma: {
+    DbNull: 'DbNull', // sentinella per Prisma.DbNull (usato da computeSeasonStatsBatch), valore non ispezionato dal mock
   },
 }))
 
@@ -168,6 +177,9 @@ describe('Trade Service', () => {
     mockTriggerTradeOfferReceived.mockResolvedValue(true)
     mockTriggerTradeUpdated.mockResolvedValue(true)
     mockRecordMovement.mockResolvedValue('movement-id')
+    // computeSeasonStatsBatch (usato per arricchire i giocatori nelle offerte, vedi 008439d)
+    mockPrisma.playerMatchRating.findMany.mockResolvedValue([])
+    mockPrisma.serieAPlayer.findMany.mockResolvedValue([])
   })
 
   // ==================== createTradeOffer ====================
