@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { tradeApi, leagueApi } from '../services/api'
 import { getTeamLogo } from '../utils/teamLogos'
 
@@ -98,7 +99,13 @@ export function Notifications({ leagueId, isAdmin, onNavigate }: NotificationsPr
   const [offers, setOffers] = useState<TradeOffer[]>([])
   const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  // Bottone + pannello separati: il pannello va portato su document.body (vedi sotto),
+  // stesso pattern già usato per i dropdown profilo/"Altro" in Navigation.tsx — un
+  // pannello absolute annidato nell'header (che ha overflow-x-auto) finisce clippato
+  // o coperto quando l'header va in overflow/wrap.
+  const buttonRef = useRef<HTMLDivElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; right: number } | null>(null)
 
   useEffect(() => {
     void loadNotifications()
@@ -107,10 +114,13 @@ export function Notifications({ leagueId, isAdmin, onNavigate }: NotificationsPr
     return () => { clearInterval(interval); }
   }, [leagueId, isAdmin])
 
-  // Close dropdown when clicking outside
+  // Close dropdown when clicking outside (bottone O pannello portato)
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      const target = event.target as Node
+      const insideButton = buttonRef.current?.contains(target)
+      const insidePanel = dropdownRef.current?.contains(target)
+      if (!insideButton && !insidePanel) {
         setIsOpen(false)
       }
     }
@@ -138,6 +148,14 @@ export function Notifications({ leagueId, isAdmin, onNavigate }: NotificationsPr
     setIsLoading(false)
   }
 
+  const toggleOpen = useCallback(() => {
+    if (!isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect()
+      setDropdownPos({ top: rect.bottom + 8, right: window.innerWidth - rect.right })
+    }
+    setIsOpen(prev => !prev)
+  }, [isOpen])
+
   function handleViewOffer(offerId: string) {
     setIsOpen(false)
     onNavigate('trades', { leagueId, highlight: offerId })
@@ -162,10 +180,10 @@ export function Notifications({ leagueId, isAdmin, onNavigate }: NotificationsPr
   const totalCount = tradeCount + requestCount
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative" ref={buttonRef}>
       {/* Bell Button */}
       <button
-        onClick={() => { setIsOpen(!isOpen); }}
+        onClick={toggleOpen}
         className="relative p-2 text-gray-400 hover:text-white transition-colors rounded-lg hover:bg-surface-300/50"
         title="Notifiche"
         aria-label="Notifiche"
@@ -182,9 +200,14 @@ export function Notifications({ leagueId, isAdmin, onNavigate }: NotificationsPr
         )}
       </button>
 
-      {/* Dropdown */}
-      {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 bg-surface-200 border border-surface-50/30 rounded-xl shadow-2xl overflow-hidden z-50">
+      {/* Dropdown — portato su document.body (vedi buttonRef/dropdownRef sopra):
+          posizione calcolata in JS, non CSS absolute annidato nell'header. */}
+      {isOpen && dropdownPos && createPortal(
+        <div
+          ref={dropdownRef}
+          style={{ top: dropdownPos.top, right: dropdownPos.right }}
+          className="fixed w-80 bg-surface-200 border border-surface-50/30 rounded-xl shadow-2xl overflow-hidden z-[100]"
+        >
           {/* Header with tabs if admin */}
           <div className="px-4 py-3 bg-gradient-to-r from-surface-300 to-transparent border-b border-surface-50/20">
             {isAdmin && requestCount > 0 ? (
@@ -376,7 +399,8 @@ export function Notifications({ leagueId, isAdmin, onNavigate }: NotificationsPr
               </button>
             </div>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
