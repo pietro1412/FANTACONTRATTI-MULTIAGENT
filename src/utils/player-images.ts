@@ -8,6 +8,7 @@ export const SERIE_A_TEAM_IDS: Record<string, number> = {
   'Como': 895,
   'Empoli': 511,
   'Fiorentina': 502,
+  'Frosinone': 512,
   'Genoa': 495,
   'Inter': 505,
   'Juventus': 496,
