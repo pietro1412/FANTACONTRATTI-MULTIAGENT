@@ -82,6 +82,8 @@ interface ListPlayer {
   position: 'P' | 'D' | 'C' | 'A'
   quotation: number
   listStatus: string
+  /** Motivo di uscita dalla Serie A (RITIRATO/RETROCESSO/ESTERO), se noto. */
+  exitReason?: string | null
   age?: number | null
   apiFootballId?: number | null
   apiFootballStats?: {
@@ -160,7 +162,7 @@ function toRosterEntry(p: ListPlayerWithRoster): RosterEntry {
 function toRowStatus(p: ListPlayerWithRoster): RosterRowStatus {
   return p.rosterInfo
     ? { free: false, ownerName: p.rosterInfo.teamName || p.rosterInfo.memberUsername }
-    : { free: true }
+    : { free: true, exitReason: p.exitReason }
 }
 
 // ----- Stats tab (Serie A tabellone) -----

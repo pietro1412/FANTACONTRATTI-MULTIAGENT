@@ -1,9 +1,10 @@
 import { PlayerPhoto } from './PlayerPhoto'
 import { TeamLogo } from '@/components/ui/TeamLogo'
 import { Monogram } from '@/components/ui/Monogram'
+import { Tag } from '@/components/contracts/shared'
 import { formatSeasonStats, NOT_DISPONIBILE, getAgeColor } from '@/utils/stat-format'
 import { isOutOfSerieA, getExitReasonLabel } from '@/components/PlayerStatsModal'
-import type { ComputedSeasonStats, RosterEntry, RosterRowStatus } from './types'
+import { getExitReasonTag, type ComputedSeasonStats, type RosterEntry, type RosterRowStatus } from './types'
 
 export interface RosterTableRowProps {
   entry: RosterEntry
@@ -139,9 +140,16 @@ export function RosterTableRow({ entry, onPlayerClick, status, showQuotation }: 
       {status !== undefined && (
         <div className="min-w-0">
           {status.free ? (
-            <span className="inline-flex font-mono text-[9.5px] font-bold tracking-[0.06em] text-secondary-400 bg-secondary-500/10 border border-secondary-500/35 rounded-full px-2.5 py-0.5">
-              LIBERO
-            </span>
+            (() => {
+              const exitTag = getExitReasonTag(status.exitReason)
+              return exitTag ? (
+                <Tag tone={exitTag.tone}>{exitTag.label}</Tag>
+              ) : (
+                <span className="inline-flex font-mono text-[9.5px] font-bold tracking-[0.06em] text-secondary-400 bg-secondary-500/10 border border-secondary-500/35 rounded-full px-2.5 py-0.5">
+                  LIBERO
+                </span>
+              )
+            })()
           ) : (
             <span className="inline-flex items-center gap-1.5 text-[11px] text-gray-300 min-w-0">
               <Monogram name={status.ownerName} size="xs" />

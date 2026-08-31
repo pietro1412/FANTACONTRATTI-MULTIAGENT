@@ -51,7 +51,24 @@ export interface RosterEntry {
  * Free-agent / owner status column — shown only when provided. Rose omits it
  * (every entry there is always "in rosa" by definition); the "Tutti i
  * giocatori" tab passes it to distinguish free agents from rostered players.
+ * `exitReason`, when set on a free entry, means the player is not a genuine
+ * free agent but has left Serie A (ESTERO/RETROCESSO/RITIRATO) — see
+ * getExitReasonTag below.
  */
 export type RosterRowStatus =
-  | { free: true }
+  | { free: true; exitReason?: string | null }
   | { free: false; ownerName: string }
+
+export type ExitReasonTagTone = 'primary' | 'secondary' | 'accent' | 'danger' | 'warning' | 'neutral'
+
+const EXIT_REASON_TAGS: Record<string, { tone: ExitReasonTagTone; label: string }> = {
+  ESTERO: { tone: 'accent', label: 'ESTERO' },
+  RETROCESSO: { tone: 'primary', label: 'RETROCESSO' },
+  RITIRATO: { tone: 'neutral', label: 'RITIRATO' },
+}
+
+/** Tone + label for a player's exitReason, or null if not set/unrecognized. */
+export function getExitReasonTag(exitReason?: string | null): { tone: ExitReasonTagTone; label: string } | null {
+  if (!exitReason) return null
+  return EXIT_REASON_TAGS[exitReason] ?? { tone: 'neutral', label: exitReason }
+}
