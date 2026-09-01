@@ -32,6 +32,7 @@ import { SlidersHorizontal } from 'lucide-react'
 import { sortPlayersByRoleAndName, comparePlayersByRoleAndName } from '@/utils/player-sort'
 import { formatStat } from '@/utils/stat-format'
 import type { ComputedSeasonStats } from '@/services/player-stats.service'
+import type { FantacalcioSeasonStats } from '@/services/fantacalcio-stats.service'
 
 // ==================== TYPES ====================
 
@@ -92,6 +93,7 @@ interface ListPlayer {
     goals?: { total?: number | null; assists?: number | null } | null
   } | null
   computedStats?: ComputedSeasonStats | null
+  fantacalcioStats?: FantacalcioSeasonStats | null
   statsSyncedAt?: string | null
 }
 
@@ -148,6 +150,7 @@ function toRosterEntry(p: ListPlayerWithRoster): RosterEntry {
       age: p.age,
       apiFootballId: p.apiFootballId,
       computedStats: p.computedStats ?? null,
+      fantacalcioStats: p.fantacalcioStats ?? null,
       statsSyncedAt: p.statsSyncedAt ?? null,
       listStatus: p.listStatus,
       exitReason: p.exitReason,
@@ -178,73 +181,48 @@ type PlayerWithStats = {
   quotation: number
   apiFootballId: number | null
   computedStats?: ComputedSeasonStats | null
+  fantacalcioStats?: FantacalcioSeasonStats | null
   statsSyncedAt: string | null
   /** Motivo di uscita dalla Serie A (RITIRATO/RETROCESSO/ESTERO), se noto. */
   listStatus?: string
   exitReason?: string | null
-  stats: {
-    appearances: number
-    minutes: number
-    rating: number | null
-    goals: number
-    assists: number
-    yellowCards: number
-    redCards: number
-    passesTotal: number
-    passesKey: number
-    passAccuracy: number | null
-    shotsTotal: number
-    shotsOn: number
-    tacklesTotal: number
-    interceptions: number
-    dribblesAttempts: number
-    dribblesSuccess: number
-    penaltyScored: number
-    penaltyMissed: number
-  } | null
 }
 
 interface ColumnDef {
   key: string
   label: string
   shortLabel: string
-  category: 'general' | 'attack' | 'defense' | 'passing' | 'discipline'
+  category: 'general' | 'attack' | 'discipline'
   getValue: (player: PlayerWithStats) => number | string | null
   format?: (val: number | null) => string
   tone?: 'good' | 'attack' | 'pass' | 'warning' | 'danger'
   sortable?: boolean
 }
 
+// Colonne da fantacalcio.it (fonte primaria): niente minuti/tiri/passaggi/
+// dribbling/contrasti/cartellini — quella fonte non li fornisce (vedi
+// FantacalcioSeasonStats in fantacalcio-stats.service.ts).
 const STAT_COLUMNS: ColumnDef[] = [
-  { key: 'appearances', label: 'Presenze', shortLabel: 'Pres', category: 'general', getValue: p => p.stats?.appearances ?? null, sortable: true },
-  { key: 'minutes', label: 'Minuti Giocati', shortLabel: 'Min', category: 'general', getValue: p => p.stats?.minutes ?? null, sortable: true },
-  { key: 'rating', label: 'Rating Medio', shortLabel: 'Rating', category: 'general', getValue: p => p.stats?.rating ?? null, format: v => formatStat(v, { decimals: 2 }), sortable: true },
-  { key: 'goals', label: 'Gol', shortLabel: 'Gol', category: 'attack', getValue: p => p.stats?.goals ?? null, tone: 'good', sortable: true },
-  { key: 'assists', label: 'Assist', shortLabel: 'Ass', category: 'attack', getValue: p => p.stats?.assists ?? null, tone: 'attack', sortable: true },
-  { key: 'ga', label: 'Gol + Assist', shortLabel: 'G+A', category: 'attack', getValue: p => p.stats ? p.stats.goals + p.stats.assists : null, sortable: true },
-  { key: 'shotsTotal', label: 'Tiri Totali', shortLabel: 'Tiri', category: 'attack', getValue: p => p.stats?.shotsTotal ?? null, sortable: true },
-  { key: 'shotsOn', label: 'Tiri in Porta', shortLabel: 'TiP', category: 'attack', getValue: p => p.stats?.shotsOn ?? null, sortable: true },
-  { key: 'shotsAccuracy', label: 'Precisione Tiri %', shortLabel: 'Tiri%', category: 'attack', getValue: p => p.stats && p.stats.shotsTotal > 0 ? Math.round((p.stats.shotsOn / p.stats.shotsTotal) * 100) : null, format: v => formatStat(v, { suffix: '%' }), sortable: true },
-  { key: 'penaltyScored', label: 'Rigori Segnati', shortLabel: 'RigS', category: 'attack', getValue: p => p.stats?.penaltyScored ?? null, sortable: true },
-  { key: 'penaltyMissed', label: 'Rigori Sbagliati', shortLabel: 'RigX', category: 'attack', getValue: p => p.stats?.penaltyMissed ?? null, tone: 'danger', sortable: true },
-  { key: 'tacklesTotal', label: 'Contrasti', shortLabel: 'Tckl', category: 'defense', getValue: p => p.stats?.tacklesTotal ?? null, sortable: true },
-  { key: 'interceptions', label: 'Intercetti', shortLabel: 'Int', category: 'defense', getValue: p => p.stats?.interceptions ?? null, sortable: true },
-  { key: 'passesTotal', label: 'Passaggi Totali', shortLabel: 'Pass', category: 'passing', getValue: p => p.stats?.passesTotal ?? null, sortable: true },
-  { key: 'passesKey', label: 'Passaggi Chiave', shortLabel: 'KeyP', category: 'passing', getValue: p => p.stats?.passesKey ?? null, tone: 'attack', sortable: true },
-  { key: 'passAccuracy', label: 'Precisione Pass %', shortLabel: 'Pass%', category: 'passing', getValue: p => p.stats?.passAccuracy ?? null, format: v => formatStat(v, { suffix: '%' }), sortable: true },
-  { key: 'dribblesAttempts', label: 'Dribbling Tentati', shortLabel: 'DrbT', category: 'passing', getValue: p => p.stats?.dribblesAttempts ?? null, sortable: true },
-  { key: 'dribblesSuccess', label: 'Dribbling Riusciti', shortLabel: 'DrbR', category: 'passing', getValue: p => p.stats?.dribblesSuccess ?? null, sortable: true },
-  { key: 'dribblesAccuracy', label: 'Dribbling %', shortLabel: 'Drb%', category: 'passing', getValue: p => p.stats && p.stats.dribblesAttempts > 0 ? Math.round((p.stats.dribblesSuccess / p.stats.dribblesAttempts) * 100) : null, format: v => formatStat(v, { suffix: '%' }), sortable: true },
-  { key: 'yellowCards', label: 'Ammonizioni', shortLabel: 'Amm', category: 'discipline', getValue: p => p.stats?.yellowCards ?? null, tone: 'warning', sortable: true },
-  { key: 'redCards', label: 'Espulsioni', shortLabel: 'Esp', category: 'discipline', getValue: p => p.stats?.redCards ?? null, tone: 'danger', sortable: true },
+  { key: 'appearances', label: 'Presenze', shortLabel: 'Pres', category: 'general', getValue: p => p.fantacalcioStats?.presenze ?? null, sortable: true },
+  { key: 'rating', label: 'Fantamedia', shortLabel: 'FM', category: 'general', getValue: p => p.fantacalcioStats?.avgFm ?? null, format: v => formatStat(v, { decimals: 2 }), sortable: true },
+  { key: 'mv', label: 'Voto Medio', shortLabel: 'MV', category: 'general', getValue: p => p.fantacalcioStats?.avgMv ?? null, format: v => formatStat(v, { decimals: 2 }), sortable: true },
+  { key: 'goals', label: 'Gol', shortLabel: 'Gol', category: 'attack', getValue: p => p.fantacalcioStats?.golSegnati ?? null, tone: 'good', sortable: true },
+  { key: 'assists', label: 'Assist', shortLabel: 'Ass', category: 'attack', getValue: p => p.fantacalcioStats?.assist ?? null, tone: 'attack', sortable: true },
+  { key: 'ga', label: 'Gol + Assist', shortLabel: 'G+A', category: 'attack', getValue: p => p.fantacalcioStats ? p.fantacalcioStats.golSegnati + p.fantacalcioStats.assist : null, sortable: true },
+  { key: 'goalsConceded', label: 'Gol Subiti', shortLabel: 'GS', category: 'general', getValue: p => p.fantacalcioStats?.golSubiti ?? null, tone: 'danger', sortable: true },
+  { key: 'penaltyScored', label: 'Rigori Segnati', shortLabel: 'RigS', category: 'attack', getValue: p => p.fantacalcioStats?.rigoriSegnati ?? null, sortable: true },
+  { key: 'penaltyMissed', label: 'Rigori Sbagliati', shortLabel: 'RigX', category: 'attack', getValue: p => p.fantacalcioStats?.rigoriSbagliati ?? null, tone: 'danger', sortable: true },
+  { key: 'penaltySaved', label: 'Rigori Parati', shortLabel: 'RigP', category: 'general', getValue: p => p.fantacalcioStats?.rigoriParati ?? null, tone: 'good', sortable: true },
+  { key: 'ownGoals', label: 'Autoreti', shortLabel: 'AR', category: 'discipline', getValue: p => p.fantacalcioStats?.autoreti ?? null, tone: 'danger', sortable: true },
+  { key: 'potm', label: 'Player of the Match', shortLabel: 'POTM', category: 'general', getValue: p => p.fantacalcioStats?.potm ?? null, tone: 'good', sortable: true },
 ]
 
 const COLUMN_PRESETS: Record<string, { label: string; columns: string[] }> = {
-  essential: { label: 'Essenziali', columns: ['appearances', 'rating', 'goals', 'assists', 'ga', 'yellowCards'] },
-  A: { label: 'Attaccante', columns: ['appearances', 'minutes', 'rating', 'goals', 'assists', 'ga', 'shotsTotal', 'shotsOn', 'shotsAccuracy', 'penaltyScored', 'dribblesSuccess'] },
-  C: { label: 'Centroc.', columns: ['appearances', 'minutes', 'rating', 'assists', 'passesKey', 'passesTotal', 'passAccuracy', 'dribblesSuccess', 'tacklesTotal', 'goals', 'ga'] },
-  D: { label: 'Difensore', columns: ['appearances', 'minutes', 'rating', 'tacklesTotal', 'interceptions', 'passesTotal', 'yellowCards', 'redCards', 'goals', 'assists'] },
-  P: { label: 'Portiere', columns: ['appearances', 'minutes', 'rating', 'passesTotal', 'passAccuracy', 'yellowCards', 'redCards'] },
+  essential: { label: 'Essenziali', columns: ['appearances', 'rating', 'goals', 'assists', 'ga'] },
+  A: { label: 'Attaccante', columns: ['appearances', 'rating', 'goals', 'assists', 'ga', 'penaltyScored'] },
+  C: { label: 'Centroc.', columns: ['appearances', 'rating', 'assists', 'goals', 'ga'] },
+  D: { label: 'Difensore', columns: ['appearances', 'rating', 'goals', 'assists', 'ownGoals'] },
+  P: { label: 'Portiere', columns: ['appearances', 'rating', 'goalsConceded', 'penaltySaved'] },
   all: { label: 'Tutte', columns: STAT_COLUMNS.map(c => c.key) },
 }
 
@@ -460,16 +438,16 @@ export function RoseGiocatori({ onNavigate, initialView = 'rose', initialTeamFil
           cmp = (a.player.age ?? -1) - (b.player.age ?? -1)
           break
         case 'appearances':
-          cmp = (a.player.computedStats?.appearances ?? 0) - (b.player.computedStats?.appearances ?? 0)
+          cmp = (a.player.fantacalcioStats?.presenze ?? 0) - (b.player.fantacalcioStats?.presenze ?? 0)
           break
         case 'goals':
-          cmp = (a.player.computedStats?.totalGoals ?? 0) - (b.player.computedStats?.totalGoals ?? 0)
+          cmp = (a.player.fantacalcioStats?.golSegnati ?? 0) - (b.player.fantacalcioStats?.golSegnati ?? 0)
           break
         case 'assists':
-          cmp = (a.player.computedStats?.totalAssists ?? 0) - (b.player.computedStats?.totalAssists ?? 0)
+          cmp = (a.player.fantacalcioStats?.assist ?? 0) - (b.player.fantacalcioStats?.assist ?? 0)
           break
         case 'rating':
-          cmp = (a.player.computedStats?.avgRating ?? 0) - (b.player.computedStats?.avgRating ?? 0)
+          cmp = (a.player.fantacalcioStats?.avgFm ?? 0) - (b.player.fantacalcioStats?.avgFm ?? 0)
           break
         case 'salary':
           cmp = (a.contract?.salary ?? 0) - (b.contract?.salary ?? 0)
@@ -1893,34 +1871,19 @@ export function RoseGiocatori({ onNavigate, initialView = 'rose', initialTeamFil
             </div>
 
             <LandscapeHint />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 mb-6 md:mb-8">
-              <div className="bg-surface-200 rounded-xl p-4 md:p-6 border border-surface-50">
-                <h3 className="text-center text-white font-semibold mb-4">Statistiche Offensive</h3>
+            <div className="grid grid-cols-1 mb-6 md:mb-8">
+              <div className="bg-surface-200 rounded-xl p-4 md:p-6 border border-surface-50 max-w-xl mx-auto w-full">
+                <h3 className="text-center text-white font-semibold mb-4">Statistiche</h3>
                 <RadarChart
                   size={320}
                   players={playersToCompare.map((p, i) => ({ name: p.name, color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length] ?? '#3b82f6' }))}
                   data={[
-                    { label: 'Gol', values: playersToCompare.map(p => p.stats?.goals ?? 0) },
-                    { label: 'Assist', values: playersToCompare.map(p => p.stats?.assists ?? 0) },
-                    { label: 'Tiri', values: playersToCompare.map(p => p.stats?.shotsTotal ?? 0) },
-                    { label: 'Tiri Porta', values: playersToCompare.map(p => p.stats?.shotsOn ?? 0) },
-                    { label: 'Dribbling', values: playersToCompare.map(p => p.stats?.dribblesSuccess ?? 0) },
-                    { label: 'Pass Chiave', values: playersToCompare.map(p => p.stats?.passesKey ?? 0) },
-                  ]}
-                />
-              </div>
-              <div className="bg-surface-200 rounded-xl p-4 md:p-6 border border-surface-50">
-                <h3 className="text-center text-white font-semibold mb-4">Statistiche Difensive</h3>
-                <RadarChart
-                  size={320}
-                  players={playersToCompare.map((p, i) => ({ name: p.name, color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length] ?? '#3b82f6' }))}
-                  data={[
-                    { label: 'Contrasti', values: playersToCompare.map(p => p.stats?.tacklesTotal ?? 0) },
-                    { label: 'Intercetti', values: playersToCompare.map(p => p.stats?.interceptions ?? 0) },
-                    { label: 'Passaggi', values: playersToCompare.map(p => Math.round((p.stats?.passesTotal ?? 0) / 10)) },
-                    { label: 'Presenze', values: playersToCompare.map(p => p.stats?.appearances ?? 0) },
-                    { label: 'Rating', values: playersToCompare.map(p => Math.round((p.stats?.rating ?? 0) * 10)) },
-                    { label: 'Minuti', values: playersToCompare.map(p => Math.round((p.stats?.minutes ?? 0) / 100)) },
+                    { label: 'Gol', values: playersToCompare.map(p => p.fantacalcioStats?.golSegnati ?? 0) },
+                    { label: 'Assist', values: playersToCompare.map(p => p.fantacalcioStats?.assist ?? 0) },
+                    { label: 'Presenze', values: playersToCompare.map(p => p.fantacalcioStats?.presenze ?? 0) },
+                    { label: 'Fantamedia', values: playersToCompare.map(p => Math.round((p.fantacalcioStats?.avgFm ?? 0) * 10)) },
+                    { label: 'Rigori Segnati', values: playersToCompare.map(p => p.fantacalcioStats?.rigoriSegnati ?? 0) },
+                    { label: 'POTM', values: playersToCompare.map(p => p.fantacalcioStats?.potm ?? 0) },
                   ]}
                 />
               </div>

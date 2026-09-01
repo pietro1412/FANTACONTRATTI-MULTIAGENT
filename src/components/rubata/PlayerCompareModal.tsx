@@ -97,46 +97,35 @@ export function PlayerCompareModal({ isOpen, onClose, players }: PlayerCompareMo
           )}
         </div>
 
-        {/* Season stats section */}
-        {players.some(p => p.playerComputedStats) && (
+        {/* Season stats section (fantacalcio.it — niente minuti/titolarità, la fonte non li fornisce) */}
+        {players.some(p => p.playerFantacalcioStats) && (
           <div className="mb-4">
             <h4 className="text-xs font-bold text-primary-400 uppercase tracking-wider mb-2">Statistiche Stagione</h4>
-            <CompareStatRow label="Presenze" values={players.map(p => p.playerComputedStats?.appearances)} />
+            <CompareStatRow label="Presenze" values={players.map(p => p.playerFantacalcioStats?.presenze)} />
             <CompareStatRow
-              label="Rating Medio"
-              values={players.map(p => p.playerComputedStats?.avgRating)}
+              label="Fantamedia"
+              values={players.map(p => p.playerFantacalcioStats?.avgFm)}
               format={v => v.toFixed(2)}
             />
-            <CompareStatRow label="Gol" values={players.map(p => p.playerComputedStats?.totalGoals)} />
-            <CompareStatRow label="Assist" values={players.map(p => p.playerComputedStats?.totalAssists)} />
-            <CompareStatRow label="Minuti" values={players.map(p => p.playerComputedStats?.totalMinutes)} />
-            <CompareStatRow label="Titolarità" values={players.map(p => p.playerComputedStats?.startingXI)} />
-            {players.some(p => p.playerComputedStats && p.playerComputedStats.appearances > 0) && (
-              <CompareStatRow
-                label="Min/Partita"
-                values={players.map(p => {
-                  const s = p.playerComputedStats
-                  if (!s || s.appearances === 0) return null
-                  return Math.round(s.totalMinutes / s.appearances)
-                })}
-              />
+            <CompareStatRow label="Gol" values={players.map(p => p.playerFantacalcioStats?.golSegnati)} />
+            <CompareStatRow label="Assist" values={players.map(p => p.playerFantacalcioStats?.assist)} />
+            {players.some(p => (p.playerFantacalcioStats?.rigoriSegnati ?? 0) > 0 || (p.playerFantacalcioStats?.rigoriSbagliati ?? 0) > 0) && (
+              <CompareStatRow label="Rigori Segnati" values={players.map(p => p.playerFantacalcioStats?.rigoriSegnati)} />
             )}
-            {players.some(p => p.playerComputedStats && p.playerComputedStats.totalGoals > 0) && (
-              <CompareStatRow
-                label="Min/Gol"
-                values={players.map(p => {
-                  const s = p.playerComputedStats
-                  if (!s || s.totalGoals === 0 || s.totalMinutes === 0) return null
-                  return Math.round(s.totalMinutes / s.totalGoals)
-                })}
-                higherIsBetter={false}
-              />
+            {players.some(p => (p.playerFantacalcioStats?.rigoriParati ?? 0) > 0) && (
+              <CompareStatRow label="Rigori Parati" values={players.map(p => p.playerFantacalcioStats?.rigoriParati)} />
+            )}
+            {players.some(p => (p.playerFantacalcioStats?.autoreti ?? 0) > 0) && (
+              <CompareStatRow label="Autoreti" values={players.map(p => p.playerFantacalcioStats?.autoreti)} higherIsBetter={false} />
+            )}
+            {players.some(p => (p.playerFantacalcioStats?.potm ?? 0) > 0) && (
+              <CompareStatRow label="Player of the Match" values={players.map(p => p.playerFantacalcioStats?.potm)} />
             )}
           </div>
         )}
 
         {/* No stats message */}
-        {!players.some(p => p.playerComputedStats) && (
+        {!players.some(p => p.playerFantacalcioStats) && (
           <div className="text-center py-4 text-gray-500 text-sm">
             Nessuna statistica stagionale disponibile per questi giocatori
           </div>

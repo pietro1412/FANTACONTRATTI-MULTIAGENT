@@ -105,6 +105,10 @@ vi.mock('../services/player-stats.service', () => ({
   computeSeasonStatsBatch: vi.fn().mockResolvedValue(new Map()),
 }))
 
+vi.mock('../services/fantacalcio-stats.service', () => ({
+  computeFantacalcioSeasonStatsBatch: vi.fn().mockResolvedValue(new Map()),
+}))
+
 // Import after mocking
 import * as contractService from '../services/contract.service'
 

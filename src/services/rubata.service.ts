@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { recordMovement } from './movement.service'
 import { triggerRubataBidPlaced, triggerRubataStealDeclared, triggerRubataReadyChanged, triggerAuctionClosed } from './pusher.service'
 import { computeSeasonStatsBatch, computeAutoTagsBatch, type ComputedSeasonStats, type AutoTagId } from './player-stats.service'
+import { computeFantacalcioSeasonStatsBatch, type FantacalcioSeasonStats } from './fantacalcio-stats.service'
 import type { ServiceResult } from '@/shared/types/service-result'
 
 // Segnala un rollback volontario della transazione di rilancio: il currentPrice
@@ -1225,9 +1226,11 @@ export async function getRubataBoard(
   if (rawBoard) {
     const playerIds = rawBoard.map(p => p.playerId)
     const statsMap = await computeSeasonStatsBatch(playerIds)
+    const fcStatsMap = await computeFantacalcioSeasonStatsBatch(playerIds)
     board = rawBoard.map(p => ({
       ...p,
       playerComputedStats: statsMap.get(p.playerId) || null,
+      playerFantacalcioStats: fcStatsMap.get(p.playerId) || null,
     }))
   }
 
@@ -4129,6 +4132,7 @@ export async function getAllPlayersForStrategies(
 
   // Compute season stats for all players in batch (efficient single query)
   const statsMap = await computeSeasonStatsBatch(allPlayerIds)
+  const fcStatsMap = await computeFantacalcioSeasonStatsBatch(allPlayerIds)
 
   // Compute auto-tags for all players in batch
   const tagInputs = allMembers.flatMap(m =>
@@ -4154,6 +4158,7 @@ export async function getAllPlayersForStrategies(
     playerApiFootballId: number | null
     playerApiFootballStats: unknown
     playerComputedStats: ComputedSeasonStats | null
+    playerFantacalcioStats: FantacalcioSeasonStats | null
     playerAutoTags: AutoTagId[]
     ownerUsername: string
     ownerTeamName: string | null
@@ -4184,6 +4189,7 @@ export async function getAllPlayersForStrategies(
         playerApiFootballId: rosterEntry.player.apiFootballId,
         playerApiFootballStats: rosterEntry.player.apiFootballStats,
         playerComputedStats: statsMap.get(rosterEntry.playerId) || null,
+        playerFantacalcioStats: fcStatsMap.get(rosterEntry.playerId) || null,
         playerAutoTags: tagsMap.get(rosterEntry.playerId) || [],
         ownerUsername: memberData.user.username,
         ownerTeamName: memberData.teamName,
@@ -4326,6 +4332,7 @@ export async function getAllSvincolatiForStrategies(
   // Compute season stats and auto-tags for svincolati
   const svincolatiIds = svincolati.map(p => p.id)
   const svincolatiStatsMap = await computeSeasonStatsBatch(svincolatiIds)
+  const svincolatiFcStatsMap = await computeFantacalcioSeasonStatsBatch(svincolatiIds)
   const svincolatiTagInputs = svincolati.map(p => ({
     playerId: p.id,
     age: p.age,
@@ -4344,6 +4351,7 @@ export async function getAllSvincolatiForStrategies(
     playerApiFootballId: player.apiFootballId,
     playerApiFootballStats: player.apiFootballStats,
     playerComputedStats: svincolatiStatsMap.get(player.id) || null,
+    playerFantacalcioStats: svincolatiFcStatsMap.get(player.id) || null,
     playerAutoTags: svincolatiTagsMap.get(player.id) || [],
     preference: preferencesMap.get(player.id) || null,
   }))
@@ -4405,6 +4413,7 @@ export async function getRubataPreviewBoard(
   // Compute stats for all players in the board
   const previewPlayerIds = rawPreviewBoard.map(p => p.playerId)
   const previewStatsMap = await computeSeasonStatsBatch(previewPlayerIds)
+  const previewFcStatsMap = await computeFantacalcioSeasonStatsBatch(previewPlayerIds)
 
   // Get this member's preferences
   const preferences = await prisma.rubataPreference.findMany({
@@ -4420,6 +4429,7 @@ export async function getRubataPreviewBoard(
   const enrichedBoard = rawPreviewBoard.map(player => ({
     ...player,
     playerComputedStats: previewStatsMap.get(player.playerId) || null,
+    playerFantacalcioStats: previewFcStatsMap.get(player.playerId) || null,
     preference: preferencesMap.get(player.playerId) || null,
   }))
 

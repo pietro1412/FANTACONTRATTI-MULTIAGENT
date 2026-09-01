@@ -89,6 +89,10 @@ vi.mock('../services/player-stats.service', () => ({
   computeSeasonStatsBatch: vi.fn().mockResolvedValue(new Map()),
 }))
 
+vi.mock('../services/fantacalcio-stats.service', () => ({
+  computeFantacalcioSeasonStatsBatch: vi.fn().mockResolvedValue(new Map()),
+}))
+
 // Mock the email service dynamic import (used inside league.service.ts)
 vi.mock('../modules/identity/infrastructure/services/gmail-email.service', () => ({
   GmailEmailService: vi.fn().mockImplementation(() => ({

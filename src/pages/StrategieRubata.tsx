@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { rubataApi, leagueApi } from '@/services/api'
-import { AUTO_TAG_DEFS, type AutoTagId } from '@/services/player-stats.service'
+import type { AutoTagId } from '@/services/player-stats.service'
+import type { FantacalcioSeasonStats } from '@/services/fantacalcio-stats.service'
 
 // Watchlist categories (#219) — tassonomia condivisa con la pagina Rubata
 import { WATCHLIST_CATEGORIES, type WatchlistCategoryId } from '@/types/watchlist.types'
@@ -30,6 +31,7 @@ interface StrategyPlayer {
   playerApiFootballId?: number | null
   playerApiFootballStats?: PlayerStats | null
   playerComputedStats?: ComputedSeasonStats | null
+  playerFantacalcioStats?: FantacalcioSeasonStats | null
   playerAutoTags?: AutoTagId[]
   ownerUsername: string
   ownerTeamName: string | null
@@ -49,6 +51,7 @@ interface SvincolatoPlayer {
   playerApiFootballId?: number | null
   playerApiFootballStats?: PlayerStats | null
   playerComputedStats?: ComputedSeasonStats | null
+  playerFantacalcioStats?: FantacalcioSeasonStats | null
   playerAutoTags?: AutoTagId[]
 }
 
@@ -95,27 +98,26 @@ interface SvincolatiData {
 type ViewMode = 'myRoster' | 'owned' | 'svincolati' | 'all' | 'overview'
 type DataViewMode = 'contracts' | 'stats' | 'merge'
 
-// Stats column definitions for stats/merge views
+// Stats column definitions for stats/merge views — solo colonne disponibili
+// da fantacalcio.it (niente minuti/tiri/passaggi/contrasti/cartellini).
 interface StatsColumn {
   key: string
   label: string
   shortLabel: string
-  getValue: (stats: PlayerStats | null | undefined) => number | string | null
+  getValue: (stats: FantacalcioSeasonStats | null | undefined) => number | string | null
   format?: (val: number | null) => string
   colorClass?: string
 }
 
 const STATS_COLUMNS: StatsColumn[] = [
-  { key: 'appearances', label: 'Presenze', shortLabel: 'Pres', getValue: s => s?.games?.appearences ?? null },
-  { key: 'rating', label: 'Rating', shortLabel: 'Voto', getValue: s => s?.games?.rating ?? null, format: v => v?.toFixed(2) ?? '-' },
-  { key: 'goals', label: 'Gol', shortLabel: 'Gol', getValue: s => s?.goals?.total ?? null, colorClass: 'text-secondary-400' },
-  { key: 'assists', label: 'Assist', shortLabel: 'Ass', getValue: s => s?.goals?.assists ?? null, colorClass: 'text-primary-400' },
-  { key: 'minutes', label: 'Minuti', shortLabel: 'Min', getValue: s => s?.games?.minutes ?? null },
-  { key: 'shotsOn', label: 'Tiri Porta', shortLabel: 'TiP', getValue: s => s?.shots?.on ?? null },
-  { key: 'passKey', label: 'Key Pass', shortLabel: 'KeyP', getValue: s => s?.passes?.key ?? null },
-  { key: 'tackles', label: 'Contrasti', shortLabel: 'Tckl', getValue: s => s?.tackles?.total ?? null },
-  { key: 'interceptions', label: 'Intercetti', shortLabel: 'Int', getValue: s => s?.tackles?.interceptions ?? null },
-  { key: 'yellowCards', label: 'Amm.', shortLabel: 'Amm', getValue: s => s?.cards?.yellow ?? null, colorClass: 'text-warning-400' },
+  { key: 'appearances', label: 'Presenze', shortLabel: 'Pres', getValue: s => s?.presenze ?? null },
+  { key: 'rating', label: 'Fantamedia', shortLabel: 'FM', getValue: s => s?.avgFm ?? null, format: v => v?.toFixed(2) ?? '-' },
+  { key: 'goals', label: 'Gol', shortLabel: 'Gol', getValue: s => s?.golSegnati ?? null, colorClass: 'text-secondary-400' },
+  { key: 'assists', label: 'Assist', shortLabel: 'Ass', getValue: s => s?.assist ?? null, colorClass: 'text-primary-400' },
+  { key: 'penaltyScored', label: 'Rigori Segnati', shortLabel: 'RigS', getValue: s => s?.rigoriSegnati ?? null },
+  { key: 'penaltySaved', label: 'Rigori Parati', shortLabel: 'RigP', getValue: s => s?.rigoriParati ?? null, colorClass: 'text-secondary-400' },
+  { key: 'ownGoals', label: 'Autoreti', shortLabel: 'AR', getValue: s => s?.autoreti ?? null, colorClass: 'text-danger-400' },
+  { key: 'potm', label: 'Player of the Match', shortLabel: 'POTM', getValue: s => s?.potm ?? null, colorClass: 'text-secondary-400' },
 ]
 
 // Essential stats for merge view
@@ -181,6 +183,7 @@ function toBoardPlayer(p: DisplayPlayer): BoardPlayer {
     playerApiFootballId: p.playerApiFootballId,
     playerApiFootballStats: p.playerApiFootballStats,
     playerComputedStats: p.playerComputedStats,
+    playerFantacalcioStats: p.playerFantacalcioStats,
     ownerUsername: isSvincolato ? '' : p.ownerUsername,
     ownerTeamName: isSvincolato ? null : p.ownerTeamName,
     rubataPrice: isSvincolato ? 0 : p.rubataPrice,
@@ -1029,14 +1032,6 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                                         : <span className="inline-flex items-center gap-1">· <Monogram name={player.ownerTeamName || player.ownerUsername} size="xs" /></span>
                                     )}
                                     {isSvincolato && <span className="text-secondary-400">· Svincolato</span>}
-                                    {player.playerAutoTags && player.playerAutoTags.slice(0, 2).map(tagId => {
-                                      const def = AUTO_TAG_DEFS[tagId]
-                                      return def ? (
-                                        <span key={tagId} className={`font-mono text-[8px] font-bold px-1 py-0.5 rounded border border-surface-50/30 ${def.color}`} title={def.description}>
-                                          {def.icon}
-                                        </span>
-                                      ) : null
-                                    })}
                                   </div>
                                 </div>
                               </div>
@@ -1062,14 +1057,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
 
                             {/* Stats columns - stats view */}
                             {dataViewMode === 'stats' && STATS_COLUMNS.map((col, idx) => {
-                              let rawValue: number | string | null = null
-                              const cs = player.playerComputedStats
-                              if (col.key === 'appearances') rawValue = cs?.appearances ?? null
-                              else if (col.key === 'rating') rawValue = cs?.avgRating ?? null
-                              else if (col.key === 'goals') rawValue = cs?.totalGoals ?? null
-                              else if (col.key === 'assists') rawValue = cs?.totalAssists ?? null
-                              else if (col.key === 'minutes') rawValue = cs?.totalMinutes ?? null
-                              else rawValue = col.getValue(player.playerApiFootballStats)
+                              const rawValue = col.getValue(player.playerFantacalcioStats)
                               const numValue = rawValue != null && rawValue !== '' ? Number(rawValue) : null
                               const formatted = col.format ? col.format(numValue) : (numValue ?? '-')
                               return (
@@ -1081,12 +1069,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
 
                             {/* Stats columns - merge view */}
                             {dataViewMode === 'merge' && STATS_COLUMNS.filter(c => MERGE_STATS_KEYS.includes(c.key)).map((col, idx) => {
-                              const cs = player.playerComputedStats
-                              let rawValue: number | string | null = null
-                              if (col.key === 'rating') rawValue = cs?.avgRating ?? null
-                              else if (col.key === 'goals') rawValue = cs?.totalGoals ?? null
-                              else if (col.key === 'assists') rawValue = cs?.totalAssists ?? null
-                              else rawValue = col.getValue(player.playerApiFootballStats)
+                              const rawValue = col.getValue(player.playerFantacalcioStats)
                               const numValue = rawValue != null && rawValue !== '' ? Number(rawValue) : null
                               const formatted = col.format ? col.format(numValue) : (numValue ?? '-')
                               return (
@@ -1100,7 +1083,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                             {dataViewMode === 'contracts' && (
                               <td className="p-2 text-center border-l border-surface-50/10">
                                 <span className="stat-number text-sm text-info-400">
-                                  {player.playerComputedStats?.avgRating != null ? player.playerComputedStats.avgRating.toFixed(1) : '-'}
+                                  {player.playerFantacalcioStats?.avgFm != null ? player.playerFantacalcioStats.avgFm.toFixed(1) : '-'}
                                 </span>
                               </td>
                             )}
@@ -1211,20 +1194,6 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                         </div>
                       </div>
 
-                      {/* Auto-tags */}
-                      {player.playerAutoTags && player.playerAutoTags.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mb-2">
-                          {player.playerAutoTags.map(tagId => {
-                            const def = AUTO_TAG_DEFS[tagId]
-                            return def ? (
-                              <span key={tagId} className={`font-mono text-[9px] font-bold px-1.5 py-0.5 rounded border border-surface-50/30 ${def.color}`} title={def.description}>
-                                {def.icon} {def.label}
-                              </span>
-                            ) : null
-                          })}
-                        </div>
-                      )}
-
                       {/* Contract / stats chips */}
                       {!isSvincolato && (dataViewMode === 'contracts' || dataViewMode === 'merge') && (
                         <div className="grid grid-cols-4 gap-1.5 text-center mb-2">
@@ -1236,9 +1205,9 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                       )}
                       {(dataViewMode === 'stats' || dataViewMode === 'merge') && (
                         <div className="grid grid-cols-3 gap-1.5 text-center mb-2">
-                          <StatChip label="Voto" value={player.playerComputedStats?.avgRating != null ? player.playerComputedStats.avgRating.toFixed(1) : '-'} className="text-info-400" />
-                          <StatChip label="Gol" value={`${player.playerComputedStats?.totalGoals ?? '-'}`} className="text-secondary-400" />
-                          <StatChip label="Ass" value={`${player.playerComputedStats?.totalAssists ?? '-'}`} className="text-primary-400" />
+                          <StatChip label="FM" value={player.playerFantacalcioStats?.avgFm != null ? player.playerFantacalcioStats.avgFm.toFixed(1) : '-'} className="text-info-400" />
+                          <StatChip label="Gol" value={`${player.playerFantacalcioStats?.golSegnati ?? '-'}`} className="text-secondary-400" />
+                          <StatChip label="Ass" value={`${player.playerFantacalcioStats?.assist ?? '-'}`} className="text-primary-400" />
                         </div>
                       )}
 

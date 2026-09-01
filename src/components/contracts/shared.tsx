@@ -1,6 +1,7 @@
 import { POSITION_COLORS } from '@/components/ui/PositionBadge'
 import { getTeamLogo } from '@/utils/teamLogos'
 import { getPlayerPhotoUrl } from '@/utils/player-images'
+import type { FantacalcioSeasonStats } from '@/services/fantacalcio-stats.service'
 
 // ===== Domain types shared across the contracts cockpit views =====
 
@@ -25,6 +26,7 @@ export interface ContractPlayer {
   age?: number | null
   apiFootballId?: number | null
   computedStats?: ComputedSeasonStats | null
+  fantacalcioStats?: FantacalcioSeasonStats | null
 }
 
 // ===== Visual helpers =====

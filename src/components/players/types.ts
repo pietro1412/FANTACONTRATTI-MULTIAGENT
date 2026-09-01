@@ -11,6 +11,24 @@ export interface ComputedSeasonStats {
   matchesInSquad: number
 }
 
+/** Statistiche stagionali da fantacalcio.it (fonte primaria mostrata in UI, vedi FantacalcioSeasonStats in fantacalcio-stats.service.ts). */
+export interface FantacalcioSeasonStats {
+  season: string
+  presenze: number
+  titolare: number
+  subentrato: number
+  avgMv: number | null
+  avgFm: number | null
+  golSegnati: number
+  golSubiti: number
+  autoreti: number
+  rigoriSegnati: number
+  rigoriSbagliati: number
+  rigoriParati: number
+  assist: number
+  potm: number
+}
+
 export interface RosterPlayer {
   id: string
   name: string
@@ -20,6 +38,7 @@ export interface RosterPlayer {
   age?: number | null
   apiFootballId?: number | null
   computedStats?: ComputedSeasonStats | null
+  fantacalcioStats?: FantacalcioSeasonStats | null
   statsSyncedAt?: string | null
   /** PlayerListStatus — 'NOT_IN_LIST' se il giocatore non è più in Serie A. */
   listStatus?: string

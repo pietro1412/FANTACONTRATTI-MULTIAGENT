@@ -106,7 +106,7 @@ export function RenewalItem({
   const editable = c.canRenew && inContrattiPhase && !isConsolidated && !isMarkedForRelease
     && !isUndecidedExited && !isReleasedExited
 
-  const rating = c.player.computedStats?.avgRating
+  const rating = c.player.fantacalcioStats?.avgFm
   const sub = (
     <>
       <span>{c.player.team}</span>

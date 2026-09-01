@@ -24,7 +24,7 @@ function statCell(value: number | null | undefined, decimals = 0): string {
 export const FreeAgentTableRow = memo(function FreeAgentTableRow({
   player, leagueId, nominable, onNominate, preference, canEditPreferences, onOpenPrefsModal,
 }: FreeAgentTableRowProps) {
-  const stats = player.computedStats
+  const stats = player.fantacalcioStats
 
   const handleNominate = () => { if (nominable) onNominate(player.id) }
   const handleOpenPrefs = (e: React.MouseEvent | React.KeyboardEvent) => {
@@ -72,10 +72,10 @@ export const FreeAgentTableRow = memo(function FreeAgentTableRow({
 
         <span className={`stat-number text-sm text-center ${getAgeColor(player.age)}`}>{player.age ?? NOT_DISPONIBILE}</span>
         <span className="stat-number text-sm text-white text-center">{player.quotation}</span>
-        <span className="stat-number text-sm text-gray-300 text-center">{statCell(stats?.appearances)}</span>
-        <span className="stat-number text-sm text-gray-300 text-center">{statCell(stats?.avgRating, 2)}</span>
-        <span className="stat-number text-sm text-gray-300 text-center">{statCell(stats?.totalGoals)}</span>
-        <span className="stat-number text-sm text-gray-300 text-center">{statCell(stats?.totalAssists)}</span>
+        <span className="stat-number text-sm text-gray-300 text-center">{statCell(stats?.presenze)}</span>
+        <span className="stat-number text-sm text-gray-300 text-center">{statCell(stats?.avgFm, 2)}</span>
+        <span className="stat-number text-sm text-gray-300 text-center">{statCell(stats?.golSegnati)}</span>
+        <span className="stat-number text-sm text-gray-300 text-center">{statCell(stats?.assist)}</span>
 
         <div className="flex items-center justify-center gap-1">
           {nominable && (
@@ -132,11 +132,11 @@ export const FreeAgentTableRow = memo(function FreeAgentTableRow({
           {stats && (
             <>
               <span className="text-gray-600" aria-hidden="true">·</span>
-              <span>{statCell(stats.appearances)} pres.</span>
+              <span>{statCell(stats.presenze)} pres.</span>
               <span className="text-gray-600" aria-hidden="true">·</span>
-              <span>MV {statCell(stats.avgRating, 2)}</span>
+              <span>MV {statCell(stats.avgFm, 2)}</span>
               <span className="text-gray-600" aria-hidden="true">·</span>
-              <span>{statCell(stats.totalGoals)}G {statCell(stats.totalAssists)}A</span>
+              <span>{statCell(stats.golSegnati)}G {statCell(stats.assist)}A</span>
             </>
           )}
           {preference?.priority ? <span className="text-accent-400 text-[10px]" title={`Priorità ${preference.priority}`}>{'★'.repeat(preference.priority)}</span> : null}

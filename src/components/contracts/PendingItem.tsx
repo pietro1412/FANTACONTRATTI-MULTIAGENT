@@ -111,8 +111,8 @@ export function PendingItem({
       {/* Fantamedia */}
       <div className="flex lg:block items-center justify-between text-left lg:text-center">
         <span className="micro-label lg:hidden">Fantamedia</span>
-        <span className={`stat-number text-base ${player.computedStats?.avgRating != null ? 'text-primary-400' : 'text-gray-500'}`}>
-          {player.computedStats?.avgRating != null ? player.computedStats.avgRating.toFixed(1) : NOT_DISPONIBILE}
+        <span className={`stat-number text-base ${player.fantacalcioStats?.avgFm != null ? 'text-primary-400' : 'text-gray-500'}`}>
+          {player.fantacalcioStats?.avgFm != null ? player.fantacalcioStats.avgFm.toFixed(1) : NOT_DISPONIBILE}
         </span>
       </div>
 

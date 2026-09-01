@@ -2,9 +2,9 @@ import { PlayerPhoto } from './PlayerPhoto'
 import { TeamLogo } from '@/components/ui/TeamLogo'
 import { Monogram } from '@/components/ui/Monogram'
 import { Tag } from '@/components/contracts/shared'
-import { formatSeasonStats, NOT_DISPONIBILE } from '@/utils/stat-format'
+import { formatSeasonStats, toSeasonStatsInput, NOT_DISPONIBILE } from '@/utils/stat-format'
 import { isOutOfSerieA, getExitReasonLabel } from '@/components/PlayerStatsModal'
-import { getExitReasonTag, type ComputedSeasonStats, type RosterEntry, type RosterRowStatus } from './types'
+import { getExitReasonTag, type FantacalcioSeasonStats, type RosterEntry, type RosterRowStatus } from './types'
 
 export interface RosterPlayerCardProps {
   entry: RosterEntry
@@ -41,8 +41,8 @@ function StatCell({ label, value }: { label: string; value: string }) {
  * e.g. "NDPNDGNDA" — when data was missing). Collapses into a single muted
  * note when all 4 are ND, mirroring RosterTableRow on desktop.
  */
-function SeasonStatsStrip({ cs }: { cs: ComputedSeasonStats | null | undefined }) {
-  const stats = formatSeasonStats(cs)
+function SeasonStatsStrip({ fc }: { fc: FantacalcioSeasonStats | null | undefined }) {
+  const stats = formatSeasonStats(toSeasonStatsInput(fc))
 
   return (
     <div className="flex mt-2 pt-2 border-t border-dashed border-surface-50/30">
@@ -137,7 +137,7 @@ export function RosterPlayerCard({ entry, onPlayerClick, status, showQuotation }
         )}
       </div>
 
-      <SeasonStatsStrip cs={player.computedStats} />
+      <SeasonStatsStrip fc={player.fantacalcioStats} />
     </div>
   )
 }

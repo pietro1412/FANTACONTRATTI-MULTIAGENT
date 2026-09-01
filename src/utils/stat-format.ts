@@ -84,3 +84,25 @@ export function formatSeasonStats(stats: SeasonStatsInput | null | undefined): F
 
   return { appearances, goals, assists, rating, allMissing }
 }
+
+/** Minimal shape of fantacalcio.it season stats needed for the adapter below. */
+export interface FantacalcioStatsInput {
+  presenze?: number | null
+  golSegnati?: number | null
+  assist?: number | null
+  avgFm?: number | null
+}
+
+/**
+ * Adatta le statistiche fantacalcio.it (fonte primaria) alla forma attesa da
+ * formatSeasonStats, cosi' i chiamanti (RosterPlayerCard, RosterTableRow, ecc.)
+ * possono riusarlo cosi' com'e' invece di duplicarne la logica di fallback.
+ */
+export function toSeasonStatsInput(stats: FantacalcioStatsInput | null | undefined): SeasonStatsInput {
+  return {
+    appearances: stats?.presenze,
+    totalGoals: stats?.golSegnati,
+    totalAssists: stats?.assist,
+    avgRating: stats?.avgFm,
+  }
+}

@@ -8,6 +8,7 @@ import {
 } from './contract-history.service'
 import type { CreateContractHistoryInput, ContractEventType } from '../types/contract-history'
 import { computeSeasonStatsBatch } from './player-stats.service'
+import { computeFantacalcioSeasonStatsBatch } from './fantacalcio-stats.service'
 import type { ServiceResult } from '@/shared/types/service-result'
 
 // Moltiplicatori per calcolo clausola rescissione (da specifica)
@@ -188,6 +189,7 @@ export async function getContracts(leagueId: string, userId: string): Promise<Se
   // Compute season stats for all players in batch (efficient single query)
   const allPlayerIds = roster.map(r => r.playerId)
   const statsMap = await computeSeasonStatsBatch(allPlayerIds)
+  const fcStatsMap = await computeFantacalcioSeasonStatsBatch(allPlayerIds)
 
   // Fetch indemnity amounts for ESTERO players from individual "Indennizzo - PlayerName" categories
   // (activeSession is already defined above for CONTRATTI phase check)
@@ -323,6 +325,7 @@ export async function getContracts(leagueId: string, userId: string): Promise<Se
         player: {
           ...r.player,
           computedStats: statsMap.get(r.playerId) || null,
+          fantacalcioStats: fcStatsMap.get(r.playerId) || null,
         },
         acquisitionPrice: r.acquisitionPrice,
         acquisitionType: r.acquisitionType,
@@ -392,6 +395,7 @@ export async function getContracts(leagueId: string, userId: string): Promise<Se
     player: {
       ...r.player,
       computedStats: statsMap.get(r.playerId) || null,
+      fantacalcioStats: fcStatsMap.get(r.playerId) || null,
     },
     acquisitionPrice: r.acquisitionPrice,
     acquisitionType: r.acquisitionType,

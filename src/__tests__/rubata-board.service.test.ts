@@ -78,6 +78,10 @@ vi.mock('@/services/player-stats.service', () => ({
   computeAutoTagsBatch: vi.fn().mockResolvedValue(new Map()),
 }))
 
+vi.mock('@/services/fantacalcio-stats.service', () => ({
+  computeFantacalcioSeasonStatsBatch: vi.fn().mockResolvedValue(new Map()),
+}))
+
 import {
   generateRubataBoard,
   startRubata,

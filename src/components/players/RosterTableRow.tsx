@@ -2,9 +2,9 @@ import { PlayerPhoto } from './PlayerPhoto'
 import { TeamLogo } from '@/components/ui/TeamLogo'
 import { Monogram } from '@/components/ui/Monogram'
 import { Tag } from '@/components/contracts/shared'
-import { formatSeasonStats, NOT_DISPONIBILE, getAgeColor } from '@/utils/stat-format'
+import { formatSeasonStats, toSeasonStatsInput, NOT_DISPONIBILE, getAgeColor } from '@/utils/stat-format'
 import { isOutOfSerieA, getExitReasonLabel } from '@/components/PlayerStatsModal'
-import { getExitReasonTag, type ComputedSeasonStats, type RosterEntry, type RosterRowStatus } from './types'
+import { getExitReasonTag, type FantacalcioSeasonStats, type RosterEntry, type RosterRowStatus } from './types'
 
 export interface RosterTableRowProps {
   entry: RosterEntry
@@ -39,8 +39,8 @@ function MiniStat({ label, value }: { label: string; value: string }) {
 }
 
 /** Season mini-stats (PR/G/A/VT), collapsed into a single muted note when all 4 are ND. */
-function SeasonStats({ cs }: { cs: ComputedSeasonStats | null | undefined }) {
-  const stats = formatSeasonStats(cs)
+function SeasonStats({ fc }: { fc: FantacalcioSeasonStats | null | undefined }) {
+  const stats = formatSeasonStats(toSeasonStatsInput(fc))
 
   if (stats.allMissing) {
     return (
@@ -196,7 +196,7 @@ export function RosterTableRow({ entry, onPlayerClick, status, showQuotation }: 
       />
 
       {/* Season mini-stats */}
-      <SeasonStats cs={player.computedStats} />
+      <SeasonStats fc={player.fantacalcioStats} />
     </div>
   )
 }

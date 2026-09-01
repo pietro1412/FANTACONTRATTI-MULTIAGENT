@@ -47,21 +47,23 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
 
     // Compute season stats from PlayerMatchRating (single batch query)
     const statsMap = await computeSeasonStatsBatch(players.map(p => p.id))
+    // Fantacalcio.it stats — fonte primaria mostrata in UI (vedi mini-stats sotto)
+    const fcStatsMap = await computeFantacalcioSeasonStatsBatch(players.map(p => p.id))
 
-    // Enrich with mini-stats from apiFootballStats JSON blob
+    // Mini-stats (appearances/goals/assists/avgRating) da fantacalcio.it, non
+    // piu' dal blob apiFootballStats — stessi nomi campo per non toccare i
+    // consumer frontend (NominationPanel, PlayerCard, BiddingPanel).
     const enrichedPlayers = players.map((p: Record<string, unknown>) => {
-      const stats = p.apiFootballStats as {
-        games?: { appearences?: number; rating?: number }
-        goals?: { total?: number; assists?: number }
-      } | null | undefined
+      const fc = fcStatsMap.get(p.id as string) || null
 
       return {
         ...p,
-        appearances: stats?.games?.appearences ?? null,
-        goals: stats?.goals?.total ?? null,
-        assists: stats?.goals?.assists ?? null,
-        avgRating: stats?.games?.rating ? Math.round(stats.games.rating * 10) / 10 : null,
+        appearances: fc?.presenze ?? null,
+        goals: fc?.golSegnati ?? null,
+        assists: fc?.assist ?? null,
+        avgRating: fc?.avgFm ?? null,
         computedStats: statsMap.get(p.id as string) || null,
+        fantacalcioStats: fc,
       }
     })
 

@@ -140,11 +140,11 @@ export function SvincolatiCockpit(props: SvincolatiCockpitProps) {
     const getValue = (p: Player): number => {
       if (sortKey === 'age') return p.age ?? -Infinity
       if (sortKey === 'quotation') return p.quotation
-      const stats = p.computedStats
-      if (sortKey === 'appearances') return stats?.appearances ?? -Infinity
-      if (sortKey === 'avgRating') return stats?.avgRating ?? -Infinity
-      if (sortKey === 'totalGoals') return stats?.totalGoals ?? -Infinity
-      return stats?.totalAssists ?? -Infinity
+      const stats = p.fantacalcioStats
+      if (sortKey === 'appearances') return stats?.presenze ?? -Infinity
+      if (sortKey === 'avgRating') return stats?.avgFm ?? -Infinity
+      if (sortKey === 'totalGoals') return stats?.golSegnati ?? -Infinity
+      return stats?.assist ?? -Infinity
     }
     return [...freeAgents].sort((a, b) => (getValue(a) - getValue(b)) * dir)
   }, [freeAgents, sortKey, sortDir])

@@ -5,6 +5,7 @@ import { recordMovement } from './movement.service'
 import { notifyTradeOffer, notifyTradeInvalidated } from './notification.service'
 import { triggerTradeOfferReceived, triggerTradeUpdated } from './pusher.service'
 import { computeSeasonStatsBatch } from './player-stats.service'
+import { computeFantacalcioSeasonStatsBatch } from './fantacalcio-stats.service'
 import type { ServiceResult } from '@/shared/types/service-result'
 
 // ==================== PHASE CHECK ====================
@@ -273,6 +274,9 @@ export async function getReceivedOffers(leagueId: string, userId: string): Promi
       const statsMap = await computeSeasonStatsBatch(
         [...offeredPlayers, ...requestedPlayers].map(r => r.player.id)
       )
+      const fcStatsMap = await computeFantacalcioSeasonStatsBatch(
+        [...offeredPlayers, ...requestedPlayers].map(r => r.player.id)
+      )
       return {
         id: offer.id,
         senderId: offer.senderId,
@@ -293,6 +297,7 @@ export async function getReceivedOffers(leagueId: string, userId: string): Promi
           quotation: r.player.quotation,
           apiFootballId: r.player.apiFootballId,
           computedStats: statsMap.get(r.player.id) || null,
+          fantacalcioStats: fcStatsMap.get(r.player.id) || null,
           contract: r.contract ? {
             salary: r.contract.salary,
             duration: r.contract.duration,
@@ -308,6 +313,7 @@ export async function getReceivedOffers(leagueId: string, userId: string): Promi
           quotation: r.player.quotation,
           apiFootballId: r.player.apiFootballId,
           computedStats: statsMap.get(r.player.id) || null,
+          fantacalcioStats: fcStatsMap.get(r.player.id) || null,
           contract: r.contract ? {
             salary: r.contract.salary,
             duration: r.contract.duration,
@@ -384,6 +390,9 @@ export async function getSentOffers(leagueId: string, userId: string): Promise<S
       const statsMap = await computeSeasonStatsBatch(
         [...offeredPlayers, ...requestedPlayers].map(r => r.player.id)
       )
+      const fcStatsMap = await computeFantacalcioSeasonStatsBatch(
+        [...offeredPlayers, ...requestedPlayers].map(r => r.player.id)
+      )
       return {
         id: offer.id,
         senderId: offer.senderId,
@@ -404,6 +413,7 @@ export async function getSentOffers(leagueId: string, userId: string): Promise<S
           quotation: r.player.quotation,
           apiFootballId: r.player.apiFootballId,
           computedStats: statsMap.get(r.player.id) || null,
+          fantacalcioStats: fcStatsMap.get(r.player.id) || null,
           contract: r.contract ? {
             salary: r.contract.salary,
             duration: r.contract.duration,
@@ -419,6 +429,7 @@ export async function getSentOffers(leagueId: string, userId: string): Promise<S
           quotation: r.player.quotation,
           apiFootballId: r.player.apiFootballId,
           computedStats: statsMap.get(r.player.id) || null,
+          fantacalcioStats: fcStatsMap.get(r.player.id) || null,
           contract: r.contract ? {
             salary: r.contract.salary,
             duration: r.contract.duration,
@@ -921,6 +932,9 @@ export async function getTradeHistory(leagueId: string, userId: string): Promise
       const statsMap = await computeSeasonStatsBatch(
         [...offeredPlayers, ...requestedPlayers].map(r => r.player.id)
       )
+      const fcStatsMap = await computeFantacalcioSeasonStatsBatch(
+        [...offeredPlayers, ...requestedPlayers].map(r => r.player.id)
+      )
 
       return {
         id: trade.id,
@@ -943,6 +957,7 @@ export async function getTradeHistory(leagueId: string, userId: string): Promise
           quotation: r.player.quotation,
           apiFootballId: r.player.apiFootballId,
           computedStats: statsMap.get(r.player.id) || null,
+          fantacalcioStats: fcStatsMap.get(r.player.id) || null,
           contract: r.contract ? {
             salary: r.contract.salary,
             duration: r.contract.duration,
@@ -958,6 +973,7 @@ export async function getTradeHistory(leagueId: string, userId: string): Promise
           quotation: r.player.quotation,
           apiFootballId: r.player.apiFootballId,
           computedStats: statsMap.get(r.player.id) || null,
+          fantacalcioStats: fcStatsMap.get(r.player.id) || null,
           contract: r.contract ? {
             salary: r.contract.salary,
             duration: r.contract.duration,

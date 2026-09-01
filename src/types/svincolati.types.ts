@@ -1,5 +1,6 @@
 import { POSITION_GRADIENTS, POSITION_FILTER_COLORS } from '../components/ui/PositionBadge'
 import type { ComputedSeasonStats } from '../components/PlayerStatsModal'
+import type { FantacalcioSeasonStats } from '../services/fantacalcio-stats.service'
 
 export interface AppealStatus {
   auctionId: string
@@ -36,6 +37,7 @@ export interface Player {
   age?: number | null
   apiFootballId?: number | null
   computedStats?: ComputedSeasonStats | null
+  fantacalcioStats?: FantacalcioSeasonStats | null
 }
 
 /** Shape delle preferenze Svincolati — stesso modello Prisma RubataPreference,

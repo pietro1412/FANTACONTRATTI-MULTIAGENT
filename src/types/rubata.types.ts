@@ -1,4 +1,5 @@
 import type { ComputedSeasonStats } from '../components/PlayerStatsModal'
+import type { FantacalcioSeasonStats } from '../services/fantacalcio-stats.service'
 
 export interface LeagueMember {
   id: string
@@ -24,6 +25,7 @@ export interface BoardPlayer {
   playerApiFootballId?: number | null
   playerApiFootballStats?: unknown
   playerComputedStats?: ComputedSeasonStats | null
+  playerFantacalcioStats?: FantacalcioSeasonStats | null
   ownerUsername: string
   ownerTeamName: string | null
   rubataPrice: number

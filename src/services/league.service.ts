@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import type { CreateLeagueInput, UpdateLeagueInput } from '../utils/validation'
 import type { IEmailService } from '../modules/identity/domain/services/email.service.interface'
 import { computeSeasonStatsBatch } from './player-stats.service'
+import { computeFantacalcioSeasonStatsBatch } from './fantacalcio-stats.service'
 import { calculateRescissionClause } from './contract.service'
 import type { ServiceResult } from '@/shared/types/service-result'
 
@@ -1165,6 +1166,7 @@ export async function getAllRosters(leagueId: string, userId: string): Promise<S
 
   // Compute season stats for all players in batch (efficient single query)
   const statsMap = await computeSeasonStatsBatch(allPlayerIds)
+  const fcStatsMap = await computeFantacalcioSeasonStatsBatch(allPlayerIds)
 
   // Durante la fase CONTRATTI mostriamo i contratti PRE-rinnovo (vecchi) per tutti i
   // manager: per chi ha già consolidato, preConsolidation* conserva i valori precedenti;
@@ -1188,6 +1190,7 @@ export async function getAllRosters(leagueId: string, userId: string): Promise<S
         player: {
           ...r.player,
           computedStats: statsMap.get(r.playerId) || null,
+          fantacalcioStats: fcStatsMap.get(r.playerId) || null,
         },
         contract,
       }

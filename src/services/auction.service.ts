@@ -19,6 +19,7 @@ import {
   triggerPauseRequested,
 } from './pusher.service'
 import { computeSeasonStatsBatch } from './player-stats.service'
+import { computeFantacalcioSeasonStatsBatch, computeFantacalcioSeasonStats } from './fantacalcio-stats.service'
 import { withRetry } from '../utils/db-retry'
 import { notifyAuctionStart, notifyPhaseChange } from './notification.service'
 import { logError } from './app-log.service'
@@ -34,19 +35,17 @@ const MAX_BID_ATTEMPTS = 5
 
 // ==================== PLAYER STATS ENRICHMENT ====================
 
-/** Enrich a raw SerieAPlayer record with mini-stats extracted from apiFootballStats JSON blob */
-function enrichPlayerWithStats<T extends Record<string, unknown>>(player: T): T & { appearances: number | null; goals: number | null; assists: number | null; avgRating: number | null } {
-  const stats = (player as Record<string, unknown>).apiFootballStats as {
-    games?: { appearences?: number; rating?: number }
-    goals?: { total?: number; assists?: number }
-  } | null | undefined
+/** Enrich a raw SerieAPlayer record with mini-stats from fantacalcio.it (fonte primaria mostrata in UI). */
+async function enrichPlayerWithStats<T extends Record<string, unknown>>(player: T): Promise<T & { appearances: number | null; goals: number | null; assists: number | null; avgRating: number | null }> {
+  const playerId = (player as Record<string, unknown>).id as string
+  const fc = await computeFantacalcioSeasonStats(playerId)
 
   return {
     ...player,
-    appearances: stats?.games?.appearences ?? null,
-    goals: stats?.goals?.total ?? null,
-    assists: stats?.goals?.assists ?? null,
-    avgRating: stats?.games?.rating ? Math.round(stats.games.rating * 10) / 10 : null,
+    appearances: fc?.presenze ?? null,
+    goals: fc?.golSegnati ?? null,
+    assists: fc?.assist ?? null,
+    avgRating: fc?.avgFm ?? null,
   }
 }
 
@@ -1336,9 +1335,9 @@ export async function getCurrentAuction(sessionId: string, userId: string): Prom
     isWinning: auction?.bids[0]?.bidderId === m.id,
   }))
 
-  // Enrich auction player with mini-stats from apiFootballStats JSON blob
+  // Enrich auction player with mini-stats from fantacalcio.it
   const enrichedAuction = auction && auction.player
-    ? { ...auction, player: enrichPlayerWithStats(auction.player as unknown as Record<string, unknown>) }
+    ? { ...auction, player: await enrichPlayerWithStats(auction.player as unknown as Record<string, unknown>) }
     : auction
 
   // Ultima asta riapribile (= annulla ultimo movimento), indipendente da pendingAck.
@@ -1858,12 +1857,14 @@ export async function getRoster(leagueId: string, userId: string, targetMemberId
   // Compute season stats for all players
   const allPlayerIds = roster.map(r => r.playerId)
   const statsMap = await computeSeasonStatsBatch(allPlayerIds)
+  const fcStatsMap = await computeFantacalcioSeasonStatsBatch(allPlayerIds)
 
   const enriched = roster.map(r => ({
     ...r,
     player: {
       ...r.player,
       computedStats: statsMap.get(r.playerId) || null,
+      fantacalcioStats: fcStatsMap.get(r.playerId) || null,
     },
   }))
 
@@ -3512,7 +3513,7 @@ export async function getPendingAcknowledgment(
   }
 
   // Enrich player with stats
-  const enrichedPlayer = enrichPlayerWithStats(recentCompletedAuction.player as unknown as Record<string, unknown>)
+  const enrichedPlayer = await enrichPlayerWithStats(recentCompletedAuction.player as unknown as Record<string, unknown>)
 
   return {
     success: true,
@@ -4281,7 +4282,7 @@ export async function getReadyStatus(
 
   // Enrich player with stats
   const enrichedPlayer = session.pendingNominationPlayer
-    ? enrichPlayerWithStats(session.pendingNominationPlayer as unknown as Record<string, unknown>)
+    ? await enrichPlayerWithStats(session.pendingNominationPlayer as unknown as Record<string, unknown>)
     : null
 
   return {
