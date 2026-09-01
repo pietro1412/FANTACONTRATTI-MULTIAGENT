@@ -68,12 +68,6 @@ export function normalizeSeasonString(season: string): string {
   return `${startYear}-${endYear}`
 }
 
-function avg(values: (number | null)[]): number | null {
-  const valid = values.filter((v): v is number => v != null)
-  if (valid.length === 0) return null
-  return Math.round((valid.reduce((a, b) => a + b, 0) / valid.length) * 100) / 100
-}
-
 // ==================== APPLY MATCHES (persiste fantacalcioId su SerieAPlayer) ====================
 
 export interface ApplyMatchesResult {
@@ -134,8 +128,13 @@ export async function importGiornata(data: RawGiornataData, dryRun = false): Pro
     }
 
     const playerId = playerIdByFcId.get(row.playerId)!
-    const mv = avg(row.voti.map((v) => v.voto))
-    const fm = avg(row.voti.map((v) => v.fantavoto))
+    // Il primo elemento di voti[] e' sempre la Redazione Fantacalcio (icona
+    // ico-fc.svg, prima colonna della tabella su fantacalcio.it); gli altri
+    // due sono "Voto Statistico" e "Voto Italia" — panel diversi, non vanno
+    // mediati col voto ufficiale fantacalcio.it. Verificato: 12500/12500
+    // righe scrapate hanno esattamente 3 voti, voti[0] mai nullo.
+    const mv = row.voti[0]?.voto ?? null
+    const fm = row.voti[0]?.fantavoto ?? null
 
     if (dryRun) {
       upserted++
