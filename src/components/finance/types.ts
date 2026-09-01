@@ -24,6 +24,8 @@ export interface TeamData {
   username: string
   budget: number
   annualContractCost: number
+  /** Indennizzi ipotetici dalle bozze RELEASE non ancora consolidate (rework 01/09/2026) — solo in Fase Contratti pre-consolidamento. */
+  hypotheticalIndemnities?: number
   totalContractCost: number
   totalAcquisitionCost: number
   slotCount: number

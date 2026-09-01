@@ -27,7 +27,7 @@ const MAX_ROSTER_SIZE = 29 // Massimo giocatori in rosa dopo consolidamento
 export const DEFAULT_CONTRACT_DURATION = 3
 
 // Default indennizzo per giocatori ESTERO quando non esiste una categoria individuale/base
-const DEFAULT_INDENNIZZO_ESTERO = 50
+export const DEFAULT_INDENNIZZO_ESTERO = 50
 
 // M-12: Runtime validation to ensure budget never goes negative
 export async function validateBudgetNotNegative(memberId: string): Promise<boolean> {

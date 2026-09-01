@@ -4,7 +4,7 @@ import type { CreateLeagueInput, UpdateLeagueInput } from '../utils/validation'
 import type { IEmailService } from '../modules/identity/domain/services/email.service.interface'
 import { computeSeasonStatsBatch } from './player-stats.service'
 import { computeFantacalcioSeasonStatsBatch } from './fantacalcio-stats.service'
-import { calculateRescissionClause } from './contract.service'
+import { calculateRescissionClause, DEFAULT_INDENNIZZO_ESTERO } from './contract.service'
 import type { ServiceResult } from '@/shared/types/service-result'
 
 // Lazy-loaded email service to avoid initialization errors
@@ -1654,6 +1654,43 @@ export async function getLeagueFinancials(leagueId: string, userId: string, sess
       ? members.every(m => consolidationMap.has(m.id))
       : false
 
+    // Indennizzi ipotetici (rework 01/09/2026): durante la Fase Contratti, prima del
+    // consolidamento vero, i giocatori ESTERO marcati RELEASE in bozza (draftExitDecision,
+    // salvato con "Salva bozza") non hanno ancora generato un indennizzo reale — nessun
+    // ManagerSessionSnapshot esiste finché nessuno consolida. Calcola qui una proiezione
+    // con la stessa logica di contract.service.ts (righe ~194-230): categoria individuale
+    // "Indennizzo - NomeGiocatore" per manager, fallback DEFAULT_INDENNIZZO_ESTERO.
+    const hypotheticalIndemnitiesMap = new Map<string, number>()
+    if (inContrattiPhase && activeContrattiSession) {
+      const individualCategories = await prisma.prizeCategory.findMany({
+        where: { marketSessionId: activeContrattiSession.id, name: { startsWith: 'Indennizzo - ' } },
+        include: { managerPrizes: { select: { leagueMemberId: true, amount: true } } },
+      })
+      const indemnityByPlayerAndMember = new Map<string, Map<string, number>>()
+      for (const cat of individualCategories) {
+        const playerName = cat.name.replace('Indennizzo - ', '')
+        const byMember = new Map(cat.managerPrizes.map(p => [p.leagueMemberId, p.amount]))
+        indemnityByPlayerAndMember.set(playerName, byMember)
+      }
+
+      const releasedDraftRosters = await prisma.playerRoster.findMany({
+        where: {
+          leagueMemberId: { in: members.map(m => m.id) },
+          status: 'ACTIVE',
+          contract: { draftExitDecision: 'RELEASE' },
+        },
+        select: {
+          leagueMemberId: true,
+          player: { select: { name: true, listStatus: true, exitReason: true } },
+        },
+      })
+      for (const r of releasedDraftRosters) {
+        if (r.player.listStatus !== 'NOT_IN_LIST' || r.player.exitReason !== 'ESTERO') continue
+        const amount = indemnityByPlayerAndMember.get(r.player.name)?.get(r.leagueMemberId) ?? DEFAULT_INDENNIZZO_ESTERO
+        hypotheticalIndemnitiesMap.set(r.leagueMemberId, (hypotheticalIndemnitiesMap.get(r.leagueMemberId) ?? 0) + amount)
+      }
+    }
+
     // Calculate financial data for each team
     const teamsData = members.map(member => {
       const isConsolidated = consolidationMap.has(member.id)
@@ -1838,6 +1875,7 @@ export async function getLeagueFinancials(leagueId: string, userId: string, sess
         username: member.user.username,
         budget: displayBudget,
         annualContractCost,
+        hypotheticalIndemnities: hypotheticalIndemnitiesMap.get(member.id) ?? 0,
         totalContractCost,
         totalAcquisitionCost,
         slotCount,

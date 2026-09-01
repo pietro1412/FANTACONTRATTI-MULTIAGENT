@@ -31,10 +31,15 @@ interface TeamComparisonProps {
   trends?: Record<string, TrendPoint[]> | null
 }
 
-const COMPOSITION_LABELS: Record<string, string> = {
-  ingaggi: 'Ingaggi impegnati',
-  riserva: 'Riserva slot',
-  disponibile: 'Disponibile',
+// Rework 01/09/2026: durante la Fase Contratti (prima che tutti consolidino) l'ingaggio
+// non e' ancora "impegnato" — nessuno lo ha ancora pagato, vedi getTeamBalance in ./types.
+function getCompositionLabels(preConsolidation: boolean): Record<string, string> {
+  return {
+    ingaggi: preConsolidation ? 'Ingaggi da pagare' : 'Ingaggi impegnati',
+    indennizzi: 'Indennizzi ipotetici (bozza)',
+    riserva: 'Riserva slot',
+    disponibile: 'Disponibile',
+  }
 }
 
 // Custom X axis tick: the user's team is highlighted in gold
@@ -70,6 +75,9 @@ export function TeamComparison({ data, myTeamId, trends }: TeamComparisonProps) 
     [data.teams, myTeamId]
   )
 
+  const preConsolidation = data.inContrattiPhase && !data.allMembersConsolidated
+  const compositionLabels = useMemo(() => getCompositionLabels(preConsolidation), [preConsolidation])
+
   // Budget composition per team (sorted by total budget desc)
   const compositionData = useMemo(() => {
     return [...data.teams]
@@ -77,17 +85,19 @@ export function TeamComparison({ data, myTeamId, trends }: TeamComparisonProps) 
       .map(t => {
         const balance = getTeamBalance(t, totals.hasFinancialDetails)
         const reserve = t.slotReserve ?? 0
+        const indennizzi = preConsolidation ? (t.hypotheticalIndemnities ?? 0) : 0
         return {
           name: t.teamName.length > 12 ? t.teamName.substring(0, 12) + '..' : t.teamName,
           fullName: t.teamName,
           memberId: t.memberId,
           ingaggi: t.annualContractCost,
+          indennizzi,
           riserva: reserve,
           disponibile: Math.max(0, balance - reserve),
           isMe: t.memberId === myTeamId,
         }
       })
-  }, [data.teams, totals.hasFinancialDetails, myTeamId])
+  }, [data.teams, totals.hasFinancialDetails, preConsolidation, myTeamId])
 
   const myShortName = compositionData.find(d => d.isMe)?.name
 
@@ -140,7 +150,11 @@ export function TeamComparison({ data, myTeamId, trends }: TeamComparisonProps) 
         <div className="rounded-2xl border border-surface-50/60 bg-surface-200 p-3 md:p-5">
           <SectionTitle
             title="Composizione del budget"
-            subtitle="Per ogni squadra: ingaggi impegnati, riserva slot, disponibile — la tua colonna è evidenziata"
+            subtitle={
+              preConsolidation
+                ? 'Per ogni squadra: ingaggi da pagare, indennizzi ipotetici da bozza, riserva slot, disponibile — la tua colonna è evidenziata'
+                : 'Per ogni squadra: ingaggi impegnati, riserva slot, disponibile — la tua colonna è evidenziata'
+            }
           />
           <div style={{ height: 300 }}>
             <ResponsiveContainer width="100%" height="100%">
@@ -156,7 +170,7 @@ export function TeamComparison({ data, myTeamId, trends }: TeamComparisonProps) 
                   contentStyle={CHART_TOOLTIP_STYLE} labelStyle={CHART_TOOLTIP_LABEL_STYLE}
                   itemStyle={{ color: '#fff' }}
                   cursor={{ fill: 'rgba(255,255,255,0.04)' }}
-                  formatter={((value: number, name: string) => [`${value}M`, COMPOSITION_LABELS[name] ?? name]) as Formatter<number, string>}
+                  formatter={((value: number, name: string) => [`${value}M`, compositionLabels[name] ?? name]) as Formatter<number, string>}
                   labelFormatter={((label: unknown) => {
                     const labelStr = String(label)
                     const item = compositionData.find(d => d.name === labelStr)
@@ -164,7 +178,7 @@ export function TeamComparison({ data, myTeamId, trends }: TeamComparisonProps) 
                   }) as never}
                 />
                 <Legend
-                  formatter={(value: string) => COMPOSITION_LABELS[value] ?? value}
+                  formatter={(value: string) => compositionLabels[value] ?? value}
                   wrapperStyle={{ fontSize: 11 }}
                 />
                 <Bar dataKey="ingaggi" stackId="a" fill={CHART_COLORS.primary}>
@@ -187,7 +201,7 @@ export function TeamComparison({ data, myTeamId, trends }: TeamComparisonProps) 
                     />
                   ))}
                 </Bar>
-                <Bar dataKey="disponibile" stackId="a" fill={CHART_COLORS.secondary} radius={[4, 4, 0, 0]}>
+                <Bar dataKey="disponibile" stackId="a" fill={CHART_COLORS.secondary} radius={preConsolidation ? undefined : [4, 4, 0, 0]}>
                   {compositionData.map(d => (
                     // eslint-disable-next-line @typescript-eslint/no-deprecated -- recharts: per-datum styling requires Cell
                     <Cell
@@ -197,6 +211,18 @@ export function TeamComparison({ data, myTeamId, trends }: TeamComparisonProps) 
                     />
                   ))}
                 </Bar>
+                {preConsolidation && (
+                  <Bar dataKey="indennizzi" stackId="a" fill={CHART_COLORS.primaryDark} radius={[4, 4, 0, 0]}>
+                    {compositionData.map(d => (
+                      // eslint-disable-next-line @typescript-eslint/no-deprecated -- recharts: per-datum styling requires Cell
+                      <Cell
+                        key={d.memberId}
+                        stroke={d.isMe ? CHART_COLORS.accentLight : undefined}
+                        strokeWidth={d.isMe ? 2 : 0}
+                      />
+                    ))}
+                  </Bar>
+                )}
               </BarChart>
             </ResponsiveContainer>
           </div>
