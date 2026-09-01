@@ -5,11 +5,12 @@ interface TeamRankingProps {
   teams: TeamData[]
   hasFinancialDetails: boolean
   preConsolidation?: boolean
+  /** Non usato: drill-down al dettaglio squadra disabilitato temporaneamente (01/09/2026), vedi sotto. */
   onTeamClick: (memberId: string) => void
   myTeamId?: string
 }
 
-export function TeamRanking({ teams, hasFinancialDetails, preConsolidation, onTeamClick, myTeamId }: TeamRankingProps) {
+export function TeamRanking({ teams, hasFinancialDetails, preConsolidation, myTeamId }: TeamRankingProps) {
   const ranked = useMemo(() => {
     return [...teams]
       .map(t => ({
@@ -33,15 +34,18 @@ export function TeamRanking({ teams, hasFinancialDetails, preConsolidation, onTe
         const isNegative = team.balance < 0
 
         return (
-          <button
+          // Rework 01/09/2026: drill-down al dettaglio squadra (TeamFinanceDetail)
+          // disabilitato temporaneamente su richiesta esplicita — presentava numeri
+          // incoerenti (waterfall). Per riattivare: <button onClick={() => onTeamClick(team.memberId)}>
+          // al posto di questo <div>, vedi anche onTeamClick nei componenti a monte.
+          <div
             key={team.memberId}
-            onClick={() => { onTeamClick(team.memberId); }}
-            className={`grid w-full grid-cols-[24px_minmax(96px,1.4fr)_minmax(48px,1fr)_64px] items-center gap-2 px-3 py-2.5 text-left transition-colors md:grid-cols-[28px_minmax(120px,1.6fr)_1fr_72px] md:gap-3.5 md:px-5 ${
+            className={`grid w-full grid-cols-[24px_minmax(96px,1.4fr)_minmax(48px,1fr)_64px] items-center gap-2 px-3 py-2.5 text-left md:grid-cols-[28px_minmax(120px,1.6fr)_1fr_72px] md:gap-3.5 md:px-5 ${
               idx > 0 ? 'border-t border-surface-50/40' : ''
             } ${
               isMe
                 ? 'border-l-[3px] border-l-accent-500 bg-gradient-to-r from-accent-500/10 to-transparent pl-[9px] md:pl-[17px]'
-                : 'hover:bg-surface-100/30'
+                : ''
             }`}
           >
             <span className="text-center font-mono text-xs font-bold text-gray-500">{idx + 1}</span>
@@ -96,7 +100,7 @@ export function TeamRanking({ teams, hasFinancialDetails, preConsolidation, onTe
                 </span>
               )}
             </span>
-          </button>
+          </div>
         )
       })}
 
