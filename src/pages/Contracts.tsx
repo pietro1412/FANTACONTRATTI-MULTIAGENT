@@ -16,13 +16,6 @@ import haptic from '@/utils/haptics'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import { GLOSSARY } from '@/components/help/Glossary'
 
-// BLOCCO CAUTELATIVO CONSOLIDAMENTO — rework finanziario in corso (01/09/2026).
-// Specchio della costante server-side CONSOLIDATION_BLOCKED_PENDING_FINANCIAL_REWORK
-// in src/services/contract.service.ts (non importabile qui: quel file è server-only,
-// usa Prisma direttamente). Vedi docs/reviews/rework-finanze-2026-09-01.md.
-// RIMUOVERE insieme alla costante gemella non appena il rework è completo e verificato.
-const CONSOLIDATION_BLOCKED_PENDING_FINANCIAL_REWORK = true
-
 interface ContractsProps {
   leagueId: string
   onNavigate: (page: string, params?: Record<string, string>) => void
@@ -474,11 +467,6 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
   }, [effectivePlayerCount])
 
   const canConsolidate = useMemo(() => {
-    // BLOCCO CAUTELATIVO: rework finanziario in corso, vedi
-    // docs/reviews/rework-finanze-2026-09-01.md e la costante gemella
-    // CONSOLIDATION_BLOCKED_PENDING_FINANCIAL_REWORK in contract.service.ts.
-    // RIMUOVERE insieme a quella non appena il rework è completo e verificato.
-    if (CONSOLIDATION_BLOCKED_PENDING_FINANCIAL_REWORK) return false
     const undecidedExited = contracts.filter(c => c.isExitedPlayer && !exitDecisions.has(c.id))
     if (undecidedExited.length > 0) return false
     if (effectivePlayerCount > MAX_ROSTER_SIZE) return false
@@ -499,9 +487,6 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
   }, [pendingContracts, pendingEdits, effectivePlayerCount, contracts, localEdits, exitDecisions])
 
   const consolidateBlockReason = useMemo(() => {
-    if (CONSOLIDATION_BLOCKED_PENDING_FINANCIAL_REWORK) {
-      return 'sospeso temporaneamente: revisione in corso del sistema budget/monte ingaggi'
-    }
     const undecidedExitedCount = contracts.filter(c => c.isExitedPlayer && !exitDecisions.has(c.id)).length
     if (undecidedExitedCount > 0) {
       return `Decidi per ${undecidedExitedCount} giocator${undecidedExitedCount === 1 ? 'e uscito' : 'i usciti'}`

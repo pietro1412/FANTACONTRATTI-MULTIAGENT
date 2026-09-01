@@ -598,11 +598,12 @@ describe('closeCurrentRubataAuction', () => {
       })
     )
 
-    // Contract transferred to winner
+    // Contract transferred to winner. paidAt: null — rework 01/09/2026, la Rubata
+    // e' un vero riacquisto: il contratto torna "non pagato" per il nuovo proprietario.
     expect(txUpdateContract).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: CONTRACT_ID },
-        data: { leagueMemberId: MEMBER_ID },
+        data: { leagueMemberId: MEMBER_ID, paidAt: null },
       })
     )
   })

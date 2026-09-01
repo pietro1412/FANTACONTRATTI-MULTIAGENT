@@ -65,6 +65,15 @@ model PlayerContract {
 
   // Storico rinnovi
   renewalHistory  Json?    // [{salary, duration, renewedAt}]
+
+  // Monte ingaggi "pagato" vs "non pagato" (rework 01/09/2026, vedi
+  // docs/reviews/rework-finanze-2026-09-01.md). null = non pagato (nuovo
+  // per il proprietario attuale: appena creato, o acquisito via Rubata).
+  // Valorizzato = pagato all'ultimo consolidamento di chi lo possiede ora
+  // (currentBudget e' stato decurtato per intero in quel momento). Uno
+  // Scambio NON tocca questo campo (nessun pagamento nuovo, il contratto
+  // mantiene il suo stato); la Rubata lo azzera sempre (vero riacquisto).
+  paidAt          DateTime?
 }
 
 // Bozza per nuovi contratti (giocatori senza contratto)

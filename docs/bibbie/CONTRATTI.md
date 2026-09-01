@@ -191,7 +191,9 @@ La fase CONTRATTI si attiva quando una sessione di mercato ricorrente e attiva e
 
 - Aumenta l'ingaggio e/o la durata
 - Impatta il monte ingaggi (aumenta)
-- **NON decrementa il budget** - regola FONDAMENTALE
+- **NON decrementa il budget nell'immediato** - regola FONDAMENTALE. Il monte ingaggi
+  dell'intera rosa (rinnovi inclusi) viene decurtato dal budget in blocco, una volta
+  sola, al momento del Consolidamento (§13.1 punto 7) — non ad ogni singolo rinnovo
 - Clausola ricalcolata con nuovi valori
 
 **Regole di validita:**
@@ -508,9 +510,18 @@ T3: FINE FASE CONTRATTI (admin avanza)
    - Aggiorna roster status = RELEASED
    - **Decrementa budget** (costo taglio = ingaggio x durata / 2)
 5. **Registra decisioni KEEP** per giocatori usciti mantenuti
-6. **Verifica vincoli** (tutti hanno contratto, max 29 giocatori)
-7. **Crea ContractConsolidation** record
-8. **Crea ManagerSessionSnapshot** (PHASE_END) con totali calcolati
+6. **Verifica vincoli** (tutti hanno contratto, max 29 giocatori; monte ingaggi <= budget)
+7. **Paga il monte ingaggi** (rework 01/09/2026, vedi Bibbia FINANZE.md §2.1 e
+   docs/reviews/rework-finanze-2026-09-01.md): il Budget viene **decurtato per intero**
+   della somma di tutti i contratti attivi rimasti in rosa — non solo "fissata" come
+   monte ingaggi separato. `totalSalaries` riparte da 0 e ogni contratto attivo viene
+   marcato "pagato" (`PlayerContract.paidAt`): da questo momento, fino al prossimo
+   consolidamento di questo manager, quel monte ingaggi non pesa più sulle validazioni
+   di offerta in Asta/Rubata/Svincolati — solo i movimenti nuovi (Rubata, Svincolati,
+   modifiche post-acquisto) lo fanno. Una Rubata azzera di nuovo `paidAt` sul contratto
+   trasferito (vero riacquisto); uno Scambio lo lascia invariato (nessun pagamento nuovo).
+8. **Crea ContractConsolidation** record
+9. **Crea ManagerSessionSnapshot** (PHASE_END) con totali calcolati
 
 ---
 

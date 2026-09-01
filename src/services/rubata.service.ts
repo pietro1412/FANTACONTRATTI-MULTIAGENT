@@ -496,7 +496,7 @@ export async function bidOnRubata(
   // Check budget using bilancio (budget - monteIngaggi). Rubata price includes salary. Reserve 1.
   // Non dipende da currentPrice: verificato una sola volta, fuori dal loop di retry.
   const monteIngaggiOld = await prisma.playerContract.aggregate({
-    where: { leagueMemberId: bidder.id },
+    where: { leagueMemberId: bidder.id, paidAt: null },
     _sum: { salary: true },
   })
   const bilancioOld = bidder.currentBudget - (monteIngaggiOld._sum.salary || 0)
@@ -691,11 +691,13 @@ export async function closeRubataAuction(
       },
     })
 
-    // Transfer contract to winner
+    // Transfer contract to winner. paidAt: null — la Rubata è un vero riacquisto
+    // (clausola+ingaggio pagati), il contratto torna "non pagato" per il nuovo
+    // proprietario fino al suo prossimo consolidamento (rework 01/09/2026).
     if (rosterEntry.contract) {
       await tx.playerContract.update({
         where: { id: rosterEntry.contract.id },
-        data: { leagueMemberId: winningBid.bidderId },
+        data: { leagueMemberId: winningBid.bidderId, paidAt: null },
       })
     }
 
@@ -1284,7 +1286,7 @@ export async function getRubataBoard(
       currentBudget: true,
       user: { select: { username: true } },
       contracts: {
-        where: { roster: { status: RosterStatus.ACTIVE } },
+        where: { roster: { status: RosterStatus.ACTIVE }, paidAt: null },
         select: { salary: true },
       },
     },
@@ -1537,7 +1539,7 @@ export async function makeRubataOffer(
 
   // Check budget using bilancio (budget - monteIngaggi). Rubata price includes salary.
   const monteIngaggiOffer = await prisma.playerContract.aggregate({
-    where: { leagueMemberId: member.id },
+    where: { leagueMemberId: member.id, paidAt: null },
     _sum: { salary: true },
   })
   const bilancioOffer = member.currentBudget - (monteIngaggiOffer._sum.salary || 0)
@@ -1688,7 +1690,7 @@ export async function bidOnRubataAuction(
   // Check budget using bilancio (budget - monteIngaggi). Rubata price includes salary.
   // Non dipende da currentPrice: verificato una sola volta, fuori dal loop di retry.
   const monteIngaggiBidR = await prisma.playerContract.aggregate({
-    where: { leagueMemberId: member.id },
+    where: { leagueMemberId: member.id, paidAt: null },
     _sum: { salary: true },
   })
   const bilancioBidR = member.currentBudget - (monteIngaggiBidR._sum.salary || 0)
@@ -1998,10 +2000,11 @@ async function applyRubataAuctionClose(
       },
     })
 
+    // paidAt: null — vedi nota rework 01/09/2026 sopra (Rubata = vero riacquisto).
     if (rosterEntry.contract) {
       await tx.playerContract.update({
         where: { id: rosterEntry.contract.id },
-        data: { leagueMemberId: winnerId },
+        data: { leagueMemberId: winnerId, paidAt: null },
       })
     }
 
@@ -3317,7 +3320,7 @@ export async function simulateRubataOffer(
 
   // Check budget using bilancio (budget - monteIngaggi). Rubata price includes salary.
   const monteIngaggiSim = await prisma.playerContract.aggregate({
-    where: { leagueMemberId: targetMember.id },
+    where: { leagueMemberId: targetMember.id, paidAt: null },
     _sum: { salary: true },
   })
   const bilancioSim = targetMember.currentBudget - (monteIngaggiSim._sum.salary || 0)
@@ -3481,7 +3484,7 @@ export async function simulateRubataBid(
 
   // Check budget using bilancio (budget - monteIngaggi). Rubata price includes salary. Reserve 1.
   const monteIngaggiSimBid = await prisma.playerContract.aggregate({
-    where: { leagueMemberId: targetMember.id },
+    where: { leagueMemberId: targetMember.id, paidAt: null },
     _sum: { salary: true },
   })
   const bilancioSimBid = targetMember.currentBudget - (monteIngaggiSimBid._sum.salary || 0)
@@ -3671,11 +3674,11 @@ export async function completeRubataWithTransactions(
               },
             })
 
-            // Transfer contract to winner
+            // Transfer contract to winner. paidAt: null — vedi nota rework 01/09/2026.
             if (rosterEntry.contract) {
               await tx.playerContract.update({
                 where: { id: rosterEntry.contract.id },
-                data: { leagueMemberId: buyer.id },
+                data: { leagueMemberId: buyer.id, paidAt: null },
               })
             }
 

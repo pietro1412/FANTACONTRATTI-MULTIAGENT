@@ -714,12 +714,7 @@ describe('Contract Service', () => {
 
   // ==================== consolidateContracts ====================
 
-  // Saltata: CONSOLIDATION_BLOCKED_PENDING_FINANCIAL_REWORK in contract.service.ts
-  // intercetta ogni chiamata prima di qualunque altra logica, finche' non e'
-  // completato il rework del motore finanziario (vedi
-  // docs/reviews/rework-finanze-2026-09-01.md). Riabilitare rimuovendo .skip
-  // insieme alla rimozione della costante.
-  describe.skip('consolidateContracts', () => {
+  describe('consolidateContracts', () => {
     it('should return error when user is not a member', async () => {
       mockPrisma.leagueMember.findFirst.mockResolvedValue(null)
 
@@ -775,6 +770,43 @@ describe('Contract Service', () => {
 
       expect(result.success).toBe(true)
       expect(result.message).toBe('Contratti consolidati con successo')
+    })
+
+    it('rework 01/09/2026: decurta davvero il Budget del monte ingaggi e marca i contratti come pagati', async () => {
+      mockPrisma.leagueMember.findFirst.mockResolvedValue({
+        id: 'member-1',
+        currentBudget: 314,
+      })
+      mockPrisma.marketSession.findFirst.mockResolvedValue({ id: 'session-1' })
+      mockPrisma.contractConsolidation.findUnique.mockResolvedValue(null)
+
+      mockPrisma.leagueMember.update.mockResolvedValue({})
+      mockPrisma.playerContract.updateMany.mockResolvedValue({ count: 2 })
+      mockPrisma.playerContract.findMany
+        .mockResolvedValueOnce([]) // undecidedExited
+        .mockResolvedValueOnce([]) // contractsToRelease
+        .mockResolvedValueOnce([]) // keptExitedPlayers
+        .mockResolvedValueOnce([
+          { id: 'contract-1', salary: 10 },
+          { id: 'contract-2', salary: 15 },
+        ]) // postConsolidationContracts, somma = 25
+      mockPrisma.prizeCategory.findFirst.mockResolvedValue(null)
+      mockPrisma.prizeCategory.findMany.mockResolvedValue([])
+      mockPrisma.playerRoster.findMany.mockResolvedValue([])
+      mockPrisma.leagueMember.findUnique.mockResolvedValue({ id: 'member-1', currentBudget: 314 })
+      mockPrisma.contractConsolidation.create.mockResolvedValue({})
+
+      const result = await contractService.consolidateContracts('league-1', 'user-1')
+
+      expect(result.success).toBe(true)
+      expect(mockPrisma.leagueMember.update).toHaveBeenCalledWith({
+        where: { id: 'member-1' },
+        data: { currentBudget: { decrement: 25 }, totalSalaries: 0 },
+      })
+      expect(mockPrisma.playerContract.updateMany).toHaveBeenCalledWith({
+        where: { id: { in: ['contract-1', 'contract-2'] } },
+        data: { paidAt: expect.any(Date) },
+      })
     })
 
     it('should fail if players remain without contract after consolidation', async () => {

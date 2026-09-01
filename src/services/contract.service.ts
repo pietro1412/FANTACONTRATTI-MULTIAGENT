@@ -29,18 +29,6 @@ export const DEFAULT_CONTRACT_DURATION = 3
 // Default indennizzo per giocatori ESTERO quando non esiste una categoria individuale/base
 const DEFAULT_INDENNIZZO_ESTERO = 50
 
-// ============================================================================
-// BLOCCO CAUTELATIVO CONSOLIDAMENTO — rework finanziario in corso (01/09/2026)
-// Il consolidamento oggi "fissa" il monte ingaggi (LeagueMember.totalSalaries)
-// ma NON decurta mai il Budget (LeagueMember.currentBudget) per pagarlo — vedi
-// docs/reviews/rework-finanze-2026-09-01.md per l'analisi completa. Finché il
-// modello corretto non è definito e implementato, il consolidamento è bloccato
-// per evitare di "congelare" numeri sbagliati in produzione.
-// RIMUOVERE questa costante (e il check che la usa in consolidateContracts)
-// non appena il rework finanziario è completo e verificato.
-export const CONSOLIDATION_BLOCKED_PENDING_FINANCIAL_REWORK = true
-// ============================================================================
-
 // M-12: Runtime validation to ensure budget never goes negative
 export async function validateBudgetNotNegative(memberId: string): Promise<boolean> {
   const member = await prisma.leagueMember.findUnique({
@@ -1142,13 +1130,6 @@ export async function consolidateContracts(
   renewals?: { contractId: string; salary: number; duration: number }[],
   newContracts?: { rosterId: string; salary: number; duration: number }[]
 ): Promise<ServiceResult> {
-  if (CONSOLIDATION_BLOCKED_PENDING_FINANCIAL_REWORK) {
-    return {
-      success: false,
-      message: 'Il consolidamento contratti è temporaneamente sospeso: è in corso una revisione del motore finanziario (monte ingaggi/budget). Riprova più tardi.',
-    }
-  }
-
   const member = await prisma.leagueMember.findFirst({
     where: {
       leagueId,
@@ -1576,12 +1557,23 @@ export async function consolidateContracts(
         )
       }
 
-      // Fissa il monte ingaggi al valore appena ricalcolato: resta questo il riferimento per
-      // Scambi/Finanze/Rose finché questo manager non consolida di nuovo (vedi
-      // LeagueMember.totalSalaries in prisma/schemas/league.prisma).
+      // Rework 01/09/2026 (docs/reviews/rework-finanze-2026-09-01.md): il monte ingaggi
+      // dell'intera rosa attuale viene PAGATO qui, una volta per tutte — decurtato
+      // realmente dal Budget, non solo "fissato" come prima. Da questo momento, fino
+      // al prossimo consolidamento di questo manager, quel monte ingaggi non pesa più:
+      // totalSalaries riparte da 0 e ogni contratto attivo viene marcato "pagato"
+      // (paidAt) — le validazioni live di Asta/Rubata/Svincolati contano solo i
+      // contratti con paidAt nullo (nuovi/non ancora pagati).
       await tx.leagueMember.update({
         where: { id: member.id },
-        data: { totalSalaries: postMonteIngaggi },
+        data: {
+          currentBudget: { decrement: postMonteIngaggi },
+          totalSalaries: 0,
+        },
+      })
+      await tx.playerContract.updateMany({
+        where: { id: { in: postConsolidationContracts.map(c => c.id) } },
+        data: { paidAt: new Date() },
       })
 
       // 5. Clear all draft values and create consolidation record

@@ -151,4 +151,16 @@ describe('svincolati.service — bidOnFreeAgent', () => {
     expect(result.message).toContain('maggiore di 30')
     expect(mockPrisma.$transaction).not.toHaveBeenCalled()
   })
+
+  it('rework 01/09/2026: calcola il monte ingaggi per la validazione solo sui contratti non ancora pagati', async () => {
+    const { bidOnFreeAgent } = await getService()
+    mockPrisma.$transaction.mockImplementation(mockTransactionOnce(1))
+
+    await bidOnFreeAgent(AUCTION_ID, USER_ID, 25)
+
+    expect(mockPrisma.playerContract.aggregate).toHaveBeenCalledWith({
+      where: { leagueMemberId: MEMBER_ID, paidAt: null },
+      _sum: { salary: true },
+    })
+  })
 })

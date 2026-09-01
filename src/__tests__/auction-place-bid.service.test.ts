@@ -167,4 +167,16 @@ describe('auction.service — placeBid', () => {
     expect(result.message).toContain('Offerta minima')
     expect(mockPrisma.$transaction).not.toHaveBeenCalled()
   })
+
+  it('rework 01/09/2026: calcola il monte ingaggi per la validazione solo sui contratti non ancora pagati', async () => {
+    const { placeBid } = await getService()
+    mockPrisma.$transaction.mockImplementation(mockTransactionOnce(1))
+
+    await placeBid(AUCTION_ID, USER_ID, 25)
+
+    expect(mockPrisma.playerContract.aggregate).toHaveBeenCalledWith({
+      where: { leagueMemberId: MEMBER_ID, paidAt: null },
+      _sum: { salary: true },
+    })
+  })
 })

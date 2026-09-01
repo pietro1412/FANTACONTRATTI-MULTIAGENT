@@ -39,7 +39,7 @@ Bilancio = Budget - Monte Ingaggi
 
 `LeagueMember.totalSalaries` (Monte Ingaggi) non si comporta allo stesso modo ovunque. E' importante distinguere:
 
-- **Aggiornamento live** (il campo riflette subito ogni transazione): usato per verificare se un manager ha bilancio sufficiente PRIMA di un'offerta (asta, rubata, svincolati) — questi controlli **non si fidano mai del campo salvato**, ricalcolano sempre la somma vera dei contratti al momento (`prisma.playerContract.aggregate`). Per questo un manager non puo mai spendere piu di quanto ha davvero, indipendentemente da eventuali ritardi nel campo mostrato in UI.
+- **Aggiornamento live** (il campo riflette subito ogni transazione): usato per verificare se un manager ha bilancio sufficiente PRIMA di un'offerta (asta, rubata, svincolati) — questi controlli **non si fidano mai del campo salvato**, ricalcolano sempre la somma vera dei contratti al momento (`prisma.playerContract.aggregate`, filtrata su `paidAt: null` — vedi §1.5). Per questo un manager non puo mai spendere piu di quanto ha davvero, indipendentemente da eventuali ritardi nel campo mostrato in UI.
 - **Aggiornamento fissato** (il campo resta al valore dell'ultimo evento che lo ha scritto, anche se i contratti reali sono gia cambiati): usato deliberatamente dagli **Scambi** (§13, `trade.service.ts`) per validare il bilancio disponibile sul valore "congelato" all'ultimo consolidamento, non su quello live — e dallo **svincolo pre-consolidamento** di un giocatore (taglio), che lascia il Monte Ingaggi invariato fino al prossimo consolidamento completo.
 
 | Fase / Evento | Il campo `totalSalaries` si aggiorna |
@@ -51,9 +51,20 @@ Bilancio = Budget - Monte Ingaggi
 | Contratti — rinnovo pre-consolidamento | **Fissato** — il rinnovo scrive il contratto, il campo resta indietro fino al consolidamento |
 | Contratti — taglio/svincolo pre-consolidamento | **Fissato** — il contratto viene cancellato ma il campo non decrementa |
 | Scambi | **Fissato** — il contratto trasferito non viene sommato subito |
-| Consolidamento | **Ricalcolato da zero**: somma di TUTTI i contratti attivi del manager in quel momento — è il punto in cui tutto torna sincronizzato, qualunque cosa sia successo prima |
+| Consolidamento | **Azzerato a 0** (rework 01/09/2026): la somma di TUTTI i contratti attivi del manager in quel momento viene calcolata per **decurtare realmente il Budget** (§2.1 punto 6), non per "fissare" il monte ingaggi — vedi §1.5 |
 
-Il Consolidamento è quindi anche una **rete di sicurezza**: qualunque disallineamento accumulato nelle fasi "fissato" viene azzerato ad ogni ciclo.
+Il Consolidamento è quindi anche una **rete di sicurezza**: qualunque disallineamento accumulato nelle fasi "fissato" viene sanato ad ogni ciclo, pagando per intero il monte ingaggi vero in quel momento.
+
+### 1.5 Monte ingaggi "pagato" vs "non pagato" (rework 01/09/2026)
+
+Il Consolidamento paga per intero il monte ingaggi della rosa attuale, decurtandolo dal Budget — non lo lascia più semplicemente "fissato" a fianco di un Budget che cresce senza limiti (bug corretto il 01/09/2026, vedi `docs/reviews/rework-finanze-2026-09-01.md`). Da quel momento, fino al prossimo consolidamento di quel manager, quel monte ingaggi non deve più pesare sulle validazioni di offerta — solo i movimenti nuovi (Rubata, Svincolati, modifiche post-acquisto) lo fanno.
+
+Per distinguerlo, `PlayerContract.paidAt` marca ogni contratto "pagato" all'ultimo consolidamento di chi lo possiede ora (`null` = non pagato/nuovo). Le validazioni live di Asta/Rubata/Svincolati (§1.4, riga "Aggiornamento live") sommano solo i contratti con `paidAt: null`. Comportamento per evento:
+
+- **Consolidamento**: marca "pagato" (stampa `paidAt`) su **tutti** i contratti attivi del manager, qualunque cosa sia successo prima
+- **Rubata**: azzera `paidAt` sul contratto trasferito al vincitore — è un vero riacquisto (clausola+ingaggio pagati, §3), il monte ingaggi torna a pesare per il nuovo proprietario fino al suo prossimo consolidamento
+- **Scambio**: **non tocca** `paidAt` — nessun pagamento nuovo avviene, il contratto mantiene il suo stato indipendentemente dal cambio di proprietario (§13)
+- **Nuovo contratto** (Primo Mercato, Svincolati): nasce con `paidAt: null` — è per definizione non ancora pagato
 
 ---
 
@@ -91,9 +102,12 @@ Il Consolidamento è quindi anche una **rete di sicurezza**: qualunque disalline
    Budget -= tagli (costo taglio = ceil(salary * duration / 2))
 
 6. FASE 3 - Rinnovo Contratti e Consolidamento
-   Monte Ingaggi ricalcolato con tutti i contratti attuali
-   Rinnovo: aumenta monte ingaggi, NON decrementa budget
-   Bilancio = Budget - Monte Ingaggi (ricalcolo completo)
+   Monte Ingaggi ricalcolato con tutti i contratti attuali (rinnovi inclusi)
+   Rinnovo: aumenta monte ingaggi, NON decrementa subito il budget
+   Al Consolidamento (rework 01/09/2026): il Budget viene DECURTATO per intero
+   del Monte Ingaggi appena ricalcolato — non solo "fissato" a fianco.
+   Budget -= Monte Ingaggi totale; Monte Ingaggi riparte da 0 (vedi §1.5)
+   Il nuovo Budget (già netto) è il punto di partenza per le fasi successive
 
 7. FASE 4 - Rubata
    Bilancio incrementale (vedi sezione 3)
@@ -124,11 +138,14 @@ Si apre mercato ricorrente:
   Offerte e scambi: +50 netto
   Bilancio = 300 + 50 = 350
 
-  Rinnovo contratti e consolidamento:
-    Monte ingaggi post rinnovo: 140
-    Tagli: 10
-    Indennizzi: 50
-    Bilancio = 350 - 140 - 10 + 50 = 250
+  Rinnovo contratti e consolidamento (rework 01/09/2026):
+    Budget accumulato finora (aste+premi+scambi, senza monte ingaggi dentro): 350
+    Indennizzi accettati: +50 → Budget = 400
+    Tagli: -10 → Budget = 390
+    Monte ingaggi post rinnovo (tutti i contratti attivi): 140, pagato per intero
+    Budget = 390 - 140 = 250
+    Monte Ingaggi riparte da 0 (tutti i contratti ora "pagati", vedi §1.5)
+    Bilancio disponibile dopo il consolidamento = 250
 
   Rubata (viene rubato Maignan, contratto 4x4):
     Clausola = 44, rubata base = 48

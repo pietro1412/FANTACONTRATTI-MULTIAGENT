@@ -202,7 +202,7 @@ export async function bidOnFreeAgent(
   // Check budget using bilancio (budget - monteIngaggi): bilancio >= offerta + ingaggio_default (Bibbia §5.2)
   // Non dipende da currentPrice: verificato una sola volta, fuori dal loop di retry.
   const monteIngaggiBid = await prisma.playerContract.aggregate({
-    where: { leagueMemberId: bidder.id },
+    where: { leagueMemberId: bidder.id, paidAt: null },
     _sum: { salary: true },
   })
   const bilancioBid = bidder.currentBudget - (monteIngaggiBid._sum.salary || 0)
@@ -745,7 +745,7 @@ export async function nominateFreeAgent(
 
   // Check bilancio (budget - monteIngaggi) >= 2 (offerta minima 1 + ingaggio minimo 1)
   const monteIngaggiNom = await prisma.playerContract.aggregate({
-    where: { leagueMemberId: member.id },
+    where: { leagueMemberId: member.id, paidAt: null },
     _sum: { salary: true },
   })
   const bilancio = member.currentBudget - (monteIngaggiNom._sum.salary || 0)
@@ -1784,7 +1784,7 @@ async function advanceSvincolatiToNextTurn(sessionId: string): Promise<ServiceRe
   let anyoneCanBuy = false
   for (const m of allActiveMembers) {
     const monteIngaggi = await prisma.playerContract.aggregate({
-      where: { leagueMemberId: m.id },
+      where: { leagueMemberId: m.id, paidAt: null },
       _sum: { salary: true },
     })
     const bilancio = m.currentBudget - (monteIngaggi._sum.salary || 0)
@@ -1839,7 +1839,7 @@ async function advanceSvincolatiToNextTurn(sessionId: string): Promise<ServiceRe
     const memberData = allActiveMembers.find(m => m.id === memberId)
     if (!memberData) continue
     const monteIngaggi = await prisma.playerContract.aggregate({
-      where: { leagueMemberId: memberId },
+      where: { leagueMemberId: memberId, paidAt: null },
       _sum: { salary: true },
     })
     const bilancio = memberData.currentBudget - (monteIngaggi._sum.salary || 0)

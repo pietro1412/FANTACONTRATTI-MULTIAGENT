@@ -1439,7 +1439,7 @@ export async function placeBid(
 
   // Check budget using bilancio (budget - monteIngaggi)
   const monteIngaggiAuction = await prisma.playerContract.aggregate({
-    where: { leagueMemberId: member.id },
+    where: { leagueMemberId: member.id, paidAt: null },
     _sum: { salary: true },
   })
   const bilancio = member.currentBudget - (monteIngaggiAuction._sum.salary || 0)
@@ -2275,7 +2275,7 @@ export async function advanceToNextTurn(
     })
     if (candidate) {
       const monteIngaggi = await prisma.playerContract.aggregate({
-        where: { leagueMemberId: candidateId },
+        where: { leagueMemberId: candidateId, paidAt: null },
         _sum: { salary: true },
       })
       const bilancio = candidate.currentBudget - (monteIngaggi._sum.salary || 0)

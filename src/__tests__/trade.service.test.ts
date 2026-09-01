@@ -654,6 +654,43 @@ describe('Trade Service', () => {
       expect(result.message).toBe('Scambio completato!')
       expect(result.data).toBeDefined()
     })
+
+    it('rework 01/09/2026: non tocca paidAt sui contratti trasferiti (a differenza della Rubata)', async () => {
+      const trade = makeTrade({
+        offeredPlayers: ['roster-a'],
+        requestedPlayers: ['roster-b'],
+        offeredBudget: 5,
+        requestedBudget: 3,
+      })
+      mockPrisma.tradeOffer.findUnique.mockResolvedValue(trade)
+      mockPrisma.marketSession.findFirst.mockResolvedValue(makeActiveSession())
+      mockPrisma.leagueMember.findFirst
+        .mockResolvedValueOnce(makeMember({ id: 'member-sender', userId: 'user-sender', currentBudget: 100 }))
+        .mockResolvedValueOnce(makeMember({ id: 'member-receiver', userId: 'user-receiver', currentBudget: 100 }))
+      mockPrisma.playerRoster.findMany
+        .mockResolvedValueOnce([{ id: 'roster-a' }])
+        .mockResolvedValueOnce([{ id: 'roster-b' }])
+        .mockResolvedValueOnce([{ id: 'roster-a', playerId: 'p1', contract: { salary: 10, duration: 2, rescissionClause: 20 } }])
+        .mockResolvedValueOnce([{ id: 'roster-b', playerId: 'p2', contract: { salary: 15, duration: 3, rescissionClause: 30 } }])
+        .mockResolvedValueOnce([{
+          id: 'roster-a', playerId: 'p1',
+          player: { id: 'p1', name: 'Leao', team: 'Milan', position: 'A' },
+          contract: { id: 'c1', salary: 10, duration: 2, initialSalary: 8, rescissionClause: 20 },
+        }])
+      mockPrisma.playerRoster.update.mockResolvedValue({})
+      mockPrisma.playerContract.updateMany.mockResolvedValue({})
+      mockPrisma.leagueMember.update.mockResolvedValue({})
+      mockPrisma.tradeOffer.update.mockResolvedValue({})
+      mockPrisma.tradeOffer.findMany.mockResolvedValue([])
+      mockPrisma.tradeOffer.updateMany.mockResolvedValue({})
+
+      await tradeService.acceptTrade('trade-1', 'user-receiver')
+
+      for (const call of mockPrisma.playerContract.updateMany.mock.calls) {
+        const [args] = call as [{ data: Record<string, unknown> }]
+        expect(args.data).not.toHaveProperty('paidAt')
+      }
+    })
   })
 
   // ==================== rejectTrade ====================
