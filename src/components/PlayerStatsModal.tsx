@@ -196,15 +196,6 @@ function StatSection({ title, children }: { title: string; children: React.React
   )
 }
 
-interface MatchRating {
-  matchDate: string
-  round: string | null
-  rating: number | null
-  minutesPlayed: number | null
-  goals: number | null
-  assists: number | null
-}
-
 /** Riga storico voti fantacalcio.it (fonte separata da API-Football, niente minuti giocati). */
 interface FantacalcioMatchHistoryItem {
   giornata: number
@@ -227,8 +218,6 @@ interface FantacalcioMatchHistoryItem {
 
 export function PlayerStatsModal({ isOpen, onClose, player, leagueId, leaguePlayerId }: PlayerStatsModalProps) {
   const [activeTab, setActiveTab] = useState<'panoramica' | 'storico' | 'carriera'>('panoramica')
-  const [matchHistory, setMatchHistory] = useState<MatchRating[]>([])
-  const [historyLoading, setHistoryLoading] = useState(false)
 
   // Carriera Lega tab
   const effectiveLeaguePlayerId = leaguePlayerId ?? player?.leaguePlayerId
@@ -286,17 +275,6 @@ export function PlayerStatsModal({ isOpen, onClose, player, leagueId, leaguePlay
     setCareerError(null)
   }, [leagueId, effectiveLeaguePlayerId])
 
-  // T-025: Fetch match history when storico tab is selected
-  useEffect(() => {
-    if (activeTab !== 'storico' || !player?.apiFootballId) return
-    setHistoryLoading(true)
-    fetch(`${API_URL}/api/players/${player.apiFootballId}/match-history`)
-      .then(res => res.ok ? res.json() : { data: [] })
-      .then(data => { setMatchHistory(data.data || []); })
-      .catch(() => { setMatchHistory([]); })
-      .finally(() => { setHistoryLoading(false); })
-  }, [activeTab, player?.apiFootballId])
-
   // Fetch league career as soon as the modal has enough context — not gated by the
   // "carriera" tab, since the current league team is shown always-visible (see below),
   // not just inside that tab.
@@ -317,8 +295,6 @@ export function PlayerStatsModal({ isOpen, onClose, player, leagueId, leaguePlay
   }, [leagueId, effectiveLeaguePlayerId, career])
 
   if (!player) return null
-
-  const stats = player.computedStats
 
   const positionLabels: Record<string, string> = {
     P: 'Portiere',
@@ -468,49 +444,19 @@ export function PlayerStatsModal({ isOpen, onClose, player, leagueId, leaguePlay
           )}
         </div>
 
-        {/* Storico tab */}
-        {activeTab === 'storico' && (
-          historyLoading ? (
-            <div className="text-center py-8 text-gray-400">Caricamento...</div>
-          ) : matchHistory.length === 0 ? (
-            <div className="text-center py-8">
-              <div className="text-gray-400 mb-2">Storico partite non disponibile</div>
-              <div className="text-sm text-gray-500">
-                {!player.apiFootballId
-                  ? 'Giocatore non associato ad API-Football'
-                  : 'Nessun dato match-by-match disponibile'}
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-1">
-              <div className="grid grid-cols-6 gap-2 text-[10px] text-gray-500 uppercase tracking-wider px-2 pb-1 border-b border-surface-50/20">
-                <span className="col-span-2">Giornata</span>
-                <span className="text-center">Min</span>
-                <span className="text-center">Rating</span>
-                <span className="text-center">Gol</span>
-                <span className="text-center">Assist</span>
-              </div>
-              {matchHistory.map((m, i) => (
-                <div key={i} className="grid grid-cols-6 gap-2 text-sm px-2 py-1.5 rounded hover:bg-surface-300/50">
-                  <span className="col-span-2 text-gray-300 truncate text-xs">
-                    {m.round?.replace('Regular Season - ', 'G') || new Date(m.matchDate).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' })}
-                  </span>
-                  <span className="text-center text-gray-400">{m.minutesPlayed ?? '-'}</span>
-                  <span className={`text-center font-medium ${
-                    m.rating && m.rating >= 7 ? 'text-secondary-400' :
-                    m.rating && m.rating >= 6 ? 'text-white' : 'text-danger-400'
-                  }`}>{m.rating?.toFixed(1) ?? '-'}</span>
-                  <span className="text-center text-white">{m.goals || '-'}</span>
-                  <span className="text-center text-white">{m.assists || '-'}</span>
-                </div>
-              ))}
-            </div>
-          )
+        {/* Storico tab — solo fantacalcio.it (mai API-Football, anche quando
+            presente: per la stagione corrente e' ormai strutturalmente
+            stantio, sync bloccata dal piano free). */}
+        {activeTab === 'storico' && fcHistoryLoading && (
+          <div className="text-center py-8 text-gray-400">Caricamento...</div>
+        )}
+        {activeTab === 'storico' && !fcHistoryLoading && fcMatchHistory.length === 0 && (
+          <div className="text-center py-8">
+            <div className="text-gray-400 mb-2">Storico partite non disponibile</div>
+            <div className="text-sm text-gray-500">Nessun dato fantacalcio.it per questo giocatore</div>
+          </div>
         )}
 
-        {/* Storico tab — sezione fantacalcio.it (fonte separata, sempre visibile
-            quando disponibile: niente minuti giocati, ma voto/fantavoto reali e
-            bonus/malus dettagliati che l'altra fonte non ha) */}
         {activeTab === 'storico' && !fcHistoryLoading && fcMatchHistory.length > 0 && (
           <div className="mt-4">
             <h3 className="text-primary-400 font-semibold text-sm uppercase tracking-wider mb-2">
@@ -608,117 +554,32 @@ export function PlayerStatsModal({ isOpen, onClose, player, leagueId, leaguePlay
           )
         )}
 
-        {/* Panoramica tab */}
-        {activeTab === 'panoramica' && ((!stats || stats.appearances === 0) && !fcSeasonStats ? (
+        {/* Panoramica tab — solo fantacalcio.it (mai API-Football, vedi Storico) */}
+        {activeTab === 'panoramica' && (!fcSeasonStats ? (
           <div className="text-center py-8">
             <div className="text-gray-400 mb-2">Statistiche non disponibili</div>
-            <div className="text-sm text-gray-500">
-              {!player.apiFootballId ? (
-                'Giocatore non ancora associato ad API-Football'
-              ) : (
-                'Nessuna statistica Serie A disponibile per questo giocatore nella stagione corrente'
-              )}
-            </div>
+            <div className="text-sm text-gray-500">Nessun dato fantacalcio.it per questo giocatore nella stagione corrente</div>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {fcSeasonStats && (
-              <StatSection title="Fantamedia (fantacalcio.it)">
-                <StatRow label="Presenze" value={fcSeasonStats.presenze} />
-                <StatRow label="Titolare" value={fcSeasonStats.titolare} />
-                <StatRow label="Voto Medio" value={fcSeasonStats.avgMv} />
-                <StatRow label="Fantamedia" value={fcSeasonStats.avgFm} />
-                <StatRow label="Gol" value={fcSeasonStats.golSegnati} />
-                <StatRow label="Assist" value={fcSeasonStats.assist} />
-                {(fcSeasonStats.rigoriSegnati > 0 || fcSeasonStats.rigoriSbagliati > 0) && (
-                  <div className="flex justify-between items-center py-1.5 border-b border-surface-50/10 last:border-0">
-                    <span className="text-gray-400 text-sm">Rigori (segn./sbagl.)</span>
-                    <span className="text-white font-semibold">{fcSeasonStats.rigoriSegnati}/{fcSeasonStats.rigoriSbagliati}</span>
-                  </div>
-                )}
-                {fcSeasonStats.rigoriParati > 0 && <StatRow label="Rigori Parati" value={fcSeasonStats.rigoriParati} />}
-                {fcSeasonStats.potm > 0 && <StatRow label="Player of the Match" value={fcSeasonStats.potm} />}
-              </StatSection>
-            )}
-
-            {stats && stats.appearances > 0 && (
-              <>
-                {/* Generali */}
-                <StatSection title="Generali">
-                  <StatRow label="Presenze" value={stats.appearances} />
-                  <StatRow label="Minuti Totali" value={stats.totalMinutes} />
-                  <StatRow label="Rating Medio" value={stats.avgRating != null ? Number(stats.avgRating.toFixed(2)) : null} />
-                  <StatRow label="Titolarita'" value={stats.startingXI} />
-                </StatSection>
-
-                {/* Rendimento */}
-                <StatSection title="Rendimento">
-                  <StatRow label="Gol" value={stats.totalGoals} />
-                  <StatRow label="Assist" value={stats.totalAssists} />
-                  <StatRow label="Convocazioni" value={stats.matchesInSquad} />
-                  {stats.appearances > 0 && (
-                    <StatRow
-                      label="Media Minuti/Partita"
-                      value={Math.round(stats.totalMinutes / stats.appearances)}
-                    />
-                  )}
-                </StatSection>
-
-                {/* Statistiche Calcolate */}
-                <StatSection title="Efficienza">
-                  {stats.totalGoals > 0 && stats.totalMinutes > 0 && (
-                    <StatRow
-                      label="Minuti per Gol"
-                      value={Math.round(stats.totalMinutes / stats.totalGoals)}
-                    />
-                  )}
-                  {stats.totalAssists > 0 && stats.totalMinutes > 0 && (
-                    <StatRow
-                      label="Minuti per Assist"
-                      value={Math.round(stats.totalMinutes / stats.totalAssists)}
-                    />
-                  )}
-                  {(stats.totalGoals > 0 || stats.totalAssists > 0) && stats.totalMinutes > 0 && (
-                    <StatRow
-                      label="Minuti per G+A"
-                      value={Math.round(stats.totalMinutes / (stats.totalGoals + stats.totalAssists))}
-                    />
-                  )}
-                  {stats.appearances > 0 && (
-                    <StatRow
-                      label="% Titolarita'"
-                      value={Math.round((stats.startingXI / stats.appearances) * 100)}
-                      suffix="%"
-                    />
-                  )}
-                </StatSection>
-
-                {/* Info Stagione */}
-                <StatSection title="Stagione">
-                  <div className="flex justify-between items-center py-1.5 border-b border-surface-50/10 last:border-0">
-                    <span className="text-gray-400 text-sm">Stagione</span>
-                    <span className="text-white font-semibold">{stats.season}</span>
-                  </div>
-                  <div className="mt-2 text-xs text-gray-500">
-                    Dati calcolati da {stats.matchesInSquad} partite monitorate
-                  </div>
-                </StatSection>
-              </>
-            )}
+            <StatSection title="Fantamedia (fantacalcio.it)">
+              <StatRow label="Presenze" value={fcSeasonStats.presenze} />
+              <StatRow label="Titolare" value={fcSeasonStats.titolare} />
+              <StatRow label="Voto Medio" value={fcSeasonStats.avgMv} />
+              <StatRow label="Fantamedia" value={fcSeasonStats.avgFm} />
+              <StatRow label="Gol" value={fcSeasonStats.golSegnati} />
+              <StatRow label="Assist" value={fcSeasonStats.assist} />
+              {(fcSeasonStats.rigoriSegnati > 0 || fcSeasonStats.rigoriSbagliati > 0) && (
+                <div className="flex justify-between items-center py-1.5 border-b border-surface-50/10 last:border-0">
+                  <span className="text-gray-400 text-sm">Rigori (segn./sbagl.)</span>
+                  <span className="text-white font-semibold">{fcSeasonStats.rigoriSegnati}/{fcSeasonStats.rigoriSbagliati}</span>
+                </div>
+              )}
+              {fcSeasonStats.rigoriParati > 0 && <StatRow label="Rigori Parati" value={fcSeasonStats.rigoriParati} />}
+              {fcSeasonStats.potm > 0 && <StatRow label="Player of the Match" value={fcSeasonStats.potm} />}
+            </StatSection>
           </div>
         ))}
-
-        {player.statsSyncedAt && (
-          <div className="mt-4 text-xs text-gray-500 text-center">
-            Ultimo aggiornamento: {new Date(player.statsSyncedAt).toLocaleDateString('it-IT', {
-              day: '2-digit',
-              month: 'short',
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
-          </div>
-        )}
       </ModalBody>
     </Modal>
   )
