@@ -78,6 +78,7 @@ export interface FinancialsData {
   teams: TeamData[]
   isAdmin: boolean
   inContrattiPhase: boolean
+  allMembersConsolidated?: boolean
   inAstaLiberaPhase?: boolean
   availableSessions: SessionInfo[]
   isHistorical?: boolean
@@ -360,8 +361,13 @@ export function computeLeagueTotals(data: FinancialsData): LeagueTotals {
   }
 }
 
-// Get team balance
-export function getTeamBalance(team: TeamData, hasFinancialDetails: boolean): number {
+// Get team balance.
+// preConsolidation: siamo in Fase Contratti e non tutti hanno ancora consolidato — il monte
+// ingaggi non e' ancora stato "pagato" da nessuno (rework 01/09/2026), quindi il Bilancio
+// mostrato e' semplicemente il Budget, senza sottrarre l'ingaggio. Diventa il vero Residuo
+// (Budget - Monte Ingaggi) solo quando la Fase Contratti si chiude per tutta la lega.
+export function getTeamBalance(team: TeamData, hasFinancialDetails: boolean, preConsolidation = false): number {
+  if (preConsolidation) return team.budget
   const bilancio = computeBilancio(team.budget, team.annualContractCost)
   return hasFinancialDetails
     ? bilancio - (team.totalReleaseCosts ?? 0) + (team.totalIndemnities ?? 0)

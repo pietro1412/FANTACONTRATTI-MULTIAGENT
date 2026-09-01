@@ -29,6 +29,10 @@ function LeagueKpi({ label, value, unit, note }: { label: string; value: string;
 
 export function FinanceDashboard({ data, leagueId, myTeamId, onTeamClick, onNavigateToRoster, onShowMovements }: FinanceDashboardProps) {
   const totals: LeagueTotals = useMemo(() => computeLeagueTotals(data), [data])
+  // Rework 01/09/2026: durante Fase Contratti, finche' non tutti hanno consolidato,
+  // il monte ingaggi non e' ancora "pagato" da nessuno — mostra il Budget puro, non
+  // il Bilancio (Budget - Monte Ingaggi). Vedi getTeamBalance in ./types.
+  const preConsolidation = data.inContrattiPhase && !data.allMembersConsolidated
 
   const teamsCount = data.teams.length
   const myTeam = useMemo(
@@ -60,6 +64,7 @@ export function FinanceDashboard({ data, leagueId, myTeamId, onTeamClick, onNavi
           teamsCount={teamsCount}
           budgetRank={budgetRank}
           hasFinancialDetails={totals.hasFinancialDetails}
+          preConsolidation={preConsolidation}
           onNavigateToRoster={onNavigateToRoster}
           onShowMovements={onShowMovements}
         />
@@ -100,11 +105,16 @@ export function FinanceDashboard({ data, leagueId, myTeamId, onTeamClick, onNavi
       <section>
         <SectionTitle
           title="Classifica bilanci"
-          subtitle="Bilancio disponibile per squadra (budget − ingaggi) — la tua riga è evidenziata"
+          subtitle={
+            preConsolidation
+              ? 'Budget pre-consolidamento per squadra — il monte ingaggi non è ancora stato pagato da nessuno — la tua riga è evidenziata'
+              : 'Bilancio disponibile per squadra (budget − ingaggi) — la tua riga è evidenziata'
+          }
         />
         <TeamRanking
           teams={data.teams}
           hasFinancialDetails={totals.hasFinancialDetails}
+          preConsolidation={preConsolidation}
           myTeamId={myTeamId}
           onTeamClick={onTeamClick}
         />

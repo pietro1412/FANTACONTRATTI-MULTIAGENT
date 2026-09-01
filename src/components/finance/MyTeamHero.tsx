@@ -9,6 +9,7 @@ interface MyTeamHeroProps {
   teamsCount: number
   budgetRank: number
   hasFinancialDetails: boolean
+  preConsolidation?: boolean
   onNavigateToRoster: () => void
   onShowMovements: () => void
 }
@@ -20,10 +21,11 @@ export function MyTeamHero({
   teamsCount,
   budgetRank,
   hasFinancialDetails,
+  preConsolidation,
   onNavigateToRoster,
   onShowMovements,
 }: MyTeamHeroProps) {
-  const balance = getTeamBalance(team, hasFinancialDetails)
+  const balance = getTeamBalance(team, hasFinancialDetails, preConsolidation)
   const reserve = team.slotReserve ?? 0
   const available = balance - reserve
 
@@ -60,7 +62,7 @@ export function MyTeamHero({
               <span className="ml-0.5 text-2xl text-secondary-500">M</span>
             </div>
             <div className="mt-1.5 text-[13px] font-semibold text-gray-400">
-              Bilancio disponibile per il mercato
+              {preConsolidation ? 'Budget pre-consolidamento (monte ingaggi non ancora pagato)' : 'Bilancio disponibile per il mercato'}
             </div>
           </div>
 

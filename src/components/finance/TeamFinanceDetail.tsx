@@ -27,8 +27,9 @@ interface TeamFinanceDetailProps {
 export function TeamFinanceDetail({ team, data, leagueId, onBack, onNavigateToPlayers, onNavigateToTimeline }: TeamFinanceDetailProps) {
   const [expandedSection, setExpandedSection] = useState<string | null>(null)
   const hasFinancialDetails = !data.inContrattiPhase && (team.totalReleaseCosts !== null || team.totalIndemnities !== null)
+  const preConsolidation = data.inContrattiPhase && !data.allMembersConsolidated
 
-  const balance = getTeamBalance(team, hasFinancialDetails)
+  const balance = getTeamBalance(team, hasFinancialDetails, preConsolidation)
   const health = getHealthStatus(balance)
   const initialBudget = team.budget + team.totalAcquisitionCost
   const salaryPct = initialBudget > 0 ? Math.round((team.annualContractCost / initialBudget) * 100) : 0

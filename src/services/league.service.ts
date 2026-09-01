@@ -1909,6 +1909,7 @@ export async function getLeagueFinancials(leagueId: string, userId: string, sess
         isAdmin: membership.role === MemberRole.ADMIN,
         // #193: Phase info
         inContrattiPhase,
+        allMembersConsolidated,
         // Budget reservation during primo mercato
         inAstaLiberaPhase,
         // OSS-6: Available sessions for phase selector

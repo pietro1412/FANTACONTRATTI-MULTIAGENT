@@ -4,19 +4,20 @@ import { type TeamData, getTeamBalance } from './types'
 interface TeamRankingProps {
   teams: TeamData[]
   hasFinancialDetails: boolean
+  preConsolidation?: boolean
   onTeamClick: (memberId: string) => void
   myTeamId?: string
 }
 
-export function TeamRanking({ teams, hasFinancialDetails, onTeamClick, myTeamId }: TeamRankingProps) {
+export function TeamRanking({ teams, hasFinancialDetails, preConsolidation, onTeamClick, myTeamId }: TeamRankingProps) {
   const ranked = useMemo(() => {
     return [...teams]
       .map(t => ({
         ...t,
-        balance: getTeamBalance(t, hasFinancialDetails),
+        balance: getTeamBalance(t, hasFinancialDetails, preConsolidation),
       }))
       .sort((a, b) => b.balance - a.balance)
-  }, [teams, hasFinancialDetails])
+  }, [teams, hasFinancialDetails, preConsolidation])
 
   const avgBalance = ranked.length > 0
     ? ranked.reduce((s, t) => s + t.balance, 0) / ranked.length
