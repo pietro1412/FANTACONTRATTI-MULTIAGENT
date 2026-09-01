@@ -227,6 +227,8 @@ export async function importQuotazioni(
         quotation: number
         listStatus: 'IN_LIST'
         externalId?: string
+        exitReason: null
+        exitDate: null
       }
     }> = []
     const processedIds = new Set<string>()
@@ -248,6 +250,8 @@ export async function importQuotazioni(
             quotation: player.quotation,
             listStatus: 'IN_LIST',
             externalId: player.externalId || undefined,
+            exitReason: null,
+            exitDate: null,
           }
         })
         processedIds.add(existing.id)
