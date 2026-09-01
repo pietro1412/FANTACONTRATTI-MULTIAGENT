@@ -46,11 +46,18 @@ export function TeamRanking({ teams, hasFinancialDetails, preConsolidation, onTe
           >
             <span className="text-center font-mono text-xs font-bold text-gray-500">{idx + 1}</span>
 
-            <span className="flex items-center gap-2 truncate text-[13px] font-bold text-white">
-              <span className="truncate">{team.teamName}</span>
-              {isMe && (
-                <span className="flex-shrink-0 rounded-md bg-accent-500 px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-surface-500">
-                  Tu
+            <span className="flex flex-col min-w-0">
+              <span className="flex items-center gap-2 truncate text-[13px] font-bold text-white">
+                <span className="truncate">{team.teamName}</span>
+                {isMe && (
+                  <span className="flex-shrink-0 rounded-md bg-accent-500 px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-surface-500">
+                    Tu
+                  </span>
+                )}
+              </span>
+              {preConsolidation && team.residuoSession != null && team.premiSession != null && (
+                <span className="truncate text-[10px] text-gray-500">
+                  Residuo {team.residuoSession}M + Premi {team.premiSession}M
                 </span>
               )}
             </span>
@@ -76,11 +83,18 @@ export function TeamRanking({ teams, hasFinancialDetails, preConsolidation, onTe
               )}
             </span>
 
-            <span className={`text-right font-mono text-sm font-bold ${
-              isNegative ? 'text-danger-400' : isMe ? 'text-accent-400' : 'text-white'
-            }`}>
-              {team.balance}
-              <span className="text-[11px] font-medium text-gray-500"> M</span>
+            <span className="flex flex-col items-end">
+              <span className={`text-right font-mono text-sm font-bold ${
+                isNegative ? 'text-danger-400' : isMe ? 'text-accent-400' : 'text-white'
+              }`}>
+                {team.balance}
+                <span className="text-[11px] font-medium text-gray-500"> M</span>
+              </span>
+              {preConsolidation && !!team.hypotheticalIndemnities && (
+                <span className="whitespace-nowrap text-[10px] text-secondary-400">
+                  +{team.hypotheticalIndemnities}M se rilascia tutti
+                </span>
+              )}
             </span>
           </button>
         )

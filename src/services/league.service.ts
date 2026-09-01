@@ -5,6 +5,7 @@ import type { IEmailService } from '../modules/identity/domain/services/email.se
 import { computeSeasonStatsBatch } from './player-stats.service'
 import { computeFantacalcioSeasonStatsBatch } from './fantacalcio-stats.service'
 import { calculateRescissionClause, DEFAULT_INDENNIZZO_ESTERO } from './contract.service'
+import { isCreditedCategory } from './prize-phase.service'
 import type { ServiceResult } from '@/shared/types/service-result'
 
 // Lazy-loaded email service to avoid initialization errors
@@ -1694,6 +1695,29 @@ export async function getLeagueFinancials(leagueId: string, userId: string, sess
       }
     }
 
+    // Premi consolidati della sessione (rework 01/09/2026): per scomporre il Budget in
+    // "Residuo" (tutto il resto: residuo di partenza + eventuali scambi in crediti) +
+    // "Premi" (quanto accreditato dalla Fase Premi di questa sessione). Solo i premi
+    // realmente accreditati (isCreditedCategory — esclude gli indennizzi, mai accreditati
+    // qui) e solo se la Fase Premi è stata finalizzata (altrimenti non sono ancora nel
+    // Budget). Residuo = Budget attuale - Premi, per differenza (non un campo persistito).
+    const premiMap = new Map<string, number>()
+    if (activeSession) {
+      const prizeConfig = await prisma.prizePhaseConfig.findUnique({
+        where: { marketSessionId: activeSession.id },
+      })
+      if (prizeConfig?.isFinalized) {
+        const prizes = await prisma.sessionPrize.findMany({
+          where: { prizeCategory: { marketSessionId: activeSession.id } },
+          include: { prizeCategory: { select: { isSystemPrize: true, name: true } } },
+        })
+        for (const p of prizes) {
+          if (!isCreditedCategory(p.prizeCategory)) continue
+          premiMap.set(p.leagueMemberId, (premiMap.get(p.leagueMemberId) ?? 0) + p.amount)
+        }
+      }
+    }
+
     // Calculate financial data for each team
     const teamsData = members.map(member => {
       const isConsolidated = consolidationMap.has(member.id)
@@ -1879,6 +1903,8 @@ export async function getLeagueFinancials(leagueId: string, userId: string, sess
         budget: displayBudget,
         annualContractCost,
         hypotheticalIndemnities: hypotheticalIndemnitiesMap.get(member.id) ?? 0,
+        premiSession: premiMap.get(member.id) ?? 0,
+        residuoSession: displayBudget - (premiMap.get(member.id) ?? 0),
         totalContractCost,
         totalAcquisitionCost,
         slotCount,

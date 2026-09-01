@@ -62,12 +62,10 @@ const mockFinancialsData = {
 }
 
 const mockGetFinancials = vi.fn()
-const mockGetFinancialTrends = vi.fn()
 
 vi.mock('../services/api', () => ({
   leagueApi: {
     getFinancials: (...args: unknown[]) => mockGetFinancials(...args),
-    getFinancialTrends: (...args: unknown[]) => mockGetFinancialTrends(...args),
     getPendingRequests: vi.fn().mockResolvedValue({ success: true, data: [] }),
   },
   superadminApi: {
@@ -96,10 +94,6 @@ vi.mock('../components/ShareButton', () => ({
 // Mock finance sub-components to isolate tests on the page shell
 vi.mock('../components/finance/FinanceDashboard', () => ({
   FinanceDashboard: () => <div data-testid="finance-dashboard">Dashboard Content</div>,
-}))
-
-vi.mock('../components/finance/TeamComparison', () => ({
-  TeamComparison: () => <div data-testid="team-comparison">Team Comparison Content</div>,
 }))
 
 vi.mock('../components/finance/TeamFinanceDetail', () => ({
@@ -167,9 +161,10 @@ describe('LeagueFinancials Page', () => {
     expect(screen.getByTestId('finance-dashboard')).toBeInTheDocument()
   })
 
-  it('switches tabs between Panoramica, Squadre, and Movimenti', async () => {
+  it('switches tabs between Panoramica and Movimenti', async () => {
+    // Tab "Squadre" (TeamComparison) rimosso su richiesta esplicita (01/09/2026):
+    // presentava problemi non ancora risolti. Vedi src/pages/LeagueFinancials.tsx.
     mockGetFinancials.mockResolvedValue({ success: true, data: mockFinancialsData })
-    mockGetFinancialTrends.mockResolvedValue({ success: true, data: { trends: {} } })
 
     const user = userEvent.setup()
 
@@ -179,12 +174,7 @@ describe('LeagueFinancials Page', () => {
       expect(screen.getByTestId('finance-dashboard')).toBeInTheDocument()
     })
 
-    // Switch to Squadre tab
-    await user.click(screen.getByText('Squadre'))
-
-    await waitFor(() => {
-      expect(screen.getByTestId('team-comparison')).toBeInTheDocument()
-    })
+    expect(screen.queryByText('Squadre')).not.toBeInTheDocument()
 
     // Switch to Movimenti tab
     await user.click(screen.getByText('Movimenti'))

@@ -24,8 +24,12 @@ export interface TeamData {
   username: string
   budget: number
   annualContractCost: number
-  /** Indennizzi ipotetici dalle bozze RELEASE non ancora consolidate (rework 01/09/2026) — solo in Fase Contratti pre-consolidamento. */
+  /** Indennizzi ipotetici (se il manager rilasciasse ogni giocatore ESTERO in rosa) — rework 01/09/2026, solo in Fase Contratti pre-consolidamento. */
   hypotheticalIndemnities?: number
+  /** Premi accreditati in questa sessione (rework 01/09/2026), scomposizione del Budget. */
+  premiSession?: number
+  /** Budget - premiSession, per differenza: residuo di partenza + eventuali scambi (rework 01/09/2026). */
+  residuoSession?: number
   totalContractCost: number
   totalAcquisitionCost: number
   slotCount: number

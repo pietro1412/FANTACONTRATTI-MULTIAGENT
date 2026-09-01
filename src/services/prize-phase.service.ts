@@ -13,7 +13,7 @@ const BASE_REINCREMENT_CATEGORY_NAME = 'Re-incremento Base'
  * Indennizzo - PlayerName) non vengono mai accreditati qui: sono liquidati più avanti
  * in Contratti, solo se il manager sceglie RELEASE.
  */
-function isCreditedCategory(category: { isSystemPrize: boolean; name: string }): boolean {
+export function isCreditedCategory(category: { isSystemPrize: boolean; name: string }): boolean {
   return !category.isSystemPrize || category.name === BASE_REINCREMENT_CATEGORY_NAME
 }
 

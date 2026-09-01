@@ -1,11 +1,10 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { Navigation } from '../components/Navigation'
 import { useAuth } from '../hooks/useAuth'
 import { PullToRefresh } from '../components/PullToRefresh'
 import { ShareButton } from '../components/ShareButton'
 import { leagueApi } from '../services/api'
 import { FinanceDashboard } from '../components/finance/FinanceDashboard'
-import { TeamComparison } from '../components/finance/TeamComparison'
 import { TeamFinanceDetail } from '../components/finance/TeamFinanceDetail'
 import { FinanceTimeline } from '../components/finance/FinanceTimeline'
 import { formatSessionLabel, type FinancialsData } from '../components/finance/types'
@@ -16,14 +15,15 @@ import { formatSessionLabel, type FinancialsData } from '../components/finance/t
 
 type ViewLevel =
   | { level: 'panoramica' }
-  | { level: 'squadre' }
   | { level: 'dettaglio'; memberId: string }
   | { level: 'movimenti'; memberId?: string }
 
 // Tab definitions
+// Tab "Squadre" (confronto/composizione, TeamComparison) rimosso su richiesta esplicita
+// (01/09/2026): presentava problemi non ancora risolti. Componente lasciato nel codice,
+// solo non più raggiungibile da qui.
 const TABS = [
   { key: 'panoramica', label: 'Panoramica' },
-  { key: 'squadre', label: 'Squadre' },
   { key: 'movimenti', label: 'Movimenti' },
 ] as const
 
@@ -40,15 +40,6 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
   const [isLeagueAdmin, setIsLeagueAdmin] = useState(false)
   const [selectedSession, setSelectedSession] = useState<string | undefined>(undefined)
   const [view, setView] = useState<ViewLevel>({ level: 'panoramica' })
-  const [trendsData, setTrendsData] = useState<Record<string, Array<{
-    snapshotType: string
-    budget: number
-    totalSalaries: number
-    balance: number
-    sessionType: string
-    sessionPhase: string | null
-    createdAt: string
-  }>> | null>(null)
 
   useEffect(() => {
     void loadFinancials()
@@ -74,19 +65,6 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
     }
   }
 
-  // Load trends data (lazy, once)
-  const loadTrends = useCallback(async () => {
-    if (trendsData || !leagueId) return
-    try {
-      const result = await leagueApi.getFinancialTrends(leagueId)
-      if (result.success && result.data) {
-        setTrendsData(result.data.trends)
-      }
-    } catch {
-      // non-critical, silently ignore
-    }
-  }, [leagueId, trendsData])
-
   // Reset scroll to top when switching tab or drill-down view
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -95,10 +73,6 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
   // Navigation handlers
   const handleTabClick = (tab: string) => {
     if (tab === 'panoramica') setView({ level: 'panoramica' })
-    else if (tab === 'squadre') {
-      setView({ level: 'squadre' })
-      void loadTrends()
-    }
     else if (tab === 'movimenti') setView({ level: 'movimenti' })
   }
 
@@ -107,7 +81,7 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
   }
 
   const handleBackToComparison = () => {
-    setView({ level: 'squadre' })
+    setView({ level: 'panoramica' })
   }
 
   const handleNavigateToTimeline = (memberId: string) => {
@@ -123,7 +97,7 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
   }
 
   // Get active tab key from current view
-  const activeTab = view.level === 'dettaglio' ? 'squadre' : view.level
+  const activeTab = view.level === 'dettaglio' ? 'panoramica' : view.level
 
   // My team (for the hero and highlighted rows), matched by username
   const myTeamId = data?.teams.find(t => t.username === user?.username)?.memberId
@@ -293,20 +267,11 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
           />
         )}
 
-        {/* Level 2: Confronto Squadre */}
-        {view.level === 'squadre' && (
-          <TeamComparison
-            data={data}
-            myTeamId={myTeamId}
-            trends={trendsData}
-          />
-        )}
-
         {/* Level 3: Dettaglio Squadra */}
         {view.level === 'dettaglio' && (() => {
           const team = data.teams.find(t => t.memberId === view.memberId)
           if (!team) {
-            setView({ level: 'squadre' })
+            setView({ level: 'panoramica' })
             return null
           }
           return (
