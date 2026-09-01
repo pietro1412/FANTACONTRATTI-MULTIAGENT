@@ -123,6 +123,10 @@ vi.mock('../services/api', () => ({
     // career data eagerly whenever it has a leagueId + leaguePlayerId.
     getPlayerCareer: vi.fn().mockResolvedValue({ success: true, data: null }),
   },
+  playerApi: {
+    // PlayerStatsModal also fetches fantacalcio.it match history eagerly.
+    getFantacalcioHistory: vi.fn().mockResolvedValue({ success: true, data: [] }),
+  },
 }))
 
 // The central hook mock

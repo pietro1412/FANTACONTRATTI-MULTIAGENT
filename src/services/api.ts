@@ -588,6 +588,27 @@ export const playerApi = {
       }
     }>(`/api/players/stats${query ? `?${query}` : ''}`)
   },
+
+  // Storico voti fantacalcio.it di un giocatore (keyed su SerieAPlayer.id)
+  getFantacalcioHistory: (playerId: string) =>
+    request<Array<{
+      giornata: number
+      season: string
+      matchDate: string | null
+      opponent: string | null
+      homeAway: string | null
+      mv: number | null
+      fm: number | null
+      status: string | null
+      golSegnati: number
+      golSubiti: number
+      autoreti: number
+      rigoriSegnati: number
+      rigoriSbagliati: number
+      rigoriParati: number
+      assist: number
+      potm: number
+    }>>(`/api/players/${playerId}/fantacalcio-history`),
 }
 
 // Auction API

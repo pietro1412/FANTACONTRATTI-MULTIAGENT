@@ -3,7 +3,7 @@ import { Modal, ModalHeader, ModalBody } from './ui/Modal'
 import { POSITION_GRADIENTS } from './ui/PositionBadge'
 import { ContractInline } from './ui/ContractInline'
 import { getPlayerPhotoUrl, getTeamLogoUrl } from '../utils/player-images'
-import { historyApi } from '../services/api'
+import { historyApi, playerApi } from '../services/api'
 import { NOT_DISPONIBILE, getAgeColor } from '../utils/stat-format'
 import type { PlayerCareer } from './history/PlayerCareerPanel'
 
@@ -37,8 +37,6 @@ function formatCareerDate(dateStr: string): string {
     year: 'numeric',
   })
 }
-
-const API_URL = String(import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:3003'))
 
 // Legacy stats structure from API-Football (kept for backward compatibility)
 export interface PlayerStats {
@@ -236,9 +234,8 @@ export function PlayerStatsModal({ isOpen, onClose, player, leagueId, leaguePlay
   useEffect(() => {
     if (!effectiveLeaguePlayerId) { setFcMatchHistory([]); return }
     setFcHistoryLoading(true)
-    fetch(`${API_URL}/api/players/${effectiveLeaguePlayerId}/fantacalcio-history`)
-      .then(res => res.ok ? res.json() : { data: [] })
-      .then(data => { setFcMatchHistory(data.data || []) })
+    playerApi.getFantacalcioHistory(effectiveLeaguePlayerId)
+      .then(result => { setFcMatchHistory((result.success && result.data) || []) })
       .catch(() => { setFcMatchHistory([]) })
       .finally(() => { setFcHistoryLoading(false) })
   }, [effectiveLeaguePlayerId])
