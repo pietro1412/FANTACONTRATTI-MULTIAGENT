@@ -1655,11 +1655,14 @@ export async function getLeagueFinancials(leagueId: string, userId: string, sess
       : false
 
     // Indennizzi ipotetici (rework 01/09/2026): durante la Fase Contratti, prima del
-    // consolidamento vero, i giocatori ESTERO marcati RELEASE in bozza (draftExitDecision,
-    // salvato con "Salva bozza") non hanno ancora generato un indennizzo reale — nessun
-    // ManagerSessionSnapshot esiste finché nessuno consolida. Calcola qui una proiezione
-    // con la stessa logica di contract.service.ts (righe ~194-230): categoria individuale
-    // "Indennizzo - NomeGiocatore" per manager, fallback DEFAULT_INDENNIZZO_ESTERO.
+    // consolidamento vero, mostra per OGNI manager quanto incasserebbe SE rilasciasse
+    // ognuno dei suoi giocatori ESTERO ancora in rosa — indipendentemente dalla decisione
+    // KEEP/RELEASE che ha già preso o meno (info pubblica: la lista giocatori usciti è
+    // sempre visibile; solo la decisione stessa resta privata durante la fase). Nessun
+    // ManagerSessionSnapshot esiste finché nessuno consolida davvero, quindi si calcola
+    // qui una proiezione con la stessa logica di contract.service.ts (righe ~194-230):
+    // categoria individuale "Indennizzo - NomeGiocatore" per manager, fallback
+    // DEFAULT_INDENNIZZO_ESTERO.
     const hypotheticalIndemnitiesMap = new Map<string, number>()
     if (inContrattiPhase && activeContrattiSession) {
       const individualCategories = await prisma.prizeCategory.findMany({
@@ -1673,18 +1676,18 @@ export async function getLeagueFinancials(leagueId: string, userId: string, sess
         indemnityByPlayerAndMember.set(playerName, byMember)
       }
 
-      const releasedDraftRosters = await prisma.playerRoster.findMany({
+      const esteroRosters = await prisma.playerRoster.findMany({
         where: {
           leagueMemberId: { in: members.map(m => m.id) },
           status: 'ACTIVE',
-          contract: { draftExitDecision: 'RELEASE' },
+          player: { listStatus: 'NOT_IN_LIST', exitReason: 'ESTERO' },
         },
         select: {
           leagueMemberId: true,
           player: { select: { name: true, listStatus: true, exitReason: true } },
         },
       })
-      for (const r of releasedDraftRosters) {
+      for (const r of esteroRosters) {
         if (r.player.listStatus !== 'NOT_IN_LIST' || r.player.exitReason !== 'ESTERO') continue
         const amount = indemnityByPlayerAndMember.get(r.player.name)?.get(r.leagueMemberId) ?? DEFAULT_INDENNIZZO_ESTERO
         hypotheticalIndemnitiesMap.set(r.leagueMemberId, (hypotheticalIndemnitiesMap.get(r.leagueMemberId) ?? 0) + amount)
