@@ -36,6 +36,9 @@ const { mockPrisma, MockPrismaClient } = vi.hoisted(() => {
     playerMatchRating: {
       findMany: vi.fn(),
     },
+    fantacalcioMatchRating: {
+      findMany: vi.fn(),
+    },
     serieAPlayer: {
       findMany: vi.fn(),
     },
@@ -180,6 +183,8 @@ describe('Trade Service', () => {
     // computeSeasonStatsBatch (usato per arricchire i giocatori nelle offerte, vedi 008439d)
     mockPrisma.playerMatchRating.findMany.mockResolvedValue([])
     mockPrisma.serieAPlayer.findMany.mockResolvedValue([])
+    // computeFantacalcioSeasonStatsBatch (stesso arricchimento, fonte fantacalcio.it)
+    mockPrisma.fantacalcioMatchRating.findMany.mockResolvedValue([])
   })
 
   // ==================== createTradeOffer ====================

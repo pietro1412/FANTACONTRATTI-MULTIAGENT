@@ -30,6 +30,12 @@ function getMovementLabel(type: string, price: number | null | undefined): strin
   return MOVEMENT_LABELS[type] || type
 }
 
+// "2025-2026" -> "2025/26"
+function formatSeasonLabel(season: string): string {
+  const [start, end] = season.split('-')
+  return end ? `${start}/${end.slice(2)}` : season
+}
+
 function formatCareerDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('it-IT', {
     day: '2-digit',
@@ -230,15 +236,28 @@ export function PlayerStatsModal({ isOpen, onClose, player, leagueId, leaguePlay
   // la sezione Fantamedia in Panoramica ha gia' i dati pronti.
   const [fcMatchHistory, setFcMatchHistory] = useState<FantacalcioMatchHistoryItem[]>([])
   const [fcHistoryLoading, setFcHistoryLoading] = useState(false)
+  const [storicoSeason, setStoricoSeason] = useState<string | null>(null)
 
   useEffect(() => {
     if (!effectiveLeaguePlayerId) { setFcMatchHistory([]); return }
     setFcHistoryLoading(true)
+    setStoricoSeason(null)
     playerApi.getFantacalcioHistory(effectiveLeaguePlayerId)
       .then(result => { setFcMatchHistory((result.success && result.data) || []) })
       .catch(() => { setFcMatchHistory([]) })
       .finally(() => { setFcHistoryLoading(false) })
   }, [effectiveLeaguePlayerId])
+
+  // Stagioni disponibili nello storico, piu' recente prima; default alla piu' recente.
+  const storicoSeasons = useMemo(
+    () => [...new Set(fcMatchHistory.map(m => m.season))].sort().reverse(),
+    [fcMatchHistory]
+  )
+  const effectiveStoricoSeason = storicoSeasons.includes(storicoSeason ?? '') ? storicoSeason : storicoSeasons[0]
+  const storicoRows = useMemo(
+    () => fcMatchHistory.filter(m => m.season === effectiveStoricoSeason),
+    [fcMatchHistory, effectiveStoricoSeason]
+  )
 
   const fcSeasonStats = useMemo(() => {
     if (fcMatchHistory.length === 0) return null
@@ -456,9 +475,29 @@ export function PlayerStatsModal({ isOpen, onClose, player, leagueId, leaguePlay
 
         {activeTab === 'storico' && !fcHistoryLoading && fcMatchHistory.length > 0 && (
           <div className="mt-4">
-            <h3 className="text-primary-400 font-semibold text-sm uppercase tracking-wider mb-2">
-              Voti Fantacalcio.it
-            </h3>
+            <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+              <h3 className="text-primary-400 font-semibold text-sm uppercase tracking-wider">
+                Voti Fantacalcio.it
+              </h3>
+              {storicoSeasons.length > 1 && (
+                <div className="flex gap-1.5">
+                  {storicoSeasons.map(season => (
+                    <button
+                      key={season}
+                      type="button"
+                      onClick={() => setStoricoSeason(season)}
+                      className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-colors ${
+                        season === effectiveStoricoSeason
+                          ? 'bg-primary-500 text-white'
+                          : 'bg-surface-100 text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      {formatSeasonLabel(season)}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <div className="space-y-1">
               <div className="grid grid-cols-6 gap-2 text-[10px] text-gray-500 uppercase tracking-wider px-2 pb-1 border-b border-surface-50/20">
                 <span className="col-span-2">Giornata</span>
@@ -467,7 +506,7 @@ export function PlayerStatsModal({ isOpen, onClose, player, leagueId, leaguePlay
                 <span className="text-center">Gol/Ass</span>
                 <span className="text-center">Bonus</span>
               </div>
-              {fcMatchHistory.map((m, i) => (
+              {storicoRows.map((m, i) => (
                 <div key={i} className="grid grid-cols-6 gap-2 text-sm px-2 py-1.5 rounded hover:bg-surface-300/50">
                   <span className="col-span-2 text-gray-300 truncate text-xs">
                     G{m.giornata}{m.opponent ? ` vs ${m.opponent}` : ''}
@@ -558,8 +597,8 @@ export function PlayerStatsModal({ isOpen, onClose, player, leagueId, leaguePlay
             <div className="text-sm text-gray-500">Nessun dato fantacalcio.it per questo giocatore nella stagione corrente</div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <StatSection title="Fantamedia (fantacalcio.it)">
+          <StatSection title="Fantamedia">
+            <div className="grid grid-cols-2 gap-x-6">
               <StatRow label="Presenze" value={fcSeasonStats.presenze} />
               <StatRow label="Titolare" value={fcSeasonStats.titolare} />
               <StatRow label="Voto Medio" value={fcSeasonStats.avgMv} />
@@ -574,8 +613,8 @@ export function PlayerStatsModal({ isOpen, onClose, player, leagueId, leaguePlay
               )}
               {fcSeasonStats.rigoriParati > 0 && <StatRow label="Rigori Parati" value={fcSeasonStats.rigoriParati} />}
               {fcSeasonStats.potm > 0 && <StatRow label="Player of the Match" value={fcSeasonStats.potm} />}
-            </StatSection>
-          </div>
+            </div>
+          </StatSection>
         ))}
       </ModalBody>
     </Modal>
