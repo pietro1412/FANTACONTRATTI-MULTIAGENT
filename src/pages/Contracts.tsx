@@ -408,7 +408,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
     let total = 0
     contracts.forEach(contract => {
       if (localReleases.has(contract.id)) return
-      if (contract.isExitedPlayer && exitDecisions.get(contract.id) !== 'KEEP') return
+      if (contract.isExitedPlayer && exitDecisions.get(contract.id) === 'RELEASE') return
       const edit = localEdits[contract.id]
       const salary = parseInt(edit?.newSalary || '') || contract.salary
       total += salary
@@ -546,7 +546,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
     const dist = { P: 0, D: 0, C: 0, A: 0 }
     contracts.forEach(c => {
       if (localReleases.has(c.id)) return
-      if (c.isExitedPlayer && exitDecisions.get(c.id) !== 'KEEP') return
+      if (c.isExitedPlayer && exitDecisions.get(c.id) === 'RELEASE') return
       const role = c.roster.player.position as keyof typeof dist
       if (role in dist) dist[role]++
     })
@@ -601,7 +601,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
     const salaries: number[] = []
     contracts.forEach(c => {
       if (localReleases.has(c.id)) return
-      if (c.isExitedPlayer && exitDecisions.get(c.id) !== 'KEEP') return
+      if (c.isExitedPlayer && exitDecisions.get(c.id) === 'RELEASE') return
       const edit = localEdits[c.id]
       salaries.push(parseInt(edit?.newSalary || '') || c.salary)
     })
