@@ -4,6 +4,11 @@ import type { Position, Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma'
 import { getPlayers, getPlayerById, getTeams } from '../../services/player.service'
 import { computeSeasonStatsBatch } from '../../services/player-stats.service'
+import {
+  computeFantacalcioSeasonStats,
+  computeFantacalcioSeasonStatsBatch,
+  getFantacalcioMatchHistory,
+} from '../../services/fantacalcio-stats.service'
 import { authMiddleware } from '../middleware/auth'
 
 const router = Router()
@@ -169,6 +174,8 @@ router.get('/stats', authMiddleware, async (req: Request, res: Response) => {
 
     // Compute season stats from PlayerMatchRating (single batch query)
     const statsMap = await computeSeasonStatsBatch(players.map(p => p.id))
+    // Fantacalcio.it stats (fonte separata, vedi fantacalcio-stats.service.ts)
+    const fantacalcioStatsMap = await computeFantacalcioSeasonStatsBatch(players.map(p => p.id))
 
     // Parse stats and flatten for easier frontend use
     const playersWithStats = players.map((p) => {
@@ -194,6 +201,7 @@ router.get('/stats', authMiddleware, async (req: Request, res: Response) => {
         listStatus: p.listStatus,
         exitReason: p.exitReason,
         computedStats: statsMap.get(p.id) || null,
+        fantacalcioStats: fantacalcioStatsMap.get(p.id) || null,
         stats: stats ? {
           appearances: stats.games?.appearences ?? 0,
           minutes: stats.games?.minutes ?? 0,
@@ -286,6 +294,24 @@ router.get('/:apiFootballId/match-history', authMiddleware, async (req: Request,
   }
 })
 
+// GET /api/players/:id/fantacalcio-history - Storico voti fantacalcio.it, keyed
+// su id interno SerieAPlayer (non su apiFootballId): copre anche i giocatori
+// non ancora matchati con API-Football per le foto.
+router.get('/:id/fantacalcio-history', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id as string
+    const history = await getFantacalcioMatchHistory(id)
+
+    res.json({
+      success: true,
+      data: history,
+    })
+  } catch (error) {
+    console.error('Get player fantacalcio history error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
 // GET /api/players/:id - Get player by ID
 router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
@@ -297,9 +323,11 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
       return
     }
 
+    const fantacalcioStats = await computeFantacalcioSeasonStats(id)
+
     res.json({
       success: true,
-      data: player,
+      data: { ...player, fantacalcioStats },
     })
   } catch (error) {
     console.error('Get player error:', error)

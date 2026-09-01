@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Modal, ModalHeader, ModalBody } from './ui/Modal'
 import { POSITION_GRADIENTS } from './ui/PositionBadge'
 import { ContractInline } from './ui/ContractInline'
@@ -205,6 +205,26 @@ interface MatchRating {
   assists: number | null
 }
 
+/** Riga storico voti fantacalcio.it (fonte separata da API-Football, niente minuti giocati). */
+interface FantacalcioMatchHistoryItem {
+  giornata: number
+  season: string
+  matchDate: string | null
+  opponent: string | null
+  homeAway: string | null
+  mv: number | null
+  fm: number | null
+  status: string | null
+  golSegnati: number
+  golSubiti: number
+  autoreti: number
+  rigoriSegnati: number
+  rigoriSbagliati: number
+  rigoriParati: number
+  assist: number
+  potm: number
+}
+
 export function PlayerStatsModal({ isOpen, onClose, player, leagueId, leaguePlayerId }: PlayerStatsModalProps) {
   const [activeTab, setActiveTab] = useState<'panoramica' | 'storico' | 'carriera'>('panoramica')
   const [matchHistory, setMatchHistory] = useState<MatchRating[]>([])
@@ -216,6 +236,46 @@ export function PlayerStatsModal({ isOpen, onClose, player, leagueId, leaguePlay
   const [career, setCareer] = useState<PlayerCareer | null>(null)
   const [careerLoading, setCareerLoading] = useState(false)
   const [careerError, setCareerError] = useState<string | null>(null)
+
+  // Storico voti fantacalcio.it — fetch autonomo (come la carriera lega),
+  // keyed su leaguePlayerId (= SerieAPlayer.id), copre anche i giocatori
+  // senza apiFootballId. Sempre-visibile, non gated dal tab attivo, cosi'
+  // la sezione Fantamedia in Panoramica ha gia' i dati pronti.
+  const [fcMatchHistory, setFcMatchHistory] = useState<FantacalcioMatchHistoryItem[]>([])
+  const [fcHistoryLoading, setFcHistoryLoading] = useState(false)
+
+  useEffect(() => {
+    if (!effectiveLeaguePlayerId) { setFcMatchHistory([]); return }
+    setFcHistoryLoading(true)
+    fetch(`${API_URL}/api/players/${effectiveLeaguePlayerId}/fantacalcio-history`)
+      .then(res => res.ok ? res.json() : { data: [] })
+      .then(data => { setFcMatchHistory(data.data || []) })
+      .catch(() => { setFcMatchHistory([]) })
+      .finally(() => { setFcHistoryLoading(false) })
+  }, [effectiveLeaguePlayerId])
+
+  const fcSeasonStats = useMemo(() => {
+    if (fcMatchHistory.length === 0) return null
+    const avg = (values: (number | null)[]) => {
+      const valid = values.filter((v): v is number => v != null)
+      if (valid.length === 0) return null
+      return Math.round((valid.reduce((a, b) => a + b, 0) / valid.length) * 100) / 100
+    }
+    return {
+      presenze: fcMatchHistory.length,
+      titolare: fcMatchHistory.filter(m => m.status !== 'Subentrato').length,
+      subentrato: fcMatchHistory.filter(m => m.status === 'Subentrato').length,
+      avgMv: avg(fcMatchHistory.map(m => m.mv)),
+      avgFm: avg(fcMatchHistory.map(m => m.fm)),
+      golSegnati: fcMatchHistory.reduce((s, m) => s + m.golSegnati, 0),
+      assist: fcMatchHistory.reduce((s, m) => s + m.assist, 0),
+      rigoriSegnati: fcMatchHistory.reduce((s, m) => s + m.rigoriSegnati, 0),
+      rigoriSbagliati: fcMatchHistory.reduce((s, m) => s + m.rigoriSbagliati, 0),
+      rigoriParati: fcMatchHistory.reduce((s, m) => s + m.rigoriParati, 0),
+      autoreti: fcMatchHistory.reduce((s, m) => s + m.autoreti, 0),
+      potm: fcMatchHistory.reduce((s, m) => s + m.potm, 0),
+    }
+  }, [fcMatchHistory])
 
   // Reset tab when player changes
   useEffect(() => { setActiveTab('panoramica') }, [player?.name])
@@ -448,6 +508,48 @@ export function PlayerStatsModal({ isOpen, onClose, player, leagueId, leaguePlay
           )
         )}
 
+        {/* Storico tab — sezione fantacalcio.it (fonte separata, sempre visibile
+            quando disponibile: niente minuti giocati, ma voto/fantavoto reali e
+            bonus/malus dettagliati che l'altra fonte non ha) */}
+        {activeTab === 'storico' && !fcHistoryLoading && fcMatchHistory.length > 0 && (
+          <div className="mt-4">
+            <h3 className="text-primary-400 font-semibold text-sm uppercase tracking-wider mb-2">
+              Voti Fantacalcio.it
+            </h3>
+            <div className="space-y-1">
+              <div className="grid grid-cols-6 gap-2 text-[10px] text-gray-500 uppercase tracking-wider px-2 pb-1 border-b border-surface-50/20">
+                <span className="col-span-2">Giornata</span>
+                <span className="text-center">Voto</span>
+                <span className="text-center">Fantavoto</span>
+                <span className="text-center">Gol/Ass</span>
+                <span className="text-center">Bonus</span>
+              </div>
+              {fcMatchHistory.map((m, i) => (
+                <div key={i} className="grid grid-cols-6 gap-2 text-sm px-2 py-1.5 rounded hover:bg-surface-300/50">
+                  <span className="col-span-2 text-gray-300 truncate text-xs">
+                    G{m.giornata}{m.opponent ? ` vs ${m.opponent}` : ''}
+                    {m.status && <span className="text-gray-500"> ({m.status})</span>}
+                  </span>
+                  <span className="text-center text-gray-400">{m.mv?.toFixed(2) ?? '-'}</span>
+                  <span className={`text-center font-medium ${
+                    m.fm && m.fm >= 7 ? 'text-secondary-400' :
+                    m.fm && m.fm >= 6 ? 'text-white' : 'text-danger-400'
+                  }`}>{m.fm?.toFixed(2) ?? '-'}</span>
+                  <span className="text-center text-white">{m.golSegnati || '-'}/{m.assist || '-'}</span>
+                  <span className="text-center text-gray-400 text-xs">
+                    {[
+                      m.rigoriSegnati ? `${m.rigoriSegnati} rig.` : null,
+                      m.rigoriParati ? `${m.rigoriParati} rig.par.` : null,
+                      m.potm ? 'POTM' : null,
+                      m.autoreti ? `${m.autoreti} au.` : null,
+                    ].filter(Boolean).join(', ') || '-'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Carriera Lega tab */}
         {activeTab === 'carriera' && (
           careerLoading ? (
@@ -507,7 +609,7 @@ export function PlayerStatsModal({ isOpen, onClose, player, leagueId, leaguePlay
         )}
 
         {/* Panoramica tab */}
-        {activeTab === 'panoramica' && (!stats || stats.appearances === 0 ? (
+        {activeTab === 'panoramica' && ((!stats || stats.appearances === 0) && !fcSeasonStats ? (
           <div className="text-center py-8">
             <div className="text-gray-400 mb-2">Statistiche non disponibili</div>
             <div className="text-sm text-gray-500">
@@ -520,67 +622,89 @@ export function PlayerStatsModal({ isOpen, onClose, player, leagueId, leaguePlay
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Generali */}
-            <StatSection title="Generali">
-              <StatRow label="Presenze" value={stats.appearances} />
-              <StatRow label="Minuti Totali" value={stats.totalMinutes} />
-              <StatRow label="Rating Medio" value={stats.avgRating != null ? Number(stats.avgRating.toFixed(2)) : null} />
-              <StatRow label="Titolarita'" value={stats.startingXI} />
-            </StatSection>
+            {fcSeasonStats && (
+              <StatSection title="Fantamedia (fantacalcio.it)">
+                <StatRow label="Presenze" value={fcSeasonStats.presenze} />
+                <StatRow label="Titolare" value={fcSeasonStats.titolare} />
+                <StatRow label="Voto Medio" value={fcSeasonStats.avgMv} />
+                <StatRow label="Fantamedia" value={fcSeasonStats.avgFm} />
+                <StatRow label="Gol" value={fcSeasonStats.golSegnati} />
+                <StatRow label="Assist" value={fcSeasonStats.assist} />
+                {(fcSeasonStats.rigoriSegnati > 0 || fcSeasonStats.rigoriSbagliati > 0) && (
+                  <div className="flex justify-between items-center py-1.5 border-b border-surface-50/10 last:border-0">
+                    <span className="text-gray-400 text-sm">Rigori (segn./sbagl.)</span>
+                    <span className="text-white font-semibold">{fcSeasonStats.rigoriSegnati}/{fcSeasonStats.rigoriSbagliati}</span>
+                  </div>
+                )}
+                {fcSeasonStats.rigoriParati > 0 && <StatRow label="Rigori Parati" value={fcSeasonStats.rigoriParati} />}
+                {fcSeasonStats.potm > 0 && <StatRow label="Player of the Match" value={fcSeasonStats.potm} />}
+              </StatSection>
+            )}
 
-            {/* Rendimento */}
-            <StatSection title="Rendimento">
-              <StatRow label="Gol" value={stats.totalGoals} />
-              <StatRow label="Assist" value={stats.totalAssists} />
-              <StatRow label="Convocazioni" value={stats.matchesInSquad} />
-              {stats.appearances > 0 && (
-                <StatRow
-                  label="Media Minuti/Partita"
-                  value={Math.round(stats.totalMinutes / stats.appearances)}
-                />
-              )}
-            </StatSection>
+            {stats && stats.appearances > 0 && (
+              <>
+                {/* Generali */}
+                <StatSection title="Generali">
+                  <StatRow label="Presenze" value={stats.appearances} />
+                  <StatRow label="Minuti Totali" value={stats.totalMinutes} />
+                  <StatRow label="Rating Medio" value={stats.avgRating != null ? Number(stats.avgRating.toFixed(2)) : null} />
+                  <StatRow label="Titolarita'" value={stats.startingXI} />
+                </StatSection>
 
-            {/* Statistiche Calcolate */}
-            <StatSection title="Efficienza">
-              {stats.totalGoals > 0 && stats.totalMinutes > 0 && (
-                <StatRow
-                  label="Minuti per Gol"
-                  value={Math.round(stats.totalMinutes / stats.totalGoals)}
-                />
-              )}
-              {stats.totalAssists > 0 && stats.totalMinutes > 0 && (
-                <StatRow
-                  label="Minuti per Assist"
-                  value={Math.round(stats.totalMinutes / stats.totalAssists)}
-                />
-              )}
-              {(stats.totalGoals > 0 || stats.totalAssists > 0) && stats.totalMinutes > 0 && (
-                <StatRow
-                  label="Minuti per G+A"
-                  value={Math.round(stats.totalMinutes / (stats.totalGoals + stats.totalAssists))}
-                />
-              )}
-              {stats.appearances > 0 && (
-                <StatRow
-                  label="% Titolarita'"
-                  value={Math.round((stats.startingXI / stats.appearances) * 100)}
-                  suffix="%"
-                />
-              )}
-            </StatSection>
+                {/* Rendimento */}
+                <StatSection title="Rendimento">
+                  <StatRow label="Gol" value={stats.totalGoals} />
+                  <StatRow label="Assist" value={stats.totalAssists} />
+                  <StatRow label="Convocazioni" value={stats.matchesInSquad} />
+                  {stats.appearances > 0 && (
+                    <StatRow
+                      label="Media Minuti/Partita"
+                      value={Math.round(stats.totalMinutes / stats.appearances)}
+                    />
+                  )}
+                </StatSection>
 
-            {/* Info Stagione */}
-            <StatSection title="Stagione">
-              <StatRow label="Stagione" value={null} />
-              <div className="flex justify-between items-center py-1.5 border-b border-surface-50/10 last:border-0">
-                <span className="text-gray-400 text-sm">Stagione</span>
-                <span className="text-white font-semibold">{stats.season}</span>
-              </div>
-              <div className="mt-2 text-xs text-gray-500">
-                Dati calcolati da {stats.matchesInSquad} partite monitorate
-              </div>
-            </StatSection>
+                {/* Statistiche Calcolate */}
+                <StatSection title="Efficienza">
+                  {stats.totalGoals > 0 && stats.totalMinutes > 0 && (
+                    <StatRow
+                      label="Minuti per Gol"
+                      value={Math.round(stats.totalMinutes / stats.totalGoals)}
+                    />
+                  )}
+                  {stats.totalAssists > 0 && stats.totalMinutes > 0 && (
+                    <StatRow
+                      label="Minuti per Assist"
+                      value={Math.round(stats.totalMinutes / stats.totalAssists)}
+                    />
+                  )}
+                  {(stats.totalGoals > 0 || stats.totalAssists > 0) && stats.totalMinutes > 0 && (
+                    <StatRow
+                      label="Minuti per G+A"
+                      value={Math.round(stats.totalMinutes / (stats.totalGoals + stats.totalAssists))}
+                    />
+                  )}
+                  {stats.appearances > 0 && (
+                    <StatRow
+                      label="% Titolarita'"
+                      value={Math.round((stats.startingXI / stats.appearances) * 100)}
+                      suffix="%"
+                    />
+                  )}
+                </StatSection>
+
+                {/* Info Stagione */}
+                <StatSection title="Stagione">
+                  <div className="flex justify-between items-center py-1.5 border-b border-surface-50/10 last:border-0">
+                    <span className="text-gray-400 text-sm">Stagione</span>
+                    <span className="text-white font-semibold">{stats.season}</span>
+                  </div>
+                  <div className="mt-2 text-xs text-gray-500">
+                    Dati calcolati da {stats.matchesInSquad} partite monitorate
+                  </div>
+                </StatSection>
+              </>
+            )}
           </div>
         ))}
 

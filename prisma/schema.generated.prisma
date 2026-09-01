@@ -1281,6 +1281,9 @@ model SerieAPlayer {
   apiFootballStats Json?               // Stats JSON blob from API-Football
   statsSyncedAt    DateTime?           // Last stats sync timestamp
 
+  // Fantacalcio.it integration (voti/fantavoti ufficiali, fonte separata da API-Football)
+  fantacalcioId    Int?       @unique  // Player ID interno fantacalcio.it
+
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -1293,6 +1296,7 @@ model SerieAPlayer {
   rubataPreferences RubataPreference[] // see: rubata.prisma
   auctionObjectives AuctionObjective[] // see: auction.prisma
   matchRatings PlayerMatchRating[]  // Match-by-match ratings from API-Football
+  fantacalcioMatchRatings FantacalcioMatchRating[]  // Match-by-match ratings from fantacalcio.it
   contractHistory ContractHistory[]  // see: contract-history.prisma
 }
 
@@ -1378,6 +1382,48 @@ model ApiFootballFixtureSync {
   syncedAt         DateTime @default(now())
 
   @@index([matchDate])
+}
+
+// Match-by-match player ratings from fantacalcio.it (voto/fantavoto ufficiali +
+// bonus/malus dettagliati). Fonte separata da PlayerMatchRating (API-Football):
+// niente apiFixtureId equivalente, niente minuti giocati esatti (solo stato
+// titolare/sostituito/subentrato). Tabella dedicata per isolare completamente
+// il rischio dai 6.793+ record API-Football gia' in produzione.
+model FantacalcioMatchRating {
+  id            String   @id @default(cuid())
+
+  playerId      String
+  player        SerieAPlayer @relation(fields: [playerId], references: [id])
+
+  fantacalcioPlayerId Int        // Player ID interno fantacalcio.it (per debug/verifica)
+  matchId       String            // ID partita fantacalcio.it (condiviso dai 2 team, univoco con playerId)
+  giornata      Int
+  season        String            // normalizzata a "2025-2026" (4 cifre, coerente con PlayerMatchRating)
+  matchDate     DateTime?
+  opponent      String?
+  homeAway      String?           // "CASA" | "TRASFERTA"
+
+  mv            Float?            // Media voto (media delle fonti giornalistiche)
+  fm            Float?            // Fantamedia (voto con bonus/malus)
+  status        String?           // null=titolare per tutta la gara | "Sostituito" | "Subentrato"
+
+  golSegnati      Int @default(0)
+  golSubiti       Int @default(0)
+  autoreti        Int @default(0)
+  rigoriSegnati   Int @default(0)
+  rigoriSbagliati Int @default(0)
+  rigoriParati    Int @default(0)
+  assist          Int @default(0)
+  potm            Int @default(0)  // Player of the match
+
+  source        String   @default("FANTACALCIO_IT")
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([playerId, matchId])
+  @@index([playerId, season])
+  @@index([season, giornata])
 }
 
 
