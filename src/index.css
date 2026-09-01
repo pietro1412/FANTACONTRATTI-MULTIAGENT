@@ -442,6 +442,9 @@
     .panel-scroll {
       -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 28px), transparent);
       mask-image: linear-gradient(180deg, #000 calc(100% - 28px), transparent);
+      /* Spazio di respiro pari all'altezza del fade: senza, l'ultima riga finisce
+         dentro la fascia sfumata a fine scroll e appare tagliata/sbiadita. */
+      padding-bottom: 28px;
     }
   }
 
