@@ -714,7 +714,12 @@ describe('Contract Service', () => {
 
   // ==================== consolidateContracts ====================
 
-  describe('consolidateContracts', () => {
+  // Saltata: CONSOLIDATION_BLOCKED_PENDING_FINANCIAL_REWORK in contract.service.ts
+  // intercetta ogni chiamata prima di qualunque altra logica, finche' non e'
+  // completato il rework del motore finanziario (vedi
+  // docs/reviews/rework-finanze-2026-09-01.md). Riabilitare rimuovendo .skip
+  // insieme alla rimozione della costante.
+  describe.skip('consolidateContracts', () => {
     it('should return error when user is not a member', async () => {
       mockPrisma.leagueMember.findFirst.mockResolvedValue(null)
 
