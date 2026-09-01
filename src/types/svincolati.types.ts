@@ -76,6 +76,7 @@ export interface TurnMember {
   id: string
   username: string
   budget: number
+  bilancio: number
   hasPassed: boolean
   isConnected?: boolean
 }
@@ -134,6 +135,7 @@ export interface BoardState {
   timerStartedAt: string | null
   pendingAck: PendingAck | null
   myBudget: number
+  myBilancio: number
 }
 
 export interface ContractForModification {

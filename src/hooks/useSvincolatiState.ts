@@ -414,7 +414,7 @@ export function useSvincolatiState(leagueId: string) {
     if (membersRes.success && membersRes.data) {
       const leagueData = membersRes.data as {
         league?: {
-          members?: Array<{ id: string; user: { username: string }; currentBudget: number; status: string }>
+          members?: Array<{ id: string; user: { username: string }; currentBudget: number; balance: number; status: string }>
         }
       }
       const allMembers = leagueData.league?.members || []
@@ -437,6 +437,7 @@ export function useSvincolatiState(leagueId: string) {
             id: m.id,
             username: m.user.username,
             budget: m.currentBudget,
+            bilancio: m.balance,
             hasPassed: false,
           }
         }))

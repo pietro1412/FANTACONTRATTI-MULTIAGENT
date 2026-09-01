@@ -524,6 +524,7 @@ export async function getSvincolatiBoard(
         isAdmin: member.role === 'ADMIN',
         myMemberId: member.id,
         myBudget: member.currentBudget,
+        myBilancio: member.currentBudget - member.totalSalaries,
         turnOrder: [],
         readyMembers: [],
         passedMembers: [],
@@ -645,6 +646,7 @@ export async function getSvincolatiBoard(
         id: m!.id,
         username: m!.user.username,
         budget: m!.currentBudget,
+        bilancio: m!.currentBudget - m!.totalSalaries,
         hasPassed: ((activeSession.svincolatiPassedMembers as string[] | null) || []).includes(m!.id),
         isConnected: connectionStatus.get(m!.id) ?? false,
       })),
@@ -668,6 +670,7 @@ export async function getSvincolatiBoard(
       timerStartedAt: activeSession.svincolatiTimerStartedAt,
       pendingAck,
       myBudget: member.currentBudget,
+      myBilancio: member.currentBudget - member.totalSalaries,
     },
   }
 }

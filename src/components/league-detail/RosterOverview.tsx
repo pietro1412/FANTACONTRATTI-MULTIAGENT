@@ -10,7 +10,13 @@ export interface RosterMemberData {
   teamName: string | null
   role: string
   budget: number
-  /** Monte ingaggi fissato all'ultimo consolidamento (LeagueMember.totalSalaries) — non live. */
+  /**
+   * Monte ingaggi fissato all'ultimo consolidamento (LeagueMember.totalSalaries) — non live.
+   * DELIBERATO, non un bug: commit d97ff6a (26/08/2026) ha convertito questa vista da live a
+   * fissato apposta, perché uno Scambio in Fase 1/6 non deve impattare il Bilancio mostrato
+   * qui prima del consolidamento (Bibbia docs/bibbie/FINANZE.md §1.4). NON sostituire con una
+   * somma live di `players[].contract.salary` — reintrodurrebbe il bug corretto da quel commit.
+   */
   totalSalaries: number
   playerCount: number
   players: Array<{ position: string; age?: number | null; contract?: { salary: number } | null }>

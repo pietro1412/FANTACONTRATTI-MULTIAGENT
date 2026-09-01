@@ -34,6 +34,7 @@ export interface LeagueMember {
   role: string
   status: string
   currentBudget: number
+  totalSalaries: number
   user: {
     id: string
     username: string
@@ -78,8 +79,9 @@ export interface RosterEntry {
   }
   contract: {
     id: string
-    purchasePrice: number
-    acquiredAt: string
+    salary: number
+    duration: number
+    signedAt: string
   } | null
 }
 

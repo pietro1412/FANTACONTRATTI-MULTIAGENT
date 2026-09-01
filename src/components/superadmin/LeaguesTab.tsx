@@ -5,6 +5,7 @@ import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { LeagueCrest } from '../ui/LeagueCrest'
 import { STATUS_LABELS, type League } from './types'
+import { computeBilancio } from '@/utils/finance'
 
 const CONFIRM_WORD = 'ELIMINA'
 
@@ -180,7 +181,8 @@ export function LeaguesTab({
                               }`}>
                                 {member.role === 'ADMIN' ? 'Presidente' : 'DG'}
                               </span>
-                              <p className="stat-number text-accent-400 text-base mt-1">{member.currentBudget}</p>
+                              <p className="text-[9px] uppercase tracking-wide text-gray-500 font-semibold mt-1">Bilancio</p>
+                              <p className="stat-number text-accent-400 text-base">{computeBilancio(member.currentBudget, member.totalSalaries)}</p>
                             </div>
                           </div>
                           <Button

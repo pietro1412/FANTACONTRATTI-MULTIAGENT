@@ -134,7 +134,7 @@ const sampleLeagues = [
     initialBudget: 500,
     createdAt: '2025-01-01',
     members: [
-      { id: 'm1', role: 'ADMIN', status: 'ACTIVE', currentBudget: 350, user: { id: 'u1', username: 'Admin1', email: 'admin1@test.it' } },
+      { id: 'm1', role: 'ADMIN', status: 'ACTIVE', currentBudget: 350, totalSalaries: 40, user: { id: 'u1', username: 'Admin1', email: 'admin1@test.it' } },
     ],
     _count: { members: 4, marketSessions: 2 },
   },
@@ -939,7 +939,7 @@ describe('SuperAdmin', () => {
           {
             id: 'r1',
             player: { id: 'p1', name: 'Portiere1', team: 'Napoli', position: 'P', quotation: 12 },
-            contract: { id: 'c1', purchasePrice: 8, acquiredAt: '2025-01-01' },
+            contract: { id: 'c1', salary: 8, duration: 3, signedAt: '2025-01-01' },
           },
         ],
       },

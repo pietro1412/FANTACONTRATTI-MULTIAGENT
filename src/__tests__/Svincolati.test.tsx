@@ -356,6 +356,7 @@ describe('Svincolati', () => {
         isMyTurn: false,
         currentTurnUsername: 'OtherUser',
         myBudget: 250,
+        myBilancio: 178,
         turnOrder: [],
         readyMembers: [],
         pendingPlayer: null,
@@ -368,8 +369,8 @@ describe('Svincolati', () => {
     render(<Svincolati leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
     expect(screen.getByText('Asta Svincolati')).toBeInTheDocument()
-    expect(screen.getByText('250')).toBeInTheDocument()
-    expect(screen.getByText('Budget')).toBeInTheDocument()
+    expect(screen.getByText('178')).toBeInTheDocument()
+    expect(screen.getByText('Bilancio')).toBeInTheDocument()
     // OtherUser appears in both the turn banner and the waiting text
     expect(screen.getAllByText(/OtherUser/).length).toBeGreaterThanOrEqual(1)
   })

@@ -1,5 +1,6 @@
 import { Button } from '../ui/Button'
 import { POSITION_CHIP, POSITION_NAMES, type MemberRosterData } from './types'
+import { computeBilancio, sumContractSalaries } from '@/utils/finance'
 
 export interface RosterModalProps {
   rosterLoading: boolean
@@ -8,6 +9,8 @@ export interface RosterModalProps {
 }
 
 export function RosterModal({ rosterLoading, rosterData, onClose }: RosterModalProps) {
+  const monteIngaggi = rosterData ? sumContractSalaries(rosterData.roster.map(r => r.contract)) : 0
+  const bilancio = rosterData ? computeBilancio(rosterData.member.currentBudget, monteIngaggi) : 0
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
       <div className="bg-surface-200 rounded-xl border border-surface-50 max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
@@ -21,7 +24,8 @@ export function RosterModal({ rosterLoading, rosterData, onClose }: RosterModalP
                     Rosa di {rosterData.member.username}
                   </h2>
                   <p className="text-sm text-gray-400">
-                    {rosterData.member.league.name} · Budget: <span className="text-accent-400 font-mono">{rosterData.member.currentBudget}</span>
+                    {rosterData.member.league.name} · Bilancio: <span className="text-accent-400 font-mono">{bilancio}</span>
+                    <span className="text-gray-500"> (Budget {rosterData.member.currentBudget} · Ingaggi {monteIngaggi})</span>
                   </p>
                 </>
               ) : (
@@ -70,7 +74,7 @@ export function RosterModal({ rosterLoading, rosterData, onClose }: RosterModalP
                             </p>
                             {entry.contract && (
                               <p className="text-xs text-gray-500">
-                                Pagato: <span className="text-primary-400 font-mono">{entry.contract.purchasePrice}</span>
+                                Ingaggio: <span className="text-primary-400 font-mono">{entry.contract.salary}</span>
                               </p>
                             )}
                           </div>

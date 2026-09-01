@@ -6,6 +6,7 @@ import { ContractInline } from '@/components/ui/ContractInline'
 import { POSITION_GRADIENTS } from '../../ui/PositionBadge'
 import { getAgeColor } from '../utils'
 import { NOT_DISPONIBILE } from '@/utils/stat-format'
+import { computeBilancio } from '@/utils/finance'
 import type { RosterEntry, LeagueMember } from '../types'
 
 interface DealTableProps {
@@ -291,8 +292,10 @@ export function DealTable(props: DealTableProps) {
         )}
         {targetMember && (
           <div className="ml-auto text-right">
-            <div className="micro-label text-[9px]">Suo budget</div>
-            <div className="budget-display text-base text-gray-300">{targetMember.currentBudget}M</div>
+            <div className="micro-label text-[9px]">Suo bilancio</div>
+            <div className="budget-display text-base text-gray-300">
+              {computeBilancio(targetMember.currentBudget, targetMember.annualContractCost ?? 0)}M
+            </div>
           </div>
         )}
       </div>

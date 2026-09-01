@@ -19,6 +19,7 @@ export interface Member {
   role: string
   status: string
   currentBudget: number
+  totalSalaries: number
   teamName?: string
   user: { id: string; username: string; email: string }
 }

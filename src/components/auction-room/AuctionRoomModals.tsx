@@ -8,6 +8,7 @@ import { NOT_DISPONIBILE } from '../../utils/stat-format'
 import { POSITION_COLORS } from '../../types/auctionroom.types'
 import type { PendingAcknowledgment, AppealStatus } from '../../types/auctionroom.types'
 import { celebrateWin, celebrateBigWin } from '../../utils/confetti'
+import { computeBilancio, sumContractSalaries } from '@/utils/finance'
 
 // ─── Props Interfaces ────────────────────────────────────────────────
 
@@ -193,6 +194,8 @@ export function ManagerDetailModal({ selectedManager, onClose, rosterMode = 'slo
   if (!selectedManager) return null
 
   const countOnly = rosterMode === 'count'
+  const monteIngaggi = sumContractSalaries(selectedManager.roster.map(r => r.contract))
+  const bilancio = computeBilancio(selectedManager.currentBudget, monteIngaggi)
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={onClose}>
@@ -215,10 +218,11 @@ export function ManagerDetailModal({ selectedManager, onClose, rosterMode = 'slo
           {/* Stat boxes */}
           <div className="flex gap-3 mb-4">
             <div className="bg-surface-300 border border-surface-50 rounded-lg px-4 py-2.5 flex-1 text-center">
-              <p className="text-sm text-gray-500 uppercase tracking-wider font-semibold">Budget</p>
+              <p className="text-sm text-gray-500 uppercase tracking-wider font-semibold">Bilancio</p>
               <p className="budget-display text-2xl font-black text-accent-400">
-                {selectedManager.currentBudget}<span className="text-sm text-gray-500 font-semibold">M</span>
+                {bilancio}<span className="text-sm text-gray-500 font-semibold">M</span>
               </p>
+              <p className="text-[10px] text-gray-500 mt-0.5">Budget {selectedManager.currentBudget}M · Ingaggi {monteIngaggi}M</p>
             </div>
             <div className="bg-surface-300 border border-surface-50 rounded-lg px-4 py-2.5 flex-1 text-center">
               <p className="text-sm text-gray-500 uppercase tracking-wider font-semibold">Rosa</p>

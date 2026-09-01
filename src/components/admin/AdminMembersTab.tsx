@@ -1,5 +1,6 @@
 import { Button } from '../ui/Button'
 import type { Member } from './types'
+import { computeBilancio } from '@/utils/finance'
 
 export interface AdminMembersTabProps {
   activeMembers: Member[]
@@ -53,7 +54,7 @@ export function AdminMembersTab({
                   </span>
                   <span className="font-semibold text-white truncate">{member.user.username}</span>
                 </div>
-                <span className="font-mono text-accent-400 font-bold">{member.currentBudget}</span>
+                <span className="font-mono text-accent-400 font-bold">{computeBilancio(member.currentBudget, member.totalSalaries)}</span>
               </div>
               <div className="flex items-center justify-between text-xs text-gray-500">
                 <span>{member.teamName || '-'}</span>
@@ -74,7 +75,7 @@ export function AdminMembersTab({
                 <th className="px-5 py-3 text-left micro-label text-gray-400">Manager</th>
                 <th className="px-5 py-3 text-left micro-label text-gray-400">Team</th>
                 <th className="px-5 py-3 text-center micro-label text-gray-400">Ruolo</th>
-                <th className="px-5 py-3 text-right micro-label text-gray-400">Budget</th>
+                <th className="px-5 py-3 text-right micro-label text-gray-400">Bilancio</th>
                 <th className="px-5 py-3 text-right micro-label text-gray-400">Azioni</th>
               </tr>
             </thead>
@@ -102,7 +103,7 @@ export function AdminMembersTab({
                       {member.role === 'ADMIN' ? 'Presidente' : 'DG'}
                     </span>
                   </td>
-                  <td className="px-5 py-3 text-right budget-display text-accent-400 text-lg">{member.currentBudget}</td>
+                  <td className="px-5 py-3 text-right budget-display text-accent-400 text-lg">{computeBilancio(member.currentBudget, member.totalSalaries)}</td>
                   <td className="px-5 py-3 text-right">
                     {member.role !== 'ADMIN' && (
                       <Button size="sm" variant="outline" className="border-danger-500/50 text-danger-400" onClick={() => { confirmKick(member.id, member.user.username); }} disabled={isSubmitting} isLoading={pendingMemberId === member.id} loadingText="Espello...">

@@ -341,8 +341,8 @@ export function SvincolatiCockpit(props: SvincolatiCockpitProps) {
                           setBidAmount={n => { props.setBidAmount(String(n)); }}
                           onPlaceBid={props.onBid}
                           currentPrice={auction.currentPrice}
-                          budget={board.myBudget}
-                          budgetLabel="budget"
+                          budget={board.myBilancio}
+                          budgetLabel="bilancio"
                           isSubmitting={props.isSubmitting}
                           isDisabled={props.isTimerExpired}
                           disabledLabel="Scaduto"
@@ -724,7 +724,7 @@ function DirettoriGeneraliList({ board, readyRelevant, onViewManagerRoster }: {
                 readyDot ? <span className="text-secondary-400">Pronto</span> : <span className="text-gray-400">In attesa</span>
               ) : 'In gara'
             }
-            bigValue={`${member.budget}M`}
+            bigValue={`${member.bilancio}M`}
             bigValueGold={isMe || isCurrent}
             onClick={() => { onViewManagerRoster(member); }}
             title="Clicca per vedere la rosa"
@@ -770,9 +770,9 @@ function SvincolatiHeader({ board, isPusherConnected }: SvincolatiCockpitProps) 
       )}
 
       <div className="ml-auto flex flex-col items-end">
-        <span className="text-sm text-gray-500 uppercase tracking-wider font-semibold leading-none">Budget</span>
+        <span className="text-sm text-gray-500 uppercase tracking-wider font-semibold leading-none">Bilancio</span>
         <span className="budget-display text-xl sm:text-2xl font-black text-accent-400 leading-tight">
-          {board.myBudget}<span className="text-sm text-gray-500 font-semibold">M</span>
+          {board.myBilancio}<span className="text-sm text-gray-500 font-semibold">M</span>
         </span>
       </div>
     </div>
