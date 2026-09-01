@@ -229,7 +229,11 @@ const COLUMN_PRESETS: Record<string, { label: string; columns: string[] }> = {
 const PRESET_ORDER: string[] = ['essential', 'A', 'C', 'D', 'P', 'all']
 const LOCALSTORAGE_KEY = 'playerStats_visibleColumns'
 const PLAYER_CHART_COLORS = ['#3b82f6', '#ef4444', '#22c55e', '#a855f7']
-const BACKEND_SORTABLE = ['name', 'team', 'position', 'quotation']
+// name/team/position/quotation sono colonne dirette su SerieAPlayer; le altre
+// sono statistiche fantacalcio.it, ordinate lato backend su tutto il dataset
+// filtrato (vedi FC_STAT_SORT_KEYS in src/api/routes/players.ts) — nessuna va
+// riordinata lato client sulla sola pagina corrente.
+const BACKEND_SORTABLE = ['name', 'team', 'position', 'quotation', ...STAT_COLUMNS.map(c => c.key)]
 
 const TONE_CLASS: Record<NonNullable<ColumnDef['tone']>, string> = {
   good: 'text-secondary-400',
@@ -756,6 +760,7 @@ export function RoseGiocatori({ onNavigate, initialView = 'rose', initialTeamFil
       setStatsSortBy(column)
       setStatsSortOrder('desc')
     }
+    setStatsPage(1)
   }
 
   const statsTogglePlayerForCompare = useCallback((playerId: string) => {

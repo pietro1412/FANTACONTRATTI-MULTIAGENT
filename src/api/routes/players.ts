@@ -9,9 +9,44 @@ import {
   computeFantacalcioSeasonStatsBatch,
   getFantacalcioMatchHistory,
 } from '../../services/fantacalcio-stats.service'
+import type { FantacalcioSeasonStats } from '../../services/fantacalcio-stats.service'
 import { authMiddleware } from '../middleware/auth'
 
 const router = Router()
+
+// Colonne statistiche fantacalcio.it ordinabili in /api/players/stats: il valore
+// non e' una colonna su SerieAPlayer ma un aggregato calcolato da FantacalcioMatchRating,
+// quindi non puo' finire in un Prisma orderBy — va calcolato per l'intero dataset
+// filtrato e poi ordinato/paginato in memoria (vedi uso sotto).
+const FC_STAT_SORT_KEYS: Record<string, (fc: FantacalcioSeasonStats | null) => number> = {
+  appearances: fc => fc?.presenze ?? 0,
+  rating: fc => fc?.avgFm ?? 0,
+  mv: fc => fc?.avgMv ?? 0,
+  goals: fc => fc?.golSegnati ?? 0,
+  assists: fc => fc?.assist ?? 0,
+  ga: fc => (fc ? fc.golSegnati + fc.assist : 0),
+  goalsConceded: fc => fc?.golSubiti ?? 0,
+  penaltyScored: fc => fc?.rigoriSegnati ?? 0,
+  penaltyMissed: fc => fc?.rigoriSbagliati ?? 0,
+  penaltySaved: fc => fc?.rigoriParati ?? 0,
+  ownGoals: fc => fc?.autoreti ?? 0,
+  potm: fc => fc?.potm ?? 0,
+}
+
+const PLAYER_STATS_SELECT = {
+  id: true,
+  name: true,
+  team: true,
+  position: true,
+  quotation: true,
+  apiFootballId: true,
+  apiFootballStats: true,
+  statsSyncedAt: true,
+  listStatus: true,
+  exitReason: true,
+} satisfies Prisma.SerieAPlayerSelect
+
+type PlayerStatsRow = Prisma.SerieAPlayerGetPayload<{ select: typeof PLAYER_STATS_SELECT }>
 
 // GET /api/players - List all players with filters
 router.get('/', authMiddleware, async (req: Request, res: Response) => {
@@ -144,40 +179,54 @@ router.get('/stats', authMiddleware, async (req: Request, res: Response) => {
     const limitNum = Math.min(100, Math.max(10, parseInt(limit as string) || 50))
     const skip = (pageNum - 1) * limitNum
 
-    // Get total count
-    const total = await prisma.serieAPlayer.count({ where })
+    // Le colonne statistiche fantacalcio.it non sono colonne su SerieAPlayer
+    // (sono un aggregato calcolato da FantacalcioMatchRating): non possono
+    // finire in un Prisma orderBy, quindi per queste si ordina l'intero
+    // dataset filtrato in memoria e si pagina dopo — altrimenti l'ordinamento
+    // varrebbe solo dentro la singola pagina gia' recuperata dal DB.
+    const fcSortKey = typeof sortBy === 'string' ? FC_STAT_SORT_KEYS[sortBy] : undefined
 
-    // Get players with stats
-    const players = await prisma.serieAPlayer.findMany({
-      where,
-      select: {
-        id: true,
-        name: true,
-        team: true,
-        position: true,
-        quotation: true,
-        apiFootballId: true,
-        apiFootballStats: true,
-        statsSyncedAt: true,
-        listStatus: true,
-        exitReason: true,
-      },
-      // Keep the user-selected criterion; add role+name as coherent tiebreaker
-      orderBy: sortBy === 'quotation'
-        ? [{ quotation: sortOrder === 'asc' ? 'asc' : 'desc' }, { position: 'asc' }, { name: 'asc' }]
-        : sortBy === 'team'
-        ? [{ team: sortOrder === 'asc' ? 'asc' : 'desc' }, { position: 'asc' }, { name: 'asc' }]
-        : sortBy === 'position'
-        ? [{ position: sortOrder === 'asc' ? 'asc' : 'desc' }, { name: 'asc' }]
-        : [{ name: sortOrder === 'asc' ? 'asc' : 'desc' }, { position: 'asc' }],
-      skip,
-      take: limitNum,
-    })
+    let players: PlayerStatsRow[]
+    let total: number
+    let fantacalcioStatsMap: Map<string, FantacalcioSeasonStats>
 
-    // Compute season stats from PlayerMatchRating (single batch query)
+    if (fcSortKey) {
+      const allPlayers = await prisma.serieAPlayer.findMany({
+        where,
+        select: PLAYER_STATS_SELECT,
+        orderBy: [{ position: 'asc' }, { name: 'asc' }], // tiebreaker stabile, il vero ordine e' applicato sotto
+      })
+      const allFcStatsMap = await computeFantacalcioSeasonStatsBatch(allPlayers.map(p => p.id))
+      const dir = sortOrder === 'asc' ? 1 : -1
+      const sorted = [...allPlayers].sort((a, b) => {
+        const av = fcSortKey(allFcStatsMap.get(a.id) ?? null)
+        const bv = fcSortKey(allFcStatsMap.get(b.id) ?? null)
+        return av !== bv ? (av - bv) * dir : a.name.localeCompare(b.name)
+      })
+      total = sorted.length
+      players = sorted.slice(skip, skip + limitNum)
+      fantacalcioStatsMap = allFcStatsMap
+    } else {
+      total = await prisma.serieAPlayer.count({ where })
+      players = await prisma.serieAPlayer.findMany({
+        where,
+        select: PLAYER_STATS_SELECT,
+        // Keep the user-selected criterion; add role+name as coherent tiebreaker
+        orderBy: sortBy === 'quotation'
+          ? [{ quotation: sortOrder === 'asc' ? 'asc' : 'desc' }, { position: 'asc' }, { name: 'asc' }]
+          : sortBy === 'team'
+          ? [{ team: sortOrder === 'asc' ? 'asc' : 'desc' }, { position: 'asc' }, { name: 'asc' }]
+          : sortBy === 'position'
+          ? [{ position: sortOrder === 'asc' ? 'asc' : 'desc' }, { name: 'asc' }]
+          : [{ name: sortOrder === 'asc' ? 'asc' : 'desc' }, { position: 'asc' }],
+        skip,
+        take: limitNum,
+      })
+      fantacalcioStatsMap = await computeFantacalcioSeasonStatsBatch(players.map(p => p.id))
+    }
+
+    // Compute season stats from PlayerMatchRating (single batch query) — solo per la pagina corrente
     const statsMap = await computeSeasonStatsBatch(players.map(p => p.id))
-    // Fantacalcio.it stats (fonte separata, vedi fantacalcio-stats.service.ts)
-    const fantacalcioStatsMap = await computeFantacalcioSeasonStatsBatch(players.map(p => p.id))
 
     // Parse stats and flatten for easier frontend use
     const playersWithStats = players.map((p) => {
