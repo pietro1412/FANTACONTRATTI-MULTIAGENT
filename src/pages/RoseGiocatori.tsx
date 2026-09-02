@@ -11,7 +11,7 @@ import { ErrorState } from '@/components/ui/ErrorState'
 import { SkeletonPlayerRow } from '@/components/ui/Skeleton'
 import { LandscapeHint } from '@/components/ui/LandscapeHint'
 import RadarChart from '@/components/ui/RadarChart'
-import { PlayerStatsModal, type PlayerInfo } from '@/components/PlayerStatsModal'
+import { PlayerStatsModal, type PlayerInfo, isOutOfSerieA } from '@/components/PlayerStatsModal'
 import { ShareButton } from '@/components/ShareButton'
 import { getTeamLogo } from '@/utils/teamLogos'
 import { POSITION_FILTER_COLORS } from '@/components/ui/PositionBadge'
@@ -564,6 +564,17 @@ export function RoseGiocatori({ onNavigate, initialView = 'rose', initialTeamFil
   const [plStatusFilter, setPlStatusFilter] = useState<'all' | 'free' | 'rostered' | 'exited'>(initialTeamFilter ? 'rostered' : 'all')
   const [plTeamFilter, setPlTeamFilter] = useState<string>(initialTeamFilter || '')
   const [plSerieATeam, setPlSerieATeam] = useState('')
+  const [plSortColumn, setPlSortColumn] = useState<'default' | 'quotation'>('default')
+  const [plSortDirection, setPlSortDirection] = useState<'asc' | 'desc'>('desc')
+
+  function handlePlSort(column: 'default' | 'quotation') {
+    if (plSortColumn === column) {
+      setPlSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setPlSortColumn(column)
+      setPlSortDirection('desc')
+    }
+  }
 
   const plLoadListData = useCallback(async () => {
     setPlLoading(true)
@@ -613,21 +624,27 @@ export function RoseGiocatori({ onNavigate, initialView = 'rose', initialTeamFil
     const filtered = plPlayers
       .map(p => ({ ...p, rosterInfo: plRosterMap.get(p.id) }))
       .filter(p => {
-        // Un giocatore libero e uscito dalla Serie A (ESTERO/RETROCESSO/RITIRATO)
-        // non è realmente disponibile per il mercato: non va mostrato come
-        // "LIBERO". Se invece è ancora in una rosa (indennizzo non ancora
-        // accettato, o il manager lo tiene) resta visibile con l'owner e
+        const outOfSerieA = isOutOfSerieA(p)
+        // Un giocatore fuori Serie A (isOutOfSerieA, non solo exitReason: può
+        // risultare NOT_IN_LIST prima che l'admin categorizzi il motivo) e senza
+        // rosa non è un "libero" reale disponibile per il mercato: va mostrato
+        // solo sotto il filtro dedicato "Fuori Serie A", mai come LIBERO o in
+        // TUTTI. Se invece è ancora in una rosa resta visibile con l'owner e
         // l'indicatore "Fuori Serie A" (vedi toRosterEntry).
-        if (!p.rosterInfo && p.exitReason) return false
+        if (!p.rosterInfo && outOfSerieA && plStatusFilter !== 'exited') return false
         if (plStatusFilter === 'free' && p.rosterInfo) return false
         if (plStatusFilter === 'rostered' && !p.rosterInfo) return false
-        if (plStatusFilter === 'exited' && !p.exitReason) return false
+        if (plStatusFilter === 'exited' && !outOfSerieA) return false
         if (plTeamFilter && p.rosterInfo?.teamName !== plTeamFilter) return false
         if (plSerieATeam && p.team !== plSerieATeam) return false
         return true
       })
+    if (plSortColumn === 'quotation') {
+      const dir = plSortDirection === 'asc' ? 1 : -1
+      return [...filtered].sort((a, b) => (a.quotation - b.quotation) * dir || a.name.localeCompare(b.name))
+    }
     return sortPlayersByRoleAndName(filtered)
-  }, [plPlayers, plRosterMap, plStatusFilter, plTeamFilter, plSerieATeam])
+  }, [plPlayers, plRosterMap, plStatusFilter, plTeamFilter, plSerieATeam, plSortColumn, plSortDirection])
 
   const plFreeCount = useMemo(
     () => plPlayers.filter(p => !plRosterMap.has(p.id) && !p.exitReason).length,
@@ -1185,7 +1202,13 @@ export function RoseGiocatori({ onNavigate, initialView = 'rose', initialTeamFil
         <span className="micro-label text-[9px]">Giocatore</span>
         <span className="micro-label text-[9px] text-right">Età</span>
         <span className="micro-label text-[9px]">Stato</span>
-        <span className="micro-label text-[9px] text-right">Quot</span>
+        <button
+          type="button"
+          onClick={() => { handlePlSort('quotation'); }}
+          className={`micro-label text-[9px] text-right bg-transparent border-0 p-0 cursor-pointer hover:text-gray-300 ${plSortColumn === 'quotation' ? 'text-accent-400' : ''}`}
+        >
+          Quot {plSortColumn === 'quotation' && (plSortDirection === 'asc' ? '▲' : '▼')}
+        </button>
         <span className="micro-label text-[9px] text-right">Ing</span>
         <span className="micro-label text-[9px] text-right">Dur</span>
         <span className="micro-label text-[9px] text-right">Cls</span>
