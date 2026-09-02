@@ -482,19 +482,25 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
   }, [auction?.timerExpiresAt, loadCurrentAuction, loadPendingAcknowledgment, getRemainingSeconds])
 
   // Transitional/waiting phases where state advances via short-lived counters
-  // (acknowledgment "X/8", ready-check, appeal review/decision-ack/resume). In
-  // these phases Pusher carries the updates, but we keep a tighter polling
-  // safety net (~3s) so a missed event can't leave a client behind for up to
-  // 30s; outside these phases we keep the slow 30s safety net. (test-session #15)
+  // (acknowledgment "X/8", ready-check, appeal review/decision-ack/resume).
+  // Pusher carries the real updates for all of these transitions (see the
+  // onAuctionStateChanged/onAuctionResumed/onAuctionClosed/onNominationPending
+  // handlers above); polling here is only a safety net for a missed event.
+  // (test-session #15)
   const isWaitingPhase = Boolean(
     pendingAck ||
     appealStatus ||
     readyStatus?.hasPendingNomination
   )
 
-  // Adaptive polling interval: fast when disconnected (no real-time at all),
-  // medium during transitional phases (counters in flight), slow otherwise.
-  const pollingMs = !isConnected ? 5000 : isWaitingPhase ? 3000 : 30000
+  // Adaptive polling interval, same pattern as useSvincolatiState.ts (short
+  // fallback only when Pusher is disconnected, much longer safety net when
+  // connected since Pusher already drives updates in real-time). Raised the
+  // "waiting phase + connected" tier from 3s to 12s (2026-09, riduzione
+  // Function Invocations Vercel) — was polling as fast as the disconnected
+  // case even with a live WebSocket, for the phase that dominates 8-manager
+  // live sessions (everyone deciding/reading between auctions).
+  const pollingMs = !isConnected ? 5000 : isWaitingPhase ? 12000 : 30000
 
   useEffect(() => {
     void loadCurrentAuction()

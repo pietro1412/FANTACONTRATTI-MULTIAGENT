@@ -294,8 +294,10 @@ export function useSvincolatiState(leagueId: string) {
     // Send immediately on mount
     void sendHeartbeat()
 
-    // Then every 3 seconds
-    const interval = setInterval(() => { void sendHeartbeat() }, 3000)
+    // 8s: ampio margine sotto i 45s di timeout presenza lato server
+    // (SVINCOLATI_HEARTBEAT_TIMEOUT in svincolati.service.ts), allungato da 3s
+    // per ridurre le Function Invocations Vercel senza rischiare falsi "offline".
+    const interval = setInterval(() => { void sendHeartbeat() }, 8000)
     return () => { clearInterval(interval); }
   }, [leagueId, board?.myMemberId])
 
@@ -392,7 +394,9 @@ export function useSvincolatiState(leagueId: string) {
   // Poll appeal status when in PENDING_ACK state
   useEffect(() => {
     void loadAppealStatus()
-    const interval = setInterval(() => { void loadAppealStatus() }, 5000)
+    // 10s: i ricorsi sono un flusso raro/non time-critical per il gameplay,
+    // allungato da 5s per ridurre le Function Invocations Vercel.
+    const interval = setInterval(() => { void loadAppealStatus() }, 10000)
     return () => { clearInterval(interval); }
   }, [loadAppealStatus])
 

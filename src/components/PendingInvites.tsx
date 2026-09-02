@@ -32,8 +32,10 @@ export function PendingInvites({ onNavigate }: PendingInvitesProps) {
 
   useEffect(() => {
     void loadInvites()
-    // Poll every 60 seconds for new invites
-    const interval = setInterval(() => { void loadInvites() }, 60000)
+    // Poll every 5 minutes for new invites (accessorio, non impatta il
+    // gameplay: allungato da 60s per ridurre le Function Invocations Vercel —
+    // vedi CLAUDE.md / audit riduzione-consumo-vercel 2026-09)
+    const interval = setInterval(() => { void loadInvites() }, 300000)
     return () => { clearInterval(interval); }
   }, [])
 

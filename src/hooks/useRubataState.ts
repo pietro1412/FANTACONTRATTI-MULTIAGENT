@@ -376,15 +376,22 @@ export function useRubataState(leagueId: string) {
   }, [loadData])
 
   // ========== Adaptive polling ==========
+  // Stesso pattern di useSvincolatiState.ts:276-277 — quando Pusher è
+  // connesso il polling è solo rete di sicurezza (gli eventi onRubataBidPlaced/
+  // onRubataReadyChanged/onRubataStealDeclared/onAuctionClosed già aggiornano
+  // lo stato e forzano un reload con delay 100ms), quindi gli intervalli
+  // "connesso" possono essere molto più lunghi. Quando disconnesso restano gli
+  // intervalli aggressivi originali (invariati: qui il polling è l'unico
+  // meccanismo di aggiornamento). (2026-09, riduzione Function Invocations Vercel)
   useEffect(() => {
     const getPollingInterval = () => {
       const state = boardData?.rubataState
 
       if (isPusherConnected) {
-        if (state === 'AUCTION') return 3000
-        if (state === 'AUCTION_READY_CHECK') return 3000
-        if (state === 'OFFERING') return 3000
-        return 5000
+        if (state === 'AUCTION') return 8000
+        if (state === 'AUCTION_READY_CHECK') return 8000
+        if (state === 'OFFERING') return 8000
+        return 15000
       }
 
       if (state === 'AUCTION') return 800
@@ -422,7 +429,10 @@ export function useRubataState(leagueId: string) {
 
     void sendHeartbeat()
 
-    const interval = setInterval(() => { void sendHeartbeat() }, 3000)
+    // 8s: ampio margine sotto i 45s di timeout presenza lato server
+    // (RUBATA_HEARTBEAT_TIMEOUT in rubata.service.ts), allungato da 3s per
+    // ridurre le Function Invocations Vercel senza rischiare falsi "offline".
+    const interval = setInterval(() => { void sendHeartbeat() }, 8000)
     return () => { clearInterval(interval); }
   }, [leagueId, boardData?.myMemberId, readyStatus?.myMemberId])
 
@@ -810,7 +820,9 @@ export function useRubataState(leagueId: string) {
 
   useEffect(() => {
     void loadAppealStatus()
-    const interval = setInterval(() => { void loadAppealStatus() }, 5000)
+    // 10s: i ricorsi sono un flusso raro/non time-critical per il gameplay,
+    // allungato da 5s per ridurre le Function Invocations Vercel.
+    const interval = setInterval(() => { void loadAppealStatus() }, 10000)
     return () => { clearInterval(interval); }
   }, [loadAppealStatus])
 

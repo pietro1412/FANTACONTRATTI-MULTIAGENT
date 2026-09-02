@@ -109,8 +109,10 @@ export function Notifications({ leagueId, isAdmin, onNavigate }: NotificationsPr
 
   useEffect(() => {
     void loadNotifications()
-    // Poll every 30 seconds for new notifications
-    const interval = setInterval(() => { void loadNotifications() }, 30000)
+    // Poll every 3 minutes for new notifications (accessorio, non impatta il
+    // gameplay: allungato da 30s per ridurre le Function Invocations Vercel —
+    // vedi CLAUDE.md / audit riduzione-consumo-vercel 2026-09)
+    const interval = setInterval(() => { void loadNotifications() }, 180000)
     return () => { clearInterval(interval); }
   }, [leagueId, isAdmin])
 
