@@ -190,7 +190,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
   const [showCompareModal, setShowCompareModal] = useState(false)
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
   // Dashboard mode: board view toggle
-  const [boardViewMode, setBoardViewMode] = useState<'upcoming' | 'all'>('upcoming')
+  const [boardViewMode, setBoardViewMode] = useState<'upcoming' | 'all'>('all')
 
   // Toast notifications for success/error feedback
   const { toast } = useToast()
@@ -1114,11 +1114,14 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                 {/* Header colonne (solo desktop, fuori dallo scroll cosi' resta fisso) */}
                 <div className="hidden lg:grid rubata-board-grid px-3 py-2 border-b border-surface-50/20 bg-surface-300/40 flex-shrink-0">
                   <span className="micro-label text-center">#</span>
-                  <span className="micro-label">Giocatore</span>
+                  <div className="flex items-center justify-between gap-2 min-w-0">
+                    <span className="micro-label">Giocatore</span>
+                    <span className="micro-label flex-shrink-0">Rubata</span>
+                  </div>
                   <span className="micro-label text-center">Età</span>
                   <span className="micro-label text-center">Ingaggio</span>
+                  <span className="micro-label text-center">Durata</span>
                   <span className="micro-label text-center">Clausola</span>
-                  <span className="micro-label text-center">Rubata</span>
                   <span className="micro-label">Proprietario</span>
                   <span className="micro-label text-center">Azione</span>
                 </div>

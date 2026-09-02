@@ -590,11 +590,32 @@ export function PlayerStatsModal({ isOpen, onClose, player, leagueId, leaguePlay
           )
         )}
 
-        {/* Panoramica tab — solo fantacalcio.it (mai API-Football, vedi Storico) */}
+        {/* Panoramica tab — solo fantacalcio.it (mai API-Football, vedi Storico).
+            Stesso selettore stagione di "Storico Partite" (stesso stato
+            effectiveStoricoSeason, da cui derivano gia' fcSeasonStats): qui
+            mancava solo il controllo visivo per cambiarla. */}
+        {activeTab === 'panoramica' && storicoSeasons.length > 1 && (
+          <div className="flex justify-end gap-1.5 mb-3">
+            {storicoSeasons.map(season => (
+              <button
+                key={season}
+                type="button"
+                onClick={() => setStoricoSeason(season)}
+                className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-colors ${
+                  season === effectiveStoricoSeason
+                    ? 'bg-primary-500 text-white'
+                    : 'bg-surface-100 text-gray-400 hover:text-white'
+                }`}
+              >
+                {formatSeasonLabel(season)}
+              </button>
+            ))}
+          </div>
+        )}
         {activeTab === 'panoramica' && (!fcSeasonStats ? (
           <div className="text-center py-8">
             <div className="text-gray-400 mb-2">Statistiche non disponibili</div>
-            <div className="text-sm text-gray-500">Nessun dato fantacalcio.it per questo giocatore nella stagione corrente</div>
+            <div className="text-sm text-gray-500">Nessun dato fantacalcio.it per questo giocatore nella stagione selezionata</div>
           </div>
         ) : (
           <StatSection title="Fantamedia">

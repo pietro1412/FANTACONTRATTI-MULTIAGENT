@@ -167,6 +167,21 @@ export const BoardRow = memo(function BoardRow({
               {isAutoSkip && <span className="flex-shrink-0">auto-skip</span>}
             </div>
           </div>
+
+          {!passedOrStolenNote && (
+            <span
+              className={`price-tag ml-auto flex-shrink-0 stat-number text-sm pl-3.5 pr-2 py-0.5 ${
+                isMyPlayer
+                  ? 'bg-surface-100 text-gray-400'
+                  : isCurrent
+                  ? 'bg-accent-300 text-primary-700 shadow-[0_0_12px_rgba(252,211,77,0.7)]'
+                  : 'bg-accent-400 text-primary-700 shadow-[0_0_10px_rgba(245,158,11,0.6)]'
+              }`}
+              title="Prezzo rubata"
+            >
+              {player.rubataPrice}M
+            </span>
+          )}
         </div>
 
         <span className={`stat-number text-sm text-center ${getAgeColor(player.playerAge)}`}>{player.playerAge ?? NOT_DISPONIBILE}</span>
@@ -176,10 +191,8 @@ export const BoardRow = memo(function BoardRow({
         ) : (
           <>
             <span className="stat-number text-sm text-white text-center">{player.contractSalary}M</span>
+            <span className="stat-number text-sm text-white text-center">{player.contractDuration} s</span>
             <span className="stat-number text-sm text-white text-center">{player.contractClause}M</span>
-            <span className={`stat-number text-base text-center ${isCurrent ? 'text-accent-300' : isMyPlayer ? 'text-gray-400' : 'text-accent-400'}`}>
-              {player.rubataPrice}M
-            </span>
           </>
         )}
 
