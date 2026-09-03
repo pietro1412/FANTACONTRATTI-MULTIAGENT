@@ -493,13 +493,9 @@ export async function bidOnRubata(
     return { success: false, message: 'Non puoi fare offerte per un tuo giocatore' }
   }
 
-  // Check budget using bilancio (budget - monteIngaggi). Rubata price includes salary. Reserve 1.
-  // Non dipende da currentPrice: verificato una sola volta, fuori dal loop di retry.
-  const monteIngaggiOld = await prisma.playerContract.aggregate({
-    where: { leagueMemberId: bidder.id, paidAt: null },
-    _sum: { salary: true },
-  })
-  const bilancioOld = bidder.currentBudget - (monteIngaggiOld._sum.salary || 0)
+  // Check budget using bilancio (budget - monteIngaggi persistito): il credito da una
+  // vendita precedente (monte ingaggi negativo) e' subito spendibile — fix 03/09/2026.
+  const bilancioOld = bidder.currentBudget - bidder.totalSalaries
   const maxBidOld = bilancioOld - 1
   if (amount > maxBidOld) {
     return { success: false, message: `Budget insufficiente. Offerta massima: ${maxBidOld}` }
@@ -1284,11 +1280,8 @@ export async function getRubataBoard(
       id: true,
       teamName: true,
       currentBudget: true,
+      totalSalaries: true,
       user: { select: { username: true } },
-      contracts: {
-        where: { roster: { status: RosterStatus.ACTIVE }, paidAt: null },
-        select: { salary: true },
-      },
     },
   })
 
@@ -1302,15 +1295,17 @@ export async function getRubataBoard(
   })
   const rosterSalaryMap = new Map(rosterSalaries.map(s => [s.leagueMemberId, s._sum.salary ?? 0]))
 
+  // Bilancio (budget - monte ingaggi persistito): il credito da una vendita precedente
+  // (monte ingaggi negativo) e' subito spendibile — fix 03/09/2026.
   const memberBudgets = activeMembers
     .map(m => ({
       memberId: m.id,
       teamName: m.teamName || m.user.username,
       username: m.user.username,
       currentBudget: m.currentBudget,
-      totalSalaries: m.contracts.reduce((sum, c) => sum + c.salary, 0),
+      totalSalaries: m.totalSalaries,
       rosterSalary: rosterSalaryMap.get(m.id) ?? 0,
-      residuo: m.currentBudget - m.contracts.reduce((sum, c) => sum + c.salary, 0),
+      residuo: m.currentBudget - m.totalSalaries,
     }))
     .sort((a, b) => b.residuo - a.residuo)
 
@@ -1548,12 +1543,9 @@ export async function makeRubataOffer(
     return { success: false, message: 'Non puoi rubare un giocatore che hai svincolato in questa sessione' }
   }
 
-  // Check budget using bilancio (budget - monteIngaggi). Rubata price includes salary.
-  const monteIngaggiOffer = await prisma.playerContract.aggregate({
-    where: { leagueMemberId: member.id, paidAt: null },
-    _sum: { salary: true },
-  })
-  const bilancioOffer = member.currentBudget - (monteIngaggiOffer._sum.salary || 0)
+  // Check budget using bilancio (budget - monteIngaggi persistito): il credito da una
+  // vendita precedente e' subito spendibile — fix 03/09/2026.
+  const bilancioOffer = member.currentBudget - member.totalSalaries
   if (currentPlayer.rubataPrice > bilancioOffer) {
     return { success: false, message: `Budget insufficiente. Necessario: ${currentPlayer.rubataPrice}, Bilancio disponibile: ${bilancioOffer}` }
   }
@@ -1698,13 +1690,9 @@ export async function bidOnRubataAuction(
     return { success: false, message: 'Non puoi fare offerte per un tuo giocatore' }
   }
 
-  // Check budget using bilancio (budget - monteIngaggi). Rubata price includes salary.
-  // Non dipende da currentPrice: verificato una sola volta, fuori dal loop di retry.
-  const monteIngaggiBidR = await prisma.playerContract.aggregate({
-    where: { leagueMemberId: member.id, paidAt: null },
-    _sum: { salary: true },
-  })
-  const bilancioBidR = member.currentBudget - (monteIngaggiBidR._sum.salary || 0)
+  // Check budget using bilancio (budget - monteIngaggi persistito): il credito da una
+  // vendita precedente e' subito spendibile — fix 03/09/2026.
+  const bilancioBidR = member.currentBudget - member.totalSalaries
   if (amount > bilancioBidR) {
     return { success: false, message: `Budget insufficiente. Necessario: ${amount}, Bilancio disponibile: ${bilancioBidR}` }
   }
@@ -1991,15 +1979,24 @@ async function applyRubataAuctionClose(
     const offerta = payment - contractSalary
 
     // Winner pays OFFERTA only (salary captured in monte ingaggi via contract transfer)
+    // e monte ingaggi (totalSalaries): fix 03/09/2026 — mancava qui, a differenza di
+    // closeRubataAuction, lasciando il monte ingaggi disallineato dai contratti reali
+    // dopo un'asta con rilanci.
     await tx.leagueMember.update({
       where: { id: winnerId },
-      data: { currentBudget: { decrement: offerta } },
+      data: {
+        currentBudget: { decrement: offerta },
+        totalSalaries: { increment: contractSalary },
+      },
     })
 
     // Seller receives OFFERTA (salary freed from monte ingaggi)
     await tx.leagueMember.update({
       where: { id: auction.sellerId! },
-      data: { currentBudget: { increment: offerta } },
+      data: {
+        currentBudget: { increment: offerta },
+        totalSalaries: { decrement: contractSalary },
+      },
     })
 
     await tx.playerRoster.update({
@@ -3329,12 +3326,9 @@ export async function simulateRubataOffer(
     return { success: false, message: 'Non può rubare un proprio giocatore' }
   }
 
-  // Check budget using bilancio (budget - monteIngaggi). Rubata price includes salary.
-  const monteIngaggiSim = await prisma.playerContract.aggregate({
-    where: { leagueMemberId: targetMember.id, paidAt: null },
-    _sum: { salary: true },
-  })
-  const bilancioSim = targetMember.currentBudget - (monteIngaggiSim._sum.salary || 0)
+  // Check budget using bilancio (budget - monteIngaggi persistito): il credito da una
+  // vendita precedente e' subito spendibile — fix 03/09/2026.
+  const bilancioSim = targetMember.currentBudget - targetMember.totalSalaries
   if (currentPlayer.rubataPrice > bilancioSim) {
     return { success: false, message: `Budget insufficiente per ${targetMember.id}. Bilancio: ${bilancioSim}` }
   }
@@ -3493,12 +3487,9 @@ export async function simulateRubataBid(
     return { success: false, message: `L'offerta deve essere maggiore di ${activeAuction.currentPrice}` }
   }
 
-  // Check budget using bilancio (budget - monteIngaggi). Rubata price includes salary. Reserve 1.
-  const monteIngaggiSimBid = await prisma.playerContract.aggregate({
-    where: { leagueMemberId: targetMember.id, paidAt: null },
-    _sum: { salary: true },
-  })
-  const bilancioSimBid = targetMember.currentBudget - (monteIngaggiSimBid._sum.salary || 0)
+  // Check budget using bilancio (budget - monteIngaggi persistito): il credito da una
+  // vendita precedente e' subito spendibile — fix 03/09/2026.
+  const bilancioSimBid = targetMember.currentBudget - targetMember.totalSalaries
   const maxBidSim = bilancioSimBid - 1
   if (amount > maxBidSim) {
     return { success: false, message: `Budget insufficiente. Offerta massima: ${maxBidSim}` }

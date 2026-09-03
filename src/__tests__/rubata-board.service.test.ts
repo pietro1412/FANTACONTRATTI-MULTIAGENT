@@ -32,6 +32,7 @@ const prismaMock = vi.hoisted(() => ({
   playerContract: {
     findMany: vi.fn(),
     update: vi.fn(),
+    groupBy: vi.fn().mockResolvedValue([]),
   },
   auction: {
     findFirst: vi.fn(),
@@ -581,8 +582,8 @@ describe('getRubataBoard', () => {
         id: 'member-1',
         teamName: 'Team1',
         currentBudget: 200,
+        totalSalaries: 11,
         user: { username: 'user1' },
-        contracts: [{ salary: 8 }, { salary: 3 }],
       },
     ])
 

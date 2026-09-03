@@ -302,17 +302,14 @@ export function computeLeagueTotals(data: FinancialsData): LeagueTotals {
     ? teams.reduce((sum, t) => sum + (t.totalIndemnities ?? 0), 0)
     : null
 
-  const totalBalance = hasFinancialDetails
-    ? totalBudget - totalAcquisitions - totalContracts - (totalReleaseCosts ?? 0) + (totalIndemnities ?? 0)
-    : totalBudget - totalAcquisitions - totalContracts
+  // Rework 01/09/2026: budget e' gia' il valore post-consolidamento (tagli e indennizzi
+  // dell'ultima Fase Contratti sono gia' dentro currentBudget) — totalReleaseCosts/totalIndemnities
+  // restano solo come dato informativo storico (WaterfallChart, TeamFinanceDetail), non vanno
+  // piu' sommati/sottratti qui: sarebbe un doppio conteggio.
+  const totalBalance = totalBudget - totalAcquisitions - totalContracts
 
   // Per-team balances for KPIs
-  const teamBalances = teams.map(t => {
-    const bal = hasFinancialDetails
-      ? t.budget - t.annualContractCost - (t.totalReleaseCosts ?? 0) + (t.totalIndemnities ?? 0)
-      : t.budget - t.annualContractCost
-    return bal
-  })
+  const teamBalances = teams.map(t => t.budget - t.annualContractCost)
 
   const liquidityAvg = teamBalances.length > 0
     ? teamBalances.reduce((s, b) => s + b, 0) / teamBalances.length
@@ -372,10 +369,10 @@ export function computeLeagueTotals(data: FinancialsData): LeagueTotals {
 // ingaggi non e' ancora stato "pagato" da nessuno (rework 01/09/2026), quindi il Bilancio
 // mostrato e' semplicemente il Budget, senza sottrarre l'ingaggio. Diventa il vero Residuo
 // (Budget - Monte Ingaggi) solo quando la Fase Contratti si chiude per tutta la lega.
-export function getTeamBalance(team: TeamData, hasFinancialDetails: boolean, preConsolidation = false): number {
+// hasFinancialDetails non altera piu' il calcolo (fix 03/09/2026): team.budget e' gia' il
+// valore post-consolidamento, sommare/sottrarre di nuovo totalIndemnities/totalReleaseCosts
+// era un doppio conteggio (quei movimenti sono gia' dentro il budget).
+export function getTeamBalance(team: TeamData, _hasFinancialDetails: boolean, preConsolidation = false): number {
   if (preConsolidation) return team.budget
-  const bilancio = computeBilancio(team.budget, team.annualContractCost)
-  return hasFinancialDetails
-    ? bilancio - (team.totalReleaseCosts ?? 0) + (team.totalIndemnities ?? 0)
-    : bilancio
+  return computeBilancio(team.budget, team.annualContractCost)
 }

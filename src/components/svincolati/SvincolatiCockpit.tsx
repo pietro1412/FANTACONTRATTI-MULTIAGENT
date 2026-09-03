@@ -724,6 +724,9 @@ function DirettoriGeneraliList({ board, readyRelevant, onViewManagerRoster }: {
                 readyDot ? <span className="text-secondary-400">Pronto</span> : <span className="text-gray-400">In attesa</span>
               ) : 'In gara'
             }
+            secondaryLabel="ingaggi"
+            secondaryValue={`${member.rosterSalary}M`}
+            bigLabel="budget"
             bigValue={`${member.bilancio}M`}
             bigValueGold={isMe || isCurrent}
             onClick={() => { onViewManagerRoster(member); }}

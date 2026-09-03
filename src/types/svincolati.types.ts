@@ -77,6 +77,8 @@ export interface TurnMember {
   username: string
   budget: number
   bilancio: number
+  /** Somma ingaggi di tutti i giocatori in rosa (pagati o no) — dato informativo, live sul roster */
+  rosterSalary: number
   hasPassed: boolean
   isConnected?: boolean
 }

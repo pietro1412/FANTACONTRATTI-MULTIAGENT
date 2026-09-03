@@ -442,6 +442,7 @@ export function useSvincolatiState(leagueId: string) {
             username: m.user.username,
             budget: m.currentBudget,
             bilancio: m.balance,
+            rosterSalary: 0,
             hasPassed: false,
           }
         }))

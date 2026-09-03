@@ -233,7 +233,7 @@ describe('RoseGiocatori Page (Rose / Tutti i giocatori / Statistiche)', () => {
     it('renders the page header and player data after successful load', async () => {
       render(<RoseGiocatori onNavigate={mockOnNavigate} />)
       await waitFor(() => {
-        expect(screen.getByText('Monte ingaggi')).toBeInTheDocument()
+        expect(screen.getByText('Ingaggi rosa')).toBeInTheDocument()
       })
       expect(screen.getAllByText('Player Alpha').length).toBeGreaterThan(0)
     })
@@ -379,7 +379,7 @@ describe('RoseGiocatori Page (Rose / Tutti i giocatori / Statistiche)', () => {
       const user = userEvent.setup()
       render(<RoseGiocatori onNavigate={mockOnNavigate} />)
       await waitFor(() => {
-        expect(screen.getByText('Monte ingaggi')).toBeInTheDocument()
+        expect(screen.getByText('Ingaggi rosa')).toBeInTheDocument()
       })
       await user.click(screen.getByRole('tab', { name: /Tutti i giocatori/ }))
       await waitFor(() => {
@@ -391,7 +391,7 @@ describe('RoseGiocatori Page (Rose / Tutti i giocatori / Statistiche)', () => {
       const user = userEvent.setup()
       render(<RoseGiocatori onNavigate={mockOnNavigate} />)
       await waitFor(() => {
-        expect(screen.getByText('Monte ingaggi')).toBeInTheDocument()
+        expect(screen.getByText('Ingaggi rosa')).toBeInTheDocument()
       })
       await user.click(screen.getByRole('tab', { name: 'Statistiche' }))
       await waitFor(() => {

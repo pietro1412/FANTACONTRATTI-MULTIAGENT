@@ -65,6 +65,7 @@ function makeMember(overrides: Record<string, unknown> = {}) {
     status: 'ACTIVE',
     role: 'MANAGER',
     currentBudget: 500,
+    totalSalaries: 0,
     ...overrides,
   }
 }
@@ -77,6 +78,7 @@ function makeAdminMember(overrides: Record<string, unknown> = {}) {
     status: 'ACTIVE',
     role: 'ADMIN',
     currentBudget: 500,
+    totalSalaries: 0,
     ...overrides,
   }
 }
@@ -261,11 +263,10 @@ describe('makeRubataOffer', () => {
   it('should fail if budget is insufficient', async () => {
     const { makeRubataOffer } = await getService()
 
-    mockPrisma.leagueMember.findFirst.mockResolvedValue(makeMember({ currentBudget: 25 }))
+    // monteIngaggi (persistito) = 10 => bilancio = 25 - 10 = 15 < rubataPrice 20
+    mockPrisma.leagueMember.findFirst.mockResolvedValue(makeMember({ currentBudget: 25, totalSalaries: 10 }))
     mockPrisma.marketSession.findFirst.mockResolvedValue(makeSession())
     mockPrisma.playerMovement.findFirst.mockResolvedValue(null)
-    // monteIngaggi = 10 => bilancio = 25 - 10 = 15 < rubataPrice 20
-    mockPrisma.playerContract.aggregate.mockResolvedValue({ _sum: { salary: 10 } })
 
     const result = await makeRubataOffer(LEAGUE_ID, USER_ID)
 
@@ -380,11 +381,10 @@ describe('bidOnRubataAuction', () => {
   it('should fail if budget is insufficient (amount > bilancio)', async () => {
     const { bidOnRubataAuction } = await getService()
 
-    // budget=30, monteIngaggi=5, bilancio=25 → offerta 26 supera il bilancio (Bibbia RUBATA §4.2: bilancio >= amount, senza riserva)
-    mockPrisma.leagueMember.findFirst.mockResolvedValue(makeMember({ currentBudget: 30 }))
+    // budget=30, monteIngaggi(persistito)=5, bilancio=25 → offerta 26 supera il bilancio (Bibbia RUBATA §4.2: bilancio >= amount, senza riserva)
+    mockPrisma.leagueMember.findFirst.mockResolvedValue(makeMember({ currentBudget: 30, totalSalaries: 5 }))
     mockPrisma.marketSession.findFirst.mockResolvedValue(makeSession({ rubataState: 'AUCTION' }))
     mockPrisma.auction.findFirst.mockResolvedValue(makeAuction({ currentPrice: 20 }))
-    mockPrisma.playerContract.aggregate.mockResolvedValue({ _sum: { salary: 5 } })
 
     const result = await bidOnRubataAuction(LEAGUE_ID, USER_ID, 26)
 
@@ -571,18 +571,20 @@ describe('closeCurrentRubataAuction', () => {
     expect(data.pendingAck).toBe(true)
 
     // Verify budget transfers inside tx
-    // Winner budget decremented by sellerPayment = price - salary = 25 - 5 = 20
+    // Winner budget decremented by sellerPayment = price - salary = 25 - 5 = 20;
+    // totalSalaries incrementato del salary (5) — fix 03/09/2026.
     expect(txUpdateMember).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: MEMBER_ID },
-        data: { currentBudget: { decrement: 20 } },
+        data: { currentBudget: { decrement: 20 }, totalSalaries: { increment: 5 } },
       })
     )
-    // Seller budget incremented by OFFERTA = price - salary = 25 - 5 = 20
+    // Seller budget incremented by OFFERTA = price - salary = 25 - 5 = 20;
+    // totalSalaries decrementato del salary (5) — fix 03/09/2026.
     expect(txUpdateMember).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: SELLER_MEMBER_ID },
-        data: { currentBudget: { increment: 20 } },
+        data: { currentBudget: { increment: 20 }, totalSalaries: { decrement: 5 } },
       })
     )
 
@@ -691,19 +693,20 @@ describe('closeCurrentRubataAuction', () => {
 
     expect(result.success).toBe(true)
 
-    // Winner budget must be decremented by sellerPayment = 30 - 8 = 22, NOT by 30
+    // Winner budget must be decremented by sellerPayment = 30 - 8 = 22, NOT by 30;
+    // totalSalaries incrementato del salary (8) — fix 03/09/2026.
     expect(txUpdateMember).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: MEMBER_ID },
-        data: { currentBudget: { decrement: 22 } },
+        data: { currentBudget: { decrement: 22 }, totalSalaries: { increment: 8 } },
       })
     )
 
-    // Seller budget must be incremented by sellerPayment = 22
+    // Seller budget must be incremented by sellerPayment = 22; totalSalaries decrementato di 8.
     expect(txUpdateMember).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: SELLER_MEMBER_ID },
-        data: { currentBudget: { increment: 22 } },
+        data: { currentBudget: { increment: 22 }, totalSalaries: { decrement: 8 } },
       })
     )
   })
@@ -963,13 +966,12 @@ describe('simulateRubataOffer', () => {
   it('should fail if target member has insufficient budget', async () => {
     const { simulateRubataOffer } = await getService()
 
+    // monteIngaggi (persistito) = 5, bilancio = 15 - 5 = 10 < rubataPrice 20
     mockPrisma.leagueMember.findFirst
       .mockResolvedValueOnce(makeAdminMember())
-      .mockResolvedValueOnce(makeMember({ id: TARGET_MEMBER_ID, currentBudget: 15 }))
+      .mockResolvedValueOnce(makeMember({ id: TARGET_MEMBER_ID, currentBudget: 15, totalSalaries: 5 }))
 
     mockPrisma.marketSession.findFirst.mockResolvedValue(makeSession())
-    // monteIngaggi = 5, bilancio = 15 - 5 = 10 < rubataPrice 20
-    mockPrisma.playerContract.aggregate.mockResolvedValue({ _sum: { salary: 5 } })
 
     const result = await simulateRubataOffer(LEAGUE_ID, ADMIN_USER_ID, TARGET_MEMBER_ID)
 
@@ -1075,14 +1077,13 @@ describe('simulateRubataBid', () => {
   it('should fail if budget is insufficient for target member', async () => {
     const { simulateRubataBid } = await getService()
 
-    // budget=30, monteIngaggi=5, bilancio=25, maxBid=24
+    // budget=30, monteIngaggi(persistito)=5, bilancio=25, maxBid=24
     mockPrisma.leagueMember.findFirst
       .mockResolvedValueOnce(makeAdminMember())
-      .mockResolvedValueOnce(makeMember({ id: TARGET_MEMBER_ID, currentBudget: 30 }))
+      .mockResolvedValueOnce(makeMember({ id: TARGET_MEMBER_ID, currentBudget: 30, totalSalaries: 5 }))
 
     mockPrisma.marketSession.findFirst.mockResolvedValue(makeSession({ rubataState: 'AUCTION' }))
     mockPrisma.auction.findFirst.mockResolvedValue(makeAuction({ currentPrice: 20 }))
-    mockPrisma.playerContract.aggregate.mockResolvedValue({ _sum: { salary: 5 } })
 
     const result = await simulateRubataBid(LEAGUE_ID, ADMIN_USER_ID, TARGET_MEMBER_ID, 25)
 

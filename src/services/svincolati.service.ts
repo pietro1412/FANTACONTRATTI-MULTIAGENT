@@ -199,13 +199,10 @@ export async function bidOnFreeAgent(
     }
   }
 
-  // Check budget using bilancio (budget - monteIngaggi): bilancio >= offerta + ingaggio_default (Bibbia §5.2)
-  // Non dipende da currentPrice: verificato una sola volta, fuori dal loop di retry.
-  const monteIngaggiBid = await prisma.playerContract.aggregate({
-    where: { leagueMemberId: bidder.id, paidAt: null },
-    _sum: { salary: true },
-  })
-  const bilancioBid = bidder.currentBudget - (monteIngaggiBid._sum.salary || 0)
+  // Check budget using bilancio (budget - monteIngaggi persistito): bilancio >= offerta +
+  // ingaggio_default (Bibbia §5.2). Il credito da una vendita precedente e' subito
+  // spendibile — fix 03/09/2026.
+  const bilancioBid = bidder.currentBudget - bidder.totalSalaries
   if (amount + calculateDefaultSalary(amount) > bilancioBid) {
     return { success: false, message: `Budget insufficiente. Offerta massima: ${bilancioBid - calculateDefaultSalary(amount)}` }
   }
@@ -541,6 +538,15 @@ export async function getSvincolatiBoard(
     include: { user: { select: { username: true } } },
   })
 
+  // Somma ingaggi rosa (pagati o no) per ogni manager — dato puramente informativo,
+  // analogo alla card "Ingaggi" del tab Bilanci di Rubata.
+  const rosterSalaries = await prisma.playerContract.groupBy({
+    by: ['leagueMemberId'],
+    where: { leagueMemberId: { in: turnOrder }, roster: { status: RosterStatus.ACTIVE } },
+    _sum: { salary: true },
+  })
+  const rosterSalaryMap = new Map(rosterSalaries.map(s => [s.leagueMemberId, s._sum.salary ?? 0]))
+
   // Sort by turn order
   const orderedMembers = turnOrder.map(id => turnOrderMembers.find(m => m.id === id)).filter(Boolean)
 
@@ -647,6 +653,7 @@ export async function getSvincolatiBoard(
         username: m!.user.username,
         budget: m!.currentBudget,
         bilancio: m!.currentBudget - m!.totalSalaries,
+        rosterSalary: rosterSalaryMap.get(m!.id) ?? 0,
         hasPassed: ((activeSession.svincolatiPassedMembers as string[] | null) || []).includes(m!.id),
         isConnected: connectionStatus.get(m!.id) ?? false,
       })),
@@ -743,12 +750,9 @@ export async function nominateFreeAgent(
     return { success: false, message: 'Questo giocatore è già in una rosa' }
   }
 
-  // Check bilancio (budget - monteIngaggi) >= 2 (offerta minima 1 + ingaggio minimo 1)
-  const monteIngaggiNom = await prisma.playerContract.aggregate({
-    where: { leagueMemberId: member.id, paidAt: null },
-    _sum: { salary: true },
-  })
-  const bilancio = member.currentBudget - (monteIngaggiNom._sum.salary || 0)
+  // Check bilancio (budget - monteIngaggi persistito) >= 2 (offerta minima 1 + ingaggio
+  // minimo 1). Il credito da una vendita precedente e' subito spendibile — fix 03/09/2026.
+  const bilancio = member.currentBudget - member.totalSalaries
   if (bilancio < 2) {
     return { success: false, message: `Budget insufficiente. Bilancio disponibile: ${bilancio} (servono almeno 2)` }
   }
@@ -1777,17 +1781,14 @@ async function advanceSvincolatiToNextTurn(sessionId: string): Promise<ServiceRe
     }
   }
 
-  // M-5: Check if any member has bilancio >= 2
+  // M-5: Check if any member has bilancio >= 2 (budget - monteIngaggi persistito: il
+  // credito da una vendita precedente e' subito spendibile — fix 03/09/2026).
   const allActiveMembers = await prisma.leagueMember.findMany({
     where: { leagueId: session.leagueId, status: MemberStatus.ACTIVE },
   })
   let anyoneCanBuy = false
   for (const m of allActiveMembers) {
-    const monteIngaggi = await prisma.playerContract.aggregate({
-      where: { leagueMemberId: m.id, paidAt: null },
-      _sum: { salary: true },
-    })
-    const bilancio = m.currentBudget - (monteIngaggi._sum.salary || 0)
+    const bilancio = m.currentBudget - m.totalSalaries
     if (bilancio >= 2) {
       anyoneCanBuy = true
       break
@@ -1832,17 +1833,14 @@ async function advanceSvincolatiToNextTurn(sessionId: string): Promise<ServiceRe
     ? passedMembers.filter(id => id !== previousNominatorId)
     : passedMembers
 
-  // M-5 (turn-level): Also skip members with bilancio < 2
+  // M-5 (turn-level): Also skip members with bilancio < 2 (budget - monteIngaggi
+  // persistito — fix 03/09/2026).
   const insufficientBudgetMembers: string[] = []
   for (const memberId of turnOrder) {
     if (newPassedMembers.includes(memberId) || finishedMembers.includes(memberId)) continue
     const memberData = allActiveMembers.find(m => m.id === memberId)
     if (!memberData) continue
-    const monteIngaggi = await prisma.playerContract.aggregate({
-      where: { leagueMemberId: memberId, paidAt: null },
-      _sum: { salary: true },
-    })
-    const bilancio = memberData.currentBudget - (monteIngaggi._sum.salary || 0)
+    const bilancio = memberData.currentBudget - memberData.totalSalaries
     if (bilancio < 2) {
       insufficientBudgetMembers.push(memberId)
     }

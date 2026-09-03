@@ -62,12 +62,12 @@ describe('svincolati.service — bidOnFreeAgent', () => {
       userId: USER_ID,
       status: 'ACTIVE',
       currentBudget: 500,
+      totalSalaries: 0,
     })
     mockPrisma.leagueMember.findUnique.mockResolvedValue({
       id: MEMBER_ID,
       user: { username: 'Bidder' },
     })
-    mockPrisma.playerContract.aggregate.mockResolvedValue({ _sum: { salary: 0 } })
   })
 
   function mockTransactionOnce(claimCount: number) {
@@ -152,15 +152,40 @@ describe('svincolati.service — bidOnFreeAgent', () => {
     expect(mockPrisma.$transaction).not.toHaveBeenCalled()
   })
 
-  it('rework 01/09/2026: calcola il monte ingaggi per la validazione solo sui contratti non ancora pagati', async () => {
+  it('fix 03/09/2026: usa il monte ingaggi persistito (non una query live) — il credito da una vendita precedente e\' subito spendibile', async () => {
     const { bidOnFreeAgent } = await getService()
+    // currentBudget 30, totalSalaries -10 (credito da una rubata precedente) → bilancio 40, offerta 25+ingaggio(3) = 28 <= 40
+    mockPrisma.leagueMember.findFirst.mockResolvedValue({
+      id: MEMBER_ID,
+      leagueId: LEAGUE_ID,
+      userId: USER_ID,
+      status: 'ACTIVE',
+      currentBudget: 30,
+      totalSalaries: -10,
+    })
     mockPrisma.$transaction.mockImplementation(mockTransactionOnce(1))
 
-    await bidOnFreeAgent(AUCTION_ID, USER_ID, 25)
+    const result = await bidOnFreeAgent(AUCTION_ID, USER_ID, 25)
 
-    expect(mockPrisma.playerContract.aggregate).toHaveBeenCalledWith({
-      where: { leagueMemberId: MEMBER_ID, paidAt: null },
-      _sum: { salary: true },
+    expect(result.success).toBe(true)
+    expect(mockPrisma.playerContract.aggregate).not.toHaveBeenCalled()
+  })
+
+  it('fix 03/09/2026: respinge l\'offerta se currentBudget - totalSalaries (persistito) e\' insufficiente', async () => {
+    const { bidOnFreeAgent } = await getService()
+    // currentBudget 30, totalSalaries 10 → bilancio 20, offerta 25+ingaggio(3)=28 > 20
+    mockPrisma.leagueMember.findFirst.mockResolvedValue({
+      id: MEMBER_ID,
+      leagueId: LEAGUE_ID,
+      userId: USER_ID,
+      status: 'ACTIVE',
+      currentBudget: 30,
+      totalSalaries: 10,
     })
+
+    const result = await bidOnFreeAgent(AUCTION_ID, USER_ID, 25)
+
+    expect(result.success).toBe(false)
+    expect(result.message).toContain('Budget insufficiente')
   })
 })
