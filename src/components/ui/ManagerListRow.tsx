@@ -21,6 +21,10 @@ export interface ManagerListRowProps {
   bigValueGold?: boolean
   /** Dettaglio piccolo sotto il numero (es. "budget 154") */
   smallValue?: React.ReactNode
+  /** Valore accessorio a sinistra del numero grande, stessa riga, un po' più piccolo (es. ingaggi rosa) */
+  secondaryValue?: React.ReactNode
+  /** Etichetta minuscola sopra secondaryValue (es. "ingaggi") */
+  secondaryLabel?: string
   /** Pallino di connessione sull'avatar (true verde, false rosso, undefined nascosto) */
   connectedDot?: boolean | null
   /** Indicatore "pronto" sull'avatar (true check verde, false pallino ambra pulsante, undefined nascosto). Non usare insieme a connectedDot. */
@@ -47,6 +51,8 @@ export const ManagerListRow = memo(function ManagerListRow({
   bigUnit,
   bigValueGold = false,
   smallValue,
+  secondaryValue,
+  secondaryLabel,
   connectedDot,
   readyDot,
   leadingBadge,
@@ -110,16 +116,28 @@ export const ManagerListRow = memo(function ManagerListRow({
       </div>
 
       {/* Numeri a destra */}
-      <div className="text-right flex-shrink-0">
-        <div className={`stat-number text-[21px] leading-none ${bigValueGold || isMe ? 'text-accent-400' : 'text-white'}`}>
-          {bigValue}
-          {bigUnit && (
-            <span className="font-mono text-[10px] font-semibold text-gray-500 ml-0.5">{bigUnit}</span>
+      <div className="flex items-center gap-2.5 flex-shrink-0">
+        {secondaryValue != null && (
+          <div className="text-right">
+            {secondaryLabel && (
+              <div className="micro-label text-[8px] leading-none text-gray-500">{secondaryLabel}</div>
+            )}
+            <div className="stat-number text-[15px] leading-none text-gray-400 mt-0.5">
+              {secondaryValue}
+            </div>
+          </div>
+        )}
+        <div className="text-right">
+          <div className={`stat-number text-[21px] leading-none ${bigValueGold || isMe ? 'text-accent-400' : 'text-white'}`}>
+            {bigValue}
+            {bigUnit && (
+              <span className="font-mono text-[10px] font-semibold text-gray-500 ml-0.5">{bigUnit}</span>
+            )}
+          </div>
+          {smallValue && (
+            <div className="font-mono text-[10px] text-gray-500 mt-0.5">{smallValue}</div>
           )}
         </div>
-        {smallValue && (
-          <div className="font-mono text-[10px] text-gray-500 mt-0.5">{smallValue}</div>
-        )}
       </div>
     </div>
   )

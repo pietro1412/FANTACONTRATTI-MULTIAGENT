@@ -1292,6 +1292,16 @@ export async function getRubataBoard(
     },
   })
 
+  const rosterSalaries = await prisma.playerContract.groupBy({
+    by: ['leagueMemberId'],
+    where: {
+      leagueMemberId: { in: activeMembers.map(m => m.id) },
+      roster: { status: RosterStatus.ACTIVE },
+    },
+    _sum: { salary: true },
+  })
+  const rosterSalaryMap = new Map(rosterSalaries.map(s => [s.leagueMemberId, s._sum.salary ?? 0]))
+
   const memberBudgets = activeMembers
     .map(m => ({
       memberId: m.id,
@@ -1299,6 +1309,7 @@ export async function getRubataBoard(
       username: m.user.username,
       currentBudget: m.currentBudget,
       totalSalaries: m.contracts.reduce((sum, c) => sum + c.salary, 0),
+      rosterSalary: rosterSalaryMap.get(m.id) ?? 0,
       residuo: m.currentBudget - m.contracts.reduce((sum, c) => sum + c.salary, 0),
     }))
     .sort((a, b) => b.residuo - a.residuo)

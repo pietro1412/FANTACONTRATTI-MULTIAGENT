@@ -922,6 +922,8 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                                 isMe={mb.memberId === myMemberId}
                                 dim={isOwner || insufficient}
                                 readyDot={readyDot}
+                                secondaryLabel="ingaggi"
+                                secondaryValue={`${mb.rosterSalary}M`}
                                 statusLine={
                                   rubataAffordCheck
                                     ? isOwner

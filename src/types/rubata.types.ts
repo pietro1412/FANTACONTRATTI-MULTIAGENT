@@ -84,6 +84,8 @@ export interface MemberBudgetInfo {
   username: string
   currentBudget: number
   totalSalaries: number
+  /** Somma ingaggi di tutti i giocatori in rosa (pagati o no) — quanto pesa la rosa attuale, live sul roster */
+  rosterSalary: number
   residuo: number
 }
 

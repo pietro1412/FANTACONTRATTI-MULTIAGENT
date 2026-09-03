@@ -482,14 +482,17 @@ export function RoseGiocatori({ onNavigate, initialView = 'rose', initialTeamFil
 
   const roseStats = useMemo(() => {
     if (!roseSelectedMember?.roster) {
-      return { total: 0, salary: 0, clauses: 0, byPosition: { P: 0, D: 0, C: 0, A: 0 } }
+      return { total: 0, salary: 0, rosterSalary: 0, clauses: 0, byPosition: { P: 0, D: 0, C: 0, A: 0 } }
     }
     const roster = roseSelectedMember.roster
     return {
       total: roster.length,
-      // Monte ingaggi fissato (LeagueMember.totalSalaries), non ricalcolato live dal roster:
-      // uno scambio non deve alterarlo fino al prossimo consolidamento Fase 3 Contratti.
+      // Monte ingaggi non pagato (LeagueMember.totalSalaries): usato per il calcolo del Bilancio,
+      // non ricalcolato live dal roster — uno scambio non deve alterarlo fino al prossimo consolidamento.
       salary: roseSelectedMember.totalSalaries,
+      // Ingaggi rosa: somma reale degli ingaggi di TUTTI i giocatori in rosa (pagati o no),
+      // calcolata live dal roster — dato puramente informativo, non entra nel calcolo del Bilancio.
+      rosterSalary: roster.reduce((sum, r) => sum + (r.contract?.salary || 0), 0),
       clauses: roster.reduce((sum, r) => sum + (r.contract?.rescissionClause || 0), 0),
       byPosition: {
         P: roster.filter(r => r.player.position === 'P').length,
@@ -860,11 +863,11 @@ export function RoseGiocatori({ onNavigate, initialView = 'rose', initialTeamFil
         <div className="w-px h-7 bg-surface-50" />
         <div className="text-right">
           <div className="micro-label text-[9px] flex items-center justify-end gap-1">
-            Monte ingaggi
-            <InfoTooltip content={GLOSSARY.monteIngaggi!.short} label={GLOSSARY.monteIngaggi!.term} align="right" />
+            Ingaggi rosa
+            <InfoTooltip content="Somma degli ingaggi di tutti i giocatori in rosa per la stagione, pagati o no." label="Ingaggi rosa" align="right" />
           </div>
           <div className="budget-display text-lg sm:text-xl text-white leading-tight">
-            {roseStats.salary}<span className="text-xs text-gray-500">M</span>
+            {roseStats.rosterSalary}<span className="text-xs text-gray-500">M</span>
           </div>
         </div>
         <div className="w-px h-7 bg-surface-50" />
