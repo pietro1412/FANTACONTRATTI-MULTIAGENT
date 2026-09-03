@@ -17,6 +17,8 @@ export interface ManagerListRowProps {
   bigValue: React.ReactNode
   /** Unità piccola accanto al numero grande (es. "max") */
   bigUnit?: string
+  /** Etichetta minuscola sopra bigValue (es. "budget") */
+  bigLabel?: string
   /** Numero grande in oro (es. offerta del leader, riga TU) */
   bigValueGold?: boolean
   /** Dettaglio piccolo sotto il numero (es. "budget 154") */
@@ -49,6 +51,7 @@ export const ManagerListRow = memo(function ManagerListRow({
   statusLine,
   bigValue,
   bigUnit,
+  bigLabel,
   bigValueGold = false,
   smallValue,
   secondaryValue,
@@ -128,7 +131,10 @@ export const ManagerListRow = memo(function ManagerListRow({
           </div>
         )}
         <div className="text-right">
-          <div className={`stat-number text-[21px] leading-none ${bigValueGold || isMe ? 'text-accent-400' : 'text-white'}`}>
+          {bigLabel && (
+            <div className="micro-label text-[8px] leading-none text-gray-500">{bigLabel}</div>
+          )}
+          <div className={`stat-number text-[21px] leading-none ${bigLabel ? 'mt-0.5' : ''} ${bigValueGold || isMe ? 'text-accent-400' : 'text-white'}`}>
             {bigValue}
             {bigUnit && (
               <span className="font-mono text-[10px] font-semibold text-gray-500 ml-0.5">{bigUnit}</span>
