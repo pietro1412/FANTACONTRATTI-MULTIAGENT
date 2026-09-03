@@ -209,10 +209,13 @@ export function SvincolatiCockpit(props: SvincolatiCockpitProps) {
           cresce oltre h-full quando una colonna ha contenuto alto (es. rosa piena),
           e l'overflow-hidden di un antenato taglia il fondo di tutte le colonne
           invece di far scrollare solo quella interna (stesso bug di AuctionRoomLayout). */}
-      <div className="mt-3 lg:mt-0 lg:pt-2 lg:h-full lg:min-h-0 lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:grid-rows-[minmax(0,1fr)] lg:gap-3 lg:overflow-hidden">
+      <div className="mt-3 lg:mt-0 lg:pt-2 lg:h-full lg:min-h-0 lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:grid-rows-[auto_minmax(0,1fr)] lg:gap-3 lg:overflow-hidden">
 
-        {/* ===== Sinistra: Arena + tab Bilanci ===== */}
-        <div className="space-y-3 min-w-0 lg:space-y-0 lg:flex lg:flex-col lg:gap-3 lg:min-h-0">
+        {/* ===== Arena (top of right column on desktop, top on mobile) =====
+            Sopra il catalogo giocatori liberi (colonna destra), cosi' i
+            Bilanci a sinistra restano sempre visibili per intero — stesso
+            pattern adottato in Rubata. */}
+        <div className="space-y-3 min-w-0 lg:space-y-0 lg:col-start-2 lg:row-start-1 lg:min-h-0">
           {/* READY_CHECK — tocca a te: scegli dalla tabella a destra */}
           {canNominate && (
             <div className="bg-surface-200 arena-gold rounded-xl p-5 text-center">
@@ -393,7 +396,10 @@ export function SvincolatiCockpit(props: SvincolatiCockpitProps) {
               <p className="text-sm text-gray-400 mt-1">Tutti i manager hanno terminato le chiamate.</p>
             </div>
           )}
+        </div>
 
+        {/* ===== Sinistra: tab Bilanci (spans both rows on desktop; below arena on mobile) ===== */}
+        <div className="min-w-0 lg:col-start-1 lg:row-start-1 lg:row-end-3 lg:flex lg:flex-col lg:gap-3 lg:min-h-0">
           {/* Direttori Generali (tab Bilanci su desktop, card diretta su mobile — nascosto
               su mobile durante un'asta attiva per lasciare spazio all'arena, stesso
               comportamento di prima) + footer "Ho finito", sempre visibile indipendentemente
@@ -499,7 +505,7 @@ export function SvincolatiCockpit(props: SvincolatiCockpitProps) {
         </div>
 
         {/* ===== Destra: catalogo giocatori liberi ===== */}
-        <div className={`mt-3 lg:mt-0 lg:min-h-0 ${auction ? 'hidden lg:flex lg:flex-col' : 'flex flex-col'}`}>
+        <div className={`mt-3 lg:mt-0 lg:col-start-2 lg:row-start-2 lg:min-h-0 ${auction ? 'hidden lg:flex lg:flex-col' : 'flex flex-col'}`}>
           <div className="bg-surface-200 border border-surface-50 rounded-xl overflow-hidden flex flex-col h-full min-h-0">
             <div className="px-3.5 py-2.5 border-b border-surface-50 flex flex-col gap-2 flex-shrink-0">
               <div className="flex items-baseline gap-2">

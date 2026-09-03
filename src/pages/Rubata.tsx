@@ -641,9 +641,12 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
           {/* grid-rows-[minmax(0,1fr)] + overflow-hidden: senza, la riga implicita "auto"
               cresce oltre h-full quando una colonna ha molto contenuto, e l'overflow-hidden
               di un antenato taglia il fondo invece di far scrollare solo la colonna interna. */}
-          <div className="mt-3 lg:mt-0 lg:pt-2 lg:h-full lg:min-h-0 lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:grid-rows-[minmax(0,1fr)] lg:gap-3 lg:overflow-hidden">
-            {/* === ZONA AZIONE (left on desktop, top on mobile) === */}
-            <div className="mb-4 lg:mb-0 space-y-3 lg:space-y-0 lg:flex lg:flex-col lg:gap-2 lg:min-h-0 lg:overflow-hidden">
+          <div className="mt-3 lg:mt-0 lg:pt-2 lg:h-full lg:min-h-0 lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:grid-rows-[auto_minmax(0,1fr)] lg:gap-3 lg:overflow-hidden">
+            {/* === ARENA (top of right column on desktop, top on mobile) ===
+                Il box "sul piatto"/asta con timer vive qui: su desktop sopra il
+                tabellone (colonna destra), cosi' i Bilanci a sinistra restano
+                sempre visibili per intero (mai schiacciati dall'arena). */}
+            <div className="lg:col-start-2 lg:row-start-1 lg:min-h-0">
               {/* Dynamic content based on rubataState */}
 
               {/* OFFERING: HeroPlayerCard (arena di decisione) + rivali */}
@@ -800,6 +803,10 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                   heroRef={currentPlayerRef as React.RefObject<HTMLDivElement>}
                 />
               )}
+            </div>
+
+            {/* === ZONA AZIONE (left on desktop, spans both rows; below arena on mobile) === */}
+            <div className="mb-4 lg:mb-0 space-y-3 lg:space-y-0 lg:col-start-1 lg:row-start-1 lg:row-end-3 lg:flex lg:flex-col lg:gap-2 lg:min-h-0 lg:overflow-hidden">
               {rubataState === 'PENDING_ACK' && pendingAck && !pendingAck.allAcknowledged && pendingAck.userAcknowledged && (
                 <PendingAckBanner
                   pendingAck={pendingAck}
@@ -981,7 +988,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
             </div>
 
             {/* === TABELLONE (right on desktop, below on mobile) === */}
-            <div className="lg:min-h-0 lg:flex lg:flex-col">
+            <div className="lg:col-start-2 lg:row-start-2 lg:min-h-0 lg:flex lg:flex-col">
               {/* Preference Edit Modal */}
               {selectedPlayerForPrefs && (
                 <PreferenceModal
